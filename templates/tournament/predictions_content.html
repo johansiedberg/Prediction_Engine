@@ -1,0 +1,1174 @@
+{% load static %}
+{% load dashboard_tags %}
+<form method="post" id="predictionForm" action="{% url 'dashboard' %}">
+    {% csrf_token %}
+    <input type="hidden" name="active_tab" id="activeTabInput" value="{{ active_tab|default:'' }}">
+
+    <style>
+        .neutral-score-input.match-input {
+            width: 42px !important;
+            height: 34px !important;
+            background: rgba(15, 23, 42, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.16) !important;
+            border-radius: 8px !important;
+            color: #FFFFFF !important;
+            font-weight: 800 !important;
+            font-size: 0.92rem !important;
+            text-align: center !important;
+            padding: 0 !important;
+            line-height: 32px !important;
+            box-sizing: border-box !important;
+            transition: all 0.2s ease-in-out !important;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+        }
+        .neutral-score-input::-webkit-outer-spin-button,
+        .neutral-score-input::-webkit-inner-spin-button {
+            -webkit-appearance: none !important;
+            margin: 0 !important;
+        }
+        .neutral-score-input[type=number] {
+            -moz-appearance: textfield !important;
+        }
+        .neutral-score-input.match-input:focus {
+            background: rgba(15, 23, 42, 0.95) !important;
+            border-color: #10B981 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3), inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+            outline: none !important;
+        }
+        .neutral-score-input.match-input:disabled {
+            opacity: 0.65 !important;
+            background: rgba(15, 23, 42, 0.5) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .match-row-card {
+            background: rgba(15, 23, 42, 0.5) !important;
+            border: 1px solid rgba(255, 255, 255, 0.07) !important;
+            border-radius: 10px !important;
+            transition: background 0.15s ease !important;
+        }
+        .match-row-card:hover {
+            background: rgba(15, 23, 42, 0.75) !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+        }
+        .pred-team-name {
+            font-size: 0.85rem !important;
+            font-weight: 700 !important;
+            color: #FFFFFF !important;
+        }
+        .tb-btn.active-pill {
+            background: rgba(16, 185, 129, 0.15) !important;
+            border: 1px solid rgba(16, 185, 129, 0.4) !important;
+            color: rgba(16, 185, 129, 0.9) !important;
+            box-shadow: none !important;
+        }
+        .tb-btn.inactive-pill {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            color: rgba(255, 255, 255, 0.25) !important;
+        }
+        .tb-btn.inactive-pill:hover {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: rgba(255, 255, 255, 0.5) !important;
+        }
+        .standings-table-pred {
+            border-collapse: separate !important;
+            border-spacing: 0 4px !important;
+        }
+        .standings-table-pred th {
+            font-size: 0.7rem !important;
+            letter-spacing: 0.06em !important;
+            text-transform: uppercase !important;
+            color: #9CA3AF !important;
+            border: none !important;
+            padding-bottom: 8px !important;
+        }
+        .standings-table-pred tr.pred-team-row {
+            background: rgba(15, 23, 42, 0.5) !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            border-radius: 8px !important;
+            transition: all 0.15s ease !important;
+        }
+        .standings-table-pred tr.pred-team-row:hover {
+            background: rgba(15, 23, 42, 0.8) !important;
+        }
+        .points-pop-circle {
+            width: 26px !important;
+            height: 26px !important;
+            border-radius: 50% !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+            border: 1.5px solid rgba(255, 255, 255, 0.8) !important;
+            color: #FFFFFF !important;
+            font-weight: 800 !important;
+            font-size: 0.82rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+        }
+    </style>
+
+    {% if is_verified %}
+    <!-- Informative Banner for Verified & Locked Predictions -->
+    <div class="p-3.5 p-md-4 rounded-4 mb-4 d-flex align-items-center gap-3 shadow-lg" 
+         style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(52, 211, 153, 0.5); border-left: 5px solid #34D399; backdrop-filter: blur(12px);">
+        <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-success bg-opacity-25 border border-success border-opacity-50" style="width: 44px; height: 44px; color: #34D399;">
+            <i class="fa-solid fa-lock fs-5"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2.5 flex-wrap mb-1">
+                <h5 class="fw-extrabold mb-0" style="font-size: 1.05rem; color: #34D399 !important;">
+                    Dina tips är sparade och verifierade
+                </h5>
+                <span class="badge bg-success text-dark fw-bold px-2.5 py-1 rounded-pill shadow-sm" style="font-size: 0.72rem; letter-spacing: 0.3px;">
+                    Låst kupong
+                </span>
+            </div>
+            <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #E2E8F0;">
+                Eftersom dina tips har sparats och verifierats kan inga ändringar göras i tipskupongen.
+            </p>
+        </div>
+    </div>
+    {% else %}
+    <!-- Informative Alert Banner for unverified predictions -->
+    <div class="p-3.5 p-md-4 rounded-4 mb-4 d-flex align-items-start gap-3 shadow-lg" 
+         style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(250, 204, 21, 0.5); border-left: 5px solid #FACC15; backdrop-filter: blur(12px);">
+        <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-warning bg-opacity-25 border border-warning border-opacity-50 text-warning" style="width: 44px; height: 44px;">
+            <i class="fa-solid fa-triangle-exclamation fs-5"></i>
+        </div>
+        <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2.5 flex-wrap mb-1">
+                <h5 class="fw-extrabold mb-0" style="font-size: 1.05rem; color: #FACC15 !important;">
+                    Slutför och spara dina tips
+                </h5>
+                <span class="badge bg-warning text-dark fw-bold px-2.5 py-1 rounded-pill shadow-sm" style="font-size: 0.72rem; letter-spacing: 0.3px;">
+                    Ej verifierad ännu
+                </span>
+            </div>
+            <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #E2E8F0;">
+                Dina tips är ännu inte verifierade av Admin. Fyll i dina resultat för <strong style="color: #34D399;">Gruppspelet</strong>, <strong style="color: #FACC15;">Slutspelet</strong> och <strong style="color: #38BDF8;">Bonusfrågorna</strong> och klicka på <strong class="text-white">Spara mina tips</strong>. När din tipskupong har verifierats av Admin låses den fullständiga Dashboarden upp.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Centered Navigation Tabs (Two Lines) -->
+    <ul class="nav nav-pills justify-content-center flex-wrap gap-2 mb-4" id="tournamentTab" role="tablist">
+        <!-- Line 1: Groups -->
+        {% for group in groups %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if forloop.first and not active_tab or active_tab == group.id|stringformat:'s' %}active{% endif %}" id="group-{{ group.id }}-tab" data-bs-toggle="pill" data-bs-target="#group-{{ group.id }}" type="button" role="tab">
+                Grupp {{ group.name }}
+            </button>
+        </li>
+        {% endfor %}
+
+        <!-- Flex Line Break with vertical spacing between Row 1 and Row 2 -->
+        <li class="w-100 my-2" style="list-style: none; height: 0;" aria-hidden="true"></li>
+
+        <!-- Line 2: Other Sections -->
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'thirds' %}active{% endif %}" id="thirds-tab" data-bs-toggle="pill" data-bs-target="#thirds-stage" type="button" role="tab">
+                {% if is_qualifying %}Rankade Grupptvåor{% else %}Bästa Treor{% endif %}
+            </button>
+        </li>
+        {% if is_qualifying %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'hosts' %}active{% endif %}" id="hosts-tab" data-bs-toggle="pill" data-bs-target="#hosts-stage" type="button" role="tab">
+                Ranking Värdnationer
+            </button>
+        </li>
+        {% endif %}
+
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'knockout' %}active{% endif %}" id="knockout-tab" data-bs-toggle="pill" data-bs-target="#knockout-stage" type="button" role="tab">
+                Slutspel
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'sidebets' %}active{% endif %}" id="sidebets-tab" data-bs-toggle="pill" data-bs-target="#sidebets-stage" type="button" role="tab">
+                Bonusfrågor
+            </button>
+        </li>
+
+    </ul>
+
+    <div class="tab-content" id="tournamentTabContent">
+        
+        <!-- GROUPS TAB CONTENT -->
+        {% for group in groups %}
+        <div class="tab-pane fade {% if forloop.first and not active_tab or active_tab == group.id|stringformat:'s' %}show active{% endif %}" id="group-{{ group.id }}" role="tabpanel">
+            <div class="row g-4">
+                
+                <!-- LEFT SIDE: Matches Standalone Floating Card -->
+                <div class="col-lg-7">
+                    <div class="glass-card p-4">
+                        <h4 class="fw-bold text-white mb-3">Spelschema Grupp {{ group.name }}</h4>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-borderless align-middle mb-0" style="border-collapse: separate; border-spacing: 0 8px;">
+                                <thead class="text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+                                    <tr>
+                                        <th style="width: 20%;" class="text-center">Datum</th>
+                                        <th style="width: 30%;" class="text-end">Hemmalag</th>
+                                        <th style="width: 20%;" class="text-center">Tips</th>
+                                        <th style="width: 30%;" class="text-start">Bortalag</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for match in group.matches.all %}
+                                    {% with pred=user_predictions|get_item:match.id home=match.get_home_team_info away=match.get_away_team_info %}
+                                    
+                                    <tr class="match-row-card">
+                                        
+                                        <!-- Compact 2-Line Date & Time Box -->
+                                        <td class="text-center py-2 px-2">
+                                            <div class="date-badge-box">
+                                                <span class="fw-medium text-secondary" style="font-size: 0.68rem; color: #9CA3AF !important;">{{ match.date_time|date:"Y-m-d"|default:"2028-06-14" }}</span>
+                                                <span class="fw-bold text-white text-capitalize" style="font-size: 0.75rem;">{{ match.date_time|date:"l H:i"|default:"Onsdag 19:00" }}</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Home Team + Flag -->
+                                        <td class="text-end pe-3 py-2">
+                                            <div class="d-flex align-items-center justify-content-end gap-2">
+                                                <span class="fw-bold text-white fs-6 team-name-display" data-group="{{ group.id }}" data-original="{{ home.name }}">{{ home.name }}</span>
+                                                {% if home.flag_url %}
+                                                    <img class="flag-icon-img" src="{{ home.flag_url }}" alt="{{ home.name }}">
+                                                {% else %}
+                                                    <img class="flag-img flag-icon-img" data-group="{{ group.id }}" data-original="{{ home.name }}" src="" style="display: none;">
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        
+                                        <!-- Neutral Score Inputs (No Green Border) -->
+                                        <td class="text-center py-2 px-0">
+                                            <div class="d-flex justify-content-center align-items-center gap-1">
+                                                <input type="number" name="home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input" data-group="{{ group.id }}" placeholder="-" {% if submission and submission.is_verified %}disabled{% endif %}>
+                                                <span class="text-secondary fw-bold px-1">:</span>
+                                                <input type="number" name="away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input" data-group="{{ group.id }}" placeholder="-" {% if submission and submission.is_verified %}disabled{% endif %}>
+                                            </div>
+                                        </td>
+
+                                        <!-- Flag + Away Team -->
+                                        <td class="text-start ps-3 py-2">
+                                            <div class="d-flex align-items-center justify-content-start gap-2">
+                                                {% if away.flag_url %}
+                                                    <img class="flag-icon-img" src="{{ away.flag_url }}" alt="{{ away.name }}">
+                                                {% else %}
+                                                    <img class="flag-img flag-icon-img" data-group="{{ group.id }}" data-original="{{ away.name }}" src="" style="display: none;">
+                                                {% endif %}
+                                                <span class="fw-bold text-white fs-6 team-name-display" data-group="{{ group.id }}" data-original="{{ away.name }}">{{ away.name }}</span>
+                                            </div>
+                                        </td>
+                                        
+                                    </tr>
+                                    {% endwith %}
+                                    {% empty %}
+                                    <tr><td colspan="4" class="text-center text-muted py-4">Inga matcher inlagda i denna grupp ännu.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT SIDE: Live Standings Standalone Floating Card -->
+                <div class="col-lg-5">
+                    <div class="standings-card p-4 sticky-top" style="top: 20px;">
+                        <h4 class="fw-bold text-white mb-3">Tabell Grupp {{ group.name }}</h4>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle standings-table mb-0" id="standings-table-g{{ group.id }}" style="table-layout: fixed; width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center py-2 px-0" style="width: 22px;">#</th>
+                                        <th class="py-2 px-1 text-start" style="width: 130px;">Lag</th>
+                                        <th class="text-center py-2 px-0" style="width: 28px;">Sp</th>
+                                        <th class="text-center py-2 px-0" style="width: 26px;">V</th>
+                                        <th class="text-center py-2 px-0" style="width: 26px;">O</th>
+                                        <th class="text-center py-2 px-0" style="width: 26px;">F</th>
+                                        <th class="text-center py-2 px-0" style="width: 36px;">MS</th>
+                                        <th class="text-center py-2 px-0 fw-bold text-white" style="width: 38px;">P</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated dynamically by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- BÄSTA TREOR / RANKADE GRUPPTVÅOR TAB CONTENT -->
+        <div class="tab-pane fade {% if active_tab == 'thirds' %}show active{% endif %}" id="thirds-stage" role="tabpanel">
+            <div class="glass-card p-4 mx-auto" style="max-width: 780px;">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <h4 class="fw-bold text-white mb-0">{% if is_qualifying %}Rankade Grupptvåor (Ranking av 2:or){% else %}Bästa Treor (Ranking av 3:or){% endif %}</h4>
+                    <span class="badge bg-emerald bg-opacity-20 text-emerald border border-emerald border-opacity-40 px-3 py-1.5 fw-semibold" style="font-size: 0.78rem;">
+                        {% if is_qualifying %}Topp 8 kvalificerar sig direkt till EM{% else %}Topp 4 kvalificerar sig till Åttondelsfinal{% endif %}
+                    </span>
+                </div>
+                <p class="text-secondary small mb-4" style="color: #9CA3AF !important;">
+                    {% if is_qualifying %}
+                        Nedan visas din tippade ranking av alla 12 grupptvåor. De 8 bästa tvåorna går vidare direkt till EM baserat på poäng, målskillnad, gjorda mål och vinster (resultat mot 5:e lag borträknas).
+                    {% else %}
+                        Nedan visas din tippade ranking av alla 3:or från respektive grupp. De 4 bästa treorna går vidare till slutspelet baserat på poäng, målskillnad, gjorda mål och vinster.
+                    {% endif %}
+                </p>
+
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle standings-table mb-0" id="thirds-ranking-table" style="table-layout: fixed; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th class="text-center py-2 px-0" style="width: 24px;">#</th>
+                                <th class="text-center py-2 px-1" style="width: 70px;">Grupp</th>
+                                <th class="py-2 px-1 text-start" style="width: 140px;">Lag</th>
+                                <th class="text-center py-2 px-0" style="width: 28px;">Sp</th>
+                                <th class="text-center py-2 px-0" style="width: 26px;">V</th>
+                                <th class="text-center py-2 px-0" style="width: 26px;">O</th>
+                                <th class="text-center py-2 px-0" style="width: 26px;">F</th>
+                                <th class="text-center py-2 px-0" style="width: 28px;">GM</th>
+                                <th class="text-center py-2 px-0" style="width: 36px;">MS</th>
+                                <th class="text-center py-2 px-0 fw-bold text-white" style="width: 38px;">P</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dynamically populated by JS updateThirdsRanking -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if is_qualifying %}
+        <!-- DEDICATED HOST ASSOCIATIONS RANKING TAB CONTENT -->
+        <div class="tab-pane fade {% if active_tab == 'hosts' %}show active{% endif %}" id="hosts-stage" role="tabpanel">
+            <div class="glass-card p-4 mx-auto" style="max-width: 780px;">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <h4 class="fw-bold text-white mb-0">Ranking Värdnationer (Ranking av Värdnationer)</h4>
+                    <span class="badge bg-emerald bg-opacity-20 text-emerald border border-emerald border-opacity-40 px-3 py-1.5 fw-semibold" style="font-size: 0.78rem;">
+                        2 Reservplatser till EM 2028
+                    </span>
+                </div>
+                <p class="text-secondary small mb-4" style="color: #9CA3AF !important;">
+                    Nedan visas din tippade ranking av de 4 värdnationerna (England, Irland, Skottland, Wales). De 2 bästa värdnationerna tilldelas reservplatser till EM om de inte kvalificerar sig direkt från sin grupp.
+                </p>
+
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle standings-table mb-0" id="hosts-ranking-table" style="table-layout: fixed; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th class="text-center py-2 px-0" style="width: 24px;">#</th>
+                                <th class="text-center py-2 px-1" style="width: 70px;">Grupp</th>
+                                <th class="py-2 px-1 text-start" style="width: 140px;">Värdnation</th>
+                                <th class="text-center py-2 px-0" style="width: 28px;">Sp</th>
+                                <th class="text-center py-2 px-0" style="width: 26px;">V</th>
+                                <th class="text-center py-2 px-0" style="width: 26px;">O</th>
+                                <th class="text-center py-2 px-0" style="width: 26px;">F</th>
+                                <th class="text-center py-2 px-0" style="width: 28px;">GM</th>
+                                <th class="text-center py-2 px-0" style="width: 36px;">MS</th>
+                                <th class="text-center py-2 px-0 fw-bold text-white" style="width: 38px;">P</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <!-- Dynamically populated by JS updateHostsRanking -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- KNOCKOUT TAB CONTENT -->
+        <div class="tab-pane fade {% if active_tab == 'knockout' %}show active{% endif %}" id="knockout-stage" role="tabpanel">
+
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="fw-bold text-white mb-0">Slutspelsträd</h4>
+                    {% if active_tournament.is_actual_knockout_open %}
+                        <span class="badge bg-warning text-dark fw-bold px-3 py-1.5 rounded-pill border border-warning">
+                            🔥 Rebound-Fas Öppen
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if active_tournament.is_actual_knockout_open %}
+                <div class="alert alert-warning border border-warning bg-warning bg-opacity-10 text-white rounded-3 p-3 mb-4 d-flex align-items-center gap-3 shadow-sm">
+                    <i class="fa-solid fa-fire-flame-curved fa-2x text-warning flex-shrink-0"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1 text-warning">🔥 ÖPPNAD REBOUND-FAS: ÄKTA SLUTSPELSTRÄD</h6>
+                        <p class="mb-0 small text-light opacity-90">
+                            Gruppspelet är avslutat och det officiella slutspelet är fastställt! Du kan nu lägga in dina <strong>Rebound-tips för det ÄKTA slutspelet</strong> och tjäna extra tipspoäng till din totala leaderboard.
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="row g-4">
+                    {% for stage in knockout_stages %}
+                    <div class="col-12">
+                        <div class="p-3 rounded-3 mb-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <h5 class="fw-bold text-emerald mb-3">{{ stage.name }}</h5>
+                            <div class="row g-3">
+                                {% for match in stage.matches.all %}
+                                {% with pred=user_predictions|get_item:match.id home=match.get_home_team_info away=match.get_away_team_info %}
+                                <div class="col-12 col-md-6">
+                                    <div class="p-3 rounded-3 match-row d-flex flex-column justify-content-between transition-all" data-match-id="{{ match.id }}" data-match-number="{{ match.match_number }}" data-home-raw="{{ match.home_team }}" data-away-raw="{{ match.away_team }}" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); min-height: 105px;">
+                                        <!-- Top Line: Date/Time & Match # -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-secondary border-opacity-25">
+                                            <span class="small text-secondary fw-semibold" style="font-size: 0.76rem;">{{ match.date_time|date:"Y-m-d H:i"|default:"Slutspel" }}</span>
+                                            <span class="badge bg-dark text-info border border-info border-opacity-30 small" style="font-size: 0.7rem;">Match #{{ match.match_number }}</span>
+                                        </div>
+                                        
+                                        <!-- Main Match Row: Home Team (Left) | Score (Center) | Away Team (Right) -->
+                                        <div class="d-flex align-items-center justify-content-between w-100 my-auto">
+                                            <!-- HOME TEAM: [ Home Name ] [ Home Flag ] -->
+                                            <div class="d-flex align-items-center justify-content-end overflow-hidden flex-grow-1" style="min-width: 0; gap: 8px;">
+                                                <span class="fw-bold text-white small home-team-name text-truncate text-end" style="font-size: 0.84rem;">{{ home.name }}</span>
+                                                <img src="{{ home.flag_url }}" class="home-flag-img shadow-sm" width="20" height="14" style="border-radius: 2px; object-fit: cover; flex-shrink: 0; {% if not home.flag_url %}display:none;{% endif %}">
+                                            </div>
+
+                                            <!-- SCORE INPUTS -->
+                                            <div class="d-flex align-items-center justify-content-center flex-shrink-0 mx-2" style="width: 78px;">
+                                                <input type="number" name="home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" style="width: 34px; height: 32px; font-size: 0.9rem;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
+                                                <span class="text-white-50 small fw-bold mx-1">-</span>
+                                                <input type="number" name="away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" style="width: 34px; height: 32px; font-size: 0.9rem;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
+                                            </div>
+
+                                            <!-- AWAY TEAM: [ Away Flag ] [ Away Name ] -->
+                                            <div class="d-flex align-items-center overflow-hidden flex-grow-1" style="min-width: 0; gap: 8px;">
+                                                <img src="{{ away.flag_url }}" class="away-flag-img shadow-sm" width="20" height="14" style="border-radius: 2px; object-fit: cover; flex-shrink: 0; {% if not away.flag_url %}display:none;{% endif %}">
+                                                <span class="fw-bold text-white small away-team-name text-truncate" style="font-size: 0.84rem;">{{ away.name }}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Dedicated Penalty Winner Bar (Shown only on Tie) -->
+                                        <div id="tb-box-{{ match.id }}" class="penalty-winner-selector mt-2 pt-1.5 border-top border-secondary border-opacity-25" style="display: none;" data-match-id="{{ match.id }}">
+                                            <div class="d-flex align-items-center justify-content-center gap-2 w-100">
+                                                <span class="text-warning fw-bold" style="font-size: 0.72rem;">Straffvinnare:</span>
+                                                <input type="hidden" name="penalty_winner_{{ match.id }}" id="tb-input-{{ match.id }}" value="{% if pred %}{{ pred.penalty_winner|default:'' }}{% endif %}">
+                                                
+                                                <div class="d-inline-flex border border-warning border-opacity-40 rounded-pill p-0.5" style="background: rgba(15, 23, 42, 0.9);">
+                                                    <button type="button" class="btn p-0 px-2.5 py-0.5 border-0 rounded-pill tb-btn {% if pred and pred.penalty_winner == home.name %}active-pill{% else %}inactive-pill{% endif %}" data-match-id="{{ match.id }}" data-team-target="home" title="Straffvinnare: {{ home.name }}" style="transition: all 0.15s ease;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
+                                                        <span class="tb-code text-uppercase fw-extrabold" style="font-size: 0.7rem;">{{ home.code|default:home.name|slice:":3" }}</span>
+                                                    </button>
+                                                    <button type="button" class="btn p-0 px-2.5 py-0.5 border-0 rounded-pill tb-btn {% if pred and pred.penalty_winner == away.name %}active-pill{% else %}inactive-pill{% endif %}" data-match-id="{{ match.id }}" data-team-target="away" title="Straffvinnare: {{ away.name }}" style="transition: all 0.15s ease;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
+                                                        <span class="tb-code text-uppercase fw-extrabold" style="font-size: 0.7rem;">{{ away.code|default:away.name|slice:":3" }}</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endwith %}
+                                {% empty %}
+                                <div class="col-12 text-muted small">Inga matcher inlagda för detta steg ännu.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center text-muted py-4">Inga slutspelssteg inlagda ännu.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- SIDEBETS TAB CONTENT -->
+        <div class="tab-pane fade {% if active_tab == 'sidebets' %}show active{% endif %}" id="sidebets-stage" role="tabpanel">
+            <div class="glass-card p-4">
+                <h4 class="fw-bold text-white mb-3">Bonusfrågor & Sidebets</h4>
+                <div class="row g-4">
+                    {% for sidebet in sidebets %}
+                    {% with current_ans=user_sidebet_answers|get_item:sidebet.id %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="p-3.5 rounded-3 h-100 d-flex flex-column justify-content-between" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.1);">
+                            <div>
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge bg-warning text-dark fw-bold">+{{ sidebet.points }} p</span>
+                                    <span class="text-secondary small">Bonus</span>
+                                </div>
+                                <h6 class="fw-bold text-white mb-2">{{ sidebet.question }}</h6>
+                                {% if sidebet.description %}
+                                    <p class="text-secondary small mb-3">{{ sidebet.description }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="mt-2">
+                                {% if sidebet.question_type == 'TEAM' %}
+                                    <select name="sidebet_{{ sidebet.id }}" class="form-select bg-dark text-white border-secondary" {% if is_admin or submission.is_verified %}disabled{% endif %}>
+                                        <option value="">-- Välj lag --</option>
+                                        {% for team in tournament_teams %}
+                                            <option value="{{ team.name }}" {% if current_ans == team.name %}selected{% endif %}>{{ team.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                {% else %}
+                                    <input type="text" name="sidebet_{{ sidebet.id }}" value="{{ current_ans|default:'' }}" class="form-control bg-dark text-white border-secondary" placeholder="Ditt svar..." {% if is_admin or submission.is_verified %}disabled{% endif %}>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endwith %}
+                    {% empty %}
+                    <div class="col-12 text-center text-muted py-4">Inga bonusfrågor inlagda ännu.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Sticky Save Predictions Bar -->
+    {% if not is_admin %}
+    {% if not submission or not submission.is_verified %}
+    <div class="sticky-bottom-bar text-center py-3 my-4 rounded-4" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 -10px 30px rgba(0,0,0,0.7);">
+        <button type="submit" class="btn btn-emerald px-5 py-2.5 fw-bold shadow-lg" style="font-size: 1.05rem;">
+            <i class="fa-solid fa-floppy-disk me-2"></i>Spara Alla Tips
+        </button>
+    </div>
+    {% endif %}
+    {% endif %}
+
+</form>
+
+<script>
+(function() {
+    function initPredictionsScript() {
+        const groupsData = {{ groups_data_json|safe }};
+        const groupMatches = {{ group_matches_json|safe }};
+
+        const countryCodeMap = {
+            'sweden': 'se', 'england': 'gb-eng', 'united kingdom': 'gb', 'wales': 'gb-wls',
+            'scotland': 'gb-sct', 'northern ireland': 'gb-nir', 'france': 'fr', 'germany': 'de',
+            'spain': 'es', 'italy': 'it', 'portugal': 'pt', 'netherlands': 'nl', 'belgium': 'be',
+            'denmark': 'dk', 'norway': 'no', 'finland': 'fi', 'iceland': 'is', 'poland': 'pl',
+            'croatia': 'hr', 'ukraine': 'ua', 'switzerland': 'ch', 'austria': 'at', 'hungary': 'hu',
+            'czech republic': 'cz', 'czechia': 'cz', 'slovakia': 'sk', 'serbia': 'rs', 'romania': 'ro',
+            'turkey': 'tr', 'türkiye': 'tr', 'greece': 'gr', 'albania': 'al', 'slovenia': 'si',
+            'georgia': 'ge', 'brazil': 'br', 'argentina': 'ar', 'uruguay': 'uy', 'colombia': 'co',
+            'chile': 'cl', 'mexico': 'mx', 'united states': 'us', 'usa': 'us', 'canada': 'ca',
+            'japan': 'jp', 'south korea': 'kr', 'australia': 'au', 'morocco': 'ma', 'senegal': 'sn',
+            'cameroon': 'cm', 'ghana': 'gh', 'nigeria': 'ng', 'bulgaria': 'bg', 'republic of ireland': 'ie',
+            'ireland': 'ie', 'montenegro': 'me', 'malta': 'mt',
+            'sverige': 'se', 'tyskland': 'de', 'frankrike': 'fr', 'spanien': 'es', 'italien': 'it',
+            'nederländerna': 'nl', 'belgien': 'be', 'österrike': 'at', 'schweiz': 'ch', 'tjeckien': 'cz',
+            'slovakien': 'sk', 'kroatien': 'hr', 'nordirland': 'gb-nir', 'skottland': 'gb-sct',
+            'turkiet': 'tr', 'grekland': 'gr', 'ungern': 'hu', 'irland': 'ie', 'bulgarien': 'bg',
+            'norge': 'no', 'danmark': 'dk', 'finland': 'fi', 'island': 'is', 'polen': 'pl', 'serbien': 'rs'
+        };
+
+        function getFlagCode(teamName) {
+            if (!teamName) return null;
+            const clean = teamName.trim().toLowerCase();
+            return countryCodeMap[clean] || null;
+        }
+
+        let groupStandingsResults = {};
+        let groupStatsMap = {};
+
+        function recalculateStandings(groupId) {
+            const teams = groupsData[groupId];
+            if (!teams) return;
+
+            let stats = {};
+            let headToHead = {};
+
+            teams.forEach(team => {
+                stats[team] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+            });
+
+            const groupPane = document.getElementById(`group-${groupId}`);
+            if (!groupPane) return;
+
+            const matchRows = groupPane.querySelectorAll('tbody tr');
+            matchRows.forEach(row => {
+                const homeInput = row.querySelector('input[name^="home_"]');
+                const awayInput = row.querySelector('input[name^="away_"]');
+                
+                const teamDisplays = row.querySelectorAll('.team-name-display[data-original]');
+                if (!homeInput || !awayInput || teamDisplays.length < 2) return;
+
+                const homeTeam = teamDisplays[0].textContent.trim();
+                const awayTeam = teamDisplays[1].textContent.trim();
+                const hgVal = homeInput.value;
+                const agVal = awayInput.value;
+
+                if (hgVal !== "" && agVal !== "" && stats[homeTeam] && stats[awayTeam]) {
+                    const hg = parseInt(hgVal, 10);
+                    const ag = parseInt(agVal, 10);
+
+                    headToHead[`${homeTeam}_vs_${awayTeam}`] = { hg, ag };
+
+                    stats[homeTeam].played += 1;
+                    stats[awayTeam].played += 1;
+                    stats[homeTeam].gf += hg;
+                    stats[homeTeam].ga += ag;
+                    stats[awayTeam].gf += ag;
+                    stats[awayTeam].ga += hg;
+
+                    if (hg > ag) {
+                        stats[homeTeam].won += 1;
+                        stats[homeTeam].points += 3;
+                        stats[awayTeam].lost += 1;
+                    } else if (hg < ag) {
+                        stats[awayTeam].won += 1;
+                        stats[awayTeam].points += 3;
+                        stats[homeTeam].lost += 1;
+                    } else {
+                        stats[homeTeam].drawn += 1;
+                        stats[homeTeam].points += 1;
+                        stats[awayTeam].drawn += 1;
+                        stats[awayTeam].points += 1;
+                    }
+                }
+            });
+
+            Object.keys(stats).forEach(team => {
+                stats[team].gd = stats[team].gf - stats[team].ga;
+            });
+
+            const sortedTeams = [...teams].sort((a, b) => {
+                if (stats[b].points !== stats[a].points) return stats[b].points - stats[a].points;
+                
+                // Head-to-head tiebreaker
+                const h2h1 = headToHead[`${a}_vs_${b}`];
+                const h2h2 = headToHead[`${b}_vs_${a}`];
+                if (h2h1) {
+                    if (h2h1.hg > h2h1.ag) return -1;
+                    if (h2h1.hg < h2h1.ag) return 1;
+                }
+                if (h2h2) {
+                    if (h2h2.hg > h2h2.ag) return 1;
+                    if (h2h2.hg < h2h2.ag) return -1;
+                }
+
+                if (stats[b].gd !== stats[a].gd) return stats[b].gd - stats[a].gd;
+                if (stats[b].gf !== stats[a].gf) return stats[b].gf - stats[a].gf;
+                return stats[b].won - stats[a].won;
+            });
+
+            groupStandingsResults[groupId] = sortedTeams;
+            groupStatsMap[groupId] = stats;
+
+            const tableBody = document.querySelector(`#standings-table-g${groupId} tbody`);
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+
+            sortedTeams.forEach((team, index) => {
+                const s = stats[team];
+                const flagCode = getFlagCode(team);
+                const flagHtml = flagCode 
+                    ? `<img src="https://flagcdn.com/w40/${flagCode}.png" width="20" class="shadow-sm" style="border-radius: 3px; object-fit: cover; flex-shrink: 0;">` 
+                    : '';
+
+                const isQualificationLine = (index === 1);
+                const borderStyle = isQualificationLine 
+                    ? 'border-bottom: 1.5px solid #FFFFFF !important;' 
+                    : 'border-bottom: none !important;';
+
+                const isTopTwo = (index < 2);
+                const rowOpacity = isTopTwo ? 'opacity: 1;' : 'opacity: 0.5;';
+                const textColor = isTopTwo ? 'text-white' : 'text-secondary';
+                const pointsCircleStyle = isTopTwo 
+                    ? 'background: rgba(255, 255, 255, 0.12); border: 1.5px solid rgba(255, 255, 255, 0.8); color: #FFFFFF;'
+                    : 'background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.3); color: #9CA3AF;';
+
+                const rowHtml = `
+                    <tr class="align-middle ${textColor}" style="${borderStyle} ${rowOpacity}">
+                        <td class="text-center py-2 px-0 fw-bold" style="font-size: 0.76rem; width: 22px;">${index + 1}</td>
+                        <td class="fw-semibold px-1 py-2 text-truncate text-start" style="font-size: 0.84rem; width: 130px;">
+                            <div class="d-flex align-items-center" style="gap: 5px;">
+                                ${flagHtml}<span class="text-truncate">${team}</span>
+                            </div>
+                        </td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 28px;">${s.played}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.won}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.drawn}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.lost}</td>
+                        <td class="text-center py-2 px-0 fw-semibold ${s.gd > 0 ? 'text-success' : s.gd < 0 ? 'text-danger' : ''}" style="font-size: 0.8rem; width: 36px;">${s.gd > 0 ? '+'+s.gd : s.gd}</td>
+                        <td class="text-center py-1.5 px-0" style="width: 38px;">
+                            <span class="points-pop-circle shadow-sm" style="${pointsCircleStyle}">
+                                ${s.points}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', rowHtml);
+            });
+
+            updateThirdsRanking();
+            updateKnockoutTree();
+        }
+
+        function updateThirdsRanking() {
+            const tableBody = document.querySelector('#thirds-ranking-table tbody');
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+
+            const isQualifying = {% if is_qualifying %}true{% else %}false{% endif %};
+            const targetIdx = isQualifying ? 1 : 2;
+            const qualLimit = isQualifying ? 8 : 4;
+
+            let thirdsList = [];
+            Object.keys(groupsData).forEach(grpId => {
+                const sortedTeams = groupStandingsResults[grpId];
+                if (sortedTeams && sortedTeams.length > targetIdx) {
+                    const targetTeam = sortedTeams[targetIdx];
+                    const groupPane = document.getElementById(`group-${grpId}`);
+                    let grpName = 'Grupp';
+                    if (groupPane) {
+                        const h4 = groupPane.querySelector('h4');
+                        if (h4) {
+                            const match = h4.textContent.match(/Group\s*([A-L])/i) || h4.textContent.match(/Grupp\s*([A-L])/i);
+                            if (match) grpName = `Grupp ${match[1].toUpperCase()}`;
+                        }
+                    }
+                    if (groupStatsMap && groupStatsMap[grpId] && groupStatsMap[grpId][targetTeam]) {
+                        let stats = groupStatsMap[grpId][targetTeam];
+                        
+                        if (isQualifying && sortedTeams.length >= 5) {
+                            const fifthTeam = sortedTeams[4];
+                            let p_played = 0, p_pts = 0, p_gf = 0, p_ga = 0, p_won = 0, p_drawn = 0, p_lost = 0;
+                            const matchRows = groupPane ? groupPane.querySelectorAll('tbody tr') : [];
+                            matchRows.forEach(row => {
+                                const homeInput = row.querySelector('input[name^="home_"]');
+                                const awayInput = row.querySelector('input[name^="away_"]');
+                                const teamDisplays = row.querySelectorAll('.team-name-display[data-original]');
+                                if (homeInput && awayInput && teamDisplays.length >= 2) {
+                                    const ht = teamDisplays[0].textContent.trim();
+                                    const at = teamDisplays[1].textContent.trim();
+                                    if (ht !== fifthTeam && at !== fifthTeam && (ht === targetTeam || at === targetTeam)) {
+                                        const hgVal = homeInput.value;
+                                        const agVal = awayInput.value;
+                                        if (hgVal !== "" && agVal !== "") {
+                                            const hg = parseInt(hgVal, 10);
+                                            const ag = parseInt(agVal, 10);
+                                            const myG = (ht === targetTeam) ? hg : ag;
+                                            const oppG = (ht === targetTeam) ? ag : hg;
+                                            p_played++;
+                                            p_gf += myG;
+                                            p_ga += oppG;
+                                            if (myG > oppG) { p_won++; p_pts += 3; }
+                                            else if (myG === oppG) { p_drawn++; p_pts += 1; }
+                                            else { p_lost++; }
+                                        }
+                                    }
+                                }
+                            });
+                            stats = { played: p_played, won: p_won, drawn: p_drawn, lost: p_lost, gf: p_gf, ga: p_ga, gd: p_gf - p_ga, points: p_pts };
+                        }
+
+                        thirdsList.push({
+                            groupName: grpName,
+                            team: targetTeam,
+                            stats: stats
+                        });
+                    }
+                }
+            });
+
+            thirdsList.sort((a, b) => {
+                if (b.stats.points !== a.stats.points) return b.stats.points - a.stats.points;
+                if (b.stats.gd !== a.stats.gd) return b.stats.gd - a.stats.gd;
+                if (b.stats.gf !== a.stats.gf) return b.stats.gf - a.stats.gf;
+                return b.stats.won - a.stats.won;
+            });
+
+            thirdsList.forEach((item, index) => {
+                const s = item.stats;
+                const flagCode = getFlagCode(item.team);
+                const flagHtml = flagCode 
+                    ? `<img src="https://flagcdn.com/w40/${flagCode}.png" width="20" class="shadow-sm" style="border-radius: 3px; object-fit: cover; flex-shrink: 0;">` 
+                    : '';
+
+                const isQualificationLine = (index === qualLimit - 1);
+                const borderStyle = isQualificationLine 
+                    ? 'border-bottom: 1.5px solid #FFFFFF !important;' 
+                    : 'border-bottom: none !important;';
+
+                const isQualified = (index < qualLimit);
+                const rowOpacity = isQualified ? 'opacity: 1;' : 'opacity: 0.5;';
+                const textColor = isQualified ? 'text-white' : 'text-secondary';
+                const pointsCircleStyle = isQualified 
+                    ? 'background: rgba(255, 255, 255, 0.12); border: 1.5px solid rgba(255, 255, 255, 0.8); color: #FFFFFF;'
+                    : 'background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.3); color: #9CA3AF;';
+
+                const rowHtml = `
+                    <tr class="align-middle ${textColor}" style="${borderStyle} ${rowOpacity}">
+                        <td class="text-center py-2 px-0 fw-bold" style="font-size: 0.76rem; width: 24px;">${index + 1}</td>
+                        <td class="text-center py-2 px-1 text-secondary" style="font-size: 0.76rem; width: 70px;">${item.groupName}</td>
+                        <td class="fw-semibold px-1 py-2 text-truncate text-start" style="font-size: 0.84rem; width: 140px;">
+                            <div class="d-flex align-items-center" style="gap: 5px;">
+                                ${flagHtml}<span class="text-truncate">${item.team}</span>
+                            </div>
+                        </td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 28px;">${s.played}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.won}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.drawn}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.lost}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 28px;">${s.gf}</td>
+                        <td class="text-center py-2 px-0 fw-semibold ${s.gd > 0 ? 'text-success' : s.gd < 0 ? 'text-danger' : ''}" style="font-size: 0.8rem; width: 36px;">${s.gd > 0 ? '+'+s.gd : s.gd}</td>
+                        <td class="text-center py-1.5 px-0" style="width: 38px;">
+                            <span class="points-pop-circle shadow-sm" style="${pointsCircleStyle}">
+                                ${s.points}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', rowHtml);
+            });
+
+            updateHostsRanking();
+        }
+
+        function updateHostsRanking() {
+            const tableBody = document.querySelector('#hosts-ranking-table tbody');
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+
+            const hostPatterns = ['england', 'ireland', 'scotland', 'wales', 'a1', 'b1', 'c1', 'd1'];
+            let hostList = [];
+
+            Object.keys(groupsData).forEach(grpId => {
+                const teams = groupsData[grpId];
+                if (!teams) return;
+                const sortedTeams = groupStandingsResults[grpId] || teams;
+                
+                teams.forEach(tName => {
+                    const cleanName = tName.toLowerCase();
+                    if (hostPatterns.some(hp => cleanName.includes(hp))) {
+                        let stats = groupStatsMap[grpId] ? groupStatsMap[grpId][tName] : null;
+                        const groupPane = document.getElementById(`group-${grpId}`);
+                        let grpName = 'Grupp';
+                        if (groupPane) {
+                            const h4 = groupPane.querySelector('h4');
+                            if (h4) {
+                                const match = h4.textContent.match(/Group\s*([A-L])/i) || h4.textContent.match(/Grupp\s*([A-L])/i);
+                                if (match) grpName = `Grupp ${match[1].toUpperCase()}`;
+                            }
+                        }
+
+                        if (sortedTeams.length >= 5) {
+                            const fifthTeam = sortedTeams[4];
+                            let p_played = 0, p_pts = 0, p_gf = 0, p_ga = 0, p_won = 0, p_drawn = 0, p_lost = 0;
+                            const matchRows = groupPane ? groupPane.querySelectorAll('tbody tr') : [];
+                            matchRows.forEach(row => {
+                                const homeInput = row.querySelector('input[name^="home_"]');
+                                const awayInput = row.querySelector('input[name^="away_"]');
+                                const teamDisplays = row.querySelectorAll('.team-name-display[data-original]');
+                                if (homeInput && awayInput && teamDisplays.length >= 2) {
+                                    const ht = teamDisplays[0].textContent.trim();
+                                    const at = teamDisplays[1].textContent.trim();
+                                    if (ht !== fifthTeam && at !== fifthTeam && (ht === tName || at === tName)) {
+                                        const hgVal = homeInput.value;
+                                        const agVal = awayInput.value;
+                                        if (hgVal !== "" && agVal !== "") {
+                                            const hg = parseInt(hgVal, 10);
+                                            const ag = parseInt(agVal, 10);
+                                            const myG = (ht === tName) ? hg : ag;
+                                            const oppG = (ht === tName) ? ag : hg;
+                                            p_played++; p_gf += myG; p_ga += oppG;
+                                            if (myG > oppG) { p_won++; p_pts += 3; }
+                                            else if (myG === oppG) { p_drawn++; p_pts += 1; }
+                                            else { p_lost++; }
+                                        }
+                                    }
+                                }
+                            });
+                            stats = { played: p_played, won: p_won, drawn: p_drawn, lost: p_lost, gf: p_gf, ga: p_ga, gd: p_gf - p_ga, points: p_pts };
+                        }
+
+                        if (stats) {
+                            hostList.push({ groupName: grpName, team: tName, stats: stats });
+                        }
+                    }
+                });
+            });
+
+            hostList.sort((a, b) => {
+                if (b.stats.points !== a.stats.points) return b.stats.points - a.stats.points;
+                if (b.stats.gd !== a.stats.gd) return b.stats.gd - a.stats.gd;
+                if (b.stats.gf !== a.stats.gf) return b.stats.gf - a.stats.gf;
+                return b.stats.won - a.stats.won;
+            });
+
+            hostList.forEach((item, index) => {
+                const s = item.stats;
+                const flagCode = getFlagCode(item.team);
+                const flagHtml = flagCode 
+                    ? `<img src="https://flagcdn.com/w40/${flagCode}.png" width="20" class="shadow-sm" style="border-radius: 3px; object-fit: cover; flex-shrink: 0;">` 
+                    : '';
+
+                const isReservedSlot = (index < 2);
+                const borderStyle = isReservedSlot 
+                    ? 'border-bottom: 1.5px solid #FFFFFF !important;' 
+                    : 'border-bottom: none !important;';
+                const rowOpacity = isReservedSlot ? 'opacity: 1;' : 'opacity: 0.5;';
+                const textColor = isReservedSlot ? 'text-white' : 'text-secondary';
+                const pointsCircleStyle = isReservedSlot 
+                    ? 'background: rgba(255, 255, 255, 0.12); border: 1.5px solid rgba(255, 255, 255, 0.8); color: #FFFFFF;'
+                    : 'background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.3); color: #9CA3AF;';
+
+                const rowHtml = `
+                    <tr class="align-middle ${textColor}" style="${borderStyle} ${rowOpacity}">
+                        <td class="text-center py-2 px-0 fw-bold" style="font-size: 0.76rem; width: 24px;">${index + 1}</td>
+                        <td class="text-center py-2 px-1 text-secondary" style="font-size: 0.76rem; width: 70px;">${item.groupName}</td>
+                        <td class="fw-semibold px-1 py-2 text-truncate text-start" style="font-size: 0.84rem; width: 140px;">
+                            <div class="d-flex align-items-center" style="gap: 5px;">
+                                ${flagHtml}<span class="text-truncate">${item.team}</span>
+                            </div>
+                        </td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 28px;">${s.played}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.won}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.drawn}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.lost}</td>
+                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 28px;">${s.gf}</td>
+                        <td class="text-center py-2 px-0 fw-semibold ${s.gd > 0 ? 'text-success' : s.gd < 0 ? 'text-danger' : ''}" style="font-size: 0.8rem; width: 36px;">${s.gd > 0 ? '+'+s.gd : s.gd}</td>
+                        <td class="text-center py-1.5 px-0" style="width: 38px;">
+                            <span class="points-pop-circle shadow-sm" style="${pointsCircleStyle}">
+                                ${s.points}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', rowHtml);
+
+            });
+        }
+
+
+        function updateKnockoutTree() {
+            const knockoutRows = Array.from(document.querySelectorAll('#knockout-stage .match-row')).sort((a, b) => {
+                return parseInt(a.getAttribute('data-match-number'), 10) - parseInt(b.getAttribute('data-match-number'), 10);
+            });
+            
+            let matchWinners = {};
+            let matchLosers = {};
+
+            knockoutRows.forEach(row => {
+                const matchId = row.getAttribute('data-match-id');
+                const matchNum = row.getAttribute('data-match-number');
+                let homeRaw = row.getAttribute('data-home-raw') || '';
+                let awayRaw = row.getAttribute('data-away-raw') || '';
+
+                let homeResolved = resolvePlaceholder(homeRaw, matchWinners, matchLosers);
+                let awayResolved = resolvePlaceholder(awayRaw, matchWinners, matchLosers);
+
+                const homeSpan = row.querySelector('.home-team-name');
+                const awaySpan = row.querySelector('.away-team-name');
+                const homeFlag = row.querySelector('.home-flag-img');
+                const awayFlag = row.querySelector('.away-flag-img');
+
+                if (homeSpan) {
+                    homeSpan.textContent = homeResolved;
+                    const code = getFlagCode(homeResolved);
+                    if (code && homeFlag) {
+                        homeFlag.src = `https://flagcdn.com/w40/${code}.png`;
+                        homeFlag.style.display = 'inline-block';
+                    } else if (homeFlag) {
+                        homeFlag.style.display = 'none';
+                    }
+                }
+                if (awaySpan) {
+                    awaySpan.textContent = awayResolved;
+                    const code = getFlagCode(awayResolved);
+                    if (code && awayFlag) {
+                        awayFlag.src = `https://flagcdn.com/w40/${code}.png`;
+                        awayFlag.style.display = 'inline-block';
+                    } else if (awayFlag) {
+                        awayFlag.style.display = 'none';
+                    }
+                if (homeTbBtn) {
+                    const codeSpan = homeTbBtn.querySelector('.tb-code');
+                    if (codeSpan) codeSpan.textContent = homeResolved.substring(0, 3).toUpperCase();
+                    homeTbBtn.setAttribute('title', `Straffvinnare: ${homeResolved}`);
+                }
+                if (awayTbBtn) {
+                    const codeSpan = awayTbBtn.querySelector('.tb-code');
+                    if (codeSpan) codeSpan.textContent = awayResolved.substring(0, 3).toUpperCase();
+                    awayTbBtn.setAttribute('title', `Straffvinnare: ${awayResolved}`);
+                }
+
+                const homeInput = row.querySelector('input[name^="home_"]');
+                const awayInput = row.querySelector('input[name^="away_"]');
+                const hiddenTbInput = document.getElementById(`tb-input-${matchId}`);
+                const tiebreakerBox = document.getElementById(`tb-box-${matchId}`);
+
+                let winner = null;
+                let loser = null;
+
+                if (homeInput && awayInput && homeInput.value !== "" && awayInput.value !== "") {
+                    const hg = parseInt(homeInput.value, 10);
+                    const ag = parseInt(awayInput.value, 10);
+
+                    if (hg > ag) {
+                        winner = homeResolved;
+                        loser = awayResolved;
+                        if (tiebreakerBox) tiebreakerBox.style.display = 'none';
+                    } else if (ag > hg) {
+                        winner = awayResolved;
+                        loser = homeResolved;
+                        if (tiebreakerBox) tiebreakerBox.style.display = 'none';
+                    } else {
+                        if (tiebreakerBox) tiebreakerBox.style.display = 'flex';
+                        const selectedTb = hiddenTbInput ? hiddenTbInput.value : '';
+
+                        if (selectedTb === awayResolved) {
+                            winner = awayResolved;
+                            loser = homeResolved;
+                            if (awayTbBtn) { awayTbBtn.classList.add('active-pill'); awayTbBtn.classList.remove('inactive-pill'); }
+                            if (homeTbBtn) { homeTbBtn.classList.add('inactive-pill'); homeTbBtn.classList.remove('active-pill'); }
+                        } else {
+                            if (hiddenTbInput) hiddenTbInput.value = homeResolved;
+                            winner = homeResolved;
+                            loser = awayResolved;
+                            if (homeTbBtn) { homeTbBtn.classList.add('active-pill'); homeTbBtn.classList.remove('inactive-pill'); }
+                            if (awayTbBtn) { awayTbBtn.classList.add('inactive-pill'); awayTbBtn.classList.remove('active-pill'); }
+                        }
+                    }
+                } else {
+                    if (tiebreakerBox) tiebreakerBox.style.display = 'none';
+                }
+
+                matchWinners[matchNum] = winner || `Vinnare M${matchNum}`;
+                matchLosers[matchNum] = loser || `Förlorare M${matchNum}`;
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.tb-btn');
+            if (!btn || btn.disabled) return;
+
+            const matchId = btn.getAttribute('data-match-id');
+            const target = btn.getAttribute('data-team-target');
+            const matchRow = btn.closest('.match-row');
+            if (!matchRow) return;
+
+            const homeSpan = matchRow.querySelector('.home-team-name');
+            const awaySpan = matchRow.querySelector('.away-team-name');
+            const homeTeam = homeSpan ? homeSpan.textContent.trim() : '';
+            const awayTeam = awaySpan ? awaySpan.textContent.trim() : '';
+
+            const selectedTeam = (target === 'home') ? homeTeam : awayTeam;
+            const hiddenTbInput = document.getElementById(`tb-input-${matchId}`);
+            if (hiddenTbInput) {
+                hiddenTbInput.value = selectedTeam;
+            }
+
+            const homeBtn = matchRow.querySelector('button[data-team-target="home"]');
+            const awayBtn = matchRow.querySelector('button[data-team-target="away"]');
+
+            if (homeBtn && awayBtn) {
+                if (target === 'home') {
+                    homeBtn.classList.add('active-pill'); homeBtn.classList.remove('inactive-pill');
+                    awayBtn.classList.add('inactive-pill'); awayBtn.classList.remove('active-pill');
+                } else {
+                    awayBtn.classList.add('active-pill'); awayBtn.classList.remove('inactive-pill');
+                    homeBtn.classList.add('inactive-pill'); homeBtn.classList.remove('active-pill');
+                }
+            }
+
+            updateKnockoutTree();
+        });
+
+        function resolvePlaceholder(rawStr, winnersMap, losersMap) {
+            if (!rawStr) return 'TBD';
+            const str = rawStr.trim();
+
+            const groupMatch = str.match(/^([A-F])([1-4])$/i);
+            if (groupMatch) {
+                const grpLetter = groupMatch[1].toUpperCase();
+                const posIndex = parseInt(groupMatch[2], 10) - 1;
+
+                const grpId = Object.keys(groupsData).find(id => {
+                    const groupPane = document.getElementById(`group-${id}`);
+                    return groupPane && groupPane.innerHTML.includes(`Spelschema ${grpLetter}`) || (groupPane && groupPane.innerHTML.includes(`Group ${grpLetter}`));
+                });
+
+                if (grpId && groupStandingsResults[grpId] && groupStandingsResults[grpId][posIndex]) {
+                    return groupStandingsResults[grpId][posIndex];
+                }
+            }
+
+            const winMatch = str.match(/^Winner Match (\d+)$/i) || str.match(/^Vinnare Match (\d+)$/i) || str.match(/^Vinnare M(\d+)$/i);
+            if (winMatch) {
+                const mNum = winMatch[1];
+                return winnersMap[mNum] || `Vinnare M${mNum}`;
+            }
+
+            const loseMatch = str.match(/^Loser Match (\d+)$/i) || str.match(/^FÖRLORARE Match (\d+)$/i) || str.match(/^Förlorare M(\d+)$/i);
+            if (loseMatch) {
+                const mNum = loseMatch[1];
+                return losersMap[mNum] || `Förlorare M${mNum}`;
+            }
+
+            const thirdComboMatch = str.match(/^([A-F]{2,4})3$/i);
+            if (thirdComboMatch) {
+                const grpLetters = thirdComboMatch[1].toUpperCase().split('');
+                let candidateThirds = [];
+                grpLetters.forEach(grpLetter => {
+                    const grpId = Object.keys(groupsData).find(id => {
+                        const groupPane = document.getElementById(`group-${id}`);
+                        return groupPane && (groupPane.innerHTML.includes(`Spelschema ${grpLetter}`) || groupPane.innerHTML.includes(`Group ${grpLetter}`));
+                    });
+                    if (grpId && groupStandingsResults[grpId] && groupStandingsResults[grpId][2] && groupStatsMap[grpId]) {
+                        const teamName = groupStandingsResults[grpId][2];
+                        const teamStats = groupStatsMap[grpId][teamName];
+                        if (teamStats) {
+                            candidateThirds.push({ team: teamName, stats: teamStats });
+                        }
+                    }
+                });
+                if (candidateThirds.length > 0) {
+                    candidateThirds.sort((a, b) => {
+                        if (b.stats.points !== a.stats.points) return b.stats.points - a.stats.points;
+                        if (b.stats.gd !== a.stats.gd) return b.stats.gd - a.stats.gd;
+                        if (b.stats.gf !== a.stats.gf) return b.stats.gf - a.stats.gf;
+                        return b.stats.won - a.stats.won;
+                    });
+                    return candidateThirds[0].team;
+                }
+            }
+
+            return str;
+        }
+
+        document.querySelectorAll('.match-input').forEach(input => {
+            input.addEventListener('input', function() {
+                const groupId = this.getAttribute('data-group');
+                if (groupId) {
+                    recalculateStandings(groupId);
+                } else {
+                    updateKnockoutTree();
+                }
+            });
+        });
+
+        Object.keys(groupsData).forEach(groupId => {
+            recalculateStandings(groupId);
+        });
+        updateHostsRanking();
+
+
+        const activeTabInput = document.getElementById('activeTabInput');
+        const tabButtons = document.querySelectorAll('#tournamentTab button[data-bs-toggle="pill"]');
+
+        tabButtons.forEach(btn => {
+            btn.addEventListener('shown.bs.tab', function (e) {
+                const targetId = e.target.getAttribute('data-bs-target').replace('#', '');
+                if (activeTabInput) activeTabInput.value = targetId;
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPredictionsScript);
+    } else {
+        initPredictionsScript();
+    }
+})();
+</script>

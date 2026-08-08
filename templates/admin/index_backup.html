@@ -1,0 +1,104 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static dashboard_tags %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static "admin/css/dashboard.css" %}">
+<style>
+    /* Force both dashboard sections to be identical in width */
+    #content-main .app-auth, 
+    #content-main .app-tournament {
+        width: 100% !important;
+        max-width: 600px !important;
+        margin-bottom: 20px !important;
+    }
+    #content-main .app-auth table, 
+    #content-main .app-tournament table {
+        width: 100% !important;
+    }
+</style>
+{% endblock %}
+
+{% block coltype %}colMS{% endblock %}
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    
+    <!-- AUTHENTICATION BLOCK (PLAYERS) -->
+    <div class="app-auth module">
+        <table>
+            <caption>
+                <a href="{% url 'admin:auth_user_changelist' %}" class="section" title="View all users">AUTHENTICATION AND AUTHORIZATION</a>
+                <a href="{% url 'admin:auth_user_add' %}" style="float: right; background: #fff; color: #333; padding: 2px 8px; border-radius: 4px; font-weight: normal; font-size: 13px; text-decoration: none; border: 1px solid #ccc;">
+                    <strong style="color: #28a745;">+</strong> Add
+                </a>
+            </caption>
+            {% for u in users %}
+            <tr class="model-user">
+                <th scope="row"><a href="{% url 'admin:auth_user_change' u.id %}">{{ u.username }}</a></th>
+                <td><a href="{% url 'admin:auth_user_change' u.id %}" class="changelink">Change</a></td>
+            </tr>
+            {% empty %}
+            <tr><th scope="row">No players added yet.</th></tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- TOURNAMENT BLOCK -->
+    {% get_dashboard_tournaments as tournaments %}
+    <div class="app-tournament module">
+        <table>
+            <caption>
+                <a href="{% url 'admin:tournament_tournament_changelist' %}" class="section" title="View all tournaments">TOURNAMENT</a>
+                <a href="{% url 'admin:tournament_tournament_add' %}" style="float: right; background: #fff; color: #333; padding: 2px 8px; border-radius: 4px; font-weight: normal; font-size: 13px; text-decoration: none; border: 1px solid #ccc;">
+                    <strong style="color: #28a745;">+</strong> Add
+                </a>
+            </caption>
+            {% for t in tournaments %}
+            <tr class="model-tournament">
+                <th scope="row">
+                    <a href="{% url 'admin:tournament_tournament_change' t.id %}">{{ t.name }}</a><br>
+                    <span style="color:#666; font-size: 11px; font-weight:normal;">Tournament</span>
+                </th>
+                <td><a href="{% url 'admin:tournament_tournament_change' t.id %}" class="changelink">Change</a></td>
+            </tr>
+            {% empty %}
+            <tr><th scope="row">No tournaments added yet.</th></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<div id="content-related">
+    <div class="module" id="recent-actions-module">
+        <h2>{% translate 'Recent actions' %}</h2>
+        <h3>{% translate 'My actions' %}</h3>
+            {% load log %}
+            {% get_admin_log 10 as admin_log for_user user %}
+            {% if not admin_log %}
+            <p>{% translate 'None available' %}</p>
+            {% else %}
+            <ul class="actionlist">
+            {% for entry in admin_log %}
+            <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
+                {% if entry.is_deletion or not entry.get_admin_url %}
+                    {{ entry.object_repr }}
+                {% else %}
+                    <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                {% endif %}
+                <br>
+                {% if entry.content_type %}
+                    <span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>
+                {% else %}
+                    <span class="mini quiet">{% translate 'Unknown content' %}</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+            </ul>
+            {% endif %}
+    </div>
+</div>
+{% endblock %}

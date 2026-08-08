@@ -1,0 +1,19 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Django local database & media
+*.sqlite3
+media/
+
+# IDE & Tooling
+.vscode/
+.idea/
+.antigravity/
+.gemini/

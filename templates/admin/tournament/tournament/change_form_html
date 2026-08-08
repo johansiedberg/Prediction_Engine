@@ -1,0 +1,52 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* --- ULTRA-POWERFUL INLINE FIX FOR PLAYER SELECTOR --- */
+    #content-main .selector {
+        width: 100% !important;
+        max-width: 800px !important;
+        min-height: 250px !important;
+        overflow: hidden !important;
+        display: block !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    #content-main .selector .selector-available, 
+    #content-main .selector .selector-chosen {
+        width: 42% !important;
+        min-width: 250px !important;
+        float: left !important;
+        margin: 0 !important;
+    }
+
+    #content-main .selector .selector-chooser {
+        width: 16% !important;
+        float: left !important;
+        text-align: center !important;
+        padding-top: 80px !important;
+        background: transparent !important;
+    }
+
+    #content-main .selector select {
+        width: 100% !important;
+        height: 180px !important;
+        border: 1px solid #ccc !important;
+        border-radius: 4px !important;
+        background: #fff !important;
+    }
+
+    #content-main .selector ul.selector-chooser li {
+        list-style-type: none !important;
+        margin: 0 auto 5px auto !important;
+    }
+
+    /* Constrain form width */
+    #content-main form {
+        max-width: 1100px !important;
+    }
+</style>
+{% endblock %}

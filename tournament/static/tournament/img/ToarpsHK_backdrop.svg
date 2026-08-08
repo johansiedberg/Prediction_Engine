@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300">
+  <defs>
+    <radialGradient id="goldGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffc107" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ffc107" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bgBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b2341"/>
+      <stop offset="100%" stop-color="#0f284a"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Bakgrundsbas -->
+  <rect width="1200" height="300" fill="url(#bgBase)"/>
+  
+  <!-- Dynamiska strålar/vågor i Toarps mörkblå toner -->
+  <g fill="#1b3a6b" opacity="0.65">
+    <path d="M600,150 L0,0 L150,0 Z"/>
+    <path d="M600,150 L150,0 L350,0 Z" fill="#13315c"/>
+    <path d="M600,150 L350,0 L600,0 Z"/>
+    <path d="M600,150 L600,0 L850,0 Z" fill="#13315c"/>
+    <path d="M600,150 L850,0 L1050,0 Z"/>
+    <path d="M600,150 L1050,0 L1200,0 Z" fill="#13315c"/>
+    
+    <path d="M600,150 L0,300 L150,300 Z" fill="#13315c"/>
+    <path d="M600,150 L150,300 L400,300 Z"/>
+    <path d="M600,150 L400,300 L650,300 Z" fill="#13315c"/>
+    <path d="M600,150 L650,300 L900,300 Z"/>
+    <path d="M600,150 L900,300 L1200,300 Z" fill="#13315c"/>
+    
+    <path d="M600,150 L0,0 L0,150 Z"/>
+    <path d="M600,150 L0,150 L0,300 Z" fill="#13315c"/>
+    <path d="M600,150 L1200,0 L1200,150 Z" fill="#13315c"/>
+    <path d="M600,150 L1200,150 L1200,300 Z"/>
+  </g>
+
+  <!-- Central guldglöd -->
+  <circle cx="600" cy="150" r="280" fill="url(#goldGlow)"/>
+
+  <!-- Subtila subtila guldlinjer och emblemdetaljer -->
+  <g stroke="#ffc107" stroke-width="1.5" opacity="0.25" fill="none">
+    <circle cx="600" cy="150" r="110"/>
+    <circle cx="600" cy="150" r="140"/>
+    <line x1="420" y1="150" x2="780" y2="150"/>
+  </g>
+
+  <!-- Bottenram i Toarps guld/gula färg -->
+  <rect x="0" y="292" width="1200" height="8" fill="#ffc107"/>
+</svg>

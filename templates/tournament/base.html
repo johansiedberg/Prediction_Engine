@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toarps Herrklubb</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="{% static 'tournament/img/ToarpsHK.webp' %}" type="image/x-icon">
+
+    <!-- Bootstrap 5 CSS & FontAwesome Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Custom Modern Stylesheet -->
+    <link href="{% static 'tournament/css/style.css' %}" rel="stylesheet">
+</head>
+
+<body style="background-color: #0B0F19; color: #F3F4F6; min-height: 100vh; display: flex; flex-direction: column;">
+
+    <!-- Header Section with Centered Backdrop Banner -->
+    <header class="tournament-header py-4 text-center mb-0"
+        style="background: linear-gradient(180deg, rgba(15, 23, 42, 0.80) 0%, rgba(11, 15, 25, 0.92) 100%), url('{% static "
+        tournament/img/ToarpsHK_backdrop.svg" %}'); background-size: cover; background-position: center;">
+        <div class="container d-flex flex-column align-items-center justify-content-center text-center gap-2">
+
+            <!-- Centered Club Logo -->
+            <div class="d-flex align-items-center justify-content-center mb-1">
+                <img src="{% static 'tournament/img/ToarpsHK.webp' %}" alt="Toarps HK Logo"
+                    style="height: 70px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));">
+            </div>
+
+            <!-- Centered Header Text -->
+            <h1 class="fw-extrabold text-white mb-0 display-6 brand-title text-center">Toarps Herrklubb</h1>
+
+            {% if request.user.is_authenticated %}
+            <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mt-1">
+                <div class="header-badge">
+                    <i class="fa-solid fa-user-check me-1"></i>
+                    <span>Inloggad som: <strong>{% if request.user.get_full_name %}{{ request.user.get_full_name }}{% elif request.user.first_name %}{{ request.user.first_name }} {{ request.user.last_name }}{% else %}{{ request.user.username }}{% endif %}</strong></span>
+                </div>
+                <form action="{% url 'logout' %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm py-0.5 px-2.5 fw-semibold"
+                        style="font-size: 0.75rem;">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i>Logga ut
+                    </button>
+                </form>
+            </div>
+
+            {% if request.user.profile.is_herrklubb_member and request.resolver_match.url_name != 'hub' %}
+            <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
+                <a href="{% url 'hub' %}" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold">
+                    <i class="fa-solid fa-house me-1"></i> Startsida
+                </a>
+            </div>
+            {% endif %}
+            {% endif %}
+
+        </div>
+    </header>
+
+    <!-- Main Content Container with dynamic backdrop -->
+    <div class="main-backdrop-section"
+        style="{% block backdrop_style %}background: linear-gradient(180deg, rgba(11, 15, 25, 0.78) 0%, rgba(11, 15, 25, 0.94) 100%), url('{% static "
+        tournament/img/EURO28_back.webp" %}'); background-size: cover; background-position: top center;
+        background-repeat: no-repeat;{% endblock %} flex-grow: 1; display: flex; flex-direction: column;">
+        <main class="container my-4 flex-grow-1">
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center py-3">
+        <div class="container">
+            <p class="text-muted mb-0 small">&copy; 2026 Toarps HK • Modern Herrklubbstips Platform</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}
+    {% endblock %}
+</body>
+
+</html>

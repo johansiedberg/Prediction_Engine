@@ -1,0 +1,105 @@
+{% extends 'tournament/base.html' %}
+{% load static %}
+
+{% block backdrop_style %}background: linear-gradient(180deg, rgba(11, 15, 25, 0.85) 0%, rgba(11, 15, 25, 0.95) 100%),
+url('{% static "tournament/img/ToarpsHK_backdrop.svg" %}'); background-size: cover; background-position: center;
+background-repeat: no-repeat;{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Welcome Header -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-lg-10 text-center">
+            <div class="p-4 p-md-5 rounded-4 shadow-lg position-relative overflow-hidden"
+                style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(16px);">
+
+                <!-- Glow Accent -->
+                <div
+                    style="position: absolute; top: -50px; left: 50%; transform: translateX(-50%); width: 250px; height: 250px; background: radial-gradient(circle, rgba(234, 179, 8, 0.25) 0%, rgba(0,0,0,0) 70%); pointer-events: none;">
+                </div>
+
+
+                <h1 class="fw-extrabold text-white display-5 mb-2">
+                    Välkommen, {{ user_nickname }}!
+                </h1>
+                <p class="lead text-warning fw-semibold mb-3">
+                    <i class="fa-solid fa-crown me-1"></i> Toarps HK Herrklubb
+                </p>
+                <p class="text-secondary mx-auto mb-0" style="max-width: 600px; font-size: 1.05rem;">
+                    Välj vart du vill gå idag. Delta i pågående mästerskapstips eller var med och forma klubbens
+                    framtida resor och aktiviteter på Herrklubbssidan.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Cards -->
+    <div class="row g-4 justify-content-center">
+
+        <!-- Card 1: Herrklubbssidan -->
+        <div class="col-md-6 col-lg-5">
+            <div class="card h-100 border-0 rounded-4 shadow text-white text-decoration-none overflow-hidden transition-all hover-lift"
+                style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(148, 163, 184, 0.15) !important;">
+
+                <div class="card-body p-4 p-lg-5 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="mb-3 text-warning">
+                            <i class="fa-solid fa-bucket fa-2x"></i>
+                        </div>
+
+                        <h2 class="h4 fw-bold text-white mb-2">Herrklubbssidan</h2>
+                        <p class="text-secondary small mb-4" style="line-height: 1.6; opacity: 0.85;">
+                            Vår gemensamma Bucket list. Fördela dina Pokermarker och din Bucket för att driva nästa resa till Planering.
+                        </p>
+                    </div>
+
+                    <a href="{% url 'herrklubb' %}"
+                        class="btn btn-outline-warning rounded-pill fw-semibold px-4 py-2 text-decoration-none align-self-start shadow-sm"
+                        style="font-size: 0.9rem;">
+                        Vidare <i class="fa-solid fa-arrow-right ms-1.5"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Mästerskapstips -->
+        <div class="col-md-6 col-lg-5">
+            <div class="card h-100 border-0 rounded-4 shadow text-white text-decoration-none overflow-hidden transition-all hover-lift"
+                style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(148, 163, 184, 0.15) !important;">
+
+                <div class="card-body p-4 p-lg-5 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="mb-3 text-info">
+                            <i class="fa-solid fa-trophy fa-2x"></i>
+                        </div>
+
+                        <h2 class="h4 fw-bold text-white mb-2">Mästerskapstips</h2>
+                        <p class="text-secondary small mb-4" style="line-height: 1.6; opacity: 0.85;">
+                            Tippa fotbollsmästerskapets alla matcher, följ direktrapporterad leaderboard, läs gazettens
+                            roaster och dominera tipsligan.
+                        </p>
+                    </div>
+
+                    <a href="{% url 'predictions' %}"
+                        class="btn btn-outline-info rounded-pill fw-semibold px-4 py-2 text-decoration-none align-self-start shadow-sm"
+                        style="font-size: 0.9rem;">
+                        Vidare <i class="fa-solid fa-arrow-right ms-1.5"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    .hover-lift {
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5) !important;
+    }
+</style>
+{% endblock %}

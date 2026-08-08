@@ -1,0 +1,245 @@
+[
+  {
+    "id": 1,
+    "full_name": "Johan Siedberg",
+    "initials": "JSI",
+    "nicknames": [
+      "Szabo"
+    ],
+    "occupation": "Project & Change Manager (Group Planner)",
+    "physical_attributes": {
+      "height_cm": 180,
+      "height_category": "Normal",
+      "build": "Middle-aged, athletic build with natural muscle tone (not heavily defined/tuned)",
+      "distinctive_features": "Structured posture, approachable planner look"
+    },
+    "personality_and_vibe": "Analytical, structured, strategic organizer",
+    "hobbies_and_quirks": [
+      "Former high-level amateur runner and swimmer"
+    ],
+    "signature_style": "Casually dressed, typically in chinos and a blue shirt",
+    "avatar_filename": "Johan Siedberg.jpg"
+  },
+  {
+    "id": 2,
+    "full_name": "Mikael Dahl",
+    "initials": "MD",
+    "nicknames": [
+      "Dahl"
+    ],
+    "occupation": "Jack-of-all-trades / Businessman (public & shady ventures)",
+    "physical_attributes": {
+      "height_cm": 180,
+      "height_category": "Normal",
+      "build": "Middle-aged dad-body",
+      "distinctive_features": "Very happy, expressive face with high-energy body language"
+    },
+    "personality_and_vibe": "High energy, easily frustrated, risk-taker",
+    "hobbies_and_quirks": [
+      "Passionate horse gambling enthusiast"
+    ],
+    "signature_style": "Casual attire with a dynamic, expressive presence",
+    "avatar_filename": "Mikael Dahl.jpg"
+  },
+  {
+    "id": 3,
+    "full_name": "Andreas Larsson",
+    "initials": "AL",
+    "nicknames": [
+      "Lage"
+    ],
+    "occupation": "Group Lumberjack",
+    "physical_attributes": {
+      "height_cm": 170,
+      "height_category": "Short",
+      "build": "Middle-aged sturdy dad-body",
+      "distinctive_features": "Shorter stature, rugged features, mysterious smile"
+    },
+    "personality_and_vibe": "Rugged, self-reliant, grounded outdoorsman",
+    "hobbies_and_quirks": [
+      "Loves dogs",
+      "poker",
+      "hunting",
+      "and fishing"
+    ],
+    "signature_style": "Practical lumberjack and outdoor wear",
+    "avatar_filename": "Andreas Larsson.jpg"
+  },
+  {
+    "id": 4,
+    "full_name": "Johan Svensson",
+    "initials": "JSV",
+    "nicknames": [
+      "Svensson"
+    ],
+    "occupation": "Facility Manager (aspirational Coffee Machine Technician)",
+    "physical_attributes": {
+      "height_cm": 180,
+      "height_category": "Normal",
+      "build": "Middle-aged, slightly round dad-body",
+      "distinctive_features": "Observant, relaxed posture with a humorous, wise twinkle in the eye"
+    },
+    "personality_and_vibe": "The wiseman of the group with an edgy sense of humor",
+    "hobbies_and_quirks": [
+      "Obsessed with coffee machine mechanics and precision setup"
+    ],
+    "signature_style": "Practical, hands-on operational gear",
+    "avatar_filename": "Johan Svensson.jpg"
+  },
+  {
+    "id": 5,
+    "full_name": "Johan Meldo",
+    "initials": "JM",
+    "nicknames": [
+      "Meldo"
+    ],
+    "occupation": "Physiotherapist",
+    "physical_attributes": {
+      "height_cm": 180,
+      "height_category": "Normal",
+      "build": "Middle-aged bulky dad-body with strongman silhouette (broad, wide, strong, not defined)",
+      "distinctive_features": "Broad shoulders, powerful presence, open and welcoming posture"
+    },
+    "personality_and_vibe": "The empathetic social glue and connector of the group",
+    "hobbies_and_quirks": [
+      "Natural facilitator of group dynamics"
+    ],
+    "signature_style": "Sporty street clothes",
+    "avatar_filename": "Johan Meldo.jpg"
+  },
+  {
+    "id": 6,
+    "full_name": "Erik Svensson",
+    "initials": "ES",
+    "nicknames": [
+      "Erik"
+    ],
+    "occupation": "Former Soccer Goalkeeper (known for physical box play)",
+    "physical_attributes": {
+      "height_cm": 180,
+      "height_category": "Normal",
+      "build": "Middle-aged dad-body",
+      "distinctive_features": "Laid-back look, relaxed or sleep-prone posture when unwinding"
+    },
+    "personality_and_vibe": "Laid-back rock music enthusiast",
+    "hobbies_and_quirks": [
+      "Heavy metal fan (Rammstein, Metallica, Foo Fighters, Iron Maiden)"
+    ],
+    "signature_style": "Sunglasses, baseball cap, casual rock apparel",
+    "avatar_filename": "Erik Svensson.jpg"
+  },
+  {
+    "id": 7,
+    "full_name": "Christoffer Ericsson",
+    "initials": "CE",
+    "nicknames": [
+      "Coffe"
+    ],
+    "occupation": "High-Level Manager with a high technical degree (living in Norway)",
+    "physical_attributes": {
+      "height_cm": 180,
+      "height_category": "Normal",
+      "build": "Middle-aged, athletic and tuned build",
+      "distinctive_features": "Clean-cut, handsome features, sharp and composed posture"
+    },
+    "personality_and_vibe": "\"Ut på tur\" outdoor personality, sharp professional",
+    "hobbies_and_quirks": [
+      "Nordic outdoor life",
+      "high-level technical problem solving"
+    ],
+    "signature_style": "Athletic outdoor gear and smart-casual management wear",
+    "avatar_filename": "Christoffer Ericsson.jpg"
+  },
+  {
+    "id": 8,
+    "full_name": "Martin Gustafsson",
+    "initials": "MG",
+    "nicknames": [
+      "Göransson"
+    ],
+    "occupation": "Principal of a College Sports Institute",
+    "physical_attributes": {
+      "height_cm": 180,
+      "height_category": "Normal",
+      "build": "Middle-aged, athletic tuned build with long and slim silhouette",
+      "distinctive_features": "Characteristic hair, dignified posture of a disciplined leader"
+    },
+    "personality_and_vibe": "The wise father figure of the group, disciplined mentor",
+    "hobbies_and_quirks": [
+      "Dedicated cross-country (X-country) skier"
+    ],
+    "signature_style": "Athletic sports institute clothing and functional winter wear",
+    "avatar_filename": "Martin Gustafson.jpg"
+  },
+  {
+    "id": 9,
+    "full_name": "Tommy Lycen",
+    "initials": "TL",
+    "nicknames": [
+      "Lyset"
+    ],
+    "occupation": "Media Sales Agent (Former Professional Soccer Player)",
+    "physical_attributes": {
+      "height_cm": 170,
+      "height_category": "Short",
+      "build": "Middle-aged, athletic and tuned build",
+      "distinctive_features": "Shorter height with fit frame, prominent styled hair as main focal feature"
+    },
+    "personality_and_vibe": "Upscale fine-dining party socialite, highly active socially",
+    "hobbies_and_quirks": [
+      "Social networking",
+      "fine dining",
+      "football background"
+    ],
+    "signature_style": "Sharp dresser, tailored high-end fashion",
+    "avatar_filename": "Tommy Lycen.jpg"
+  },
+  {
+    "id": 10,
+    "full_name": "Tommy Källberg",
+    "initials": "TK",
+    "nicknames": [
+      "Käbbe"
+    ],
+    "occupation": "Plumber (Former Chef)",
+    "physical_attributes": {
+      "height_cm": 190,
+      "height_category": "Tall",
+      "build": "Slim build",
+      "distinctive_features": "Significantly taller than average, lean silhouette, relaxed tradesman stance"
+    },
+    "personality_and_vibe": "Laid-back tradesman, relaxed",
+    "hobbies_and_quirks": [
+      "Enjoys beer",
+      "pizza",
+      "and backgammon",
+      "Juventus supporter"
+    ],
+    "signature_style": "Outdoor hiking clothes",
+    "avatar_filename": "Tommy Källberg.jpg"
+  },
+  {
+    "id": 11,
+    "full_name": "Martin Krantz",
+    "initials": "MK",
+    "nicknames": [
+      "Krantz"
+    ],
+    "occupation": "Business Owner in Sales",
+    "physical_attributes": {
+      "height_cm": 180,
+      "height_category": "Normal",
+      "build": "Middle-aged, slight dad-body",
+      "distinctive_features": "Expressive storyteller posture, confident stance"
+    },
+    "personality_and_vibe": "Social center, group comedian, teller of endless nostalgic stories",
+    "hobbies_and_quirks": [
+      "Passionate football follower/viewer/former manager",
+      "loves Italy",
+      "loyal AS Roma fan",
+      "Fransesco Totti devoted fan"
+    ],
+    "signature_style": "Sharp business attire with Italian flair",
+    "avatar_filename": "Martin Krantz.jpg"
+  }
+]

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="greenGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#15803D"/>
+      <stop offset="100%" stop-color="#052E16"/>
+    </radialGradient>
+  </defs>
+  <!-- Outer Rim -->
+  <circle cx="50" cy="50" r="48" fill="url(#greenGlow)" stroke="#166534" stroke-width="2"/>
+  <circle cx="50" cy="50" r="44" fill="#064E3B" stroke="#000000" stroke-width="2"/>
+  <!-- White Edge Blocks -->
+  <circle cx="50" cy="50" r="40" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-dasharray="14 12"/>
+  <circle cx="50" cy="50" r="36" fill="#14532D" stroke="#22C55E" stroke-width="1.5"/>
+  <!-- Inner Ring & Suits -->
+  <circle cx="50" cy="50" r="27" fill="#064E3B" stroke="#86EFAC" stroke-width="1.5"/>
+  <!-- Text Value -->
+  <text x="50" y="49" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="22" fill="#FFFFFF" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))">50</text>
+  <text x="50" y="63" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="7" fill="#86EFAC" letter-spacing="1">TOARPS HK</text>
+</svg>

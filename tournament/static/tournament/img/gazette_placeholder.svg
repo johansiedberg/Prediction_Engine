@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#10b981" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.8" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="800" height="400" fill="url(#bgGrad)" />
+  <!-- Grid Lines -->
+  <path d="M0,80 L800,80 M0,160 L800,160 M0,240 L800,240 M0,320 L800,320 M160,0 L160,400 M320,0 L320,400 M480,0 L480,400 M640,0 L640,400" stroke="rgba(255,255,255,0.03)" stroke-width="1" />
+  <!-- Top Accent Bar -->
+  <rect x="0" y="0" width="800" height="6" fill="url(#accentGrad)" />
+  <!-- Newspaper Icon Graphic -->
+  <g transform="translate(400, 180)" text-anchor="middle">
+    <!-- Circle Glow -->
+    <circle cx="0" cy="-10" r="60" fill="rgba(59, 130, 246, 0.1)" stroke="rgba(59, 130, 246, 0.3)" stroke-width="2" />
+    <!-- Newspaper Sheet -->
+    <path d="M-30,-40 L20,-40 L30,-30 L30,20 L-30,20 Z" fill="none" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+    <line x1="-18" y1="-22" x2="18" y2="-22" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" />
+    <line x1="-18" y1="-10" x2="6" y2="-10" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" />
+    <line x1="-18" y1="2" x2="18" y2="2" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" />
+    <!-- Text Label -->
+    <text x="0" y="70" font-family="'Outfit', sans-serif" font-weight="800" font-size="20" fill="#f8fafc" letter-spacing="3">DAGLIGA GAZETTEN</text>
+    <text x="0" y="94" font-family="'Inter', sans-serif" font-weight="600" font-size="12" fill="#64748b" letter-spacing="1">MÄSTERSKAPTIPS REDAKTIONEN</text>
+  </g>
+</svg>

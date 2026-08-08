@@ -1,0 +1,343 @@
+/* ==========================================
+   TOARPS HK MÄSTERSKAPSTIPS - MODERN STYLESHEET
+   ========================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+
+:root {
+    --bg-dark: #0B0F19;
+    --bg-card: rgba(17, 24, 39, 0.75);
+    --bg-card-border: rgba(255, 255, 255, 0.08);
+    --accent-emerald: #10B981;
+    --accent-emerald-glow: rgba(16, 185, 129, 0.3);
+    --accent-blue: #3B82F6;
+    --accent-gold: #F59E0B;
+    --text-main: #F3F4F6;
+    --text-muted: #9CA3AF;
+    --glass-blur: blur(16px);
+}
+
+/* High contrast overrides for Bootstrap classes on dark theme */
+.text-success {
+    color: #34D399 !important;
+}
+
+.text-emerald {
+    color: #10B981 !important;
+}
+
+.text-info {
+    color: #60A5FA !important;
+}
+
+.text-warning {
+    color: #FBBF24 !important;
+}
+
+.text-danger {
+    color: #F87171 !important;
+}
+
+.bg-success {
+    background-color: #10B981 !important;
+}
+
+.border-success {
+    border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+/* ==========================================
+   BOOTSTRAP TABLE OVERRIDES (ELIMINATE WHITE BACKGROUNDS)
+   ========================================== */
+.table {
+    --bs-table-bg: transparent !important;
+    --bs-table-accent-bg: transparent !important;
+    --bs-table-striped-bg: transparent !important;
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.04) !important;
+    --bs-table-color: #F3F4F6 !important;
+    --bs-table-border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #F3F4F6 !important;
+    background-color: transparent !important;
+}
+
+.table > :not(caption) > * > * {
+    background-color: transparent !important;
+    color: #F3F4F6 !important;
+    box-shadow: none !important;
+}
+
+table tr, table td, table th {
+    background-color: transparent !important;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-dark);
+    background-image: 
+        radial-gradient(at 20% 10%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
+        radial-gradient(at 80% 90%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.5) 0px, transparent 100%);
+    background-attachment: fixed;
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+h1, h2, h3, h4, h5, h6, .brand-title {
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: -0.02em;
+}
+
+/* ==========================================
+   HEADER & NAVBAR
+   ========================================== */
+.tournament-header {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(11, 15, 25, 0.95) 100%);
+    backdrop-filter: var(--glass-blur);
+    border-bottom: 1px solid var(--bg-card-border);
+    padding: 1.75rem 1rem;
+    margin-bottom: 2rem;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.brand-logos img {
+    height: 70px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+    transition: transform 0.3s ease;
+}
+
+.brand-logos img:hover {
+    transform: scale(1.05);
+}
+
+.header-badge {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34D399;
+    padding: 0.35rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 0 15px var(--accent-emerald-glow);
+}
+
+/* ==========================================
+   CARDS & CONTAINERS
+   ========================================== */
+.glass-card {
+    background: var(--bg-card) !important;
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--bg-card-border) !important;
+    border-radius: 1.25rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Login Card Specific */
+.login-card {
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.login-card .form-control {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.login-card .form-control:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent-emerald);
+    box-shadow: 0 0 0 4px var(--accent-emerald-glow);
+    color: #FFFFFF;
+}
+
+/* ==========================================
+   NAVIGATION TABS
+   ========================================== */
+.nav-pills .nav-link {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+    padding: 0.6rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.nav-pills .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+}
+
+.nav-pills .nav-link.active {
+    background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+    color: #FFFFFF;
+    border-color: transparent;
+    box-shadow: 0 4px 15px var(--accent-emerald-glow);
+}
+
+/* ==========================================
+   MATCH CARD / TABLE ROW STYLING
+   ========================================== */
+.match-row-card {
+    background: rgba(30, 41, 59, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 0.85rem !important;
+    transition: all 0.2s ease;
+    margin-bottom: 0.5rem;
+}
+
+.match-row-card:hover {
+    background: rgba(30, 41, 59, 0.9) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.match-row-card td {
+    background-color: transparent !important;
+    color: #FFFFFF !important;
+}
+
+/* Inputs for Goals */
+.score-input {
+    width: 50px;
+    height: 44px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    text-align: center;
+    background: rgba(15, 23, 42, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #34D399 !important;
+    border-radius: 0.6rem !important;
+    transition: all 0.2s ease;
+}
+
+.score-input:focus {
+    border-color: var(--accent-emerald) !important;
+    box-shadow: 0 0 0 3px var(--accent-emerald-glow) !important;
+    background: rgba(15, 23, 42, 1) !important;
+}
+
+/* Standings Table */
+.standings-card {
+    background: rgba(17, 24, 39, 0.75) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.standings-table th {
+    background: rgba(15, 23, 42, 0.85) !important;
+    color: #9CA3AF !important;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.85rem 0.75rem;
+}
+
+.standings-table td {
+    padding: 0.75rem;
+    color: #E5E7EB !important;
+    background-color: transparent !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+.standings-table tr:hover td {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.rank-badge {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.rank-1 { background: #F59E0B; color: #111827; }
+.rank-2 { background: #94A3B8; color: #111827; }
+.rank-3 { background: #B45309; color: #FFFFFF; }
+.rank-4 { background: transparent !important; color: #6B7280 !important; font-weight: 500; }
+
+/* ==========================================
+   BUTTONS & BADGES
+   ========================================== */
+.btn-emerald {
+    background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+    color: #FFFFFF;
+    font-weight: 600;
+    border: none;
+    border-radius: 9999px;
+    padding: 0.75rem 2rem;
+    box-shadow: 0 4px 15px var(--accent-emerald-glow);
+    transition: all 0.25s ease;
+}
+
+.btn-emerald:hover {
+    background: linear-gradient(135deg, #047857 0%, #059669 100%);
+    color: #FFFFFF;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--accent-emerald-glow);
+}
+
+.btn-outline-glass {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-main);
+    border-radius: 9999px;
+    padding: 0.6rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-glass:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Footer */
+footer {
+    background: rgba(11, 15, 25, 0.95);
+    border-top: 1px solid var(--bg-card-border);
+    margin-top: auto;
+}
+
+/* Golden Star 10p Popping Badge */
+.star-pop-10p {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translate(-50%, -50%);
+    font-size: 1.8rem;
+    color: #FBBF24 !important;
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.9)) drop-shadow(0 0 16px rgba(245, 158, 11, 0.8));
+    z-index: 10;
+    pointer-events: none;
+    line-height: 1;
+}
+

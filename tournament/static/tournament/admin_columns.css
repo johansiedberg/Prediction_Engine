@@ -1,0 +1,394 @@
+/* 1. HIDE THE "Point system: #1" HEADER COMPLETELY */
+
+#point_system-group .inline-related > h3 {
+
+    display: none !important;
+
+}
+
+
+
+/* 2. FORCE 3 COLUMNS IN A SINGLE ROW (Prevents dropping to the next line) */
+
+#point_system-group .inline-related {
+
+    display: flex !important;
+
+    flex-direction: row !important;
+
+    flex-wrap: nowrap !important;
+
+    gap: 15px !important;
+
+    background: transparent !important;
+
+    border: none !important;
+
+    padding: 0 !important;
+
+}
+
+
+
+/* 3. STYLE THE 3 COLUMNS TO BE EQUAL WIDTH */
+
+#point_system-group .inline-related > fieldset {
+
+    flex: 1 1 33% !important; /* Forces exactly thirds */
+
+    min-width: 0 !important; /* Prevents overflow */
+
+    margin: 0 !important;
+
+    padding: 0 !important;
+
+    border: 1px solid #e0e0e0 !important;
+
+    background: #fff !important;
+
+    box-shadow: none !important;
+
+}
+
+
+
+/* 4. MAKE HEADERS STRICTLY BOLD */
+
+#point_system-group .inline-related fieldset h2,
+
+#point_system-group .inline-related fieldset legend,
+
+#point_system-group .inline-related fieldset .collapse-toggle {
+
+    background: #f8f8f8 !important;
+
+    color: #111 !important; /* Made the text even darker */
+
+    padding: 10px 12px !important;
+
+    font-weight: 900 !important; /* 900 is the absolute maximum boldness */
+
+    font-family: Arial, sans-serif !important; /* Forcing a standard font that definitely has a bold variant */
+
+    font-size: 14px !important;
+
+    border-bottom: 1px solid #e0e0e0 !important;
+
+    margin: 0 !important;
+
+    text-transform: none !important;
+
+    display: block !important;
+
+}
+
+
+
+/* 5. STRUCTURE THE ROWS */
+
+#point_system-group .inline-related > fieldset .form-row {
+
+    border-bottom: 1px solid #f4f4f4 !important;
+
+    padding: 8px 12px !important;
+
+    margin: 0 !important;
+
+}
+
+
+
+/* This pushes the label to the left and the input to the right */
+
+#point_system-group .inline-related > fieldset .form-row > div {
+
+    display: flex !important;
+
+    align-items: center !important;
+
+    justify-content: space-between !important;
+
+    gap: 10px !important;
+
+}
+
+
+
+/* 6. MAKE LABELS STRICTLY NORMAL WEIGHT */
+
+#point_system-group .inline-related > fieldset .form-row label {
+
+    font-weight: 400 !important; /* 400 is explicitly normal */
+
+    color: #444 !important;
+
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
+
+    font-size: 13px !important;
+
+    margin: 0 !important;
+
+    padding: 0 !important;
+
+    flex: 1 !important;
+
+    line-height: 1.4 !important;
+
+}
+
+
+
+/* 7. MAKE ALL INPUT BOXES SMALL AND UNIFORM */
+
+#point_system-group .inline-related > fieldset .form-row input[type="number"] {
+
+    width: 60px !important;
+
+    padding: 4px 8px !important;
+
+    border: 1px solid #ccc !important;
+
+    border-radius: 4px !important;
+
+    text-align: center !important;
+
+    flex-shrink: 0 !important;
+
+}
+
+
+
+/* 8. COMPLETELY HIDE THE "ADD ANOTHER" BUTTON FOR POINT SYSTEM */
+
+#point_system-group .add-row {
+
+    display: none !important;
+
+}
+
+
+/* Ensure the tables inside them stretch to fill that uniform width */
+
+#content-main .module table {
+
+    width: 100% !important;
+
+}
+
+
+
+/* --- RESPONSIVE TOURNAMENT FORM LAYOUT --- */
+
+
+
+/* Constrain the main form width so it doesn't stretch infinitely on wide screens */
+
+#content-main form {
+
+    max-width: 1100px !important;
+
+}
+
+
+
+/* Modernize and fix the filter_horizontal (Players) widget */
+
+.selector {
+
+    width: 100% !important;
+
+    max-width: 850px !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+
+    gap: 15px !important;
+
+}
+
+
+
+.selector .selector-available,
+
+.selector .selector-chosen {
+
+    flex: 1 !important;
+
+    width: auto !important;
+
+    float: none !important;
+
+}
+
+
+
+.selector .selector-chooser {
+
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    justify-content: center !important;
+
+    align-items: center !important;
+
+    width: 50px !important;
+
+    float: none !important;
+
+    padding: 0 !important;
+
+    margin: 0 !important;
+
+    background: transparent !important;
+
+}
+
+
+
+.selector select {
+
+    width: 100% !important;
+
+    height: 180px !important;
+
+    border: 1px solid #ccc !important;
+
+    border-radius: 4px !important;
+
+}
+
+
+
+/* Clean up general form row padding and alignment */
+
+.form-row {
+
+    padding: 12px 15px !important;
+
+    border-bottom: 1px solid #f0f0f0 !important;
+
+}
+
+
+
+.form-row label {
+
+    font-weight: 600 !important;
+
+    color: #333 !important;
+
+}
+
+/* --- ULTRA-SPECIFIC OVERRIDE FOR DJANGO PLAYER SELECTOR --- */
+
+
+
+#content-main .selector {
+
+    width: 100% !important;
+
+    max-width: 800px !important;
+
+    min-height: 250px !important;
+
+    overflow: hidden !important;
+
+    display: block !important;
+
+    background: transparent !important;
+
+    border: none !important;
+
+    padding: 0 !important;
+
+}
+
+
+
+#content-main .selector .selector-available,
+
+#content-main .selector .selector-chosen {
+
+    width: 42% !important;
+
+    min-width: 250px !important;
+
+    float: left !important;
+
+    margin: 0 !important;
+
+}
+
+
+
+#content-main .selector .selector-chooser {
+
+    width: 16% !important;
+
+    float: left !important;
+
+    text-align: center !important;
+
+    padding-top: 80px !important;
+
+    background: transparent !important;
+
+}
+
+
+
+#content-main .selector select {
+
+    width: 100% !important;
+
+    height: 180px !important;
+
+    border: 1px solid #ccc !important;
+
+    border-radius: 4px !important;
+
+    background: #fff !important;
+
+}
+
+
+
+#content-main .selector ul.selector-chooser li {
+
+    list-style-type: none !important;
+
+    margin: 0 auto 5px auto !important;
+
+} 
+
+/* -------------------------------------------
+   COMPACT DATE & TIME INLINE WIDGET
+   ------------------------------------------- */
+
+/* 1. Force Date and Time onto a single horizontal row */
+td.field-date_time p.datetime {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+}
+
+/* 2. Hide the line breaks Django uses to stack them */
+td.field-date_time p.datetime br {
+    display: none !important;
+}
+
+/* 3. Hide the Calendar/Clock icons and "Today/Now" text */
+td.field-date_time .datetimeshortcuts {
+    display: none !important;
+}
+
+/* 4. Hide the "Note: You are 2 hours ahead..." instructions */
+td.field-date_time .timezone,
+td.field-date_time .timezonewarning {
+    display: none !important;
+}

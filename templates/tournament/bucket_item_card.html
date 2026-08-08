@@ -1,0 +1,130 @@
+<div class="card bg-dark text-white border-0 shadow-lg rounded-4 overflow-hidden position-relative h-100" 
+     style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(255, 255, 255, 0.1) !important;">
+    
+    <!-- Top Accent Bar -->
+    <div style="height: 4px; background: {% if is_planerad_tab %}linear-gradient(90deg, #EAB308, #22C55E){% else %}linear-gradient(90deg, #64748B, #475569){% endif %};"></div>
+
+    <div class="card-body p-4 d-flex flex-column justify-content-between">
+        <div>
+            <!-- Header: Category & Rank -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <span class="badge bg-secondary bg-opacity-50 text-light border border-secondary border-opacity-50 rounded-pill px-3 py-1.5 small">
+                    {{ item.category.icon }} {{ item.category.name }}
+                </span>
+
+                {% if is_planerad_tab and rank %}
+                    <span class="badge {% if rank == 1 %}bg-warning text-dark{% elif rank == 2 %}bg-light text-dark{% elif rank == 3 %}bg-danger text-white{% else %}bg-dark border border-warning text-warning{% endif %} rounded-pill px-3 py-1.5 fw-bold fs-6 shadow-sm">
+                        {% if rank == 1 %}🥇 Rank #1{% elif rank == 2 %}🥈 Rank #2{% elif rank == 3 %}🥉 Rank #3{% else %}#{{ rank }}{% endif %}
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Title & Description -->
+            <h3 class="h4 fw-bold text-white mb-2">{{ item.title }}</h3>
+            {% if item.description %}
+                <p class="text-secondary small mb-3" style="line-height: 1.5;">{{ item.description }}</p>
+            {% endif %}
+
+            <!-- Points & Votes Badge Bar -->
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <div class="px-3 py-1.5 rounded-pill bg-warning bg-opacity-25 border border-warning border-opacity-50 text-warning fw-bold small">
+                    <i class="fa-solid fa-coins me-1"></i> {{ item.total_points }} Poäng
+                </div>
+                <div class="px-3 py-1.5 rounded-pill bg-info bg-opacity-25 border border-info border-opacity-50 text-info fw-semibold small">
+                    <i class="fa-solid fa-users me-1"></i> {{ item.vote_count }}/11 Röster
+                </div>
+
+                <!-- Subtotals of Markers -->
+                <div class="d-flex gap-1 ms-auto">
+                    {% if item.count_svart > 0 %}
+                        <span class="badge bg-dark border border-light text-white rounded-pill px-2 py-1" title="Svarta marker (6p)">
+                            ♠ {{ item.count_svart }}
+                        </span>
+                    {% endif %}
+                    {% if item.count_gron > 0 %}
+                        <span class="badge bg-success text-white rounded-pill px-2 py-1" title="Gröna marker (3p)">
+                            ♣ {{ item.count_gron }}
+                        </span>
+                    {% endif %}
+                    {% if item.count_rod > 0 %}
+                        <span class="badge bg-danger text-white rounded-pill px-2 py-1" title="Röda marker (2p)">
+                            ♦ {{ item.count_rod }}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Idébanken Progress Bar (if not on Planerade tab) -->
+            {% if not is_planerad_tab %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between small text-secondary mb-1">
+                        <span>Framsteg mot Planering:</span>
+                        <strong class="{% if item.vote_count >= 5 %}text-warning{% else %}text-secondary{% endif %}">{{ item.vote_count }}/6 röster</strong>
+                    </div>
+                    <div class="progress bg-secondary bg-opacity-25 rounded-pill" style="height: 8px;">
+                        <div class="progress-bar bg-warning rounded-pill" role="progressbar" style="width: {% widthratio item.vote_count 6 100 %}%;"></div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Högsta Dröm Badges -->
+            {% if item.dream_users %}
+                <div class="p-2.5 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 mb-3">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="text-warning fw-bold small">🪣 Högsta Dröm för:</span>
+                        {% for d_user in item.dream_users %}
+                            <span class="badge bg-warning text-dark fw-bold rounded-pill">
+                                {% if d_user.first_name %}{{ d_user.first_name }}{% else %}{{ d_user.username }}{% endif %}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Action & Voting Buttons -->
+        <div class="pt-3 border-top border-secondary border-opacity-25">
+            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                
+                <!-- Voting Markers Buttons -->
+                <div class="d-flex flex-wrap gap-1.5">
+                    <!-- Svart Marker (6p) -->
+                    <button type="button" onclick="voteItem('{{ item.id }}', 'SVART')" 
+                            class="btn btn-sm rounded-pill fw-bold {% if user_placed_svart and user_placed_svart.item.id == item.id %}btn-dark border border-warning text-warning shadow-sm{% else %}btn-outline-dark text-white border-secondary{% endif %}" style="font-size: 0.8rem;">
+                        ♠ Svart (6p)
+                    </button>
+
+                    <!-- Grön Marker (3p) -->
+                    <button type="button" onclick="voteItem('{{ item.id }}', 'GRON')" 
+                            class="btn btn-sm rounded-pill fw-bold {% if user_placed_gron and user_placed_gron.item.id == item.id %}btn-success text-white shadow-sm{% else %}btn-outline-success text-success border-success border-opacity-50{% endif %}" style="font-size: 0.8rem;">
+                        ♣ Grön (3p)
+                    </button>
+
+                    <!-- Röd Marker (2p) -->
+                    <button type="button" onclick="voteItem('{{ item.id }}', 'ROD')" 
+                            class="btn btn-sm rounded-pill fw-bold {% if user_placed_rod and user_placed_rod.item.id == item.id %}btn-danger text-white shadow-sm{% else %}btn-outline-danger text-danger border-danger border-opacity-50{% endif %}" style="font-size: 0.8rem;">
+                        ♦ Röd (2p)
+                    </button>
+
+                    <!-- Högsta Dröm Button -->
+                    <button type="button" onclick="toggleDream('{{ item.id }}')" 
+                            class="btn btn-sm rounded-pill fw-bold {% if user_dream and user_dream.item.id == item.id %}btn-warning text-dark shadow-sm{% else %}btn-outline-warning text-warning border-warning border-opacity-50{% endif %}" style="font-size: 0.8rem;" title="Markera som din Högsta Dröm">
+                        🪣 Dröm
+                    </button>
+                </div>
+
+                <!-- Admin / Creator Complete Action -->
+                {% if user.is_staff or item.created_by == user %}
+                    <form action="{% url 'herrklubb_complete_item' item.id %}" method="post" class="d-inline ms-auto" onsubmit="return confirm('Vill du markera {{ item.title }} som genomförd? Detta frigör alla placerade röster.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-success btn-sm rounded-pill px-2.5 py-1" style="font-size: 0.75rem;" title="Bocka av som genomförd">
+                            <i class="fa-solid fa-check me-1"></i>Genomförd
+                        </button>
+                    </form>
+                {% endif %}
+
+            </div>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,265 @@
+{% extends 'tournament/base.html' %}
+{% load static %}
+
+{% block backdrop_style %}background: linear-gradient(180deg, rgba(11, 15, 25, 0.85) 0%, rgba(11, 15, 25, 0.95) 100%), url('{% static "tournament/img/ToarpsHK_backdrop.svg" %}'); background-size: cover; background-position: center; background-repeat: no-repeat;{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- Header Section -->
+    <div class="p-4 rounded-4 shadow-lg mb-4 text-white position-relative overflow-hidden" 
+         style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.90) 100%); border: 1px solid rgba(234, 179, 8, 0.3);">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="fs-1">📅</span>
+                <div>
+                    <h1 class="display-6 fw-extrabold mb-0 text-white">Hinderkalender & Frånvaro</h1>
+                    <p class="text-warning fw-semibold mb-0">Planera nästa resa med full översikt över tillgänglighet & 🌟 Guldhelger</p>
+                </div>
+            </div>
+            <button type="button" class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold text-dark shadow-sm" data-bs-toggle="modal" data-bs-target="#addUnavailabilityModal">
+                <i class="fa-solid fa-plus me-1.5"></i>Lägg till Hinder
+            </button>
+        </div>
+    </div>
+
+    <!-- GOLDEN WEEKENDS BANNER -->
+    {% if golden_weekends %}
+        <div class="card bg-dark border-warning border-opacity-50 text-white shadow-lg rounded-4 overflow-hidden mb-4"
+             style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(234, 179, 8, 0.5) !important;">
+            <div class="card-header bg-warning bg-opacity-10 border-warning border-opacity-25 py-2.5 px-4 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fs-5">🌟</span>
+                    <h3 class="h6 fw-bold text-warning mb-0 text-uppercase tracking-wider">Kommande Guldhelger (100% Tillgänglighet för alla {{ total_members }} medlemmar)</h3>
+                </div>
+                <span class="badge bg-warning text-dark rounded-pill fw-bold">{{ golden_weekends|length }} st hittade</span>
+            </div>
+            <div class="card-body p-3">
+                <div class="row g-2">
+                    {% for gw in golden_weekends %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="p-3 rounded-3 bg-dark bg-opacity-60 border border-warning border-opacity-30 d-flex align-items-center justify-content-between shadow-sm">
+                                <div>
+                                    <div class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 mb-1" style="font-size: 0.7rem;">
+                                        Fredag - Söndag
+                                    </div>
+                                    <h4 class="h6 fw-bold text-white mb-0">
+                                        {{ gw.start|date:"d" }} - {{ gw.end|date:"d F Y" }}
+                                    </h4>
+                                </div>
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success px-2.5 py-1.5 rounded-pill small fw-bold">
+                                    <i class="fa-solid fa-users me-1"></i>{{ total_members }}/{{ total_members }} lediga
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- MONTHLY HEATMAP CALENDAR -->
+    <div class="card bg-dark text-white border-0 shadow-lg rounded-4 overflow-hidden mb-4"
+         style="background: linear-gradient(145deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%); border: 1px solid rgba(255, 255, 255, 0.1) !important;">
+        
+        <!-- Navigation Header -->
+        <div class="card-header bg-dark bg-opacity-50 border-secondary border-opacity-25 py-3 px-4 d-flex align-items-center justify-content-between">
+            <a href="?year={{ prev_year }}&month={{ prev_month }}" class="btn btn-sm btn-outline-light rounded-circle px-2.5 py-1">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+
+            <h2 class="h4 fw-extrabold text-white mb-0 text-center">
+                {{ month_name_sv }} {{ req_year }}
+            </h2>
+
+            <a href="?year={{ next_year }}&month={{ next_month }}" class="btn btn-sm btn-outline-light rounded-circle px-2.5 py-1">
+                <i class="fa-solid fa-chevron-right"></i>
+            </a>
+        </div>
+
+        <div class="card-body p-3">
+            <!-- Grid Header (Weekdays) -->
+            <div class="row g-2 text-center text-secondary fw-bold small text-uppercase mb-2">
+                <div class="col">Mån</div>
+                <div class="col">Tis</div>
+                <div class="col">Ons</div>
+                <div class="col">Tor</div>
+                <div class="col">Fre</div>
+                <div class="col text-warning">Lör</div>
+                <div class="col text-warning">Sön</div>
+            </div>
+
+            <!-- Grid Days -->
+            <div class="row row-cols-7 g-2 text-center">
+                {% for day in days_data %}
+                    <div class="col">
+                        {% if day.is_other_month %}
+                            <!-- Empty / Muted Cell for Adjacent Month Days -->
+                            <div class="p-2 rounded-3 text-start bg-dark bg-opacity-20 border border-secondary border-opacity-10 opacity-25" style="min-height: 80px;">
+                                <span class="text-white-50 fs-6">{{ day.day_num }}</span>
+                            </div>
+                        {% else %}
+                            <!-- Active Month Day Cell -->
+                            <div class="p-2 rounded-3 text-start position-relative d-flex flex-column justify-content-between h-100 border transition-all 
+                                        {% if day.is_golden %}
+                                            bg-success bg-opacity-20 border-success border-opacity-50
+                                        {% elif day.available_count == total_members %}
+                                            bg-dark bg-opacity-70 border-secondary border-opacity-30
+                                        {% elif day.available_count >= 8 %}
+                                            bg-info bg-opacity-20 border-info border-opacity-40
+                                        {% else %}
+                                            bg-danger bg-opacity-25 border-danger border-opacity-50
+                                        {% endif %}
+                                        {% if day.is_today %}border-warning border-2{% endif %}"
+                                 style="min-height: 80px;"
+                                 {% if day.blocked_users %}data-bs-toggle="tooltip" data-bs-html="true" title="Förhindrade: {% for u in day.blocked_users %}{% if u.get_full_name %}{{ u.get_full_name }}{% elif u.first_name %}{{ u.first_name }} {{ u.last_name }}{% else %}{{ u.username }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}"{% endif %}>
+
+                                <!-- Top: Day Number & Weekend Badge -->
+                                <div class="d-flex align-items-center justify-content-between w-100 mb-1">
+                                    <span class="fw-bold fs-6 {% if day.is_weekend %}text-warning{% else %}text-white{% endif %}">
+                                        {{ day.day_num }}
+                                    </span>
+                                    {% if day.is_golden %}
+                                        <span style="font-size: 0.85rem;" title="100% Lediga">🌟</span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Bottom: High Contrast Member Counter Badge -->
+                                <div class="mt-auto">
+                                    {% if day.available_count == total_members %}
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-40 w-100 py-1.5 fw-bold" style="font-size: 0.7rem;">
+                                            {{ total_members }}/{{ total_members }} lediga
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger text-white border border-danger w-100 py-1.5 fw-bold" style="font-size: 0.7rem;">
+                                            {{ day.available_count }}/{{ total_members }} lediga
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MY REGISTERED UNAVAILABILITIES -->
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card bg-dark text-white border-0 shadow rounded-4 overflow-hidden h-100"
+                 style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(255, 255, 255, 0.1) !important;">
+                <div class="card-header bg-dark bg-opacity-50 border-secondary border-opacity-25 py-3 px-4 d-flex align-items-center justify-content-between">
+                    <h3 class="h6 fw-bold text-warning mb-0">
+                        <i class="fa-solid fa-user-xmark me-2"></i>Mina registrerade hinder
+                    </h3>
+                </div>
+                <div class="card-body p-3">
+                    {% if user_unavailabilities %}
+                        <div class="list-group list-group-flush">
+                            {% for u in user_unavailabilities %}
+                                <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 py-2.5 px-2 d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <strong class="d-block text-white small">{{ u.start_date|date:"d M Y" }} ➔ {{ u.end_date|date:"d M Y" }}</strong>
+                                        {% if u.reason %}
+                                            <span class="text-secondary small italic">{{ u.reason }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <form action="{% url 'delete_unavailability' u.id %}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle py-1 px-2" title="Ta bort">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-secondary small mb-0 p-2 italic text-center">Du har inga registrerade hinder i kalendern.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ALL UPCOMING MEMBER ABSENCES -->
+        <div class="col-md-6">
+            <div class="card bg-dark text-white border-0 shadow rounded-4 overflow-hidden h-100"
+                 style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(255, 255, 255, 0.1) !important;">
+                <div class="card-header bg-dark bg-opacity-50 border-secondary border-opacity-25 py-3 px-4 d-flex align-items-center justify-content-between">
+                    <h3 class="h6 fw-bold text-info mb-0">
+                        <i class="fa-solid fa-users-slash me-2"></i>Alla alla medlemmars förhinder
+                    </h3>
+                </div>
+                <div class="card-body p-3">
+                    {% if all_upcoming %}
+                        <div class="list-group list-group-flush">
+                            {% for u in all_upcoming %}
+                                <div class="list-group-item bg-transparent text-white border-secondary border-opacity-25 py-2 px-2 d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 small fw-bold">
+                                            {% if u.user.get_full_name %}{{ u.user.get_full_name }}{% elif u.user.first_name %}{{ u.user.first_name }} {{ u.user.last_name }}{% else %}{{ u.user.username }}{% endif %}
+                                        </span>
+                                        <span class="text-white small">{{ u.start_date|date:"d/m" }} - {{ u.end_date|date:"d/m" }}</span>
+                                    </div>
+                                    {% if u.reason %}
+                                        <span class="text-secondary small italic text-truncate" style="max-width: 150px;">{{ u.reason }}</span>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-secondary small mb-0 p-2 italic text-center">Inga hinder är registrerade i klubben!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Add Unavailability -->
+<div class="modal fade" id="addUnavailabilityModal" tabindex="-1" aria-labelledby="addUnavailabilityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-warning border-opacity-50 rounded-4 shadow-lg">
+            <div class="modal-header border-secondary border-opacity-25">
+                <h5 class="modal-title fw-bold text-warning" id="addUnavailabilityModalLabel">
+                    <i class="fa-solid fa-calendar-plus me-2"></i>Registrera Hinder / Frånvaro
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{% url 'add_unavailability' %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-warning fw-semibold">Startdatum *</label>
+                        <input type="date" name="start_date" class="form-control bg-secondary bg-opacity-25 text-white border-secondary" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-warning fw-semibold">Slutdatum *</label>
+                        <input type="date" name="end_date" class="form-control bg-secondary bg-opacity-25 text-white border-secondary" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-warning fw-semibold">Anledning (Valfritt)</label>
+                        <input type="text" name="reason" class="form-control bg-secondary bg-opacity-25 text-white border-secondary" placeholder="T.ex. Familjesemester, Jobbresa...">
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary border-opacity-25">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Avbryt</button>
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold text-dark">Spara Hinder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

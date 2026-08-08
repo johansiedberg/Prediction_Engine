@@ -1,0 +1,861 @@
+{% extends 'tournament/base.html' %}
+{% load static %}
+{% load dashboard_tags %}
+
+{% block content %}
+
+<!-- Custom CSS for Predictions Page -->
+<style>
+    /* Absolute Override: Eliminate ALL White Backgrounds on Tables, Cards, Rows & Cells */
+    .table, .table *, table, table *, tr, td, th, tbody, thead {
+        background-color: transparent !important;
+        background: transparent !important;
+        color: #F3F4F6 !important;
+        box-shadow: none !important;
+    }
+    
+    .glass-card {
+        background: rgba(17, 24, 39, 0.78) !important;
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 1.25rem;
+    }
+
+    .standings-card {
+        background: rgba(17, 24, 39, 0.78) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+
+    .match-row-card {
+        background: rgba(30, 41, 59, 0.6) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 0.85rem !important;
+        transition: all 0.2s ease;
+        margin-bottom: 0.5rem;
+    }
+
+    .match-row-card:hover {
+        background: rgba(30, 41, 59, 0.9) !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+        transform: translateY(-2px);
+    }
+
+    .match-row-card td {
+        background-color: transparent !important;
+        color: #FFFFFF !important;
+    }
+
+    .knockout-row-card {
+        height: 90px !important;
+        min-height: 90px !important;
+    }
+    
+    .knockout-row-card td {
+        vertical-align: middle !important;
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+    }
+
+    .knockout-score-cell {
+        position: relative;
+        height: 78px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .knockout-inputs-wrap {
+        height: 40px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .tiebreaker-box-wrapper {
+        position: absolute;
+        top: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        height: 20px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .tiebreaker-btn {
+        border-radius: 4px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    .standings-table th {
+        background: rgba(15, 23, 42, 0.85) !important;
+        color: #9CA3AF !important;
+    }
+
+    .standings-table td {
+        color: #E5E7EB !important;
+        background-color: transparent !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+    }
+
+    .hide-arrows::-webkit-outer-spin-button,
+    .hide-arrows::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .hide-arrows {
+        -moz-appearance: textfield;
+    }
+
+    .floating-save-bar {
+        position: sticky;
+        bottom: 20px;
+        z-index: 1000;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    
+    /* Neutral Score Inputs (No Green Border) */
+    .neutral-score-input {
+        width: 44px;
+        height: 40px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        text-align: center;
+        background: rgba(15, 23, 42, 0.85) !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        color: #FFFFFF !important;
+        border-radius: 0.5rem !important;
+        transition: all 0.2s ease;
+    }
+
+    .neutral-score-input:focus {
+        border-color: rgba(59, 130, 246, 0.6) !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+        background: rgba(15, 23, 42, 1) !important;
+        color: #FFFFFF !important;
+    }
+
+    /* Wider 2-Line Date Badge */
+    .date-badge-box {
+        background: rgba(15, 23, 42, 0.75) !important;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 6px;
+        padding: 4px 8px !important;
+        min-width: 105px !important;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .flag-icon-img {
+        width: 28px;
+        height: 19px;
+        object-fit: cover;
+        border-radius: 3px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .tiebreaker-btn.active {
+        background: rgba(16, 185, 129, 0.25) !important;
+        border-color: #34D399 !important;
+        color: #34D399 !important;
+        font-weight: bold;
+    }
+</style>
+
+<!-- Custom Style for Text-Only Navigation Links -->
+<style>
+    .main-nav-link {
+        color: #9CA3AF !important;
+        text-decoration: none !important;
+        padding: 0.25rem 0.5rem !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+        border: none !important;
+        border-bottom: 2px solid transparent !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+    }
+    .main-nav-link:hover {
+        color: #FFFFFF !important;
+    }
+    .main-nav-link.active {
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+        border-bottom: 2px solid #10B981 !important;
+        background: transparent !important;
+    }
+</style>
+
+<!-- Inner Main Frame Navigation Bar -->
+<div class="d-flex flex-column flex-xl-row align-items-center justify-content-between pb-3 mb-4 border-bottom border-secondary border-opacity-20 gap-3">
+    
+    <!-- Left: Icon + Pop-Out Tournament Badge & Menu Links -->
+    <div class="d-flex align-items-center gap-3 flex-wrap justify-content-center justify-content-xl-start">
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill position-relative" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34D399; font-weight: 700; font-size: 0.9rem;">
+            <img src="{% static 'tournament/img/EURO28_Icon.webp' %}" alt="UEFA Euro 2028 Icon" style="height: 64px; width: 64px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(52, 211, 153, 0.95)) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.9)); margin: -16px 0 -16px -10px; z-index: 10;">
+            <span style="z-index: 5;">{{ active_tournament.name|default:"UEFA Euro 2028" }}</span>
+        </div>
+
+        <!-- Clean Text Navigation Menu (No buttons, no emojis) -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <a href="{% url 'dashboard' %}" class="main-nav-link">Hem</a>
+            <a href="{% url 'dashboard' %}?tab=results" class="main-nav-link">Resultat</a>
+            <a href="{% url 'dashboard' %}?tab=leaderboard" class="main-nav-link">Topplista</a>
+            <a href="{% url 'dashboard' %}?tab=insights" class="main-nav-link">Analys & Insikter</a>
+            <a href="{% url 'predictions' %}" class="main-nav-link active">Mina Tips</a>
+            <a href="{% url 'dashboard' %}?tab=rules" class="main-nav-link">Regler & Poäng</a>
+        </div>
+    </div>
+
+
+
+</div>
+
+<form method="post" id="predictionForm">
+    {% csrf_token %}
+    <input type="hidden" name="active_tab" id="activeTabInput" value="{{ active_tab|default:'' }}">
+
+    <!-- Centered Navigation Tabs -->
+    <ul class="nav nav-pills mb-4 gap-2 justify-content-center" id="tournamentTab" role="tablist">
+        {% for group in groups %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if forloop.first %}active{% endif %}" id="group-{{ group.id }}-tab" data-bs-toggle="pill" data-bs-target="#group-{{ group.id }}" type="button" role="tab">
+                Grupp {{ group.name }}
+            </button>
+        </li>
+        {% endfor %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="knockout-tab" data-bs-toggle="pill" data-bs-target="#knockout-stage" type="button" role="tab">
+                <i class="fa-solid fa-sitemap me-2"></i>Slutspelsträd
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="sidebets-tab" data-bs-toggle="pill" data-bs-target="#sidebets-stage" type="button" role="tab">
+                <i class="fa-solid fa-coins me-2"></i>Sidebets
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="tournamentTabContent">
+        
+        <!-- GROUPS TAB CONTENT -->
+        {% for group in groups %}
+        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="group-{{ group.id }}" role="tabpanel">
+            <div class="row g-4">
+                
+                <!-- LEFT SIDE: Matches Standalone Floating Card -->
+                <div class="col-lg-7">
+                    <div class="glass-card p-4">
+                        <h4 class="fw-bold text-white mb-3">Spelschema Grupp {{ group.name }}</h4>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-borderless align-middle mb-0" style="border-collapse: separate; border-spacing: 0 8px;">
+                                <thead class="text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+                                    <tr>
+                                        <th style="width: 20%;" class="text-center">Datum</th>
+                                        <th style="width: 30%;" class="text-end">Hemmalag</th>
+                                        <th style="width: 20%;" class="text-center">Tips</th>
+                                        <th style="width: 30%;" class="text-start">Bortalag</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for match in group.matches.all %}
+                                    {% with pred=user_predictions|get_item:match.id home=match.get_home_team_info away=match.get_away_team_info %}
+                                    
+                                    <tr class="match-row-card">
+                                        
+                                        <!-- Compact 2-Line Date & Time Box -->
+                                        <td class="text-center py-2 px-2">
+                                            <div class="date-badge-box">
+                                                <span class="fw-medium text-secondary" style="font-size: 0.68rem; color: #9CA3AF !important;">{{ match.date_time|date:"Y-m-d"|default:"2028-06-14" }}</span>
+                                                <span class="fw-bold text-white text-capitalize" style="font-size: 0.75rem;">{{ match.date_time|date:"l H:i"|default:"Onsdag 19:00" }}</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Home Team + Flag -->
+                                        <td class="text-end pe-3 py-2">
+                                            <div class="d-flex align-items-center justify-content-end gap-2">
+                                                <span class="fw-bold text-white fs-6 team-name-display" data-group="{{ group.id }}" data-original="{{ home.name }}">{{ home.name }}</span>
+                                                {% if home.flag_url %}
+                                                    <img class="flag-icon-img" src="{{ home.flag_url }}" alt="{{ home.name }}">
+                                                {% else %}
+                                                    <img class="flag-img flag-icon-img" data-group="{{ group.id }}" data-original="{{ home.name }}" src="" style="display: none;">
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        
+                                        <!-- Neutral Score Inputs (No Green Border) -->
+                                        <td class="text-center py-2 px-0">
+                                            <div class="d-flex justify-content-center align-items-center gap-1">
+                                                <input type="number" name="home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input" data-group="{{ group.id }}" placeholder="-" {% if submission and submission.is_verified %}disabled{% endif %}>
+                                                <span class="text-secondary fw-bold px-1">:</span>
+                                                <input type="number" name="away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input" data-group="{{ group.id }}" placeholder="-" {% if submission and submission.is_verified %}disabled{% endif %}>
+                                            </div>
+                                        </td>
+
+                                        <!-- Flag + Away Team -->
+                                        <td class="text-start ps-3 py-2">
+                                            <div class="d-flex align-items-center justify-content-start gap-2">
+                                                {% if away.flag_url %}
+                                                    <img class="flag-icon-img" src="{{ away.flag_url }}" alt="{{ away.name }}">
+                                                {% else %}
+                                                    <img class="flag-img flag-icon-img" data-group="{{ group.id }}" data-original="{{ away.name }}" src="" style="display: none;">
+                                                {% endif %}
+                                                <span class="fw-bold text-white fs-6 team-name-display" data-group="{{ group.id }}" data-original="{{ away.name }}">{{ away.name }}</span>
+                                            </div>
+                                        </td>
+                                        
+                                    </tr>
+                                    {% endwith %}
+                                    {% empty %}
+                                    <tr><td colspan="4" class="text-center text-muted py-4">Inga matcher inlagda i denna grupp ännu.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT SIDE: Live Standings Standalone Floating Card -->
+                <div class="col-lg-5">
+                    <div class="standings-card p-4 sticky-top" style="top: 20px;">
+                        <h4 class="fw-bold text-white mb-3">Tabell Grupp {{ group.name }}</h4>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle standings-table mb-0" id="standings-table-g{{ group.id }}">
+                                <thead>
+                                    <tr>
+                                        <th class="py-2 px-3">Lag</th>
+                                        <th class="text-center py-2">Sp</th>
+                                        <th class="text-center py-2">V</th>
+                                        <th class="text-center py-2">O</th>
+                                        <th class="text-center py-2">F</th>
+                                        <th class="text-center py-2">MS</th>
+                                        <th class="text-center py-2 fw-bold text-warning">P</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated dynamically by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- KNOCKOUTS TAB CONTENT -->
+        <div class="tab-pane fade" id="knockout-stage" role="tabpanel">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    
+                    {% for stage in knockout_stages %}
+                    <div class="glass-card p-4 mb-4">
+                        <h4 class="fw-bold text-white mb-3">{{ stage.name }}</h4>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-borderless align-middle mb-0" style="border-collapse: separate; border-spacing: 0 8px;">
+                                <thead class="text-uppercase text-secondary" style="font-size: 0.75rem;">
+                                    <tr>
+                                        <th style="width: 10%;" class="text-center">ID</th>
+                                        <th style="width: 18%;" class="text-center">Datum</th>
+                                        <th style="width: 26%;" class="text-end">Hemmalag</th>
+                                        <th style="width: 18%;" class="text-center">Tips</th>
+                                        <th style="width: 28%;" class="text-start">Bortalag</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for match in stage.matches.all %}
+                                    {% with pred=user_predictions|get_item:match.id home=match.get_home_team_info away=match.get_away_team_info %}
+                                    
+                                    <tr class="match-row-card match-row knockout-row-card" data-match-id="{{ match.id }}" data-match-number="{{ match.match_number }}" data-home-raw="{{ match.home_team }}" data-away-raw="{{ match.away_team }}">
+                                        
+                                        <!-- Match Number Badge -->
+                                        <td class="text-center py-2 px-2">
+                                            <span class="badge bg-secondary bg-opacity-20 text-secondary border border-secondary border-opacity-20 rounded-pill">M{{ match.match_number }}</span>
+                                        </td>
+
+                                        <!-- Compact 2-Line Date & Time Box -->
+                                        <td class="text-center py-2 px-1">
+                                            <div class="date-badge-box">
+                                                <span class="fw-medium text-secondary" style="font-size: 0.68rem; color: #9CA3AF !important;">{{ match.date_time|date:"Y-m-d"|default:"2028-07-04" }}</span>
+                                                <span class="fw-bold text-white text-capitalize" style="font-size: 0.75rem;">{{ match.date_time|date:"l H:i"|default:"Tisdag 21:00" }}</span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Home Team -->
+                                        <td class="text-end pe-3 py-2">
+                                            <div class="d-flex align-items-center justify-content-end gap-2">
+                                                <span class="fw-bold text-white fs-6 team-name-display home-team-name" data-match-id="{{ match.id }}" data-role="home" data-original="{{ home.name }}">{{ home.display_name }}</span>
+                                                <img class="flag-icon-img home-flag-img" src="{% if home.flag_url %}{{ home.flag_url }}{% endif %}" alt="{{ home.name }}" style="{% if not home.flag_url %}display: none;{% endif %}">
+                                            </div>
+                                        </td>
+
+                                        <!-- Neutral Score Inputs & Hidden Tiebreaker Input -->
+                                        <td class="text-center py-1 px-0">
+                                            <div class="knockout-score-cell">
+                                                <input type="hidden" name="penalty_winner_{{ match.id }}" id="penalty-winner-input-{{ match.id }}" value="{% if pred %}{{ pred.penalty_winner|default:'' }}{% endif %}">
+                                                <div class="knockout-inputs-wrap">
+                                                    <div class="d-flex justify-content-center align-items-center gap-1">
+                                                        <input type="number" name="home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input knockout-input" data-match-id="{{ match.id }}" placeholder="-" {% if submission and submission.is_verified %}disabled{% endif %}>
+                                                        <span class="text-secondary fw-bold px-1">:</span>
+                                                        <input type="number" name="away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input knockout-input" data-match-id="{{ match.id }}" placeholder="-" {% if submission and submission.is_verified %}disabled{% endif %}>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Compact Tiebreaker Selector (Reserved height space) -->
+                                                <div class="tiebreaker-box-wrapper">
+                                                    <div class="tiebreaker-box text-center" id="tiebreaker-box-{{ match.id }}" style="display: none;">
+                                                        <div class="btn-group" role="group">
+                                                            <button type="button" class="btn btn-outline-glass tiebreaker-btn home-tb-btn py-0 px-2" style="font-size: 0.68rem; line-height: 1.2;" data-match-id="{{ match.id }}" data-role="home">Hemmalag</button>
+                                                            <button type="button" class="btn btn-outline-glass tiebreaker-btn away-tb-btn py-0 px-2" style="font-size: 0.68rem; line-height: 1.2;" data-match-id="{{ match.id }}" data-role="away">Bortalag</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        <!-- Away Team -->
+                                        <td class="text-start ps-3 py-2">
+                                            <div class="d-flex align-items-center justify-content-start gap-2">
+                                                <img class="flag-icon-img away-flag-img" src="{% if away.flag_url %}{{ away.flag_url }}{% endif %}" alt="{{ away.name }}" style="{% if not away.flag_url %}display: none;{% endif %}">
+                                                <span class="fw-bold text-white fs-6 team-name-display away-team-name" data-match-id="{{ match.id }}" data-role="away" data-original="{{ away.name }}">{{ away.display_name }}</span>
+                                            </div>
+                                        </td>
+
+                                    </tr>
+                                    {% endwith %}
+                                    {% empty %}
+                                    <tr><td colspan="5" class="text-center text-muted py-4">Inga matcher i denna slutspelsomgång ännu.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                </div>
+            </div>
+        </div>
+
+        <!-- SIDEBETS TAB CONTENT -->
+        <div class="tab-pane fade" id="sidebets-stage" role="tabpanel">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="glass-card p-4">
+                        <div class="text-center mb-4 pb-2 border-bottom border-secondary border-opacity-20">
+                            <i class="fa-solid fa-coins fa-3x text-warning mb-3"></i>
+                            <h4 class="fw-bold text-white mb-1">Sidebets & Bonusfrågor</h4>
+                            <p class="text-secondary small mb-0">Svara på extra frågor om turneringen för att samla värdefulla bonuspoäng.</p>
+                        </div>
+
+                        {% if sidebets %}
+                            <div class="d-flex flex-column gap-3">
+                                {% for sb in sidebets %}
+                                {% with current_ans=user_sidebet_answers|get_item:sb.id %}
+                                <div class="p-3 rounded-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label for="sb-{{ sb.id }}" class="fw-bold text-white fs-6 mb-0">{{ sb.question }}</label>
+                                        <span class="badge rounded-pill bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 px-2.5 py-1 fw-bold fs-7">+{{ sb.points }} p</span>
+                                    </div>
+                                    
+                                    {% if sb.question_type == 'TEAM' %}
+                                        <select name="sidebet_{{ sb.id }}" id="sb-{{ sb.id }}" class="form-select bg-dark text-white border-secondary border-opacity-30" {% if submission and submission.is_verified %}disabled{% endif %}>
+                                            <option value="">-- Välj ett lag --</option>
+                                            {% for t in tournament_teams %}
+                                                <option value="{{ t.name }}" {% if current_ans == t.name %}selected{% endif %}>{{ t.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    {% else %}
+                                        <input type="text" name="sidebet_{{ sb.id }}" id="sb-{{ sb.id }}" value="{{ current_ans|default:'' }}" class="form-control bg-dark text-white border-secondary border-opacity-30" placeholder="Skriv ditt svar här..." {% if submission and submission.is_verified %}disabled{% endif %}>
+                                    {% endif %}
+                                </div>
+                                {% endwith %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted italic text-center py-3">Inga aktiva sidebets tillgängliga just nu.</p>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Floating Action Bar for Saving -->
+    <div class="floating-save-bar rounded-4 p-3 mt-4 text-center d-flex align-items-center justify-content-between">
+        {% if submission and submission.is_verified %}
+            <div class="w-100 text-center py-1.5 text-success fw-bold fs-6">
+                <i class="fa-solid fa-circle-check me-2"></i>Dina tips är godkända & verifierade av admin (Låsta för ändringar)
+            </div>
+        {% else %}
+            <div class="flex-grow-1 text-start py-0.5 pe-3">
+                <span class="text-white fw-bold d-inline-flex align-items-center" style="font-size: 0.88rem;">
+                    <i class="fa-solid fa-floppy-disk text-emerald me-2"></i>Kom ihåg att spara dina förändringar!
+                </span>
+            </div>
+            <div class="text-end">
+                <button type="submit" class="btn btn-emerald px-4 py-1.5 fw-semibold" style="font-size: 0.85rem;">
+                    <i class="fa-solid fa-floppy-disk me-1.5"></i>Spara alla tips
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const groupsData = {{ groups_data_json|safe }};
+    const groupMatches = {{ group_matches_json|safe }};
+
+    const countryCodeMap = {
+        'sweden': 'se', 'england': 'gb-eng', 'united kingdom': 'gb', 'wales': 'gb-wls',
+        'scotland': 'gb-sct', 'northern ireland': 'gb-nir', 'france': 'fr', 'germany': 'de',
+        'spain': 'es', 'italy': 'it', 'portugal': 'pt', 'netherlands': 'nl', 'belgium': 'be',
+        'denmark': 'dk', 'norway': 'no', 'finland': 'fi', 'iceland': 'is', 'poland': 'pl',
+        'croatia': 'hr', 'ukraine': 'ua', 'switzerland': 'ch', 'austria': 'at', 'hungary': 'hu',
+        'czech republic': 'cz', 'czechia': 'cz', 'slovakia': 'sk', 'serbia': 'rs', 'romania': 'ro',
+        'turkey': 'tr', 'türkiye': 'tr', 'greece': 'gr', 'albania': 'al', 'slovenia': 'si',
+        'georgia': 'ge', 'brazil': 'br', 'argentina': 'ar', 'uruguay': 'uy', 'colombia': 'co',
+        'chile': 'cl', 'mexico': 'mx', 'united states': 'us', 'usa': 'us', 'canada': 'ca',
+        'japan': 'jp', 'south korea': 'kr', 'australia': 'au', 'morocco': 'ma', 'senegal': 'sn',
+        'cameroon': 'cm', 'ghana': 'gh', 'nigeria': 'ng', 'bulgaria': 'bg', 'republic of ireland': 'ie',
+        'ireland': 'ie', 'montenegro': 'me', 'malta': 'mt',
+        'sverige': 'se', 'tyskland': 'de', 'frankrike': 'fr', 'spanien': 'es', 'italien': 'it',
+        'nederländerna': 'nl', 'belgien': 'be', 'österrike': 'at', 'schweiz': 'ch', 'tjeckien': 'cz',
+        'slovakien': 'sk', 'kroatien': 'hr', 'nordirland': 'gb-nir', 'skottland': 'gb-sct',
+        'turkiet': 'tr', 'grekland': 'gr', 'ungern': 'hu', 'irland': 'ie', 'bulgarien': 'bg',
+        'norge': 'no', 'danmark': 'dk', 'finland': 'fi', 'island': 'is', 'polen': 'pl', 'serbien': 'rs'
+    };
+
+    function getFlagCode(teamName) {
+        if (!teamName) return null;
+        const clean = teamName.trim().toLowerCase();
+        return countryCodeMap[clean] || null;
+    }
+
+    let groupStandingsResults = {};
+
+    function recalculateStandings(groupId) {
+        const teams = groupsData[groupId];
+        if (!teams) return;
+
+        let stats = {};
+        teams.forEach(team => {
+            stats[team] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+        });
+
+        const groupPane = document.getElementById(`group-${groupId}`);
+        if (!groupPane) return;
+
+        const matchRows = groupPane.querySelectorAll('tbody tr');
+        matchRows.forEach(row => {
+            const homeInput = row.querySelector('input[name^="home_"]');
+            const awayInput = row.querySelector('input[name^="away_"]');
+            
+            const homeDisplay = row.querySelector('.team-name-display[data-original]:not([data-role="away"])');
+            const awayDisplay = row.querySelectorAll('.team-name-display[data-original]')[1];
+
+            if (!homeInput || !awayInput || !homeDisplay || !awayDisplay) return;
+
+            const homeTeam = homeDisplay.textContent.trim();
+            const awayTeam = awayDisplay.textContent.trim();
+            const hgVal = homeInput.value;
+            const agVal = awayInput.value;
+
+            if (hgVal !== "" && agVal !== "" && stats[homeTeam] && stats[awayTeam]) {
+                const hg = parseInt(hgVal, 10);
+                const ag = parseInt(agVal, 10);
+
+                stats[homeTeam].played += 1;
+                stats[awayTeam].played += 1;
+                stats[homeTeam].gf += hg;
+                stats[homeTeam].ga += ag;
+                stats[awayTeam].gf += ag;
+                stats[awayTeam].ga += hg;
+
+                if (hg > ag) {
+                    stats[homeTeam].won += 1;
+                    stats[homeTeam].points += 3;
+                    stats[awayTeam].lost += 1;
+                } else if (hg < ag) {
+                    stats[awayTeam].won += 1;
+                    stats[awayTeam].points += 3;
+                    stats[homeTeam].lost += 1;
+                } else {
+                    stats[homeTeam].drawn += 1;
+                    stats[homeTeam].points += 1;
+                    stats[awayTeam].drawn += 1;
+                    stats[awayTeam].points += 1;
+                }
+            }
+        });
+
+        Object.keys(stats).forEach(team => {
+            stats[team].gd = stats[team].gf - stats[team].ga;
+        });
+
+        const sortedTeams = [...teams].sort((a, b) => {
+            if (stats[b].points !== stats[a].points) return stats[b].points - stats[a].points;
+            if (stats[b].gd !== stats[a].gd) return stats[b].gd - stats[a].gd;
+            return stats[b].gf - stats[a].gf;
+        });
+
+        groupStandingsResults[groupId] = sortedTeams;
+
+        const tableBody = document.querySelector(`#standings-table-g${groupId} tbody`);
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+
+        sortedTeams.forEach((team, index) => {
+            const s = stats[team];
+            const flagCode = getFlagCode(team);
+            const flagHtml = flagCode 
+                ? `<img src="https://flagcdn.com/w40/${flagCode}.png" width="22" class="me-2 shadow-sm" style="border-radius: 3px; object-fit: cover;">` 
+                : '';
+
+            const rankClass = index === 0 ? 'rank-1' : (index === 1 ? 'rank-2' : (index === 2 ? 'rank-3' : 'rank-4'));
+
+            const row = `
+                <tr>
+                    <td class="fw-bold text-white px-3 py-2 d-flex align-items-center">
+                        <span class="rank-badge ${rankClass} me-2">${index + 1}</span>
+                        ${flagHtml}${team}
+                    </td>
+                    <td class="text-center py-2 text-secondary">${s.played}</td>
+                    <td class="text-center py-2 text-white">${s.won}</td>
+                    <td class="text-center py-2 text-white">${s.drawn}</td>
+                    <td class="text-center py-2 text-white">${s.lost}</td>
+                    <td class="text-center py-2 fw-semibold ${s.gd > 0 ? 'text-success' : s.gd < 0 ? 'text-danger' : 'text-secondary'}">${s.gd > 0 ? '+'+s.gd : s.gd}</td>
+                    <td class="text-center py-1.5"><span class="badge rounded-pill bg-white bg-opacity-15 text-white border border-white border-opacity-25 px-2 py-1 fw-bold fs-6">${s.points}</span></td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        });
+
+        updateKnockoutTree();
+    }
+
+    function updateKnockoutTree() {
+        const knockoutRows = Array.from(document.querySelectorAll('#knockout-stage .match-row')).sort((a, b) => {
+            return parseInt(a.getAttribute('data-match-number'), 10) - parseInt(b.getAttribute('data-match-number'), 10);
+        });
+        
+        let matchWinners = {};
+        let matchLosers = {};
+
+        knockoutRows.forEach(row => {
+            const matchId = row.getAttribute('data-match-id');
+            const matchNum = row.getAttribute('data-match-number');
+            let homeRaw = row.getAttribute('data-home-raw') || '';
+            let awayRaw = row.getAttribute('data-away-raw') || '';
+
+            // Resolve placeholder codes like A1, B2, Winner Match 37
+            let homeResolved = resolvePlaceholder(homeRaw, matchWinners, matchLosers);
+            let awayResolved = resolvePlaceholder(awayRaw, matchWinners, matchLosers);
+
+            const homeSpan = row.querySelector('.home-team-name');
+            const awaySpan = row.querySelector('.away-team-name');
+            const homeFlag = row.querySelector('.home-flag-img');
+            const awayFlag = row.querySelector('.away-flag-img');
+
+            if (homeSpan) {
+                homeSpan.textContent = homeResolved;
+                const code = getFlagCode(homeResolved);
+                if (code && homeFlag) {
+                    homeFlag.src = `https://flagcdn.com/w40/${code}.png`;
+                    homeFlag.style.display = 'inline-block';
+                } else if (homeFlag) {
+                    homeFlag.style.display = 'none';
+                }
+            }
+            if (awaySpan) {
+                awaySpan.textContent = awayResolved;
+                const code = getFlagCode(awayResolved);
+                if (code && awayFlag) {
+                    awayFlag.src = `https://flagcdn.com/w40/${code}.png`;
+                    awayFlag.style.display = 'inline-block';
+                } else if (awayFlag) {
+                    awayFlag.style.display = 'none';
+                }
+            }
+
+            // Check match prediction result
+            const homeInput = row.querySelector('input[name^="home_"]');
+            const awayInput = row.querySelector('input[name^="away_"]');
+            const hiddenTbInput = document.getElementById(`penalty-winner-input-${matchId}`);
+            const tiebreakerBox = document.getElementById(`tiebreaker-box-${matchId}`);
+            const homeTbBtn = row.querySelector('.home-tb-btn');
+            const awayTbBtn = row.querySelector('.away-tb-btn');
+
+            if (homeTbBtn && awayTbBtn) {
+                homeTbBtn.textContent = homeResolved;
+                awayTbBtn.textContent = awayResolved;
+            }
+
+            let winner = null;
+            let loser = null;
+
+            if (homeInput && awayInput && homeInput.value !== "" && awayInput.value !== "") {
+                const hg = parseInt(homeInput.value, 10);
+                const ag = parseInt(awayInput.value, 10);
+
+                if (hg > ag) {
+                    winner = homeResolved;
+                    loser = awayResolved;
+                    if (tiebreakerBox) tiebreakerBox.style.display = 'none';
+                } else if (ag > hg) {
+                    winner = awayResolved;
+                    loser = homeResolved;
+                    if (tiebreakerBox) tiebreakerBox.style.display = 'none';
+                } else {
+                    // DRAW: Tiebreaker required!
+                    if (tiebreakerBox) tiebreakerBox.style.display = 'block';
+                    const selectedTb = hiddenTbInput ? hiddenTbInput.value : '';
+
+                    if (selectedTb === homeResolved) {
+                        winner = homeResolved;
+                        loser = awayResolved;
+                        if (homeTbBtn) homeTbBtn.classList.add('active');
+                        if (awayTbBtn) awayTbBtn.classList.remove('active');
+                    } else if (selectedTb === awayResolved) {
+                        winner = awayResolved;
+                        loser = homeResolved;
+                        if (awayTbBtn) awayTbBtn.classList.add('active');
+                        if (homeTbBtn) homeTbBtn.classList.remove('active');
+                    } else {
+                        // Default to home team if not yet picked
+                        if (hiddenTbInput) hiddenTbInput.value = homeResolved;
+                        winner = homeResolved;
+                        loser = awayResolved;
+                        if (homeTbBtn) homeTbBtn.classList.add('active');
+                    }
+                }
+            } else {
+                if (tiebreakerBox) tiebreakerBox.style.display = 'none';
+            }
+
+            matchWinners[matchNum] = winner || `Vinnare M${matchNum}`;
+            matchLosers[matchNum] = loser || `Förlorare M${matchNum}`;
+        });
+    }
+
+    function resolvePlaceholder(rawStr, winnersMap, losersMap) {
+        if (!rawStr) return 'TBD';
+        const str = rawStr.trim();
+
+        // 1. Group Standing placeholders e.g. A1, B2
+        const groupMatch = str.match(/^([A-F])([1-4])$/i);
+        if (groupMatch) {
+            const grpLetter = groupMatch[1].toUpperCase();
+            const posIndex = parseInt(groupMatch[2], 10) - 1;
+
+            const grpId = Object.keys(groupsData).find(id => {
+                const groupPane = document.getElementById(`group-${id}`);
+                return groupPane && groupPane.innerHTML.includes(`Spelschema Group ${grpLetter}`);
+            });
+
+            if (grpId && groupStandingsResults[grpId] && groupStandingsResults[grpId][posIndex]) {
+                return groupStandingsResults[grpId][posIndex];
+            }
+        }
+
+        // 2. Winner of Match X
+        const winMatch = str.match(/^Winner Match (\d+)$/i) || str.match(/^Vinnare Match (\d+)$/i) || str.match(/^Vinnare M(\d+)$/i);
+        if (winMatch) {
+            const mNum = winMatch[1];
+            return winnersMap[mNum] || `Vinnare M${mNum}`;
+        }
+
+        // 3. Loser of Match X
+        const loseMatch = str.match(/^Loser Match (\d+)$/i) || str.match(/^FÖRLORARE Match (\d+)$/i) || str.match(/^Förlorare M(\d+)$/i);
+        if (loseMatch) {
+            const mNum = loseMatch[1];
+            return losersMap[mNum] || `Förlorare M${mNum}`;
+        }
+
+        return str;
+    }
+
+    // Handle Tiebreaker button clicks
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('tiebreaker-btn')) {
+            const btn = e.target;
+            const matchId = btn.getAttribute('data-match-id');
+            const role = btn.getAttribute('data-role');
+            const row = btn.closest('.match-row');
+            
+            if (row && matchId) {
+                const teamSpan = row.querySelector(`.${role}-team-name`);
+                const teamName = teamSpan ? teamSpan.textContent.trim() : '';
+                const hiddenInput = document.getElementById(`penalty-winner-input-${matchId}`);
+                if (hiddenInput) {
+                    hiddenInput.value = teamName;
+                }
+
+                row.querySelectorAll('.tiebreaker-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                updateKnockoutTree();
+            }
+        }
+    });
+
+    document.querySelectorAll('.match-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const groupId = this.getAttribute('data-group');
+            if (groupId) {
+                recalculateStandings(groupId);
+            } else {
+                updateKnockoutTree();
+            }
+        });
+    });
+
+    Object.keys(groupsData).forEach(groupId => {
+        recalculateStandings(groupId);
+    });
+
+    // Active Tab Persistence Logic
+    const activeTabInput = document.getElementById('activeTabInput');
+    const tabButtons = document.querySelectorAll('#tournamentTab button[data-bs-toggle="pill"]');
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('shown.bs.tab', function (e) {
+            const targetId = e.target.getAttribute('data-bs-target').replace('#', '');
+            if (activeTabInput) activeTabInput.value = targetId;
+        });
+    });
+
+    const initialTabId = "{{ active_tab|default:'' }}";
+    if (initialTabId) {
+        const targetBtn = document.querySelector(`#tournamentTab button[data-bs-target="#${initialTabId}"]`);
+        if (targetBtn) {
+            const tabTrigger = new bootstrap.Tab(targetBtn);
+            tabTrigger.show();
+        }
+    } else {
+        // Default first tab to activeTabInput
+        const firstTab = document.querySelector('#tournamentTab button.active');
+        if (firstTab && activeTabInput) {
+            activeTabInput.value = firstTab.getAttribute('data-bs-target').replace('#', '');
+        }
+    }
+});
+</script>
+{% endblock %}
