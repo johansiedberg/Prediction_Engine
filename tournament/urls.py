@@ -5,7 +5,8 @@ from .views import (
     hub_view, herrklubb_view, vote_bucket_item, toggle_bucket_dream,
     add_bucket_item, complete_bucket_item, save_user_bucket_votes,
     calendar_view, add_unavailability_view, delete_unavailability_view,
-    save_herrklubb_event_view, delete_herrklubb_event_view, toggle_event_coordinator_view
+    save_herrklubb_event_view, delete_herrklubb_event_view, toggle_event_coordinator_view,
+    join_league_view, switch_league_view
 )
 
 urlpatterns = [
@@ -26,5 +27,7 @@ urlpatterns = [
     path('dashboard/', dashboard_view, name='dashboard'),
     path('predictions/', predictions_view, name='predictions'),
     path('profile/avatar/', upload_avatar_view, name='upload_avatar'),
+    path('league/join/', join_league_view, name='join_league'),
+    path('league/switch/<int:league_id>/', switch_league_view, name='switch_league'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
 ]

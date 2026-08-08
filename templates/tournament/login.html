@@ -27,9 +27,17 @@
                 {{ form.username }}
             </div>
 
-            <div class="mb-4">
+            <div class="mb-3">
                 <label for="{{ form.password.id_for_label }}" class="form-label text-secondary small fw-semibold">Lösenord</label>
                 {{ form.password }}
+            </div>
+
+            <div class="mb-4">
+                <label for="invite_code" class="form-label text-warning small fw-semibold">
+                    <i class="fa-solid fa-ticket me-1"></i> Vänskapsgruppskod (Pool Code)
+                </label>
+                <input type="text" name="invite_code" id="invite_code" class="form-control text-uppercase" placeholder="t.ex. TOARP8" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(245, 158, 11, 0.4); color: #FBBF24; font-weight: 700; letter-spacing: 1.5px;">
+                <div class="form-text text-secondary" style="font-size: 0.72rem;">Fyll i din 6-siffriga vängruppskod för att gå med direkt vid inloggning.</div>
             </div>
 
             <button type="submit" class="btn btn-emerald w-100">

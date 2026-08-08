@@ -26,6 +26,11 @@ class League(models.Model):
     is_actual_knockout_open = models.BooleanField(default=False, help_text="Open predictions for the actual knockout bracket after group stage ends")
     created_at = models.DateTimeField(default=timezone.now)
 
+    # Per-League Custom Branding
+    logo = models.ImageField(upload_to='leagues/logos/', blank=True, null=True, help_text="Custom friend pool emblem/logo")
+    banner = models.ImageField(upload_to='leagues/banners/', blank=True, null=True, help_text="Custom friend pool header backdrop banner")
+    primary_color = models.CharField(max_length=20, default='#10b981', help_text="Custom brand accent color hex code")
+
     def save(self, *args, **kwargs):
         if not self.invite_code:
             self.invite_code = secrets.token_hex(3).upper()

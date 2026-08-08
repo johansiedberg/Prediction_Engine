@@ -38,13 +38,22 @@ class CustomLoginView(LoginView):
     form_class = CustomLoginForm
     redirect_authenticated_user = True
 
-    def get_success_url(self):
+    def form_valid(self, form):
+        response = super().form_valid(form)
         user = self.request.user
-        if user.is_authenticated:
-            profile, _ = UserProfile.objects.get_or_create(user=user)
-            if profile.is_herrklubb_member or user.is_superuser:
-                return '/hub/'
-        return '/predictions/'
+        invite_code = self.request.POST.get('invite_code', '').strip().upper()
+        if invite_code:
+            league = League.objects.filter(invite_code__iexact=invite_code, is_active=True).first()
+            if league:
+                LeagueMember.objects.get_or_create(league=league, player=user)
+                self.request.session['active_league_id'] = league.id
+                messages.success(self.request, f"Välkommen till vängruppen {league.name}!")
+            else:
+                messages.warning(self.request, f"Koden '{invite_code}' hittades inte, men du loggades in.")
+        return response
+
+    def get_success_url(self):
+        return '/dashboard/?tab=predictions'
 
 
 def generate_ai_match_analysis(user_pred, match, all_preds_list, home_count, draw_count, away_count, total_preds):
@@ -250,6 +259,19 @@ def dashboard_view(request):
     leaderboard = []
     match_analytics = {}
     point_system = getattr(active_tournament, 'point_system', None) if active_tournament else None
+
+    # Resolve User Joined Leagues for Multi-Pool Switcher
+    user_memberships = list(LeagueMember.objects.filter(player=request.user, league__is_active=True).select_related('league')) if request.user.is_authenticated else []
+    user_leagues = [m.league for m in user_memberships]
+    
+    session_league_id = request.session.get('active_league_id')
+    active_league = None
+    if session_league_id:
+        active_league = next((l for l in user_leagues if l.id == session_league_id), None)
+    if not active_league and user_leagues:
+        active_league = user_leagues[0]
+    if not active_league:
+        active_league = League.objects.filter(is_active=True).first()
 
     # Prediction Data for Main Frame Tab
     groups = active_tournament.tournament_groups.prefetch_related('teams', 'matches')
@@ -1735,4 +1757,32 @@ def toggle_event_coordinator_view(request, event_id):
     else:
         event.coordinators.add(request.user)
         messages.success(request, "🎉 Du har lagts till som samordnare för eventet!")
-    return redirect('herrklubb')
+    return redirect('herrklubb')
+
+
+@login_required
+def join_league_view(request):
+    if request.method == 'POST':
+        invite_code = request.POST.get('invite_code', '').strip().upper()
+        if invite_code:
+            league = League.objects.filter(invite_code__iexact=invite_code, is_active=True).first()
+            if league:
+                member, created = LeagueMember.objects.get_or_create(league=league, player=request.user)
+                request.session['active_league_id'] = league.id
+                messages.success(request, f"Du gick med i vängruppen {league.name}!")
+            else:
+                messages.error(request, f"Koden '{invite_code}' är ogiltig eller avslutad.")
+        else:
+            messages.error(request, "Vänligen fyll i en vängruppskod.")
+    return redirect(request.META.get('HTTP_REFERER', '/dashboard/?tab=predictions'))
+
+
+@login_required
+def switch_league_view(request, league_id):
+    league = get_object_or_404(League, id=league_id, is_active=True)
+    if LeagueMember.objects.filter(league=league, player=request.user).exists() or request.user.is_superuser:
+        request.session['active_league_id'] = league.id
+        messages.info(request, f"Växlade till vängruppen {league.name}")
+    else:
+        messages.error(request, "Du är inte medlem i den vängruppen.")
+    return redirect(request.META.get('HTTP_REFERER', '/dashboard/?tab=predictions'))
