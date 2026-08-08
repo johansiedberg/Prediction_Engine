@@ -1,6 +1,6 @@
-# Project Rules for ToarpsHK_Predictions
+# Project Rules for Prediction Engine
 
 ## Development Server
-- Always run the Django development server on **port 1981**
-- Start command: `& "C:\Users\Siedberg\AppData\Local\Programs\Python\Python314\python.exe" manage.py runserver 1981`
-- Access at: http://127.0.0.1:1981
+- Always run the Django development server on **port 2028**
+- Start command: `./venv/bin/python manage.py runserver 2028`
+- Access at: http://127.0.0.1:2028
