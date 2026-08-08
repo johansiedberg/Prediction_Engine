@@ -4,6 +4,50 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 
+import secrets
+
+class MasterEvent(models.Model):
+    name = models.CharField(max_length=200, help_text="Global tournament sporting event (e.g. UEFA EURO 2028)")
+    code = models.SlugField(unique=True, help_text="Unique event code slug (e.g. euro-2028)")
+    is_active = models.BooleanField(default=True)
+    icon = models.ImageField(upload_to='events/icons/', blank=True, null=True, help_text="Global event icon/emblem")
+    backdrop = models.ImageField(upload_to='events/backdrops/', blank=True, null=True, help_text="Global event header backdrop")
+
+    def __str__(self):
+        return self.name
+
+
+class League(models.Model):
+    master_event = models.ForeignKey(MasterEvent, on_delete=models.CASCADE, related_name='leagues', null=True, blank=True)
+    name = models.CharField(max_length=200, help_text="Private friend group or commercial pool name")
+    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='managed_leagues')
+    invite_code = models.CharField(max_length=12, unique=True, blank=True, help_text="Unique 6-character joining code (e.g. TOARP8)")
+    is_active = models.BooleanField(default=True)
+    is_actual_knockout_open = models.BooleanField(default=False, help_text="Open predictions for the actual knockout bracket after group stage ends")
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def save(self, *args, **kwargs):
+        if not self.invite_code:
+            self.invite_code = secrets.token_hex(3).upper()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.name} ({self.invite_code})"
+
+
+class LeagueMember(models.Model):
+    league = models.ForeignKey(League, on_delete=models.CASCADE, related_name='members')
+    player = models.ForeignKey(User, on_delete=models.CASCADE, related_name='league_memberships')
+    joined_at = models.DateTimeField(default=timezone.now)
+    is_verified = models.BooleanField(default=False, help_text="Verified coupon by League Admin")
+
+    class Meta:
+        unique_together = ('league', 'player')
+
+    def __str__(self):
+        return f"{self.player.username} in {self.league.name}"
+
+
 class Tournament(models.Model):
     name = models.CharField(max_length=200)
     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='managed_tournaments')

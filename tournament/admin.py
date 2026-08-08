@@ -4,6 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserCreationForm
 from django.utils.html import format_html
 from .models import (
+    MasterEvent, League, LeagueMember,
     Tournament, PointSystem, Group, Team, KnockoutStage, 
     Match, MatchPrediction, Sidebet, SidebetAnswer, TournamentSubmission,
     StaticInsight, InsightEvent, StorylineMemory, DailyGazette, StyleExample, EditorialSettings,
@@ -95,6 +96,26 @@ class SidebetInline(admin.TabularInline):
     verbose_name = "Bonusfråga"
     verbose_name_plural = "6. Bonusfrågor & Officiella Svar (Fråga, Poäng, Typ & Rätt Svar)"
     fields = ('question', 'points', 'question_type', 'correct_answers')
+
+
+@admin.register(MasterEvent)
+class MasterEventAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code', 'is_active')
+    search_fields = ('name', 'code')
+
+
+@admin.register(League)
+class LeagueAdmin(admin.ModelAdmin):
+    list_display = ('name', 'invite_code', 'admin', 'master_event', 'is_active', 'is_actual_knockout_open')
+    list_editable = ('is_active', 'is_actual_knockout_open')
+    search_fields = ('name', 'invite_code', 'admin__username')
+
+
+@admin.register(LeagueMember)
+class LeagueMemberAdmin(admin.ModelAdmin):
+    list_display = ('player', 'league', 'is_verified', 'joined_at')
+    list_filter = ('league', 'is_verified')
+    search_fields = ('player__username', 'league__name')
 
 
 @admin.register(Tournament)
