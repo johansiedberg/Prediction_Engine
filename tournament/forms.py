@@ -1,14 +1,14 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
+from django.db.models import Q
 
 class CustomLoginForm(AuthenticationForm):
     username = forms.CharField(
-        label="E-post",
+        label="E-post / Användarnamn",
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'namn@exempel.se'
+            'placeholder': 'namn@exempel.se eller användarnamn'
         })
     )
     password = forms.CharField(
@@ -20,28 +20,16 @@ class CustomLoginForm(AuthenticationForm):
     )
 
     def clean(self):
-        email = self.cleaned_data.get('username')
+        login_input = self.cleaned_data.get('username')
         password = self.cleaned_data.get('password')
 
-        if email and password:
+        if login_input and password:
             User = get_user_model()
-            try:
-                # Filtrera bort admin/staff-konton från den vanliga inloggningen
-                user_obj = User.objects.filter(
-                    email__iexact=email,
-                    is_staff=False,
-                    is_superuser=False
-                ).first()
+            user_obj = User.objects.filter(
+                Q(email__iexact=login_input) | Q(username__iexact=login_input)
+            ).first()
 
-                if not user_obj:
-                    raise User.DoesNotExist
-
-                # Ersätt värdet internt med användarens faktiska username
+            if user_obj:
                 self.cleaned_data['username'] = user_obj.username
-            except User.DoesNotExist:
-                raise ValidationError(
-                    self.error_messages['invalid_login'],
-                    code='invalid_login',
-                    params={'username': self.username_field.verbose_name},
-                )
+
         return super().clean()

@@ -101,3 +101,6 @@ When a *Player* wants to view the current Leaderboard, a request is sent to a sp
 * **UI & Design Approvals:** All proposed design or UI layout changes **MUST** be presented to the user for review and explicit approval **before** writing or editing template/CSS code files.
 * **1X2 Prediction Frames:** Formatted in 4 distinct lines: (1) Outcome, (2) Team/Result, (3) % of predictions, (4) Player count (unmuted text).
 * **AI Analysis Tone & Structure:** Edgy, banter-filled text for childhood friends. 3 paragraphs: (1) Entire field match analysis, (2) Player's individual tip (strictly **1 emoji**), (3) Outliers, wild tips & rivalry impacts.
+* **Server Port Conventions:**
+  * **Toarps Herrklubb:** ALWAYS runs on port `1981` (`python manage.py runserver 1981`)
+  * **Prediction Engine:** ALWAYS runs on port `2028` (`python manage.py runserver 2028`)
