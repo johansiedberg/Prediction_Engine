@@ -22,11 +22,27 @@ FORMAT_TYPES = [
 
 
 def load_player_personas():
-    """Load player personas from JSON definition file."""
-    base_dir = os.path.dirname(__file__)
-    json_path = os.path.join(base_dir, 'player_personas.json')
-    if os.path.exists(json_path):
-        with open(json_path, 'r', encoding='utf-8') as f:
+    """Load player personas from database table, falling back to JSON file."""
+    try:
+        from tournament.models import PlayerPersona
+        db_personas = list(PlayerPersona.objects.filter(is_active=True))
+        if db_personas:
+            return [
+                {
+                    'id': p.id,
+                    'full_name': p.full_name,
+                    'nicknames': [p.nickname],
+                    'occupation': p.occupation,
+                    'avatar_filename': p.avatar_filename or f"{p.full_name}.jpg"
+                }
+                for p in db_personas
+            ]
+    except Exception:
+        pass
+
+    path = os.path.join(os.path.dirname(__file__), 'player_personas.json')
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
             return json.load(f)
     return []
 

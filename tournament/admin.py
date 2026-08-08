@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserCreationForm
 from django.utils.html import format_html
 from .models import (
-    MasterEvent, League, LeagueMember,
+    MasterEvent, League, LeagueMember, PlayerPersona, BannedPhrase,
     Tournament, PointSystem, Group, Team, KnockoutStage, 
     Match, MatchPrediction, Sidebet, SidebetAnswer, TournamentSubmission,
     StaticInsight, InsightEvent, StorylineMemory, DailyGazette, StyleExample, EditorialSettings,
@@ -109,6 +109,19 @@ class LeagueAdmin(admin.ModelAdmin):
     list_display = ('name', 'invite_code', 'admin', 'master_event', 'is_active', 'is_actual_knockout_open')
     list_editable = ('is_active', 'is_actual_knockout_open')
     search_fields = ('name', 'invite_code', 'admin__username')
+
+
+@admin.register(PlayerPersona)
+class PlayerPersonaAdmin(admin.ModelAdmin):
+    list_display = ('full_name', 'nickname', 'occupation', 'preferred_roast_style', 'is_active')
+    list_editable = ('nickname', 'is_active')
+    search_fields = ('full_name', 'nickname', 'occupation')
+
+
+@admin.register(BannedPhrase)
+class BannedPhraseAdmin(admin.ModelAdmin):
+    list_display = ('phrase', 'reason')
+    search_fields = ('phrase', 'reason')
 
 
 @admin.register(LeagueMember)

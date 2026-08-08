@@ -678,6 +678,27 @@ class StorylineMemory(models.Model):
         return f"{self.player_name}: {self.narrative[:40]}"
 
 
+class BannedPhrase(models.Model):
+    phrase = models.CharField(max_length=100, unique=True, help_text="Banned word or cliché phrase (e.g. 'bollen är rund')")
+    reason = models.CharField(max_length=200, blank=True, help_text="Why this phrase is prohibited")
+
+    def __str__(self):
+        return self.phrase
+
+
+class PlayerPersona(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='persona', null=True, blank=True)
+    full_name = models.CharField(max_length=100, help_text="Player full name")
+    nickname = models.CharField(max_length=100, help_text="Editorial nickname (e.g. 'Presidenten', 'Statistikern')")
+    occupation = models.CharField(max_length=150, blank=True, help_text="Occupation or persona background")
+    preferred_roast_style = models.CharField(max_length=100, default="Dry Scandinavian Sarcasm", help_text="Roast style directive for AI editorial engine")
+    avatar_filename = models.CharField(max_length=100, blank=True, null=True, help_text="Base avatar image file name")
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.full_name} ({self.nickname})"
+
+
 class DailyGazette(models.Model):
     FORMAT_CHOICES = (
         ('STANDARD_COLUMN', 'Standardkrönika'),
