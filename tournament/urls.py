@@ -2,32 +2,28 @@ from django.urls import path
 from django.contrib.auth.views import LogoutView
 from .views import (
     CustomLoginView, dashboard_view, predictions_view, upload_avatar_view,
-    hub_view, herrklubb_view, vote_bucket_item, toggle_bucket_dream,
-    add_bucket_item, complete_bucket_item, save_user_bucket_votes,
-    calendar_view, add_unavailability_view, delete_unavailability_view,
-    save_herrklubb_event_view, delete_herrklubb_event_view, toggle_event_coordinator_view,
-    join_league_view, switch_league_view
+    hub_view, join_league_view, switch_league_view,
+    engine_admin_dashboard_view, engine_admin_validate_tournament,
+    engine_admin_simulate_tournament, engine_admin_reset_simulation,
+    engine_admin_toggle_publish, engine_admin_preview_tournament
 )
 
 urlpatterns = [
     path('', CustomLoginView.as_view(), name='login'),
     path('hub/', hub_view, name='hub'),
-    path('herrklubb/', herrklubb_view, name='herrklubb'),
-    path('herrklubb/save/', save_user_bucket_votes, name='herrklubb_save_votes'),
-    path('herrklubb/vote/', vote_bucket_item, name='herrklubb_vote'),
-    path('herrklubb/dream/', toggle_bucket_dream, name='herrklubb_dream'),
-    path('herrklubb/add/', add_bucket_item, name='herrklubb_add_item'),
-    path('herrklubb/complete/<int:item_id>/', complete_bucket_item, name='herrklubb_complete_item'),
-    path('herrklubb/kalender/', calendar_view, name='calendar'),
-    path('herrklubb/kalender/add/', add_unavailability_view, name='add_unavailability'),
-    path('herrklubb/kalender/delete/<int:item_id>/', delete_unavailability_view, name='delete_unavailability'),
-    path('herrklubb/event/save/', save_herrklubb_event_view, name='save_herrklubb_event'),
-    path('herrklubb/event/delete/<int:event_id>/', delete_herrklubb_event_view, name='delete_herrklubb_event'),
-    path('herrklubb/event/coordinator/<int:event_id>/', toggle_event_coordinator_view, name='toggle_event_coordinator'),
     path('dashboard/', dashboard_view, name='dashboard'),
     path('predictions/', predictions_view, name='predictions'),
     path('profile/avatar/', upload_avatar_view, name='upload_avatar'),
     path('league/join/', join_league_view, name='join_league'),
     path('league/switch/<int:league_id>/', switch_league_view, name='switch_league'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
+
+    # Engine Admin Routes
+    path('engine-admin/', engine_admin_dashboard_view, name='engine_admin'),
+    path('engine-admin/validate/<int:tournament_id>/', engine_admin_validate_tournament, name='engine_admin_validate'),
+    path('engine-admin/simulate/<int:tournament_id>/', engine_admin_simulate_tournament, name='engine_admin_simulate'),
+    path('engine-admin/reset-simulation/<int:tournament_id>/', engine_admin_reset_simulation, name='engine_admin_reset_simulation'),
+    path('engine-admin/toggle-publish/<int:tournament_id>/', engine_admin_toggle_publish, name='engine_admin_toggle_publish'),
+    path('engine-admin/preview/<int:tournament_id>/', engine_admin_preview_tournament, name='engine_admin_preview'),
 ]
+

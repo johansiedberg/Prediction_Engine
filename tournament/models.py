@@ -21,7 +21,7 @@ class League(models.Model):
     master_event = models.ForeignKey(MasterEvent, on_delete=models.CASCADE, related_name='leagues', null=True, blank=True)
     name = models.CharField(max_length=200, help_text="Private friend group or commercial pool name")
     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='managed_leagues')
-    invite_code = models.CharField(max_length=12, unique=True, blank=True, help_text="Unique 6-character joining code (e.g. TOARP8)")
+    invite_code = models.CharField(max_length=12, unique=True, blank=True, help_text="Unique 6-character joining code (e.g. ENGINE8)")
     is_active = models.BooleanField(default=True)
     is_actual_knockout_open = models.BooleanField(default=False, help_text="Open predictions for the actual knockout bracket after group stage ends")
     created_at = models.DateTimeField(default=timezone.now)
@@ -58,7 +58,13 @@ class Tournament(models.Model):
     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='managed_tournaments')
     players = models.ManyToManyField(User, related_name='participating_tournaments', blank=True)
     is_active = models.BooleanField(default=True)
+    is_paused = models.BooleanField(default=False, help_text="Manually paused / deactivated tournament")
     is_actual_knockout_open = models.BooleanField(default=False, help_text="Open predictions for the actual knockout bracket after group stage ends")
+    
+    # Declarative Ranking Table Configuration (Specific to tournament rules!)
+    has_runners_up_table = models.BooleanField(default=False, help_text="Builds Runners-Up ranking table across groups (e.g. Euro 2028 Qualifiers)")
+    has_host_ranking_table = models.BooleanField(default=False, help_text="Builds Co-Host ranking safety net table (e.g. Euro 2028 Qualifiers)")
+    has_best_thirds_table = models.BooleanField(default=False, help_text="Builds Best 3rd-placed teams ranking table (e.g. Euro 2028 Finals)")
     
     # New branding fields
     icon = models.ImageField(upload_to='tournament/icons/', blank=True, null=True, help_text="Tournament emblem/favicon")
@@ -67,20 +73,249 @@ class Tournament(models.Model):
     def __str__(self):
         return self.name
 
+    def get_runners_up_ranking_table(self, user_predictions=None):
+        """
+        Calculates UEFA official Ranking of Second-Placed Teams.
+        Only calculated if has_runners_up_table is True!
+        In 5-team groups (G-L), results against the 5th-placed team are discarded
+        to compare fairly against 4-team groups (A-F).
+        Top 8 runners-up qualify directly; remaining 4 enter play-offs.
+        """
+        if not self.has_runners_up_table:
+            return None
+        runners_up = []
+        for group in self.tournament_groups.all():
+            standings = group.get_standings(user_predictions=user_predictions)
+            if len(standings) >= 2:
+                second_place = standings[1]
+                team_obj = second_place['team']
+                
+                # If group has 5 teams, exclude 5th place team match results
+                if len(standings) == 5:
+                    fifth_place_team_name = standings[4]['team'].name
+                    
+                    adj_played = 0
+                    adj_gf = 0
+                    adj_ga = 0
+                    adj_points = 0
+                    adj_won = 0
+                    adj_drawn = 0
+                    adj_lost = 0
+                    
+                    for match in group.matches.all():
+                        if match.home_team == fifth_place_team_name or match.away_team == fifth_place_team_name:
+                            continue
+                            
+                        if match.home_team != team_obj.name and match.away_team != team_obj.name:
+                            continue
+                            
+                        hg, ag = None, None
+                        if user_predictions and match.id in user_predictions:
+                            pred = user_predictions[match.id]
+                            if pred and pred.home_goals is not None and pred.away_goals is not None:
+                                hg, ag = pred.home_goals, pred.away_goals
+                        elif match.home_goals is not None and match.away_goals is not None:
+                            hg, ag = match.home_goals, match.away_goals
+                            
+                        if hg is None or ag is None:
+                            continue
+                            
+                        adj_played += 1
+                        is_home = (match.home_team == team_obj.name)
+                        team_g = hg if is_home else ag
+                        opp_g = ag if is_home else hg
+                        
+                        adj_gf += team_g
+                        adj_ga += opp_g
+                        
+                        if team_g > opp_g:
+                            adj_won += 1
+                            adj_points += 3
+                        elif team_g == opp_g:
+                            adj_drawn += 1
+                            adj_points += 1
+                        else:
+                            adj_lost += 1
+                            
+                    adj_gd = adj_gf - adj_ga
+                    runners_up.append({
+                        'group_name': group.name,
+                        'team': team_obj,
+                        'played': adj_played,
+                        'won': adj_won,
+                        'drawn': adj_drawn,
+                        'lost': adj_lost,
+                        'gf': adj_gf,
+                        'ga': adj_ga,
+                        'gd': adj_gd,
+                        'points': adj_points,
+                        'adjusted_for_5th': True,
+                    })
+                else:
+                    runners_up.append({
+                        'group_name': group.name,
+                        'team': team_obj,
+                        'played': second_place['played'],
+                        'won': second_place['won'],
+                        'drawn': second_place['drawn'],
+                        'lost': second_place['lost'],
+                        'gf': second_place['gf'],
+                        'ga': second_place['ga'],
+                        'gd': second_place['gd'],
+                        'points': second_place['points'],
+                        'adjusted_for_5th': False,
+                    })
+                    
+        # Sort runners up by Points desc, GD desc, GF desc, Wins desc
+        runners_up.sort(key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
+        
+        # Mark rank & qualification status
+        for rank_idx, row in enumerate(runners_up, start=1):
+            row['rank'] = rank_idx
+            if rank_idx <= 8:
+                row['status'] = 'DIREKTKVALIFICERAD'
+                row['status_class'] = 'success'
+                row['badge_text'] = 'Direktplats (Top 8 Tvåa)'
+            else:
+                row['status'] = 'PLAY-OFF'
+                row['status_class'] = 'warning'
+                row['badge_text'] = 'Kvalificerad till Play-off'
+                
+        return runners_up
+
+    def get_host_ranking_table(self, user_predictions=None):
+        """
+        Calculates Ranking of Co-Host Nations (England, Ireland, Scotland, Wales).
+        Determines direct qualification vs reserved host safety net spots (top 2 non-qualified hosts).
+        Only calculated if has_host_ranking_table is True!
+        """
+        if not self.has_host_ranking_table:
+            return None
+
+        HOST_NAMES = ['England', 'Irland', 'Skottland', 'Wales', 'Republic of Ireland', 'Great Britain']
+        host_rows = []
+        
+        for group in self.tournament_groups.all():
+            standings = group.get_standings(user_predictions=user_predictions)
+            for pos_idx, row in enumerate(standings, start=1):
+                team = row['team']
+                if any(h.lower() in team.name.lower() for h in HOST_NAMES):
+                    is_group_winner = (pos_idx == 1)
+                    host_rows.append({
+                        'group_name': group.name,
+                        'team': team,
+                        'group_pos': pos_idx,
+                        'is_group_winner': is_group_winner,
+                        'played': row['played'],
+                        'won': row['won'],
+                        'drawn': row['drawn'],
+                        'lost': row['lost'],
+                        'gf': row['gf'],
+                        'ga': row['ga'],
+                        'gd': row['gd'],
+                        'points': row['points'],
+                    })
+                    
+        runners_up_table = self.get_runners_up_ranking_table(user_predictions=user_predictions) or []
+        top_8_runner_up_names = {r['team'].name for r in runners_up_table if r.get('rank', 99) <= 8}
+        
+        for h in host_rows:
+            if h['is_group_winner']:
+                h['direct_qual'] = True
+                h['qual_reason'] = 'Gruppetta (Direktplats)'
+            elif h['team'].name in top_8_runner_up_names:
+                h['direct_qual'] = True
+                h['qual_reason'] = 'Top 8 Grupptvåa (Direktplats)'
+            else:
+                h['direct_qual'] = False
+                h['qual_reason'] = 'Kvalificerade ej direkt via grupp'
+
+        host_rows.sort(key=lambda x: (x['direct_qual'], x['points'], x['gd'], x['gf']), reverse=True)
+        
+        safety_spots_awarded = 0
+        for idx, h in enumerate(host_rows, start=1):
+            h['rank'] = idx
+            if h['direct_qual']:
+                h['final_status'] = 'DIREKTKVALIFICERAD'
+                h['status_class'] = 'success'
+            elif safety_spots_awarded < 2:
+                safety_spots_awarded += 1
+                h['final_status'] = 'VÄRDNATIONS-SAFETY NET'
+                h['status_class'] = 'info'
+                h['qual_reason'] = 'Tilldelad Värdnationsgaranti (Top 2 Värdland)'
+            else:
+                h['final_status'] = 'PLAY-OFF / UTSLAGEN'
+                h['status_class'] = 'warning'
+                
+        return host_rows
+
+    def get_best_thirds_ranking_table(self, user_predictions=None):
+        """
+        Calculates Ranking of 3rd-Placed Teams across groups (e.g. Euro 2028 Finals).
+        Only calculated if has_best_thirds_table is True!
+        """
+        if not self.has_best_thirds_table:
+            return None
+
+        third_places = []
+        for group in self.tournament_groups.all():
+            standings = group.get_standings(user_predictions=user_predictions)
+            if len(standings) >= 3:
+                third_place = standings[2]
+                third_places.append({
+                    'group_name': group.name,
+                    'team': third_place['team'],
+                    'played': third_place['played'],
+                    'won': third_place['won'],
+                    'drawn': third_place['drawn'],
+                    'lost': third_place['lost'],
+                    'gf': third_place['gf'],
+                    'ga': third_place['ga'],
+                    'gd': third_place['gd'],
+                    'points': third_place['points'],
+                })
+
+        third_places.sort(key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
+
+        for rank_idx, row in enumerate(third_places, start=1):
+            row['rank'] = rank_idx
+            if rank_idx <= 4:
+                row['status'] = 'KVALIFICERAD (R16)'
+                row['status_class'] = 'success'
+                row['badge_text'] = 'Vidare till Åttondelsfinal (Bästa 3:a)'
+            else:
+                row['status'] = 'UTSLAGEN'
+                row['status_class'] = 'danger'
+                row['badge_text'] = 'Utslagen (Ej bland 4 bästa 3:or)'
+
+        return third_places
+
 
 class PointSystem(models.Model):
     tournament = models.OneToOneField(Tournament, on_delete=models.CASCADE, related_name='point_system')
     
+    # Match Scoring
     match_correct_goals_per_team = models.IntegerField(default=3)
     match_correct_total_goals = models.IntegerField(default=1)
     match_correct_1x2 = models.IntegerField(default=3)
     
-    group_correct_placement = models.IntegerField(default=2)
-    group_correct_points = models.IntegerField(default=1)
-    group_correct_goals_scored = models.IntegerField(default=1)
-    group_correct_goals_conceded = models.IntegerField(default=1)
-    group_correct_goal_diff = models.IntegerField(default=1)
+    # 1. Regular Group Tables Scoring (Default: Points for rank, pts, GF, GA, GD. 0 for team qualified)
+    group_correct_placement = models.IntegerField(default=2, help_text="Points for exact rank in regular group table")
+    group_correct_points = models.IntegerField(default=1, help_text="Points for correct group points")
+    group_correct_goals_scored = models.IntegerField(default=1, help_text="Points for correct GF in group table")
+    group_correct_goals_conceded = models.IntegerField(default=1, help_text="Points for correct GA in group table")
+    group_correct_goal_diff = models.IntegerField(default=1, help_text="Points for correct GD (+/-) in group table")
+    group_team_qualified = models.IntegerField(default=0, help_text="Points for team qualified from regular group table (Default 0)")
     
+    # 2. Qualifying / Special Ranking Tables Scoring (Hosts, Best Thirds, Runners-Up, Overall Rankings)
+    qualifying_table_team_qualified = models.IntegerField(default=5, help_text="Points for predicting team qualified from special ranking table (Default 5)")
+    qualifying_table_exact_rank = models.IntegerField(default=0, help_text="Points for exact rank in special ranking table (Default 0)")
+    qualifying_table_points = models.IntegerField(default=0, help_text="Points for correct points in special ranking table (Default 0)")
+    qualifying_table_goals_scored = models.IntegerField(default=0, help_text="Points for correct GF in special ranking table (Default 0)")
+    qualifying_table_goals_conceded = models.IntegerField(default=0, help_text="Points for correct GA in special ranking table (Default 0)")
+    qualifying_table_goal_diff = models.IntegerField(default=0, help_text="Points for correct GD in special ranking table (Default 0)")
+    
+    # Knockout Stage Scoring
     knockout_qualified_third = models.IntegerField(default=2)
     knockout_round_of_16 = models.IntegerField(default=3)
     knockout_quarterfinal = models.IntegerField(default=4)
@@ -90,6 +325,41 @@ class PointSystem(models.Model):
 
     def __str__(self):
         return f"Point System for {self.tournament.name}"
+
+
+class LeaguePointSystem(models.Model):
+    """Allows Pool Admin to customize points or set points = 0 for any parameter for their individual pool."""
+    league = models.OneToOneField(League, on_delete=models.CASCADE, related_name='custom_point_system')
+    
+    # Match Scoring
+    match_correct_goals_per_team = models.IntegerField(default=3)
+    match_correct_total_goals = models.IntegerField(default=1)
+    match_correct_1x2 = models.IntegerField(default=3)
+    
+    # Regular Group Tables Scoring
+    group_correct_placement = models.IntegerField(default=2)
+    group_correct_points = models.IntegerField(default=1)
+    group_correct_goals_scored = models.IntegerField(default=1)
+    group_correct_goals_conceded = models.IntegerField(default=1)
+    group_correct_goal_diff = models.IntegerField(default=1)
+    group_team_qualified = models.IntegerField(default=0)
+    
+    # Qualifying / Special Ranking Tables Scoring
+    qualifying_table_team_qualified = models.IntegerField(default=5)
+    qualifying_table_exact_rank = models.IntegerField(default=0)
+    qualifying_table_points = models.IntegerField(default=0)
+    qualifying_table_goals_scored = models.IntegerField(default=0)
+    qualifying_table_goals_conceded = models.IntegerField(default=0)
+    qualifying_table_goal_diff = models.IntegerField(default=0)
+    
+    # Knockout Stage Scoring
+    knockout_round_of_16 = models.IntegerField(default=3)
+    knockout_quarterfinal = models.IntegerField(default=4)
+    knockout_semifinal = models.IntegerField(default=5)
+    knockout_final = models.IntegerField(default=8)
+
+    def __str__(self):
+        return f"Custom Point System for Pool: {self.league.name}"
 
 
 class Group(models.Model):
@@ -247,6 +517,23 @@ COUNTRY_CODE_MAP = {
     'liechtenstein': 'li',
     'san marino': 'sm',
     'belarus': 'by',
+    'south africa': 'za',
+    'qatar': 'qa',
+    'paraguay': 'py',
+    'saudi arabia': 'sa',
+    'peru': 'pe',
+    'algeria': 'dz',
+    'ecuador': 'ec',
+    'ivory coast': 'ci',
+    'iran': 'ir',
+    'egypt': 'eg',
+    'tunisia': 'tn',
+    'sydafrika': 'za',
+    'saudiarabien': 'sa',
+    'algeriet': 'dz',
+    'elfenbenskusten': 'ci',
+    'egypten': 'eg',
+    'tunisien': 'tn',
 
     # Swedish names
     'sverige': 'se',
@@ -285,6 +572,7 @@ COUNTRY_CODE_MAP = {
     'färöarna': 'fo',
     'lettland': 'lv',
     'litauen': 'lt',
+    'ukraina': 'ua',
     'moldavien': 'md',
     'kazakstan': 'kz',
 }
@@ -304,7 +592,7 @@ class Team(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        if not self.code and self.name:
+        if self.name:
             clean_name = self.name.strip().lower()
             if clean_name in COUNTRY_CODE_MAP:
                 self.code = COUNTRY_CODE_MAP[clean_name]
@@ -565,7 +853,6 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name="Profilbild / Avatar")
     last_selected_tournament = models.ForeignKey(Tournament, on_delete=models.SET_NULL, null=True, blank=True, related_name='selected_by_profiles')
-    is_herrklubb_member = models.BooleanField(default=False, help_text="True if user is one of the 11 original Herrklubben members")
 
     def get_avatar_url(self):
         if self.avatar and hasattr(self.avatar, 'url'):
@@ -573,7 +860,7 @@ class UserProfile(models.Model):
         return None
 
     def __str__(self):
-        return f"Profil för {self.user.username} (Herrklubb: {self.is_herrklubb_member})"
+        return f"Profil för {self.user.username}"
 
 
 from django.db.models.signals import m2m_changed, post_save
@@ -785,145 +1072,5 @@ class EditorialSettings(models.Model):
         return f"Editorial Settings ({len(self.banned_phrases or [])} banned phrases)"
 
 
-# --- HERRKLUBBEN BUCKET LIST MODELS ---
 
-
-class BucketCategory(models.Model):
-    name = models.CharField(max_length=100)
-    icon = models.CharField(max_length=10, default="🪣")
-    order = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        ordering = ['order', 'name']
-        verbose_name = "Bucket Category"
-        verbose_name_plural = "Bucket Categories"
-
-    def __str__(self):
-        return f"{self.icon} {self.name}"
-
-    @property
-    def open_items(self):
-        return self.items.filter(is_completed=False).order_by('title')
-
-
-class BucketItem(models.Model):
-    title = models.CharField(max_length=200)
-    category = models.ForeignKey(BucketCategory, on_delete=models.CASCADE, related_name='items')
-    description = models.TextField(blank=True, help_text="Valfri beskrivning av aktiviteten")
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_bucket_items')
-    is_completed = models.BooleanField(default=False)
-    completed_date = models.DateTimeField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return self.title
-
-    @property
-    def total_points(self):
-        pts = 0
-        for v in self.votes.all():
-            if v.marker == 'SVART':
-                pts += 100
-            elif v.marker == 'GRON':
-                pts += 50
-            elif v.marker == 'ROD':
-                pts += 25
-        return pts
-
-    @property
-    def vote_count(self):
-        return self.votes.values('user').distinct().count()
-
-    @property
-    def count_svart(self):
-        return self.votes.filter(marker='SVART').count()
-
-    @property
-    def count_gron(self):
-        return self.votes.filter(marker='GRON').count()
-
-    @property
-    def count_rod(self):
-        return self.votes.filter(marker='ROD').count()
-
-    @property
-    def is_planerad(self):
-        return self.vote_count >= 6 and not self.is_completed
-
-    @property
-    def dream_users(self):
-        return [d.user for d in self.dreams.select_related('user').all()]
-
-
-class BucketVote(models.Model):
-    MARKER_CHOICES = [
-        ('SVART', 'Svart Marker (100)'),
-        ('GRON', 'Grön Marker (50)'),
-        ('ROD', 'Röd Marker (25)'),
-    ]
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bucket_votes')
-    item = models.ForeignKey(BucketItem, on_delete=models.CASCADE, related_name='votes')
-    marker = models.CharField(max_length=10, choices=MARKER_CHOICES)
-    created_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        verbose_name = "Bucket Vote"
-        verbose_name_plural = "Bucket Votes"
-
-    def __str__(self):
-        return f"{self.user.username} -> {self.item.title} ({self.marker})"
-
-
-class BucketDream(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bucket_dreams')
-    item = models.ForeignKey(BucketItem, on_delete=models.CASCADE, related_name='dreams')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Bucket Dream (Högsta Dröm)"
-        verbose_name_plural = "Bucket Dreams (Högsta Dröm)"
-
-    def __str__(self):
-        return f"🪣 {self.user.username}'s Högsta Dröm -> {self.item.title}"
-
-
-class UserUnavailability(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='unavailabilities')
-    start_date = models.DateField(verbose_name="Startdatum")
-    end_date = models.DateField(verbose_name="Slutdatum")
-    reason = models.CharField(max_length=255, blank=True, null=True, verbose_name="Anledning (Valfritt)")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['start_date']
-        verbose_name = "Hinder / Frånvaro"
-        verbose_name_plural = "Hinder / Frånvaro"
-
-    def __str__(self):
-        return f"{self.user.username}: {self.start_date} - {self.end_date}"
-
-
-class HerrklubbEvent(models.Model):
-    title = models.CharField(max_length=200, verbose_name="Aktivitetsnamn")
-    category = models.ForeignKey(BucketCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='events')
-    description = models.TextField(blank=True, verbose_name="Beskrivning")
-    event_date = models.DateField(null=True, blank=True, verbose_name="Startdatum")
-    end_date = models.DateField(null=True, blank=True, verbose_name="Slutdatum")
-    event_time = models.TimeField(null=True, blank=True, verbose_name="Tid")
-    location = models.CharField(max_length=255, blank=True, null=True, verbose_name="Plats")
-    coordinators = models.ManyToManyField(User, related_name='coordinated_events', blank=True, verbose_name="Samordnare")
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_events')
-    is_active = models.BooleanField(default=True, help_text="Visas som Nästa Event")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['event_date', '-created_at']
-        verbose_name = "Herrklubb Event"
-        verbose_name_plural = "Herrklubb Events"
-
-    def __str__(self):
-        return f"Event: {self.title} ({self.event_date or 'Inget datum'})"
 

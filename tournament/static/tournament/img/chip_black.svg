@@ -15,5 +15,5 @@
   <circle cx="50" cy="50" r="27" fill="#0F172A" stroke="#EAB308" stroke-width="1.5"/>
   <!-- Text Value -->
   <text x="50" y="49" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="21" fill="#FFFFFF" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))">100</text>
-  <text x="50" y="63" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="7" fill="#FACC15" letter-spacing="1">TOARPS HK</text>
+  <text x="50" y="63" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="7" fill="#FACC15" letter-spacing="1">ENGINE</text>
 </svg>

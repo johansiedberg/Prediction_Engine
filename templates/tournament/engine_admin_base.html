@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Engine Admin | Control Center{% endblock %}</title>
+    <link rel="icon" href="{% static 'tournament/img/main_logo.webp' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{% static 'tournament/css/style.css' %}" rel="stylesheet">
+</head>
+<body style="background-color: #070A10; color: #F3F4F6; min-height: 100vh; display: flex; flex-direction: column;">
+
+    <!-- Dedicated Engine Admin Header -->
+    <header class="py-3 px-4 border-bottom border-secondary border-opacity-25" style="background: rgba(11, 15, 25, 0.95); backdrop-filter: blur(10px);">
+        <div class="container-fluid d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-warning text-dark p-2 rounded-3 fw-bold d-flex align-items-center justify-content-center shadow-sm" style="width: 38px; height: 38px;">
+                    <i class="fa-solid fa-gauge-high fs-5"></i>
+                </div>
+                <div>
+                    <h5 class="fw-extrabold text-white mb-0 font-monospace text-uppercase" style="letter-spacing: 1px;">Engine Admin</h5>
+                    <span class="text-secondary small">Dedicated Server Monitor (Port 2029)</span>
+                </div>
+            </div>
+
+            {% if request.user.is_authenticated %}
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-dark text-warning border border-warning border-opacity-30 px-3 py-2 font-monospace">
+                    <i class="fa-solid fa-user-shield me-1"></i> Admin: <strong>{{ request.user.username }}</strong>
+                </span>
+                <form action="/logout/" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm px-3 fw-bold rounded-pill">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logga ut
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main Admin Content Area -->
+    <main class="flex-grow-1 py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Dedicated Engine Admin Footer -->
+    <footer class="py-3 text-center border-top border-secondary border-opacity-25 text-secondary small bg-dark bg-opacity-50">
+        Engine Admin Standalone Control Center &bull; Port 2029 &bull; Prediction Engine
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

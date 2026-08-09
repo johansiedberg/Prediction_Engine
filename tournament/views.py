@@ -1,36 +1,28 @@
 import datetime
 import calendar
 import json
+import random
+import re
 from functools import wraps
 from django.utils import timezone
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.db.models import Count, Max, Q
+from django.conf import settings
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import (
     Tournament, Match, MatchPrediction, TournamentSubmission, Sidebet, SidebetAnswer, Group, Team,
-    StaticInsight, DailyGazette, UserProfile, BucketCategory, BucketItem, BucketVote, BucketDream,
-    UserUnavailability, HerrklubbEvent
+    StaticInsight, DailyGazette, UserProfile, League, LeagueMember
 )
 
 from .forms import CustomLoginForm
 from tournament.editorial_engine.static_generators import generate_static_insights
 from tournament.editorial_engine.compiler import load_player_personas, find_persona_for_player
-
-
-def herrklubb_member_required(view_func):
-    @wraps(view_func)
-    def _wrapped_view(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return redirect('login')
-        profile, _ = UserProfile.objects.get_or_create(user=request.user)
-        if not profile.is_herrklubb_member and not request.user.is_superuser:
-            messages.warning(request, "Du har inte tillgång till Herrklubbssidan.")
-            return redirect('predictions')
-        return view_func(request, *args, **kwargs)
-    return _wrapped_view
 
 
 class CustomLoginView(LoginView):
@@ -1253,12 +1245,9 @@ def upload_avatar_view(request):
     return redirect(request.META.get('HTTP_REFERER', '/dashboard/'))
 
 
-# --- HERRKLUBBEN VIEWS ---
-
 @login_required
-@herrklubb_member_required
 def hub_view(request):
-    """Startsida for Herrklubben members after login."""
+    """Startsida for Prediction Engine users after login."""
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     
     full_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
@@ -1274,490 +1263,6 @@ def hub_view(request):
         'user_nickname': user_nickname,
     }
     return render(request, 'tournament/hub.html', context)
-
-
-
-@login_required
-@herrklubb_member_required
-def herrklubb_view(request):
-    """Herrklubbssidan Bucket list ranking & voting page."""
-    categories = BucketCategory.objects.prefetch_related('items__votes', 'items__dreams').all()
-    all_uncompleted_items = list(BucketItem.objects.filter(is_completed=False).select_related('category', 'created_by').prefetch_related('votes__user', 'dreams__user'))
-    completed_items = BucketItem.objects.filter(is_completed=True).select_related('category', 'created_by').order_by('-completed_date')
-
-    # All items ordered for dropdown selectors
-    all_open_items_sorted = sorted(all_uncompleted_items, key=lambda x: (x.category.order, x.title))
-
-    user_votes = BucketVote.objects.filter(user=request.user, item__is_completed=False)
-    user_placed_svart = user_votes.filter(marker='SVART').first()
-    user_placed_gron = user_votes.filter(marker='GRON').first()
-    user_placed_rod = user_votes.filter(marker='ROD').first()
-    user_dream = BucketDream.objects.filter(user=request.user, item__is_completed=False).first()
-
-    planerade_items = []
-    idebanken_items = []
-
-    for item in all_uncompleted_items:
-        if item.vote_count >= 6:
-            planerade_items.append(item)
-        else:
-            idebanken_items.append(item)
-
-    planerade_items.sort(key=lambda x: (x.total_points, x.count_svart, x.count_gron), reverse=True)
-    idebanken_items.sort(key=lambda x: (x.vote_count, x.total_points), reverse=True)
-
-    context = {
-        'categories': categories,
-        'all_open_items': all_open_items_sorted,
-        'planerade_items': planerade_items,
-        'idebanken_items': idebanken_items,
-        'completed_items': completed_items,
-        'user_placed_svart': user_placed_svart,
-        'user_placed_gron': user_placed_gron,
-        'user_placed_rod': user_placed_rod,
-        'user_dream': user_dream,
-        'total_members_count': 11,
-        'next_event': HerrklubbEvent.objects.filter(is_active=True).first(),
-    }
-    context.update(build_calendar_context(request))
-    return render(request, 'tournament/herrklubb.html', context)
-
-
-@login_required
-@herrklubb_member_required
-@require_POST
-def save_user_bucket_votes(request):
-    """Saves structured dropdown selections for Bucket/Dream, Svart, Grön, and Röd markers at once."""
-    dream_item_id = request.POST.get('dream_item_id')
-    svart_item_id = request.POST.get('svart_item_id')
-    gron_item_id = request.POST.get('gron_item_id')
-    rod_item_id = request.POST.get('rod_item_id')
-
-    # 1. Update Högsta Dröm (Bucket)
-    BucketDream.objects.filter(user=request.user, item__is_completed=False).delete()
-    if dream_item_id and dream_item_id.isdigit():
-        d_item = BucketItem.objects.filter(id=int(dream_item_id), is_completed=False).first()
-        if d_item:
-            BucketDream.objects.create(user=request.user, item=d_item)
-
-    # Clear current marker votes
-    BucketVote.objects.filter(user=request.user, item__is_completed=False).delete()
-
-    # 2. Svart Marker (6p)
-    if svart_item_id and svart_item_id.isdigit():
-        s_item = BucketItem.objects.filter(id=int(svart_item_id), is_completed=False).first()
-        if s_item:
-            BucketVote.objects.create(user=request.user, item=s_item, marker='SVART')
-
-    # 3. Grön Marker (3p)
-    if gron_item_id and gron_item_id.isdigit() and gron_item_id != svart_item_id:
-        g_item = BucketItem.objects.filter(id=int(gron_item_id), is_completed=False).first()
-        if g_item:
-            BucketVote.objects.create(user=request.user, item=g_item, marker='GRON')
-
-    # 4. Röd Marker (2p)
-    if rod_item_id and rod_item_id.isdigit() and rod_item_id != svart_item_id and rod_item_id != gron_item_id:
-        r_item = BucketItem.objects.filter(id=int(rod_item_id), is_completed=False).first()
-        if r_item:
-            BucketVote.objects.create(user=request.user, item=r_item, marker='ROD')
-
-    messages.success(request, "Dina marker-röster och val har sparats!")
-    return redirect('herrklubb')
-
-
-
-@login_required
-@herrklubb_member_required
-@require_POST
-def vote_bucket_item(request):
-    """Places or toggles a Pokermarker vote (SVART/GRON/ROD) on an item."""
-    item_id = request.POST.get('item_id')
-    marker = request.POST.get('marker')
-
-    if marker not in ['SVART', 'GRON', 'ROD']:
-        return JsonResponse({'success': False, 'error': 'Ogiltig marker.'})
-
-    item = get_object_or_404(BucketItem, id=item_id, is_completed=False)
-
-    existing_vote_on_item = BucketVote.objects.filter(user=request.user, item=item, marker=marker).first()
-    if existing_vote_on_item:
-        existing_vote_on_item.delete()
-        action = 'removed'
-    else:
-        BucketVote.objects.filter(user=request.user, marker=marker, item__is_completed=False).delete()
-        BucketVote.objects.filter(user=request.user, item=item).delete()
-        BucketVote.objects.create(user=request.user, item=item, marker=marker)
-        action = 'added'
-
-    return JsonResponse({
-        'success': True,
-        'action': action,
-        'item_id': item.id,
-        'total_points': item.total_points,
-        'vote_count': item.vote_count,
-        'count_svart': item.count_svart,
-        'count_gron': item.count_gron,
-        'count_rod': item.count_rod,
-        'is_planerad': item.is_planerad,
-    })
-
-
-@login_required
-@herrklubb_member_required
-@require_POST
-def toggle_bucket_dream(request):
-    """Toggles 🪣 Högsta Dröm marker on a bucket item."""
-    item_id = request.POST.get('item_id')
-    item = get_object_or_404(BucketItem, id=item_id, is_completed=False)
-
-    existing_dream = BucketDream.objects.filter(user=request.user, item=item).first()
-    if existing_dream:
-        existing_dream.delete()
-        action = 'removed'
-    else:
-        BucketDream.objects.filter(user=request.user, item__is_completed=False).delete()
-        BucketDream.objects.create(user=request.user, item=item)
-        action = 'added'
-
-    return JsonResponse({
-        'success': True,
-        'action': action,
-        'item_id': item.id,
-        'dream_users_count': len(item.dream_users),
-    })
-
-
-@login_required
-@herrklubb_member_required
-@require_POST
-def add_bucket_item(request):
-    """Allows members to submit a new proposal to the Bucket list."""
-    title = request.POST.get('title', '').strip()
-    category_id = request.POST.get('category_id')
-    description = request.POST.get('description', '').strip()
-
-    if not title or not category_id:
-        messages.error(request, "Titel och kategori måste fyllas i.")
-        return redirect('herrklubb')
-
-    category = get_object_or_404(BucketCategory, id=category_id)
-    BucketItem.objects.create(
-        title=title,
-        category=category,
-        description=description,
-        created_by=request.user
-    )
-    messages.success(request, f"Förslaget '{title}' har lagts till i Idébanken!")
-    return redirect('herrklubb')
-
-
-@login_required
-@herrklubb_member_required
-@require_POST
-def complete_bucket_item(request, item_id):
-    """Marks a bucket item as completed, archiving it and freeing up active votes."""
-    item = get_object_or_404(BucketItem, id=item_id)
-    item.is_completed = True
-    item.completed_date = timezone.now()
-    item.save()
-    messages.success(request, f"🎉 Grattis! '{item.title}' har markerats som genomförd! Alla röster har frigjorts.")
-    return redirect('herrklubb')
-
-
-# --- HINDERKALENDER (UNAVAILABILITY CALENDAR) VIEWS ---
-
-def build_calendar_context(request):
-    """Helper function to build calendar heatmap and Golden Weekend data."""
-    today = datetime.date.today()
-    try:
-        req_year = int(request.GET.get('year', today.year))
-        req_month = int(request.GET.get('month', today.month))
-    except (ValueError, TypeError):
-        req_year = today.year
-        req_month = today.month
-
-    total_members = UserProfile.objects.filter(is_herrklubb_member=True).count()
-    if total_members == 0:
-        total_members = 11
-
-    cal = calendar.Calendar(firstweekday=0)
-    month_days = cal.monthdatescalendar(req_year, req_month)
-
-    unavailabilities = list(UserUnavailability.objects.select_related('user').all())
-    user_unavailabilities = UserUnavailability.objects.filter(user=request.user, end_date__gte=today).order_by('start_date')
-
-    swedish_months = [
-        "", "Januari", "Februari", "Mars", "April", "Maj", "Juni",
-        "Juli", "Augusti", "September", "Oktober", "November", "December"
-    ]
-    swedish_weekdays = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"]
-
-    days_data = []
-    for week in month_days:
-        for day in week:
-            is_other_month = (day.month != req_month)
-
-            blocked_users = []
-            if not is_other_month:
-                for u in unavailabilities:
-                    if u.start_date <= day <= u.end_date:
-                        if u.user not in blocked_users:
-                            blocked_users.append(u.user)
-
-            unavailable_count = len(blocked_users)
-            available_count = max(0, total_members - unavailable_count)
-
-            is_weekend = day.weekday() in [4, 5, 6]
-            is_golden = (available_count == total_members) and is_weekend and not is_other_month
-
-            days_data.append({
-                'date': day,
-                'day_num': day.day,
-                'weekday_name': swedish_weekdays[day.weekday()],
-                'is_weekend': is_weekend,
-                'is_today': (day == today),
-                'is_other_month': is_other_month,
-                'available_count': available_count,
-                'unavailable_count': unavailable_count,
-                'blocked_users': blocked_users,
-                'is_golden': is_golden,
-            })
-
-    golden_weekends = []
-    scan_start = today
-    scan_end = today + datetime.timedelta(days=90)
-    current = scan_start
-    while current <= scan_end:
-        if current.weekday() == 4: # Friday
-            sat = current + datetime.timedelta(days=1)
-            sun = current + datetime.timedelta(days=2)
-
-            fr_blocked = {u.user_id for u in unavailabilities if u.start_date <= current <= u.end_date}
-            sa_blocked = {u.user_id for u in unavailabilities if u.start_date <= sat <= u.end_date}
-            su_blocked = {u.user_id for u in unavailabilities if u.start_date <= sun <= u.end_date}
-
-            if not fr_blocked and not sa_blocked and not su_blocked:
-                golden_weekends.append({
-                    'start': current,
-                    'end': sun,
-                    'days_count': 3
-                })
-        current += datetime.timedelta(days=1)
-
-    all_upcoming = UserUnavailability.objects.filter(end_date__gte=today).select_related('user').order_by('start_date')
-
-    prev_month = req_month - 1
-    prev_year = req_year
-    if prev_month < 1:
-        prev_month = 12
-        prev_year -= 1
-
-    next_month = req_month + 1
-    next_year = req_year
-    if next_month > 12:
-        next_month = 1
-        next_year += 1
-
-    # Build 12-month structured data for 6-row half-year views (Jan-June / July-Dec)
-    yearly_months = []
-    for m in range(1, 13):
-        m_days = cal.monthdatescalendar(req_year, m)
-        m_days_data = []
-        for week in m_days:
-            for day in week:
-                if day.month != m:
-                    continue
-                blocked_users = []
-                for u in unavailabilities:
-                    if u.start_date <= day <= u.end_date:
-                        if u.user not in blocked_users:
-                            blocked_users.append(u.user)
-
-                unavailable_count = len(blocked_users)
-                available_count = max(0, total_members - unavailable_count)
-                is_weekend = day.weekday() in [4, 5, 6]
-                is_golden = (available_count == total_members) and is_weekend
-
-                m_days_data.append({
-                    'date': day,
-                    'day_num': day.day,
-                    'weekday_name': swedish_weekdays[day.weekday()],
-                    'is_weekend': is_weekend,
-                    'is_today': (day == today),
-                    'available_count': available_count,
-                    'unavailable_count': unavailable_count,
-                    'blocked_users': blocked_users,
-                    'is_golden': is_golden,
-                })
-        yearly_months.append({
-            'month_num': m,
-            'month_name': swedish_months[m],
-            'days': m_days_data,
-        })
-
-    half1_months = yearly_months[0:6]   # Jan - June
-    half2_months = yearly_months[6:12]  # July - December
-    active_half = 1 if today.month <= 6 else 2
-
-    return {
-        'req_year': req_year,
-        'req_month': req_month,
-        'month_name_sv': swedish_months[req_month],
-        'days_data': days_data,
-        'yearly_months': yearly_months,
-        'half1_months': half1_months,
-        'half2_months': half2_months,
-        'active_half': active_half,
-        'total_members': total_members,
-        'golden_weekends': golden_weekends,
-        'user_unavailabilities': user_unavailabilities,
-        'all_upcoming': all_upcoming,
-        'today': today,
-        'prev_month': prev_month,
-        'prev_year': prev_year,
-        'next_month': next_month,
-        'next_year': next_year,
-    }
-
-
-@login_required
-@herrklubb_member_required
-def calendar_view(request):
-    """Monthly heatmap calendar showing member availability and Golden Weekends."""
-    context = build_calendar_context(request)
-    return render(request, 'tournament/calendar.html', context)
-
-
-@login_required
-@herrklubb_member_required
-@require_POST
-def add_unavailability_view(request):
-    """Adds a date block of unavailability for the logged-in member."""
-    start_date_str = request.POST.get('start_date')
-    end_date_str = request.POST.get('end_date')
-    reason = request.POST.get('reason', '').strip()
-    next_url = request.META.get('HTTP_REFERER') or 'herrklubb'
-
-    if not start_date_str or not end_date_str:
-        messages.error(request, "Både start- och slutdatum måste anges.")
-        return redirect(next_url)
-
-    try:
-        start_date = datetime.datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()
-    except ValueError:
-        messages.error(request, "Ogiltigt datumformat.")
-        return redirect(next_url)
-
-    if end_date < start_date:
-        messages.error(request, "Slutdatum kan inte vara före startdatum.")
-        return redirect(next_url)
-
-    UserUnavailability.objects.create(
-        user=request.user,
-        start_date=start_date,
-        end_date=end_date,
-        reason=reason
-    )
-    messages.success(request, f"Hinder har registrerats ({start_date.strftime('%d/%m')} - {end_date.strftime('%d/%m')})!")
-    return redirect(next_url)
-
-
-@login_required
-@herrklubb_member_required
-@require_POST
-def delete_unavailability_view(request, item_id):
-    """Deletes an unavailability period owned by the logged-in member."""
-    item = get_object_or_404(UserUnavailability, id=item_id, user=request.user)
-    item.delete()
-    messages.success(request, "Hindret har tagits bort från kalendern.")
-    next_url = request.META.get('HTTP_REFERER') or 'herrklubb'
-    return redirect(next_url)
-
-
-@login_required
-@herrklubb_member_required
-@require_POST
-def save_herrklubb_event_view(request):
-    """Creates or updates the Next Event for Herrklubben."""
-    title = request.POST.get('title', '').strip()
-    category_id = request.POST.get('category_id')
-    description = request.POST.get('description', '').strip()
-    event_date_str = request.POST.get('event_date')
-    end_date_str = request.POST.get('end_date')
-    location = request.POST.get('location', '').strip()
-
-    if not title:
-        messages.error(request, "Aktivitetsnamn måste fyllas i.")
-        return redirect('herrklubb')
-
-    category = None
-    if category_id and category_id.isdigit():
-        category = BucketCategory.objects.filter(id=int(category_id)).first()
-
-    event_date = None
-    if event_date_str:
-        try:
-            event_date = datetime.datetime.strptime(event_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-
-    end_date = None
-    if end_date_str:
-        try:
-            end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        except ValueError:
-            pass
-
-    event = HerrklubbEvent.objects.filter(is_active=True).first()
-    if not event:
-        event = HerrklubbEvent.objects.create(
-            title=title,
-            category=category,
-            description=description,
-            event_date=event_date,
-            end_date=end_date,
-            location=location,
-            created_by=request.user,
-            is_active=True
-        )
-    else:
-        event.title = title
-        event.category = category
-        event.description = description
-        event.event_date = event_date
-        event.end_date = end_date
-        event.location = location
-        event.save()
-
-    messages.success(request, f"Nästa Event '{event.title}' har uppdaterats!")
-    return redirect('herrklubb')
-
-
-@login_required
-@herrklubb_member_required
-@require_POST
-def delete_herrklubb_event_view(request, event_id):
-    """Deletes or deactivates the Next Event."""
-    event = get_object_or_404(HerrklubbEvent, id=event_id)
-    event.delete()
-    messages.success(request, "Nästa Event har tagits bort.")
-    return redirect('herrklubb')
-
-
-@login_required
-@herrklubb_member_required
-@require_POST
-def toggle_event_coordinator_view(request, event_id):
-    """Adds or removes the logged-in member as a coordinator for the event."""
-    event = get_object_or_404(HerrklubbEvent, id=event_id)
-    if request.user in event.coordinators.all():
-        event.coordinators.remove(request.user)
-        messages.info(request, "Du har gått ur som samordnare för eventet.")
-    else:
-        event.coordinators.add(request.user)
-        messages.success(request, "🎉 Du har lagts till som samordnare för eventet!")
-    return redirect('herrklubb')
 
 
 @login_required
@@ -1785,4 +1290,499 @@ def switch_league_view(request, league_id):
         messages.info(request, f"Växlade till vängruppen {league.name}")
     else:
         messages.error(request, "Du är inte medlem i den vängruppen.")
-    return redirect(request.META.get('HTTP_REFERER', '/dashboard/?tab=predictions'))
+    return redirect(request.META.get('HTTP_REFERER', '/dashboard/?tab=predictions'))
+
+
+# ==========================================
+# ENGINE ADMIN MONITOR & CONTROL PANEL VIEWS (PORT 2029)
+# ==========================================
+
+def superuser_or_staff_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_superuser or request.user.is_staff):
+            if str(request.get_port()) == '2029':
+                return engine_admin_root_view(request)
+            messages.error(request, "Åtkomst nekad: Endast Engine Admin har behörighet hit.")
+            return redirect('login')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
+def engine_admin_root_view(request):
+    """Entry point for Port 2029 (Engine Admin). Shows Dashboard if logged in as admin, else Login form."""
+    if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
+        return engine_admin_dashboard_view(request)
+    return render(request, 'tournament/engine_admin_login.html')
+
+
+def engine_admin_login_view(request):
+    """Processes login specifically for Port 2029 Engine Admin."""
+    if request.method == 'POST':
+        uname = request.POST.get('username', '').strip()
+        pwd = request.POST.get('password', '').strip()
+        user = authenticate(request, username=uname, password=pwd)
+        if user is not None and (user.is_superuser or user.is_staff):
+            login(request, user)
+            return redirect('/')
+        else:
+            messages.error(request, "Ogiltigt användarnamn, lösenord eller saknad Engine Admin-behörighet.")
+    return render(request, 'tournament/engine_admin_login.html')
+
+
+def get_tournament_checklist_status(tour):
+    teams = list(tour.teams.all())
+    teams_cnt = len(teams)
+    has_alerts = False
+    has_warnings = False
+
+    if teams_cnt == 0:
+        has_alerts = True
+    else:
+        placeholder_teams = [t.name for t in teams if re.match(r'^([A-L][1-8]|Lag\s*\d+|Team\s*\d+)$', t.name.strip(), re.IGNORECASE)]
+        if placeholder_teams:
+            has_alerts = True
+
+    if not hasattr(tour, 'point_system') or not tour.point_system:
+        has_alerts = True
+
+    matches = tour.matches.all()
+    matches_cnt = matches.count()
+    if matches_cnt == 0:
+        has_alerts = True
+    else:
+        dates = [m.date_time for m in matches if m.date_time is not None]
+        if len(dates) == 0 or len(set(dates)) == 1 or len(dates) < matches_cnt:
+            has_warnings = True
+
+    if has_alerts:
+        return {'status': 'ALERT', 'emoji': '🚨', 'badge_class': 'bg-danger text-white border border-light', 'title': '🚨 ALERT: Innehåller placeholders eller saknar krav'}
+    elif has_warnings:
+        return {'status': 'WARNING', 'emoji': '⚠️', 'badge_class': 'bg-warning text-dark border border-dark', 'title': '⚠️ VARNING: Mindre datum/schemaanmärkningar'}
+    else:
+        return {'status': 'READY', 'emoji': '✅', 'badge_class': 'bg-success text-white border border-light', 'title': '✅ READY: Turneringen är 100% redo för publicering'}
+
+
+def get_tournament_total_status(tour, chk_status):
+    """
+    Computes total status for Engine Admin tournament card pill banner:
+    Normal faded translucent background with vibrant text and subtle border.
+    1. BLOCKED (Faded Red, red text): If Checklist has ALERTS! (Cannot activate)
+    2. ACTIVE (Faded Green, green text): If Published & Active. (Possible to Deactivate)
+    3. PAUSED / DEACTIVATED (Faded Blue, blue text): If manually paused/deactivated. (Possible to Activate)
+    4. DRAFT / TESTING (Faded Orange, orange text): If Draft / Testing mode. (Possible to Activate)
+    """
+    if chk_status['status'] == 'ALERT':
+        return {
+            'code': 'BLOCKED',
+            'label': 'BLOCKERAD (ALERTS FINNS 🚨)',
+            'style': 'background-color: rgba(220, 53, 69, 0.15) !important; color: #ff6b6b !important; border: 1px solid rgba(220, 53, 69, 0.3) !important; font-weight: 700;',
+            'badge_text': 'BLOCKERAD',
+            'can_activate': False,
+        }
+    elif tour.is_active:
+        return {
+            'code': 'ACTIVE',
+            'label': 'PUBLISERAD / AKTIV',
+            'style': 'background-color: rgba(25, 135, 84, 0.15) !important; color: #2eca8b !important; border: 1px solid rgba(25, 135, 84, 0.3) !important; font-weight: 700;',
+            'badge_text': 'PUBLISERAD / AKTIV',
+            'can_activate': True,
+        }
+    elif getattr(tour, 'is_paused', False):
+        return {
+            'code': 'PAUSED',
+            'label': 'PAUSAD / AVAKTIVERAD',
+            'style': 'background-color: rgba(13, 110, 253, 0.15) !important; color: #4dabf7 !important; border: 1px solid rgba(13, 110, 253, 0.3) !important; font-weight: 700;',
+            'badge_text': 'PAUSAD / AVAKTIVERAD',
+            'can_activate': True,
+        }
+    else:
+        return {
+            'code': 'DRAFT',
+            'label': 'UTKAST / TESTLÄGE',
+            'style': 'background-color: rgba(253, 126, 20, 0.15) !important; color: #ff922b !important; border: 1px solid rgba(253, 126, 20, 0.3) !important; font-weight: 700;',
+            'badge_text': 'UTKAST / TESTLÄGE',
+            'can_activate': True,
+        }
+
+
+@superuser_or_staff_required
+def engine_admin_dashboard_view(request):
+    """Engine Admin Monitor & Control Panel Dashboard."""
+    
+    # 1. Summary Metrics
+    total_leagues = League.objects.count()
+    total_users = User.objects.count()
+    total_predictions = MatchPrediction.objects.count()
+    total_tournaments = Tournament.objects.count()
+    active_tournaments_count = Tournament.objects.filter(is_active=True).count()
+    
+    # 2. Friend Pools / Leagues Overview Table
+    leagues_query = League.objects.select_related('admin', 'master_event').prefetch_related('members').annotate(
+        member_count=Count('members', distinct=True),
+        verified_count=Count('members', filter=Q(members__is_verified=True), distinct=True),
+        last_member_login=Max('members__player__last_login')
+    ).order_by('-created_at')
+
+    leagues_data = []
+    admin_emails_set = set()
+
+    for leg in leagues_query:
+        if leg.admin and leg.admin.email:
+            admin_emails_set.add(leg.admin.email.strip())
+        
+        member_ids = leg.members.values_list('player_id', flat=True)
+        league_predictions_count = MatchPrediction.objects.filter(player_id__in=member_ids).count()
+        
+        last_active = leg.last_member_login
+        latest_pred_obj = MatchPrediction.objects.filter(player_id__in=member_ids).order_by('-id').first()
+        if latest_pred_obj and hasattr(latest_pred_obj, 'updated_at') and latest_pred_obj.updated_at:
+            if not last_active or latest_pred_obj.updated_at > last_active:
+                last_active = latest_pred_obj.updated_at
+
+        leagues_data.append({
+            'league': leg,
+            'admin': leg.admin,
+            'admin_email': leg.admin.email if leg.admin else '-',
+            'member_count': leg.member_count,
+            'verified_count': leg.verified_count,
+            'predictions_count': league_predictions_count,
+            'last_active': last_active,
+        })
+
+    admin_emails_list = sorted(list(admin_emails_set))
+    admin_emails_str = ", ".join(admin_emails_list)
+
+    # 3. User Directory & Activity Logger
+    users_query = User.objects.annotate(
+        preds_count=Count('match_predictions', distinct=True),
+        pools_count=Count('league_memberships', distinct=True)
+    ).order_by('-last_login', '-date_joined')[:100]
+
+    # 4. Tournaments for Lifecycle Management
+    tournaments_list = Tournament.objects.select_related('admin').prefetch_related(
+        'teams', 'tournament_groups', 'matches', 'knockout_stages'
+    ).order_by('-id')
+
+    tournaments_data = []
+    for tour in tournaments_list:
+        ps = getattr(tour, 'point_system', None)
+        has_ps = ps is not None
+        matches_cnt = tour.matches.count()
+        teams_cnt = tour.teams.count()
+        groups_cnt = tour.tournament_groups.count()
+        knockout_cnt = tour.knockout_stages.count()
+        scored_matches_cnt = tour.matches.filter(home_goals__isnull=False, away_goals__isnull=False).count()
+        chk_status = get_tournament_checklist_status(tour)
+        tot_status = get_tournament_total_status(tour, chk_status)
+
+        tournaments_data.append({
+            'tournament': tour,
+            'has_point_system': has_ps,
+            'matches_count': matches_cnt,
+            'teams_count': teams_cnt,
+            'groups_count': groups_cnt,
+            'knockout_count': knockout_cnt,
+            'scored_matches_count': scored_matches_cnt,
+            'checklist_status': chk_status,
+            'total_status': tot_status,
+            'status': tot_status['label'],
+        })
+
+    context = {
+        'total_leagues': total_leagues,
+        'total_users': total_users,
+        'total_predictions': total_predictions,
+        'total_tournaments': total_tournaments,
+        'active_tournaments_count': active_tournaments_count,
+        'leagues_data': leagues_data,
+        'admin_emails_list': admin_emails_list,
+        'admin_emails_str': admin_emails_str,
+        'users_list': users_query,
+        'tournaments_data': tournaments_data,
+    }
+    return render(request, 'tournament/engine_admin.html', context)
+
+
+@superuser_or_staff_required
+@require_POST
+def engine_admin_validate_tournament(request, tournament_id):
+    """
+    Checklist validation:
+    - ALERTS (Red / Stop Activation):
+      * Placeholder teams present (e.g. A1, A2, B1, B2, Lag 1, Team 1)
+      * No teams or 0 matches
+      * Missing Point System
+    - WARNINGS (Orange / Non-blocking):
+      * Missing match dates or all matches having identical date/time
+      * Knockout stages not defined
+    """
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    checks = []
+    has_alerts = False
+    has_warnings = False
+
+    # Check 1: Teams & Placeholders
+    teams = list(tournament.teams.all())
+    teams_cnt = len(teams)
+    if teams_cnt == 0:
+        checks.append({'title': 'Lagregistrering', 'status': 'alert', 'type': 'ALERT (Stopp)', 'detail': 'Inga lag finns registrerade i turneringen.'})
+        has_alerts = True
+    else:
+        placeholder_teams = [t.name for t in teams if re.match(r'^([A-L][1-8]|Lag\s*\d+|Team\s*\d+)$', t.name.strip(), re.IGNORECASE)]
+        if placeholder_teams:
+            checks.append({
+                'title': 'Riktiga Lag',
+                'status': 'alert',
+                'type': 'ALERT (Stopp)',
+                'detail': f'{len(placeholder_teams)} lag har tillfälliga placeholders ({", ".join(placeholder_teams[:4])}...). Alla lag måste vara bekräftade riktiga lag!'
+            })
+            has_alerts = True
+        else:
+            checks.append({'title': 'Riktiga Lag', 'status': 'pass', 'type': 'OK', 'detail': f'Alla {teams_cnt} lag är bekräftade riktiga lag.'})
+
+    # Check 2: Point System
+    if hasattr(tournament, 'point_system') and tournament.point_system:
+        checks.append({'title': 'Poängsystem', 'status': 'pass', 'type': 'OK', 'detail': 'Poängregelverket är aktiverat och komplett.'})
+    else:
+        checks.append({'title': 'Poängsystem', 'status': 'alert', 'type': 'ALERT (Stopp)', 'detail': 'Poängsystem saknas för denna turnering!'})
+        has_alerts = True
+
+    # Check 3: Matches & Dates
+    matches = tournament.matches.all()
+    matches_cnt = matches.count()
+    if matches_cnt == 0:
+        checks.append({'title': 'Matcher & Schema', 'status': 'alert', 'type': 'ALERT (Stopp)', 'detail': 'Inga matcher har schemalagts.'})
+        has_alerts = True
+    else:
+        dates = [m.date_time for m in matches if m.date_time is not None]
+        if len(dates) == 0:
+            checks.append({'title': 'Matchdatum & Tider', 'status': 'warning', 'type': 'VARNING', 'detail': f'{matches_cnt} matcher saknar datum och tider.'})
+            has_warnings = True
+        elif len(set(dates)) == 1:
+            checks.append({'title': 'Matchdatum & Tider', 'status': 'warning', 'type': 'VARNING', 'detail': 'Alla matcher har exakt samma datum och tid.'})
+            has_warnings = True
+        elif len(dates) < matches_cnt:
+            checks.append({'title': 'Matchdatum & Tider', 'status': 'warning', 'type': 'VARNING', 'detail': f'{matches_cnt - len(dates)} matcher saknar datum/tid.'})
+            has_warnings = True
+        else:
+            checks.append({'title': 'Matchdatum & Tider', 'status': 'pass', 'type': 'OK', 'detail': f'Alla {matches_cnt} matcher har giltiga datum/tider.'})
+
+    # Overall Status Summary
+    if has_alerts:
+        overall = 'ALERT'
+    elif has_warnings:
+        overall = 'WARNING'
+    else:
+        overall = 'READY'
+
+    return JsonResponse({
+        'tournament_id': tournament_id,
+        'tournament_name': tournament.name,
+        'overall_status': overall,
+        'has_alerts': has_alerts,
+        'has_warnings': has_warnings,
+        'checks': checks,
+    })
+
+
+WORLD_CUP_2026_NATIONAL_TEAMS = [
+    'Mexiko', 'Danmark', 'Sydafrika', 'Sydkorea',
+    'Kanada', 'Schweiz', 'Qatar', 'Colombia',
+    'USA', 'Paraguay', 'Australien', 'Turkiet',
+    'Brasilien', 'Kroatien', 'Nigeria', 'Japan',
+    'Argentina', 'Österrike', 'Marocko', 'Ukraina',
+    'Frankrike', 'Polen', 'Chile', 'Saudiarabien',
+    'England', 'Sverige', 'Senegal', 'Peru',
+    'Spanien', 'Uruguay', 'Skottland', 'Algeriet',
+    'Tyskland', 'Ecuador', 'Elfenbenskusten', 'Iran',
+    'Nederländerna', 'Portugal', 'Kamerun', 'Egypten',
+    'Belgien', 'Italien', 'Serbien', 'Tunisien',
+    'Tjeckien', 'Ghana', 'Norge', 'Wales'
+]
+
+
+@superuser_or_staff_required
+@require_POST
+def engine_admin_simulate_tournament(request, tournament_id):
+    """
+    Human-in-the-loop simulation:
+    - If teams contain generic placeholders (e.g. A1, A2, B1, B2, Lag 1, Team 1), dynamically populates real World Cup 2026 National Teams.
+    - If teams are ALREADY real seeded teams (e.g. England, France, Japan, Poland), PRESERVES them intact!
+    - Generates realistic test scores for visual verification of standings & knockout progression.
+    """
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    all_teams = list(tournament.teams.all())
+    placeholder_teams = [t for t in all_teams if re.match(r'^([A-L][1-8]|Lag\s*\d+|Team\s*\d+)$', t.name.strip(), re.IGNORECASE)]
+    
+    # Only assign World Cup 2026 teams if placeholder teams exist!
+    if placeholder_teams:
+        assigned_nat_teams = WORLD_CUP_2026_NATIONAL_TEAMS[:max(len(placeholder_teams), 1)]
+        team_mapping = {}
+        for idx, team in enumerate(placeholder_teams):
+            nat_name = assigned_nat_teams[idx % len(assigned_nat_teams)]
+            original_name = team.name
+            team_mapping[original_name] = nat_name
+            
+            team.name = nat_name
+            team.code = ''
+            team.save()
+
+        for match in tournament.matches.all():
+            if match.home_team in team_mapping:
+                match.home_team = team_mapping[match.home_team]
+            if match.away_team in team_mapping:
+                match.away_team = team_mapping[match.away_team]
+
+    # Generate realistic scores for matches
+    simulated_count = 0
+    for match in tournament.matches.all():
+        match.home_goals = random.choice([0, 1, 1, 2, 2, 3, 4])
+        match.away_goals = random.choice([0, 1, 1, 2, 2, 3, 4])
+        match.is_finished = True
+        match.save()
+        simulated_count += 1
+
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Simulerade matcher för {len(all_teams)} lag i "{tournament.name}". Grupptabeller och slutspel har beräknats!',
+        'simulated_count': simulated_count,
+    })
+
+
+@superuser_or_staff_required
+@require_POST
+def engine_admin_reset_simulation(request, tournament_id):
+    """
+    Full Reset before publishing:
+    Wipes simulated match scores while preserving real seeded team names.
+    """
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    reset_count = tournament.matches.update(home_goals=None, away_goals=None, is_finished=False)
+
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Nollställde simulerade testresultat för {reset_count} matcher i "{tournament.name}". Turneringen är nu 100% ren!',
+        'reset_count': reset_count,
+    })
+
+
+@superuser_or_staff_required
+@require_POST
+def engine_admin_toggle_publish(request, tournament_id):
+    """
+    Toggles tournament between Draft/Testing and Active/Published.
+    - BLOCKS activation if Checklist contains ALERTS!
+    - ALWAYS WIPES simulated test scores before activating!
+    """
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    if not tournament.is_active:
+        teams = list(tournament.teams.all())
+        placeholder_teams = [t.name for t in teams if re.match(r'^([A-L][1-8]|Lag\s*\d+|Team\s*\d+)$', t.name.strip(), re.IGNORECASE)]
+        has_no_teams = len(teams) == 0
+        has_no_matches = tournament.matches.count() == 0
+        has_no_ps = not hasattr(tournament, 'point_system') or not tournament.point_system
+        
+        if placeholder_teams or has_no_teams or has_no_matches or has_no_ps:
+            reasons = []
+            if placeholder_teams:
+                reasons.append(f"{len(placeholder_teams)} tillfälliga placeholders återstår ({', '.join(placeholder_teams[:3])}...)")
+            if has_no_teams:
+                reasons.append("inga lag registrerade")
+            if has_no_matches:
+                reasons.append("inga matcher schemalagda")
+            if has_no_ps:
+                reasons.append("poängsystem saknas")
+                
+            return JsonResponse({
+                'status': 'blocked',
+                'is_active': False,
+                'message': f'PUBLICERING STOPPAD (Alert 🚨): Turneringen kan inte aktiveras förrän följande rödmarkerade varningar (Alerts) i Checklistan har åtgärdats: {"; ".join(reasons)}.',
+            })
+
+        # Always wipe test results before activating!
+        tournament.matches.update(home_goals=None, away_goals=None, is_finished=False)
+        tournament.is_active = True
+        tournament.is_paused = False
+    else:
+        tournament.is_active = False
+        tournament.is_paused = True
+
+    tournament.save()
+    chk = get_tournament_checklist_status(tournament)
+    tot = get_tournament_total_status(tournament, chk)
+
+    return JsonResponse({
+        'status': 'success',
+        'is_active': tournament.is_active,
+        'is_paused': tournament.is_paused,
+        'status_text': tot['label'],
+        'total_status': tot,
+        'message': f'Status för "{tournament.name}" ändrades till: {tot["label"]}.'
+    })
+
+
+@superuser_or_staff_required
+def engine_admin_preview_tournament(request, tournament_id):
+    """Renders detailed structure preview (groups, standings, matches, knockouts) for tournament review."""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    groups_data = []
+    for group in tournament.tournament_groups.all():
+        standings = group.get_standings()
+        matches_list = []
+        for m in group.matches.all():
+            matches_list.append({
+                'match_number': m.match_number,
+                'home_info': m.get_home_team_info(),
+                'away_info': m.get_away_team_info(),
+                'home_goals': m.home_goals,
+                'away_goals': m.away_goals,
+                'is_finished': m.is_finished,
+                'date_time': m.date_time,
+            })
+        groups_data.append({
+            'group': group,
+            'standings': standings,
+            'matches': matches_list,
+        })
+        
+    knockout_data = []
+    for stage in tournament.knockout_stages.all():
+        matches_list = []
+        for m in stage.matches.all():
+            matches_list.append({
+                'match_number': m.match_number,
+                'home_info': m.get_home_team_info(),
+                'away_info': m.get_away_team_info(),
+                'home_goals': m.home_goals,
+                'away_goals': m.away_goals,
+                'is_finished': m.is_finished,
+                'date_time': m.date_time,
+            })
+        knockout_data.append({
+            'stage': stage,
+            'matches': matches_list,
+        })
+
+    runners_up_table = tournament.get_runners_up_ranking_table()
+    host_ranking_table = tournament.get_host_ranking_table()
+    best_thirds_table = tournament.get_best_thirds_ranking_table()
+    chk_status = get_tournament_checklist_status(tournament)
+    tot_status = get_tournament_total_status(tournament, chk_status)
+
+    context = {
+        'tournament': tournament,
+        'groups_data': groups_data,
+        'knockout_data': knockout_data,
+        'runners_up_table': runners_up_table,
+        'host_ranking_table': host_ranking_table,
+        'best_thirds_table': best_thirds_table,
+        'total_status': tot_status,
+    }
+    return render(request, 'tournament/engine_admin_preview_modal.html', context)
+
+

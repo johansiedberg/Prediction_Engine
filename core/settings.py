@@ -10,10 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Dedicated server port setting for Engine Admin (optional isolation)
+ENGINE_ADMIN_PORT = os.getenv('ENGINE_ADMIN_PORT', None)
 
 
 # Quick-start development settings - unsuitable for production
@@ -48,6 +52,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'tournament.middleware.EngineAdminPortMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'

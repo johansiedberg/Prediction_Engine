@@ -1,0 +1,60 @@
+{% extends 'tournament/engine_admin_base.html' %}
+{% load static %}
+
+{% block title %}Engine Admin | Innloggning (Port 2029){% endblock %}
+
+{% block content %}
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 75vh;">
+    <div class="card bg-dark bg-opacity-85 text-white border-secondary border-opacity-30 rounded-4 shadow-lg p-4 p-md-5" style="max-width: 440px; width: 100%;">
+        
+        <div class="text-center mb-4">
+            <div class="p-3 bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex mb-3 border border-warning border-opacity-30">
+                <i class="fa-solid fa-lock fs-1"></i>
+            </div>
+            <h3 class="fw-extrabold text-white mb-1">Engine Admin Portal</h3>
+            <p class="text-secondary small mb-0">Systemkontroll & Övervakning (Server Port 2029)</p>
+        </div>
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-3 small py-2 mb-3" role="alert">
+            <i class="fa-solid fa-triangle-exclamation me-1.5"></i> {{ message }}
+            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <form action="/login/" method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="username" class="form-label text-uppercase fs-7 font-monospace fw-bold text-secondary">Användarnamn</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary border-opacity-30">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </span>
+                    <input type="text" name="username" id="username" class="form-control bg-dark text-white border-secondary border-opacity-30 rounded-end px-3 py-2 fw-semibold" placeholder="johansiedberg" required autofocus>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label for="password" class="form-label text-uppercase fs-7 font-monospace fw-bold text-secondary">Lösenord</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary border-opacity-30">
+                        <i class="fa-solid fa-key"></i>
+                    </span>
+                    <input type="password" name="password" id="password" class="form-control bg-dark text-white border-secondary border-opacity-30 rounded-end px-3 py-2 fw-semibold" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-warning text-dark fw-bold w-100 py-2.5 rounded-3 shadow-sm fs-6">
+                <i class="fa-solid fa-right-to-bracket me-2"></i> Logga in på Engine Admin
+            </button>
+        </form>
+
+        <div class="mt-4 text-center border-top border-secondary border-opacity-25 pt-3">
+            <span class="text-secondary fs-7"><i class="fa-solid fa-shield-halved me-1"></i> Behörighet krävs för tillträde</span>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

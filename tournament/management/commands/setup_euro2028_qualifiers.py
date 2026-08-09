@@ -6,51 +6,51 @@ from tournament.models import (
 )
 
 GROUPS_DATA = {
-    'Group A': {
+    'Grupp A': {
         'order': 1,
         'teams': ['A1', 'A2', 'A3', 'A4'] # Pure placeholders (Seeding pending draw)
     },
-    'Group B': {
+    'Grupp B': {
         'order': 2,
         'teams': ['B1', 'B2', 'B3', 'B4'] # Pure placeholders (Seeding pending draw)
     },
-    'Group C': {
+    'Grupp C': {
         'order': 3,
         'teams': ['C1', 'C2', 'C3', 'C4'] # Pure placeholders (Seeding pending draw)
     },
-    'Group D': {
+    'Grupp D': {
         'order': 4,
         'teams': ['D1', 'D2', 'D3', 'D4'] # Pure placeholders (Seeding pending draw)
     },
-    'Group E': {
+    'Grupp E': {
         'order': 5,
         'teams': ['E1', 'E2', 'E3', 'E4'] # Pure placeholders (Seeding pending draw)
     },
-    'Group F': {
+    'Grupp F': {
         'order': 6,
         'teams': ['F1', 'F2', 'F3', 'F4'] # Pure placeholders (Seeding pending draw)
     },
-    'Group G': {
+    'Grupp G': {
         'order': 7,
         'teams': ['G1', 'G2', 'G3', 'G4', 'G5'] # Pure placeholders (Seeding pending draw)
     },
-    'Group H': {
+    'Grupp H': {
         'order': 8,
         'teams': ['H1', 'H2', 'H3', 'H4', 'H5'] # Pure placeholders (Seeding pending draw)
     },
-    'Group I': {
+    'Grupp I': {
         'order': 9,
         'teams': ['I1', 'I2', 'I3', 'I4', 'I5'] # Pure placeholders (Seeding pending draw)
     },
-    'Group J': {
+    'Grupp J': {
         'order': 10,
         'teams': ['J1', 'J2', 'J3', 'J4', 'J5'] # Pure placeholders (Seeding pending draw)
     },
-    'Group K': {
+    'Grupp K': {
         'order': 11,
         'teams': ['K1', 'K2', 'K3', 'K4', 'K5'] # Pure placeholders (Seeding pending draw)
     },
-    'Group L': {
+    'Grupp L': {
         'order': 12,
         'teams': ['L1', 'L2', 'L3', 'L4', 'L5'] # Pure placeholders (Seeding pending draw)
     },

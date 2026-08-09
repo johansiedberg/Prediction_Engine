@@ -1,0 +1,664 @@
+{% extends 'tournament/engine_admin_base.html' %}
+{% load static %}
+
+{% block title %}Engine Admin | Tournaments & Monitor{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+    <!-- Header Banner (Transparent Outlined Card) -->
+    <div class="card bg-transparent text-white border border-secondary border-opacity-30 rounded-4 p-4 mb-4 shadow-sm border-start border-4 border-warning">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-warning text-dark font-monospace text-uppercase px-2.5 py-1 fw-bold">Engine Admin Center</span>
+                    <span class="text-secondary small"><i class="fa-solid fa-shield-halved text-success me-1"></i>Behörighet: Superuser</span>
+                </div>
+                <h2 class="fw-extrabold mb-0 text-white display-6">Engine Control Panel</h2>
+                <p class="text-secondary mb-0 small">Hantera turneringar, validera logik, simulera matcher samt övervaka användare och vängrupper.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2 Main Section Navigation Pills -->
+    <ul class="nav nav-pills mb-4 gap-2 border-bottom border-secondary border-opacity-25 pb-3" id="adminMainSections" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold px-4 py-2.5 rounded-pill shadow-sm" id="tournaments-tab" data-bs-toggle="pill" data-bs-target="#tournaments-pane" type="button" role="tab">
+                <i class="fa-solid fa-trophy me-2"></i>1. Tournaments
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold px-4 py-2.5 rounded-pill shadow-sm text-white" id="monitor-tab" data-bs-toggle="pill" data-bs-target="#monitor-pane" type="button" role="tab">
+                <i class="fa-solid fa-chart-line me-2"></i>2. Monitor
+            </button>
+        </li>
+    </ul>
+
+    <!-- Main Section Contents -->
+    <div class="tab-content" id="adminMainSectionsContent">
+
+        <!-- SECTION 1: TOURNAMENTS -->
+        <div class="tab-pane fade show active" id="tournaments-pane" role="tabpanel">
+            <div class="row g-4">
+                {% for item in tournaments_data %}
+                <div class="col-12 col-xl-6">
+                    <div class="card bg-transparent text-white border border-secondary border-opacity-30 rounded-4 shadow-sm h-100 overflow-hidden">
+                        
+                        <!-- Tournament Header Bar with Integrated Total Status Pill & Activation Button -->
+                        <div class="card-header bg-transparent p-3.5 border-bottom border-secondary border-opacity-25">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1.5">
+                                        <!-- Integrated Total Status Pill Badge (Faded solid color, font in black) -->
+                                        <span id="status-pill-{{ item.tournament.id }}" 
+                                              class="badge rounded-pill font-monospace fw-extrabold px-3 py-1.5 text-uppercase shadow-sm" 
+                                              style="{{ item.total_status.style }} font-size: 0.75rem; letter-spacing: 0.5px;">
+                                            {{ item.total_status.label }}
+                                        </span>
+                                        <span class="text-secondary small font-monospace">ID: #{{ item.tournament.id }}</span>
+                                    </div>
+                                    <h3 class="fw-extrabold mb-0 text-white">{{ item.tournament.name }}</h3>
+                                </div>
+
+                                <!-- Activation / Deactivation Toggle Button (Responds strictly to status) -->
+                                <div>
+                                    {% if item.total_status.code == 'BLOCKED' %}
+                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 shadow-sm fw-bold opacity-50" 
+                                            id="pub-btn-{{ item.tournament.id }}" 
+                                            disabled 
+                                            title="🚨 Kan ej aktiveras: Åtgärda rödmarkerade varningar i Checklist först!">
+                                        <i class="fa-solid fa-ban me-1.5" id="pub-btn-icon-{{ item.tournament.id }}"></i>
+                                        <span id="pub-btn-text-{{ item.tournament.id }}">Publicera & Aktivera</span>
+                                    </button>
+                                    {% elif item.total_status.code == 'ACTIVE' %}
+                                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3.5 shadow-sm fw-bold" 
+                                            id="pub-btn-{{ item.tournament.id }}" 
+                                            onclick="togglePublish({{ item.tournament.id }})">
+                                        <i class="fa-solid fa-power-off me-1.5" id="pub-btn-icon-{{ item.tournament.id }}"></i>
+                                        <span id="pub-btn-text-{{ item.tournament.id }}">Avaktivera</span>
+                                    </button>
+                                    {% else %}
+                                    <!-- DRAFT or PAUSED: Possible to Activate -->
+                                    <button class="btn btn-outline-success btn-sm rounded-pill px-3.5 shadow-sm fw-bold" 
+                                            id="pub-btn-{{ item.tournament.id }}" 
+                                            onclick="togglePublish({{ item.tournament.id }})">
+                                        <i class="fa-solid fa-power-off me-1.5" id="pub-btn-icon-{{ item.tournament.id }}"></i>
+                                        <span id="pub-btn-text-{{ item.tournament.id }}">Publicera & Aktivera</span>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-body p-4">
+                            
+                            <!-- Transparent Metrics Count Row -->
+                            <div class="row g-2 mb-4 text-center">
+                                <div class="col-3">
+                                    <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-transparent">
+                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Lag</div>
+                                        <div class="fw-extrabold fs-4 text-warning">{{ item.teams_count }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-transparent">
+                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Grupper</div>
+                                        <div class="fw-extrabold fs-4 text-info">{{ item.groups_count }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-transparent">
+                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Matcher</div>
+                                        <div class="fw-extrabold fs-4 text-emerald">{{ item.matches_count }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-transparent">
+                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Slutspel</div>
+                                        <div class="fw-extrabold fs-4 text-danger">{{ item.knockout_count }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Control & Review Action Buttons -->
+                            <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 20px;">
+                                <!-- SEE TOURNAMENT BUTTON -->
+                                <button class="btn btn-outline-light btn-sm rounded-3 px-3.5 fw-bold shadow-sm d-inline-flex align-items-center" style="gap: 10px;" onclick="openSeeTournament({{ item.tournament.id }})">
+                                    <i class="fa-solid fa-eye"></i><span>See Tournament</span>
+                                </button>
+                                
+                                <!-- CHECKLIST BUTTON (Frameless Popping Top-Right Indicator Emoji) -->
+                                <button class="btn btn-outline-info btn-sm rounded-3 fw-bold px-3.5 position-relative d-inline-flex align-items-center" style="gap: 10px;" onclick="validateTournament({{ item.tournament.id }})" title="{{ item.checklist_status.title }}">
+                                    <i class="fa-solid fa-clipboard-check"></i><span>Checklist</span>
+                                    <span id="chk-indicator-{{ item.tournament.id }}" class="position-absolute top-0 start-100 translate-middle" style="font-size: 1.15rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+                                        {{ item.checklist_status.emoji }}
+                                    </span>
+                                </button>
+                                
+                                <!-- KÖR SIMULATOR BUTTON (Frameless Popping Top-Right Indicator Emoji) -->
+                                <button class="btn btn-outline-warning btn-sm rounded-3 fw-bold px-3.5 position-relative d-inline-flex align-items-center" style="gap: 10px;" onclick="simulateTournament({{ item.tournament.id }})">
+                                    <i class="fa-solid fa-gamepad"></i><span>Kör Simulator</span>
+                                    <span id="sim-emoji-{{ item.tournament.id }}" class="position-absolute top-0 start-100 translate-middle {% if item.scored_matches_count == 0 %}d-none{% endif %}" style="font-size: 1.15rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+                                        ✅
+                                    </span>
+                                </button>
+                                
+                                <!-- ÅTERSTÄLL BUTTON -->
+                                <button class="btn btn-outline-secondary btn-sm rounded-3 fw-semibold px-3 d-inline-flex align-items-center" style="gap: 10px;" onclick="resetSimulation({{ item.tournament.id }})" title="Nollställ alla simulerade resultat">
+                                    <i class="fa-solid fa-rotate-left"></i><span>Återställ</span>
+                                </button>
+                            </div>
+
+                            <!-- Checklist Results Output Box -->
+                            <div id="validation-box-{{ item.tournament.id }}" class="d-none mt-3 p-3 rounded-3 border border-secondary border-opacity-25 bg-transparent">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <strong class="text-info fs-7 text-uppercase"><i class="fa-solid fa-clipboard-check me-1"></i> Checklist Rapport:</strong>
+                                    <span id="overall-badge-{{ item.tournament.id }}" class="badge bg-transparent"></span>
+                                </div>
+                                <ul class="list-unstyled mb-0 small" id="validation-list-{{ item.tournament.id }}"></ul>
+                            </div>
+
+                            <!-- Simulation Status Alert Box -->
+                            <div id="simulation-box-{{ item.tournament.id }}" class="d-none mt-3 p-3 rounded-3 border border-warning border-opacity-30 bg-transparent">
+                                <div class="d-flex align-items-center text-warning mb-1">
+                                    <i class="fa-solid fa-bolt me-2 fs-5"></i>
+                                    <strong class="small text-uppercase font-monospace">Simulator-status</strong>
+                                </div>
+                                <p class="mb-0 small text-light" id="simulation-msg-{{ item.tournament.id }}"></p>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="p-5 text-center border border-secondary border-opacity-25 rounded-4 bg-transparent">
+                        <i class="fa-solid fa-trophy text-secondary fs-1 mb-3"></i>
+                        <h5 class="text-white">Inga turneringar hittades</h5>
+                        <p class="text-secondary mb-0">Det finns inga registrerade turneringar i databasen ännu.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- SECTION 2: MONITOR -->
+        <div class="tab-pane fade" id="monitor-pane" role="tabpanel">
+            
+            <!-- Transparent KPI Summary Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="p-3.5 bg-transparent border border-secondary border-opacity-30 rounded-4 shadow-sm">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-secondary text-uppercase fs-7 fw-bold font-monospace">Vängrupper (Pools)</div>
+                                <div class="fs-2 fw-extrabold text-white mt-1">{{ total_leagues }}</div>
+                            </div>
+                            <div class="p-3 text-emerald">
+                                <i class="fa-solid fa-users-rectangle fs-2"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="p-3.5 bg-transparent border border-secondary border-opacity-30 rounded-4 shadow-sm">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-secondary text-uppercase fs-7 fw-bold font-monospace">Pool Admins</div>
+                                <div class="fs-2 fw-extrabold text-white mt-1">{{ admin_emails_list|length }}</div>
+                            </div>
+                            <div class="p-3 text-info">
+                                <i class="fa-solid fa-user-shield fs-2"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="p-3.5 bg-transparent border border-secondary border-opacity-30 rounded-4 shadow-sm">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-secondary text-uppercase fs-7 fw-bold font-monospace">Registrerade Användare</div>
+                                <div class="fs-2 fw-extrabold text-white mt-1">{{ total_users }}</div>
+                            </div>
+                            <div class="p-3 text-warning">
+                                <i class="fa-solid fa-users fs-2"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <div class="p-3.5 bg-transparent border border-secondary border-opacity-30 rounded-4 shadow-sm">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-secondary text-uppercase fs-7 fw-bold font-monospace">Totalt Inskickade Tips</div>
+                                <div class="fs-2 fw-extrabold text-white mt-1">{{ total_predictions }}</div>
+                            </div>
+                            <div class="p-3 text-danger">
+                                <i class="fa-solid fa-chart-line fs-2"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monitor Sub-Tabs -->
+            <ul class="nav nav-tabs border-bottom border-secondary border-opacity-25 mb-4" id="monitorSubTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active bg-transparent text-white fw-bold px-3 py-2 border-bottom border-warning border-3" id="pools-sub-tab" data-bs-toggle="tab" data-bs-target="#pools-sub-pane" type="button" role="tab">
+                        <i class="fa-solid fa-users-rectangle me-1.5 text-emerald"></i> Vängrupper (Pools) Table
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link bg-transparent text-secondary fw-bold px-3 py-2" id="users-sub-tab" data-bs-toggle="tab" data-bs-target="#users-sub-pane" type="button" role="tab">
+                        <i class="fa-solid fa-user-clock me-1.5 text-info"></i> User Activity Log
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="monitorSubTabsContent">
+                
+                <!-- Sub-Pane 1: Pools Table -->
+                <div class="tab-pane fade show active" id="pools-sub-pane" role="tabpanel">
+                    <div class="p-4 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm">
+                        
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                            <div>
+                                <h4 class="fw-extrabold text-white mb-1"><i class="fa-solid fa-users-rectangle text-emerald me-2"></i>Alla Registrerade Vängrupper (Pools)</h4>
+                                <p class="text-secondary small mb-0">Deltagarantal, pool-admins, inskickade tips och kontaktinformation.</p>
+                            </div>
+                            <div>
+                                <button class="btn btn-emerald text-dark fw-bold btn-sm rounded-pill px-3 shadow-sm" onclick="copyAdminEmails()">
+                                    <i class="fa-solid fa-copy me-1.5"></i> Kopiera Alla Admin-E-postadresser
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Admin Emails Quick Copy Box -->
+                        <div class="p-3 rounded-3 border border-secondary border-opacity-25 bg-transparent mb-4">
+                            <div class="text-uppercase font-monospace text-warning fs-7 fw-bold mb-1">
+                                <i class="fa-solid fa-envelope me-1"></i> Pool Admin E-postlista ({{ admin_emails_list|length }} st)
+                            </div>
+                            <input type="text" readonly id="adminEmailsInput" class="form-control form-control-sm bg-transparent text-light border-secondary font-monospace" value="{{ admin_emails_str }}">
+                        </div>
+
+                        <!-- Leagues Monitor Table -->
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover align-middle mb-0 bg-transparent">
+                                <thead>
+                                    <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30">
+                                        <th>Vängrupp (Pool)</th>
+                                        <th>Kod</th>
+                                        <th>Pool Admin</th>
+                                        <th>Admin E-post</th>
+                                        <th>Medlemmar</th>
+                                        <th>Verifierade</th>
+                                        <th>Tips Totalt</th>
+                                        <th>Senaste Aktivitet</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in leagues_data %}
+                                    <tr class="border-bottom border-secondary border-opacity-10">
+                                        <td class="fw-bold text-white">
+                                            <div class="d-flex align-items-center gap-2">
+                                                {% if row.league.logo %}
+                                                <img src="{{ row.league.logo.url }}" alt="Logo" class="rounded-circle" style="width: 28px; height: 28px; object-fit: cover;">
+                                                {% else %}
+                                                <div class="border border-secondary border-opacity-30 rounded-circle d-flex align-items-center justify-content-center text-warning" style="width: 28px; height: 28px;">
+                                                    <i class="fa-solid fa-shield fs-7"></i>
+                                                </div>
+                                                {% endif %}
+                                                <span>{{ row.league.name }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-transparent text-warning border border-warning border-opacity-30 font-monospace px-2 py-1">
+                                                {{ row.league.invite_code }}
+                                            </span>
+                                        </td>
+                                        <td class="text-light fw-semibold">
+                                            <i class="fa-solid fa-user-tie text-secondary me-1"></i>{{ row.admin.username }}
+                                        </td>
+                                        <td>
+                                            {% if row.admin_email != '-' %}
+                                            <a href="mailto:{{ row.admin_email }}" class="text-info text-decoration-none small">
+                                                <i class="fa-solid fa-envelope me-1"></i>{{ row.admin_email }}
+                                            </a>
+                                            {% else %}
+                                            <span class="text-secondary small">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-transparent text-info border border-info border-opacity-30 font-monospace px-2.5 py-1 fs-7">
+                                                {{ row.member_count }} st
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-transparent text-success border border-success border-opacity-30 font-monospace px-2.5 py-1 fs-7">
+                                                {{ row.verified_count }} st
+                                            </span>
+                                        </td>
+                                        <td class="fw-bold text-warning font-monospace">
+                                            {{ row.predictions_count }}
+                                        </td>
+                                        <td class="text-secondary small">
+                                            {% if row.last_active %}
+                                            {{ row.last_active|date:"Y-m-d H:i" }}
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-secondary py-4">Inga vängrupper registrerade.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Sub-Pane 2: User Activity Log -->
+                <div class="tab-pane fade" id="users-sub-pane" role="tabpanel">
+                    <div class="p-4 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm">
+                        <div class="mb-4">
+                            <h4 class="fw-extrabold text-white mb-1"><i class="fa-solid fa-users text-info me-2"></i>Användaraktivitetslogg</h4>
+                            <p class="text-secondary small mb-0">Inspektera registreringsdatum, senast inloggad samt tippnings- och poolaktivitet per användare.</p>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover align-middle mb-0 bg-transparent">
+                                <thead>
+                                    <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30">
+                                        <th>Användare</th>
+                                        <th>E-post</th>
+                                        <th>Roll</th>
+                                        <th>Registrerad</th>
+                                        <th>Senast Inloggad</th>
+                                        <th>Inskickade Tips</th>
+                                        <th>Aktiva Vängrupper</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in users_list %}
+                                    <tr class="border-bottom border-secondary border-opacity-10">
+                                        <td class="fw-bold text-white">
+                                            <i class="fa-solid fa-user-circle me-1.5 text-secondary"></i>{{ u.username }}
+                                        </td>
+                                        <td>
+                                            {% if u.email %}
+                                            <span class="text-info small"><i class="fa-solid fa-envelope me-1"></i>{{ u.email }}</span>
+                                            {% else %}
+                                            <span class="text-secondary small">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if u.is_superuser %}
+                                            <span class="badge bg-transparent text-danger border border-danger font-monospace px-2 py-0.5">SUPERUSER</span>
+                                            {% elif u.is_staff %}
+                                            <span class="badge bg-transparent text-warning border border-warning font-monospace px-2 py-0.5">STAFF</span>
+                                            {% else %}
+                                            <span class="badge bg-transparent text-secondary border border-secondary font-monospace px-2 py-0.5">SPELARE</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-secondary small">
+                                            {{ u.date_joined|date:"Y-m-d H:i" }}
+                                        </td>
+                                        <td class="text-light small">
+                                            {% if u.last_login %}
+                                            <span class="text-emerald"><i class="fa-solid fa-clock me-1"></i>{{ u.last_login|date:"Y-m-d H:i" }}</span>
+                                            {% else %}
+                                            <span class="text-muted">Aldrig</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="fw-bold text-warning font-monospace">
+                                            {{ u.preds_count }}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-transparent text-info border border-info border-opacity-30 font-monospace px-2.5 py-1">
+                                                {{ u.pools_count }} st
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-secondary py-4">Inga användare hittades.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- SEE TOURNAMENT REVIEW MODAL CONTAINER -->
+<div class="modal fade" id="seeTournamentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" id="seeTournamentModalBody" style="background: #090D16 !important;">
+            <div class="p-5 text-center text-secondary">
+                <i class="fa-solid fa-spinner fa-spin fs-1 mb-3 text-warning"></i>
+                <p>Laddar turneringens grupper, tabeller och slutspelsstruktur...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSRF & Interactivity Script -->
+<script>
+    function getCSRFToken() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function copyAdminEmails() {
+        const copyText = document.getElementById("adminEmailsInput");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value);
+        alert("Kopierade alla Pool Admin E-postadresser till urklipp!");
+    }
+
+    // OPEN SEE TOURNAMENT REVIEW MODAL
+    function openSeeTournament(tournamentId) {
+        const modalEl = document.getElementById('seeTournamentModal');
+        const modalBody = document.getElementById('seeTournamentModalBody');
+        const modal = new bootstrap.Modal(modalEl);
+        
+        modalBody.innerHTML = `
+            <div class="p-5 text-center text-secondary">
+                <i class="fa-solid fa-spinner fa-spin fs-1 mb-3 text-warning"></i>
+                <p class="mb-0">Laddar turneringens grupper, tabeller och slutspelsstruktur...</p>
+            </div>
+        `;
+        modal.show();
+
+        fetch(`/engine-admin/preview/${tournamentId}/`)
+        .then(res => res.text())
+        .then(html => {
+            modalBody.innerHTML = html;
+        })
+        .catch(err => {
+            modalBody.innerHTML = `<div class="p-4 text-center text-danger">Ett fel uppstod vid laddning: ${err}</div>`;
+        });
+    }
+
+    function validateTournament(tournamentId) {
+        const box = document.getElementById(`validation-box-${tournamentId}`);
+        const list = document.getElementById(`validation-list-${tournamentId}`);
+        const badge = document.getElementById(`overall-badge-${tournamentId}`);
+        const chkIndicator = document.getElementById(`chk-indicator-${tournamentId}`);
+
+        fetch(`/engine-admin/validate/${tournamentId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            box.classList.remove('d-none');
+            list.innerHTML = '';
+            
+            if (data.overall_status === 'READY') {
+                badge.className = 'badge bg-transparent border border-success text-success font-monospace fw-bold';
+                badge.innerText = 'KLAR FÖR PUBLICERING';
+                if (chkIndicator) chkIndicator.innerText = '✅';
+            } else if (data.has_alerts) {
+                badge.className = 'badge bg-transparent border border-danger text-danger font-monospace fw-bold';
+                badge.innerText = 'STOPP - ALERTS FINNS 🚨';
+                if (chkIndicator) chkIndicator.innerText = '🚨';
+            } else {
+                badge.className = 'badge bg-transparent border border-warning text-warning font-monospace fw-bold';
+                badge.innerText = 'VARNINGAR FINNS ⚠️';
+                if (chkIndicator) chkIndicator.innerText = '⚠️';
+            }
+
+            data.checks.forEach(c => {
+                const li = document.createElement('li');
+                li.className = 'py-1 border-bottom border-secondary border-opacity-10 d-flex align-items-center justify-content-between';
+                
+                let icon = c.status === 'pass' ? '<i class="fa-solid fa-circle-check text-success me-2"></i>' :
+                           (c.status === 'alert' ? '<i class="fa-solid fa-octagon-exclamation text-danger me-2"></i><span class="badge bg-danger text-white me-2">ALERT</span>' :
+                           '<i class="fa-solid fa-triangle-exclamation text-warning me-2"></i><span class="badge bg-warning text-dark me-2">VARNING</span>');
+
+                li.innerHTML = `<div>${icon} <strong>${c.title}:</strong> ${c.detail}</div>`;
+                list.appendChild(li);
+            });
+        })
+        .catch(err => {
+            alert('Ett fel uppstod vid validering: ' + err);
+        });
+    }
+
+    function simulateTournament(tournamentId) {
+        const simBox = document.getElementById(`simulation-box-${tournamentId}`);
+        const simMsg = document.getElementById(`simulation-msg-${tournamentId}`);
+        const simEmoji = document.getElementById(`sim-emoji-${tournamentId}`);
+
+        if (!confirm('Vill du generera simulerade matchresultat för alla matcher i denna turnering?')) {
+            return;
+        }
+
+        fetch(`/engine-admin/simulate/${tournamentId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            simBox.classList.remove('d-none');
+            simMsg.innerText = data.message;
+            if (simEmoji) simEmoji.classList.remove('d-none');
+        })
+        .catch(err => {
+            alert('Fel vid simulering: ' + err);
+        });
+    }
+
+    function resetSimulation(tournamentId) {
+        const simBox = document.getElementById(`simulation-box-${tournamentId}`);
+        const simMsg = document.getElementById(`simulation-msg-${tournamentId}`);
+        const simEmoji = document.getElementById(`sim-emoji-${tournamentId}`);
+
+        if (!confirm('Vill du nollställa alla simulerade resultat?')) {
+            return;
+        }
+
+        fetch(`/engine-admin/reset-simulation/${tournamentId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            simBox.classList.remove('d-none');
+            simMsg.innerText = data.message;
+            if (simEmoji) simEmoji.classList.add('d-none');
+        })
+        .catch(err => {
+            alert('Fel vid nollställning: ' + err);
+        });
+    }
+
+    function togglePublish(tournamentId) {
+        const statusPill = document.getElementById(`status-pill-${tournamentId}`);
+        const btnText = document.getElementById(`pub-btn-text-${tournamentId}`);
+        const btnIcon = document.getElementById(`pub-btn-icon-${tournamentId}`);
+        const btn = document.getElementById(`pub-btn-${tournamentId}`);
+
+        fetch(`/engine-admin/toggle-publish/${tournamentId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'blocked') {
+                alert(data.message);
+                return;
+            }
+
+            if (data.total_status) {
+                if (statusPill) {
+                    statusPill.innerText = data.total_status.label;
+                    statusPill.setAttribute('style', data.total_status.style + ' font-size: 0.75rem; letter-spacing: 0.5px;');
+                }
+
+                if (data.total_status.code === 'ACTIVE') {
+                    btn.className = 'btn btn-outline-danger btn-sm rounded-pill px-3.5 shadow-sm fw-bold';
+                    btn.disabled = false;
+                    if (btnIcon) btnIcon.className = 'fa-solid fa-power-off me-1.5';
+                    if (btnText) btnText.innerText = 'Avaktivera';
+                } else if (data.total_status.code === 'BLOCKED') {
+                    btn.className = 'btn btn-outline-secondary btn-sm rounded-pill px-3.5 shadow-sm fw-bold opacity-50';
+                    btn.disabled = true;
+                    if (btnIcon) btnIcon.className = 'fa-solid fa-ban me-1.5';
+                    if (btnText) btnText.innerText = 'Publicera & Aktivera';
+                } else {
+                    btn.className = 'btn btn-outline-success btn-sm rounded-pill px-3.5 shadow-sm fw-bold';
+                    btn.disabled = false;
+                    if (btnIcon) btnIcon.className = 'fa-solid fa-power-off me-1.5';
+                    if (btnText) btnText.innerText = 'Publicera & Aktivera';
+                }
+            }
+            alert(data.message);
+        })
+        .catch(err => {
+            alert('Fel vid ändring av status: ' + err);
+        });
+    }
+</script>
+{% endblock %}

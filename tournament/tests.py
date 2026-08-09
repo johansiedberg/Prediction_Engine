@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from tournament.models import (
     Tournament, Match, MatchPrediction, TournamentSubmission,
-    DailyGazette, RoundLeaderboardSnapshot, PointSystem
+    DailyGazette, RoundLeaderboardSnapshot, PointSystem, League, LeagueMember
 )
 from tournament.editorial_engine.special_edition_reporter import SpecialEditionReporter
 from tournament.editorial_engine.detectors import check_and_trigger_special_editions
@@ -70,52 +70,22 @@ class SpecialEditionTestCase(TestCase):
         self.assertEqual(triggered[0].round_number, 1)
 
 
-class HerrklubbTestCase(TestCase):
+class EngineHubTestCase(TestCase):
     def setUp(self):
-        self.member = User.objects.create_user('member1', 'm1@test.com', 'password')
-        self.member.profile.is_herrklubb_member = True
-        self.member.profile.save()
+        self.user = User.objects.create_user('user1', 'u1@test.com', 'password', first_name='John', last_name='Doe')
+        self.admin = User.objects.create_superuser('admin', 'admin@test.com', 'password')
+        self.tournament = Tournament.objects.create(name='Test Tournament', admin=self.admin, is_active=True)
+        self.league = League.objects.create(name='Test League', admin=self.admin, invite_code='ENGINE8')
 
-        self.external_user = User.objects.create_user('external', 'ext@test.com', 'password')
+    def test_hub_view_access(self):
+        self.client.login(username='user1', password='password')
+        response = self.client.get('/hub/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Prediction Engine Hub")
+        self.assertContains(response, "Välkommen, John!")
 
-        from tournament.models import BucketCategory, BucketItem, BucketVote, BucketDream
-        self.cat = BucketCategory.objects.create(name='Sport', icon='⚽', order=1)
-        self.item1 = BucketItem.objects.create(title='Serie A Fotbollsresa', category=self.cat)
-        self.item2 = BucketItem.objects.create(title='Formel 1', category=self.cat)
-
-    def test_marker_point_values(self):
-        from tournament.models import BucketVote
-        BucketVote.objects.create(user=self.member, item=self.item1, marker='SVART')
-        self.assertEqual(self.item1.total_points, 100)
-        self.assertEqual(self.item1.vote_count, 1)
-        self.assertFalse(self.item1.is_planerad)
-
-    def test_majority_threshold_to_planerad(self):
-        from tournament.models import BucketVote
-        # Create 6 distinct members and vote on item1
-        for i in range(6):
-            u = User.objects.create_user(f'user_{i}', f'u{i}@test.com', 'password')
-            u.profile.is_herrklubb_member = True
-            u.profile.save()
-            BucketVote.objects.create(user=u, item=self.item1, marker='ROD')
-
-        self.assertEqual(self.item1.vote_count, 6)
-        self.assertTrue(self.item1.is_planerad)
-
-    def test_freed_votes_on_completion(self):
-        from tournament.models import BucketVote
-        vote = BucketVote.objects.create(user=self.member, item=self.item1, marker='SVART')
-        self.item1.is_completed = True
-        self.item1.save()
-
-        # Active votes count for uncompleted items
-        active_votes = BucketVote.objects.filter(user=self.member, item__is_completed=False)
-        self.assertEqual(active_votes.count(), 0)
-
-    def test_herrklubb_access_control(self):
-        # External user should be blocked from /herrklubb/
-        self.client.login(username='external', password='password')
-        response = self.client.get('/herrklubb/')
-        self.assertEqual(response.status_code, 302) # redirected to /predictions/
-
-
+    def test_join_league_with_invite_code(self):
+        self.client.login(username='user1', password='password')
+        response = self.client.post('/league/join/', {'invite_code': 'ENGINE8'}, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(LeagueMember.objects.filter(league=self.league, player=self.user).exists())

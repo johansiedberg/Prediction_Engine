@@ -39,7 +39,7 @@ To maintain order and separate responsibilities in the code, the project is set 
 Here is the comprehensive overview of the project's directory tree:
 
 ```text
-HERRKLUBBSTIPS/
+PREDICTION_ENGINE/
 │
 ├── core/
 │   ├── __pycache__/
@@ -50,12 +50,9 @@ HERRKLUBBSTIPS/
 │   └── wsgi.py
 │
 ├── templates/
-│   ├── admin/
-│   │   └── tournament/
-│   ├── index_backup.html
-│   ├── login.html
 │   └── tournament/
 │       ├── base.html
+│       ├── hub.html
 │       ├── index.html
 │       ├── login.html
 │       └── predictions.html
@@ -81,10 +78,8 @@ HERRKLUBBSTIPS/
 │   └── views.py
 │
 ├── db.sqlite3
-├── Kod.txt
 ├── manage.py
-├── README.md
-└── TemplateSyntaxError.txt
+└── README.md
 ```
 
 ### Core Files Interaction
@@ -102,5 +97,4 @@ When a *Player* wants to view the current Leaderboard, a request is sent to a sp
 * **1X2 Prediction Frames:** Formatted in 4 distinct lines: (1) Outcome, (2) Team/Result, (3) % of predictions, (4) Player count (unmuted text).
 * **AI Analysis Tone & Structure:** Edgy, banter-filled text for childhood friends. 3 paragraphs: (1) Entire field match analysis, (2) Player's individual tip (strictly **1 emoji**), (3) Outliers, wild tips & rivalry impacts.
 * **Server Port Conventions:**
-  * **Toarps Herrklubb:** ALWAYS runs on port `1981` (`python manage.py runserver 1981`)
   * **Prediction Engine:** ALWAYS runs on port `2028` (`python manage.py runserver 2028`)
