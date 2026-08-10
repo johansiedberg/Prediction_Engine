@@ -1,15 +1,19 @@
 {% extends 'tournament/base.html' %}
 {% load static %}
 
+{% block title %}Logga in — Mästerskapstipset{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-center align-items-center py-3">
-    <div class="login-card">
+    <div class="login-card" style="max-width: 440px; width: 100%;">
+        
+        <!-- Header -->
         <div class="text-center mb-4">
             <div class="d-inline-flex p-3 rounded-circle mb-3" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3);">
                 <i class="fa-solid fa-trophy fa-2x" style="color: #10B981;"></i>
             </div>
-            <h2 class="fw-bold text-white mb-1">Välkommen</h2>
-            <p class="text-secondary small mb-0">Logga in för att delta i Mästerskapstips</p>
+            <h2 class="fw-bold text-white mb-1">Spelarinloggning</h2>
+            <p class="text-secondary small mb-0">Logga in för att delta i Mästerskapstipset</p>
         </div>
 
         {% if form.errors %}
@@ -19,38 +23,54 @@
             </div>
         {% endif %}
 
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert border-0 rounded-3 py-2 px-3 small mb-3 text-center"
+            style="background: rgba({% if message.tags == 'success' %}16, 185, 129{% elif message.tags == 'warning' %}245, 158, 11{% else %}59, 130, 246{% endif %}, 0.15); color: #{% if message.tags == 'success' %}34d399{% elif message.tags == 'warning' %}fbbf24{% else %}93c5fd{% endif %}; border: 1px solid rgba({% if message.tags == 'success' %}16, 185, 129{% elif message.tags == 'warning' %}245, 158, 11{% else %}59, 130, 246{% endif %}, 0.3);">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
         <form method="post">
             {% csrf_token %}
             
             <div class="mb-3">
-                <label for="{{ form.username.id_for_label }}" class="form-label text-secondary small fw-semibold">E-postadress</label>
+                <label for="{{ form.username.id_for_label }}" class="form-label text-secondary small fw-semibold">E-postadress / Användarnamn</label>
                 {{ form.username }}
             </div>
 
-            <div class="mb-3">
+            <div class="mb-4">
                 <label for="{{ form.password.id_for_label }}" class="form-label text-secondary small fw-semibold">Lösenord</label>
                 {{ form.password }}
             </div>
 
-            <div class="mb-4">
-                <label for="invite_code" class="form-label text-warning small fw-semibold">
-                    <i class="fa-solid fa-ticket me-1"></i> Vänskapsgruppskod (Pool Code)
-                </label>
-                <input type="text" name="invite_code" id="invite_code" class="form-control text-uppercase" placeholder="t.ex. ENGINE8" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(245, 158, 11, 0.4); color: #FBBF24; font-weight: 700; letter-spacing: 1.5px;">
-                <div class="form-text text-secondary" style="font-size: 0.72rem;">Fyll i din 6-siffriga vängruppskod för att gå med direkt vid inloggning.</div>
-            </div>
-
-            <button type="submit" class="btn btn-emerald w-100">
+            <button type="submit" class="btn btn-emerald w-100 py-2.5 fw-bold" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 10px; border: none;">
                 <i class="fa-solid fa-right-to-bracket me-2"></i>Logga in
             </button>
         </form>
 
-        <div class="text-center mt-4 pt-3 border-top border-secondary border-opacity-20">
-            <span class="text-secondary small">Administratör? </span>
-            <a href="{% url 'admin:index' %}" class="small text-decoration-none fw-semibold" style="color: #34D399;">
-                <i class="fa-solid fa-shield-halved me-1"></i>Gå till Admin-panelen
-            </a>
+        <!-- Combined, Positive & Welcoming Community Card -->
+        <div class="mt-4 pt-3 border-top border-secondary border-opacity-20 text-center">
+            <div class="p-3.5 rounded-4 text-start shadow-sm" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1px solid rgba(16, 185, 129, 0.25);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge rounded-circle p-2" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
+                        <i class="fa-solid fa-users fa-lg"></i>
+                    </span>
+                    <h6 class="fw-bold text-white mb-0" style="font-size: 0.95rem;">Välkommen till Mästerskapstipset!</h6>
+                </div>
+                
+                <p class="text-secondary small mb-3" style="line-height: 1.55; font-size: 0.82rem;">
+                    Har du fått ett konto av din Pool-Admin? Logga in ovan för att tippa och följa tabellerna! Vill du hellre utmana kompisar eller kollegor och starta din helt egna tippningspool?
+                </p>
+
+                <a href="{% url 'request_pool_admin' %}" class="btn w-100 fw-bold py-2 text-decoration-none d-block text-center shadow-sm"
+                    style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3)); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 10px; font-size: 0.88rem;">
+                    <i class="fa-solid fa-shield-halved me-1.5" style="color: #34d399;"></i>Gå vidare till Admin sidan &rarr;
+                </a>
+            </div>
         </div>
+
     </div>
 </div>
 {% endblock %}

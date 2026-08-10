@@ -32,7 +32,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*'] 
 
-# Application definition
+CSRF_TRUSTED_ORIGINS = [
+    'http://127.0.0.1:2028',
+    'http://127.0.0.1:2029',
+    'http://localhost:2028',
+    'http://localhost:2029',
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',

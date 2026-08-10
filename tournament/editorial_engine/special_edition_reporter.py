@@ -41,7 +41,7 @@ class SpecialEditionReporter:
     @classmethod
     def calculate_leaderboard(cls, tournament: Tournament) -> list:
         """Computes current leaderboard list with player info, rank, points, and exact score hits."""
-        from tournament.views import calc_pred_points_detail
+        from tournament.services.scoring import calc_pred_points_detail
         players = list(tournament.players.all())
         point_system = getattr(tournament, 'point_system', None)
         

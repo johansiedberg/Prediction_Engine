@@ -1,0 +1,174 @@
+{% extends "tournament/base.html" %}
+{% load static %}
+
+{% block title %}Pool-Admin Portal — Mästerskapstipset{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 640px;">
+
+    <div class="card border-0 shadow-lg mt-2" style="background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); border: 1px solid rgba(148, 163, 184, 0.15) !important; border-radius: 20px;">
+        <div class="card-body p-4 p-md-5">
+
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-sm" style="width: 68px; height: 68px; background: linear-gradient(135deg, #10b981, #059669);">
+                    <i class="fa-solid fa-shield-halved fa-2x text-white"></i>
+                </div>
+                <h3 class="fw-extrabold text-white mb-1">Pool-Admin Portal</h3>
+                <p class="text-secondary mb-0" style="font-size: 0.9rem;">Logga in till din tippningspool eller ansök om att starta en ny</p>
+            </div>
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert border-0 rounded-3 mb-4 text-center py-2.5 px-3 small" style="background: {% if message.tags == 'success' %}rgba(16, 185, 129, 0.15){% elif message.tags == 'error' %}rgba(239, 68, 68, 0.15){% else %}rgba(59, 130, 246, 0.15){% endif %}; color: {% if message.tags == 'success' %}#34d399{% elif message.tags == 'error' %}#fca5a5{% else %}#93c5fd{% endif %}; border: 1px solid rgba({% if message.tags == 'success' %}16, 185, 129{% elif message.tags == 'error' %}239, 68, 68{% else %}59, 130, 246{% endif %}, 0.3) !important;">
+                <i class="fa-solid fa-{% if message.tags == 'success' %}check-circle{% else %}circle-info{% endif %} me-1.5"></i> {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% if pending_request %}
+            <!-- Pending Request Alert -->
+            <div class="alert border-0 text-center py-4 rounded-4 mb-4" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35) !important; color: #fbbf24;">
+                <i class="fa-solid fa-hourglass-half fa-2x mb-2"></i>
+                <h5 class="fw-bold mb-1">Din ansökan behandlas!</h5>
+                <p class="mb-1" style="font-size: 0.88rem;">Du har skickat en ansökan som Pool-Admin för <strong>{{ pending_request.pool_name }}</strong>.</p>
+                <p class="mb-0 text-secondary" style="font-size: 0.78rem;">Ansökan skickades {{ pending_request.created_at|date:"Y-m-d H:i" }}. Engine-Admin granskar ansökningar löpande.</p>
+            </div>
+            {% endif %}
+
+            <!-- Navigation Pills: Login vs Apply/Create -->
+            <ul class="nav nav-pills nav-fill mb-4 p-1 rounded-3" id="adminPortalTabs" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(148, 163, 184, 0.15);">
+                <li class="nav-item">
+                    <button class="nav-link active fw-bold py-2.5 rounded-3" id="login-tab" data-bs-toggle="pill" data-bs-target="#login-pane" type="button">
+                        <i class="fa-solid fa-right-to-bracket me-1.5"></i>Logga in som Pool-Admin
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-bold py-2.5 rounded-3 text-white" id="apply-tab" data-bs-toggle="pill" data-bs-target="#apply-pane" type="button">
+                        <i class="fa-solid fa-plus-circle me-1.5"></i>Ansök / Skapa ny Pool
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="adminPortalTabsContent">
+
+                <!-- TAB 1: Pool-Admin Login -->
+                <div class="tab-pane fade show active" id="login-pane" role="tabpanel">
+                    <form method="post" action="{% url 'request_pool_admin' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="login">
+
+                        <div class="mb-3">
+                            <label for="pa_username" class="form-label text-secondary small fw-semibold">E-postadress / Användarnamn</label>
+                            <input type="text" id="pa_username" name="username" class="form-control" placeholder="namn@exempel.se"
+                                style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.25); color: #f3f4f6; padding: 12px 16px; border-radius: 10px;" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="pa_password" class="form-label text-secondary small fw-semibold">Lösenord</label>
+                            <input type="password" id="pa_password" name="password" class="form-control" placeholder="••••••••"
+                                style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.25); color: #f3f4f6; padding: 12px 16px; border-radius: 10px;" required>
+                        </div>
+
+                        <button type="submit" class="btn w-100 fw-bold py-3" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 12px; font-size: 1rem; border: none;">
+                            <i class="fa-solid fa-right-to-bracket me-2"></i>Logga in på din Pool
+                        </button>
+                    </form>
+                </div>
+
+                <!-- TAB 2: Pool-Admin Apply / Create Account -->
+                <div class="tab-pane fade" id="apply-pane" role="tabpanel">
+                    <form method="post" action="{% url 'request_pool_admin' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="apply">
+
+                        {% if not user.is_authenticated %}
+                        <!-- Account details section for unauthenticated visitors -->
+                        <div class="p-3.5 rounded-3 mb-4" style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);">
+                            <div class="fw-bold text-white small mb-3">
+                                <i class="fa-solid fa-user-circle me-1.5 text-emerald"></i>Dina kontaktuppgifter (Skapar ditt konto)
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label text-secondary small fw-semibold">Förnamn *</label>
+                                    <input type="text" name="first_name" class="form-control form-control-sm" placeholder="Förnamn" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.25); color: #f3f4f6;" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label text-secondary small fw-semibold">Efternamn</label>
+                                    <input type="text" name="last_name" class="form-control form-control-sm" placeholder="Efternamn" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.25); color: #f3f4f6;">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-semibold">E-postadress *</label>
+                                <input type="email" name="email" class="form-control form-control-sm" placeholder="namn@exempel.se" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.25); color: #f3f4f6;" required>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label text-secondary small fw-semibold">Välj Lösenord *</label>
+                                <input type="password" name="password" class="form-control form-control-sm" placeholder="Minst 6 tecken" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.25); color: #f3f4f6;" required>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Available Tournaments Preview List -->
+                        <div class="p-3.5 rounded-3 mb-4" style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(16, 185, 129, 0.2);">
+                            <div class="fw-bold text-white small mb-2">
+                                <i class="fa-solid fa-trophy me-1.5 text-warning"></i>Tillgängliga Mästerskap
+                            </div>
+                            <p class="text-secondary mb-2" style="font-size: 0.78rem;">
+                                Följande turneringar finns redo att väljas och anpassas för din pool när din ansökan blivit godkänd:
+                            </p>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for event in master_events %}
+                                <span class="badge py-1.5 px-2.5 fw-semibold" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.78rem;">
+                                    <i class="fa-solid fa-check-circle me-1"></i>{{ event.name }}
+                                </span>
+                                {% empty %}
+                                <span class="text-secondary small">Officiella mästerskap (t.ex. Fotbolls-EM / VM)</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Pool details section -->
+                        <div class="mb-3">
+                            <label for="pool_name" class="form-label text-secondary small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Poolens namn *</label>
+                            <input type="text" id="pool_name" name="pool_name" class="form-control"
+                                placeholder="t.ex. Johans Vänpool, Företagstipset 2026, …"
+                                style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.25); color: #f3f4f6; padding: 12px 16px; border-radius: 10px; font-size: 0.95rem;" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label text-secondary small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Kort beskrivning (valfri)</label>
+                            <textarea id="description" name="description" rows="2" class="form-control"
+                                placeholder="Beskriv kort vilka som ska delta i poolen..."
+                                style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.25); color: #f3f4f6; padding: 10px 14px; border-radius: 10px; font-size: 0.88rem; resize: none;"></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="master_event" class="form-label text-secondary small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">Önskat Mästerskap <span class="text-secondary fw-normal">(Valfritt)</span></label>
+                            <select id="master_event" name="master_event" class="form-select"
+                                style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.25); color: #f3f4f6; padding: 10px 14px; border-radius: 10px; font-size: 0.88rem;">
+                                <option value="">— Välj i admin-panelen senare —</option>
+                                {% for event in master_events %}
+                                <option value="{{ event.id }}">{{ event.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn w-100 fw-bold py-3" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 12px; font-size: 1rem; border: none;">
+                            <i class="fa-solid fa-paper-plane me-2"></i>Skicka ansökan
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="{% url 'login' %}" class="text-secondary text-decoration-none small">
+                    <i class="fa-solid fa-arrow-left me-1"></i>Tillbaka till spelarinloggningen
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

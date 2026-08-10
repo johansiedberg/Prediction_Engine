@@ -20,7 +20,7 @@
         </div>
     </div>
 
-    <!-- 2 Main Section Navigation Pills -->
+    <!-- 3 Main Section Navigation Pills -->
     <ul class="nav nav-pills mb-4 gap-2 border-bottom border-secondary border-opacity-25 pb-3" id="adminMainSections" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active fw-bold px-4 py-2.5 rounded-pill shadow-sm" id="tournaments-tab" data-bs-toggle="pill" data-bs-target="#tournaments-pane" type="button" role="tab">
@@ -30,6 +30,12 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link fw-bold px-4 py-2.5 rounded-pill shadow-sm text-white" id="monitor-tab" data-bs-toggle="pill" data-bs-target="#monitor-pane" type="button" role="tab">
                 <i class="fa-solid fa-chart-line me-2"></i>2. Monitor
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold px-4 py-2.5 rounded-pill shadow-sm text-white" id="pool-requests-tab" data-bs-toggle="pill" data-bs-target="#pool-requests-pane" type="button" role="tab" onclick="loadPoolRequests()">
+                <i class="fa-solid fa-shield-halved me-2"></i>3. Pool-Admin-ansökningar
+                <span id="pool-requests-badge" class="badge bg-warning text-dark ms-1" style="display:none;"></span>
             </button>
         </li>
     </ul>
@@ -442,6 +448,19 @@
 
         </div>
 
+        <!-- SECTION 3: POOL-ADMIN REQUESTS -->
+        <div class="tab-pane fade" id="pool-requests-pane" role="tabpanel">
+            <div class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.12) !important; border-radius: 16px;">
+                <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4 d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-shield-halved me-2 text-warning"></i>Pool-Admin-ansökningar</h5>
+                    <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="loadPoolRequests()"><i class="fa-solid fa-rotate-right me-1"></i>Uppdatera</button>
+                </div>
+                <div class="card-body p-4" id="pool-requests-list">
+                    <p class="text-secondary text-center py-5"><i class="fa-solid fa-hourglass-half fa-2x mb-2 d-block"></i>Klicka på fliken för att ladda ansökningar...</p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
 </div>
@@ -660,5 +679,113 @@
             alert('Fel vid ändring av status: ' + err);
         });
     }
+
+    // --- POOL ADMIN REQUESTS SECTION ---
+    function loadPoolRequests() {
+        fetch('/engine-admin/pool-requests/')
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('pool-requests-list');
+            const badge = document.getElementById('pool-requests-badge');
+            const pending = data.requests.filter(r => r.status === 'PENDING');
+            if (pending.length > 0) {
+                badge.textContent = pending.length;
+                badge.style.display = '';
+            } else {
+                badge.style.display = 'none';
+            }
+            if (data.requests.length === 0) {
+                container.innerHTML = '<p class="text-secondary text-center py-4"><i class="fa-solid fa-inbox fa-2x mb-2"></i><br>Inga ansökningar finns.</p>';
+                return;
+            }
+            container.innerHTML = data.requests.map(req => `
+                <div class="card border-0 mb-3" id="pool-req-${req.id}" style="background: rgba(15,23,42,0.7); border: 1px solid rgba(148,163,184,0.15) !important; border-radius: 12px;">
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge fw-bold px-2 py-1" style="background: ${
+                                        req.status === 'PENDING' ? 'rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3)' :
+                                        req.status === 'APPROVED' ? 'rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3)' :
+                                        'rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3)'
+                                    };">${req.status}</span>
+                                    <span class="text-secondary small">#${req.id} &bull; ${req.created_at ? req.created_at.split('T')[0] : '-'}</span>
+                                </div>
+                                <h5 class="fw-bold text-white mb-1">${req.pool_name}</h5>
+                                <p class="text-secondary mb-1" style="font-size:0.85rem;">Ansökare: <strong class="text-white">${req.user}</strong>${req.master_event ? ' &bull; Mästerskap: ' + req.master_event : ''}</p>
+                                ${req.description ? `<p class="text-secondary mb-0" style="font-size:0.8rem;">${req.description}</p>` : ''}
+                                ${req.reviewed_by ? `<p class="text-secondary mb-0 mt-1" style="font-size:0.78rem;"><i class="fa-solid fa-user-check me-1"></i>Granskad av ${req.reviewed_by}${req.rejection_reason ? ' &bull; Anledning: ' + req.rejection_reason : ''}</p>` : ''}
+                            </div>
+                            ${req.status === 'PENDING' ? `
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm fw-bold px-3" onclick="approvePoolRequest(${req.id})" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); border-radius:8px;">
+                                    <i class="fa-solid fa-check me-1"></i>Godkänn
+                                </button>
+                                <button class="btn btn-sm fw-bold px-3" onclick="rejectPoolRequest(${req.id})" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); border-radius:8px;">
+                                    <i class="fa-solid fa-xmark me-1"></i>Avvisa
+                                </button>
+                            </div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(err => console.error('Failed to load pool requests:', err));
+    }
+
+    function approvePoolRequest(requestId) {
+        if (!confirm('Godkänn denna Pool-Admin-ansökan?')) return;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+        fetch(`/engine-admin/pool-requests/approve/${requestId}/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken, 'Content-Type': 'application/json'},
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                loadPoolRequests();
+            } else {
+                alert('Fel: ' + data.message);
+            }
+        });
+    }
+
+    function rejectPoolRequest(requestId) {
+        const reason = prompt('Ange anledning för avvisning (valfritt):') || '';
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+        const formData = new FormData();
+        formData.append('rejection_reason', reason);
+        fetch(`/engine-admin/pool-requests/reject/${requestId}/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken},
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                loadPoolRequests();
+            } else {
+                alert('Fel: ' + data.message);
+            }
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Pre-load requests list and badge count on page load
+    loadPoolRequests();
 </script>
 {% endblock %}

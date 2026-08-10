@@ -1,10 +1,10 @@
 {% extends 'tournament/engine_admin_base.html' %}
 {% load static %}
 
-{% block title %}Engine Admin | Innloggning (Port 2029){% endblock %}
+{% block title %}Engine Admin | Inloggning (Port 2029){% endblock %}
 
 {% block content %}
-<div class="container d-flex align-items-center justify-content-center" style="min-height: 75vh;">
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 80vh;">
     <div class="card bg-dark bg-opacity-85 text-white border-secondary border-opacity-30 rounded-4 shadow-lg p-4 p-md-5" style="max-width: 440px; width: 100%;">
         
         <div class="text-center mb-4">
@@ -12,7 +12,7 @@
                 <i class="fa-solid fa-lock fs-1"></i>
             </div>
             <h3 class="fw-extrabold text-white mb-1">Engine Admin Portal</h3>
-            <p class="text-secondary small mb-0">Systemkontroll & Övervakning (Server Port 2029)</p>
+            <p class="text-secondary small mb-0">Systemkontroll &amp; Övervakning (Server Port 2029)</p>
         </div>
 
         {% if messages %}
@@ -32,7 +32,7 @@
                     <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary border-opacity-30">
                         <i class="fa-solid fa-user-shield"></i>
                     </span>
-                    <input type="text" name="username" id="username" class="form-control bg-dark text-white border-secondary border-opacity-30 rounded-end px-3 py-2 fw-semibold" placeholder="johansiedberg" required autofocus>
+                    <input type="text" name="username" id="username" class="form-control bg-dark text-white border-secondary border-opacity-30 rounded-end px-3 py-2 fw-semibold" placeholder="johansiedber" required autofocus>
                 </div>
             </div>
 
@@ -52,7 +52,7 @@
         </form>
 
         <div class="mt-4 text-center border-top border-secondary border-opacity-25 pt-3">
-            <span class="text-secondary fs-7"><i class="fa-solid fa-shield-halved me-1"></i> Behörighet krävs för tillträde</span>
+            <span class="text-secondary fs-7"><i class="fa-solid fa-shield-halved me-1"></i> Engine-Admin behörighet krävs · Port 2029</span>
         </div>
 
     </div>

@@ -20,6 +20,7 @@ class MasterEvent(models.Model):
 class League(models.Model):
     master_event = models.ForeignKey(MasterEvent, on_delete=models.CASCADE, related_name='leagues', null=True, blank=True)
     name = models.CharField(max_length=200, help_text="Private friend group or commercial pool name")
+    description = models.TextField(blank=True, help_text="Pool description from creation form")
     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='managed_leagues')
     invite_code = models.CharField(max_length=12, unique=True, blank=True, help_text="Unique 6-character joining code (e.g. ENGINE8)")
     is_active = models.BooleanField(default=True)
@@ -1072,5 +1073,38 @@ class EditorialSettings(models.Model):
         return f"Editorial Settings ({len(self.banned_phrases or [])} banned phrases)"
 
 
+class PoolAdminRequest(models.Model):
+    """
+    Request to become a Pool-Admin.
+    Players submit requests on Port 2028; Engine Admins approve/reject on Port 2029.
+    On approval, a League is auto-created with the requesting user as league.admin.
+    """
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Approval'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pool_admin_requests',
+                             help_text="Player requesting Pool-Admin access")
+    pool_name = models.CharField(max_length=200, help_text="Desired pool / league name")
+    description = models.TextField(blank=True, help_text="Reason for creating pool / organization details")
+    master_event = models.ForeignKey('MasterEvent', on_delete=models.SET_NULL, null=True, blank=True,
+                                     help_text="Target master event for the pool")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    created_at = models.DateTimeField(default=timezone.now)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name='reviewed_pool_requests',
+                                     help_text="Engine Admin who reviewed this request")
+    rejection_reason = models.CharField(max_length=255, blank=True)
+    league = models.ForeignKey('League', on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name='pool_admin_request',
+                                help_text="Auto-created league upon approval")
 
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Pool Admin Request"
+        verbose_name_plural = "Pool Admin Requests"
 
+    def __str__(self):
+        return f"{self.user.username} → {self.pool_name} ({self.status})"

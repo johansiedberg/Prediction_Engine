@@ -1,0 +1,114 @@
+# Auth views - Login, Logout, and permission decorators
+import datetime
+import calendar
+import json
+import random
+import re
+from functools import wraps
+from django.utils import timezone
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.views import LoginView
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.db.models import Count, Max, Q
+from django.conf import settings
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse, HttpResponseForbidden
+from django.contrib import messages
+from django.shortcuts import render, redirect, get_object_or_404
+
+from tournament.models import (
+    Tournament, Match, MatchPrediction, TournamentSubmission, Sidebet, SidebetAnswer, Group, Team,
+    StaticInsight, DailyGazette, UserProfile, League, LeagueMember
+)
+from tournament.forms import CustomLoginForm
+
+
+class CustomLoginView(LoginView):
+    template_name = 'tournament/login.html'
+    form_class = CustomLoginForm
+    redirect_authenticated_user = True
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        user = self.request.user
+        invite_code = self.request.POST.get('invite_code', '').strip().upper()
+        if invite_code:
+            league = League.objects.filter(invite_code__iexact=invite_code, is_active=True).first()
+            if league:
+                LeagueMember.objects.get_or_create(league=league, player=user)
+                self.request.session['active_league_id'] = league.id
+                messages.success(self.request, f"Välkommen till vängruppen {league.name}!")
+            else:
+                messages.warning(self.request, f"Koden '{invite_code}' hittades inte, men du loggades in.")
+        return response
+
+    def get_success_url(self):
+        return '/dashboard/?tab=predictions'
+
+
+def superuser_or_staff_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated or not (request.user.is_superuser or request.user.is_staff):
+            if str(request.get_port()) == '2029':
+                from tournament.views.engine_admin import engine_admin_root_view
+                return engine_admin_root_view(request)
+            messages.error(request, "Åtkomst nekad: Endast Engine Admin har behörighet hit.")
+            return redirect('login')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
+def register_view(request):
+    """Self-service account registration for players and Pool-Admin applicants."""
+    from tournament.forms import UserRegistrationForm
+
+    if request.user.is_authenticated:
+        return redirect('hub')
+
+    if request.method == 'POST':
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            first_name = form.cleaned_data['first_name'].strip()
+            last_name = form.cleaned_data['last_name'].strip()
+            email = form.cleaned_data['email']
+            password = form.cleaned_data['password1']
+            invite_code = form.cleaned_data.get('invite_code', '').strip().upper()
+
+            # Use email as username (slugified to ensure uniqueness)
+            base_username = email.split('@')[0]
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+            )
+
+            # Auto-join league if invite code provided
+            if invite_code:
+                league = League.objects.filter(invite_code__iexact=invite_code, is_active=True).first()
+                if league:
+                    LeagueMember.objects.get_or_create(league=league, player=user)
+                    request.session['active_league_id'] = league.id
+                    messages.success(request, f"Välkommen till vängruppen {league.name}!")
+                else:
+                    messages.warning(request, f"Koden '{invite_code}' hittades inte, men ditt konto skapades.")
+
+            # Auto-login after registration
+            login(request, user)
+            messages.success(request, f"Välkommen, {first_name}! Ditt konto är skapat.")
+            return redirect('/hub/')
+    else:
+        # Pre-fill invite code from URL parameter (e.g. /register/?code=ENGINE8)
+        initial_code = request.GET.get('code', '').upper()
+        form = UserRegistrationForm(initial={'invite_code': initial_code})
+
+    return render(request, 'tournament/register.html', {'form': form})

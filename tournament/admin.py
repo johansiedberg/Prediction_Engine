@@ -8,7 +8,7 @@ from .models import (
     Tournament, PointSystem, Group, Team, KnockoutStage, 
     Match, MatchPrediction, Sidebet, SidebetAnswer, TournamentSubmission,
     StaticInsight, InsightEvent, StorylineMemory, DailyGazette, StyleExample, EditorialSettings,
-    UserProfile
+    UserProfile, PoolAdminRequest
 )
 
 
@@ -356,4 +356,32 @@ class EditorialSettingsAdmin(admin.ModelAdmin):
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'last_selected_tournament')
     search_fields = ('user__username', 'user__first_name', 'user__last_name')
+
+
+@admin.register(PoolAdminRequest)
+class PoolAdminRequestAdmin(admin.ModelAdmin):
+    list_display = ('user', 'pool_name', 'master_event', 'status', 'created_at', 'reviewed_by')
+    list_filter = ('status', 'master_event')
+    search_fields = ('user__username', 'pool_name')
+    readonly_fields = ('created_at', 'reviewed_at', 'reviewed_by', 'league')
+    ordering = ('-created_at',)
+    actions = ['approve_requests', 'reject_requests']
+
+    def approve_requests(self, request, queryset):
+        from tournament.services.pool_admin_service import approve_pool_admin_request
+        count = 0
+        for pool_req in queryset.filter(status='PENDING'):
+            approve_pool_admin_request(pool_req, request.user)
+            count += 1
+        self.message_user(request, f"{count} förfrågan/förfrågningar godkänd(a).")
+    approve_requests.short_description = "Godkänn valda Pool-Admin-förfrågningar"
+
+    def reject_requests(self, request, queryset):
+        from tournament.services.pool_admin_service import reject_pool_admin_request
+        count = 0
+        for pool_req in queryset.filter(status='PENDING'):
+            reject_pool_admin_request(pool_req, request.user, reason='Rejected via bulk action')
+            count += 1
+        self.message_user(request, f"{count} förfrågan/förfrågningar avvisad(e).")
+    reject_requests.short_description = "Avvisa valda Pool-Admin-förfrågningar"
 

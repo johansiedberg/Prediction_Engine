@@ -1,100 +1,145 @@
-# Project Overview and Architecture: Prediction Engine v2.0 (Standalone Framework)
+# Project Overview and Architecture: Prediction Engine v2.0
 
 ## 1. Background and Objectives
 
-After successfully managing previous tournaments—most recently the 2026 Football World Cup—via advanced Excel macros to run leaderboards and point calculations, this project marks the next step in its evolution. The goal is to transition from manual, file-based administration to a modern, accessible web application built in Python and Django.
+After successfully managing major tournaments—including the 2026 Football World Cup—via advanced Excel macros to run leaderboards and point calculations, this project marks the evolution into a modern, standalone web platform built with Python and Django.
 
-The main objective of the platform is to digitize and automate the entire workflow for the tipping club:
+The main objective of the platform is to digitize and automate the entire workflow for tournament tipping pools:
 
-* **Automated Point Calculation:** The system automatically calculates tournament points and updates participant rankings based on match results.
-* **Centralized Data Management:** A relational database (via Django's ORM) ensures data integrity and enables advanced statistics and form forecasting.
-* **Improved User Experience:** Participants get a dedicated, constantly updated interface directly in their web browser.
+* **Automated Point Calculation:** The system automatically calculates tournament points across multiple competition stages and updates participant rankings in real time based on actual match results.
+* **Flexible Pool Scoring Systems:** Pool Administrators can configure pool-specific scoring rules across 4 distinct stages (Match predictions, Group tables, Qualification tables, and Knockout advancement) plus bonus Sidebets.
+* **Dual-Portal Architecture:** Strict separation between master tournament setup/administration (Engine Admin) and pool competition/member management (Player & Pool Admin).
+* **AI Match & Field Analytics:** Dynamic AI-generated editorial summaries providing match analysis, individual tips, outliers, and rivalry banter.
+
+---
 
 ## 2. System Structure and User Roles
 
-The application relies on a clear division of responsibilities to separate system administration from the actual competition experience. The functionality is designed around two main interaction areas and roles:
+The application features three interaction roles across two dedicated development servers:
 
-### Admin (Administrator)
+```
+                  ┌─────────────────────────────────────────┐
+                  │          PREDICTION ENGINE CORE         │
+                  └────────────────────┬────────────────────┘
+                                       │
+            ┌──────────────────────────┴──────────────────────────┐
+            ▼                                                     ▼
+ ┌─────────────────────┐                               ┌─────────────────────┐
+ │    ENGINE ADMIN     │                               │ PLAYER & POOL ADMIN │
+ │     (Port 2029)     │                               │     (Port 2028)     │
+ └──────────┬──────────┘                               └──────────┬──────────┘
+            │                                                     │
+ ┌──────────┴──────────┐                               ┌──────────┴──────────┐
+ │ • Master Tournaments│                               │ • Pool Dashboard    │
+ │ • Approve Pools     │                               │ • Rule Configuration│
+ │ • Result Reporting  │                               │ • Member Status     │
+ │ • Tournament Sim    │                               │ • Player Tipping    │
+ └─────────────────────┘                               └─────────────────────┘
+```
 
-This role acts as the engine of the system. The interface (driven by Django's built-in admin panel) is used for system maintenance and quality control.
+### 1. Engine Admin (System Master — Port 2029)
+Access URL: `http://127.0.0.1:2029`
+* **Master Tournament Creation:** Create and manage tournaments, define group stages, knockout paths, and master match schedules.
+* **Pool Request Management:** Review, approve, or reject pool creation requests (`PoolAdminRequest`) submitted by users.
+* **Result Reporting & Settlement:** Enter official match results and verify tournament state transitions.
+* **Simulation & Validation:** Run test simulations and validate tournament integrity via system checklists.
 
-* **Manage Users:** Register, update, and administer the participants.
-* **Manage Tournaments:** Set up new championships, define match rounds, and structure the underlying competition tree.
-* **Verify Predictions:** Ensure submitted predictions are valid, complete, and submitted before the deadline.
-* **Report Results:** Input actual match results after the final whistle, which in turn triggers the system's point calculation.
+### 2. Pool Admin (Pool Manager — Port 2028)
+Access URL: `http://127.0.0.1:2028/pool-admin/<league_id>/`
+* **Custom Pool Branding:** Customize pool logo, header banner, and primary accent color.
+* **Member Verification:** Manage pool participants, verify player submissions, and track prediction completion matrices.
+* **4-Stage Point Rule Configuration:**
+  * **Etapp 1 (Matcher):** 1X2 outcome, exact match score, goals per team, goal difference.
+  * **Etapp 2 (Grupptabeller):** Exact group rank, correct points, scored goals, conceded goals, goal diff. Visual example with Sweden (5p) & Denmark (4p).
+  * **Etapp 3 (Kvalificeringstabell):** Point rules for third-place rankings / runners-up tables.
+  * **Etapp 4 (Slutspel, avancemang):** Stage advancement bonuses for Åttondelsfinal, Kvartsfinal, Semifinal, Bronsmatch, and Final.
+  * **Sidebets:** Configure bonus questions (e.g., top scorer, tournament winner).
 
-### Player (End User)
+### 3. Player (Participant — Port 2028)
+Access URL: `http://127.0.0.1:2028`
+* **Interactive Prediction Sheet:** Submit predictions for group matches, knockout stages, and sidebets.
+* **Dynamic Leaderboard & Live Standings:** Real-time point updates, position tracking, and historical performance breakdowns.
+* **AI Match Analytics:** Banter-rich, tailored commentary comparing user predictions with group trends.
 
-This is the public interface that participants interact with. The focus is on engagement, accessibility, and clear data visualization to enhance the competitive element.
+---
 
-* **Submit Predictions:** An interactive flow to easily register and submit match predictions for upcoming rounds.
-* **View Results:** A personal view displaying history, individual accuracy, and earned points.
-* **View Leaderboard:** The central ranking table showing current standings, total points, and position changes week by week.
-* **Dashboard Comparisons:** Visual summaries and statistics where players can compare their form and picks against other participants.
+## 3. Directory Tree and Architecture
 
-## 3. Project Structure (Tree) and Key Files
-
-To maintain order and separate responsibilities in the code, the project is set up according to Django's standard structure. The architecture separates database logic, routing, and user interface.
-
-Here is the comprehensive overview of the project's directory tree:
+The codebase follows a decoupled architecture separating business logic (services), HTTP handlers (views), and database models:
 
 ```text
 PREDICTION_ENGINE/
 │
 ├── core/
-│   ├── __pycache__/
-│   ├── __init__.py
-│   ├── asgi.py
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
+│   ├── settings.py           # Core settings, dual-port URL configurations
+│   ├── urls.py               # Master routing
+│   ├── asgi.py & wsgi.py
 │
 ├── templates/
 │   └── tournament/
-│       ├── base.html
-│       ├── hub.html
-│       ├── index.html
+│       ├── base.html         # Main aesthetic layout
+│       ├── pool_admin.html   # Pool Admin management & 4-stage point setup
+│       ├── engine_admin.html # Engine Admin master portal & simulation
+│       ├── hub.html          # Player hub & predictions dashboard
 │       ├── login.html
-│       └── predictions.html
+│       ├── register.html
+│       └── request_pool_admin.html
 │
 ├── tournament/
-│   ├── __pycache__/
-│   ├── migrations/
-│   ├── static/
-│   │   └── tournament/
-│   │       ├── css/
-│   │       │   └── style.css
-│   │       ├── img/
-│   │       ├── admin_columns.css
-│   │       └── admin_enter.js
-│   ├── templatetags/
-│   ├── __init__.py
-│   ├── admin.py
-│   ├── apps.py
-│   ├── forms.py
-│   ├── models.py
-│   ├── tests.py
-│   ├── urls.py
-│   └── views.py
+│   ├── services/             # Pure Business Logic Service Layer
+│   │   ├── __init__.py
+│   │   ├── scoring.py        # Point calculation engine
+│   │   ├── analytics.py      # AI match & field analysis
+│   │   ├── tournament_admin.py # Tournament checklist & validation
+│   │   └── pool_admin_service.py # Player progress matrix & request approval
+│   │
+│   ├── views/                # Modular View Packages
+│   │   ├── __init__.py
+│   │   ├── auth.py           # Port-aware authentication & decorators
+│   │   ├── engine_admin.py   # Port 2029 Engine Admin views
+│   │   ├── pool_admin.py     # Port 2028 Pool Admin views
+│   │   ├── match_views.py    # Predictions & score updates
+│   │   └── tournament_views.py # Hub, leaderboard & statistics
+│   │
+│   ├── editorial_engine/     # AI Reporter & Match Commentary Generators
+│   ├── management/commands/
+│   │   ├── runserver.py      # Player server runner (Port 2028)
+│   │   └── runserver_admin.py# Engine Admin runner (Port 2029)
+│   │
+│   ├── models.py             # Tournament, Match, League, PointSystem models
+│   ├── admin.py              # Django Admin registrations
+│   ├── forms.py              # User & pool forms
+│   ├── urls.py               # Application URL routes
+│   └── middleware.py         # Port-based access control middleware
 │
 ├── db.sqlite3
 ├── manage.py
 └── README.md
 ```
 
-### Core Files Interaction
+---
 
-When a *Player* wants to view the current Leaderboard, a request is sent to a specific URL (`urls.py`). This points to a function in `views.py`. The function retrieves all necessary data and current standings from the database via `models.py`, processes the data, and finally sends the result to `leaderboard.html` in the `templates/` directory where it is dynamically rendered for the user.
+## 4. Development & Server Commands
+
+### Running Local Servers
+
+* **Prediction Engine (Player App & Pool Admin):** Default Port **2028**
+  ```bash
+  ./venv/bin/python manage.py runserver 2028
+  ```
+  Access at: `http://127.0.0.1:2028`
+
+* **Engine Admin (Master System Admin):** Default Port **2029**
+  ```bash
+  ./venv/bin/python manage.py runserver_admin 2029
+  ```
+  Access at: `http://127.0.0.1:2029`
 
 ---
 
-## 4. Development & Workflow Conventions
+## 5. Development & Workflow Conventions
 
 * **Communication Language:** Discussion and planning are conducted in **English**.
-* **Code & Comments:** All code, function signatures, and comments must be written in **English**.
-* **App Output & UI Text:** Every user-facing text, label, and app output must be in **Swedish**.
-* **UI & Design Approvals:** All proposed design or UI layout changes **MUST** be presented to the user for review and explicit approval **before** writing or editing template/CSS code files.
-* **1X2 Prediction Frames:** Formatted in 4 distinct lines: (1) Outcome, (2) Team/Result, (3) % of predictions, (4) Player count (unmuted text).
-* **AI Analysis Tone & Structure:** Edgy, banter-filled text for childhood friends. 3 paragraphs: (1) Entire field match analysis, (2) Player's individual tip (strictly **1 emoji**), (3) Outliers, wild tips & rivalry impacts.
-* **Server Port Conventions:**
-  * **Prediction Engine:** ALWAYS runs on port `2028` (`python manage.py runserver 2028`)
+* **Code & Comments:** All code, function signatures, and comments are written in **English**.
+* **App Output & UI Text:** User-facing text, labels, badges, and examples are strictly in **Swedish**.
+* **Design & Aesthetics:** Dark mode glassmorphism theme, high-contrast badges, crisp typography, and responsive micro-animations.

@@ -1,0 +1,70 @@
+# tournament/views package - backward-compatible re-exports
+# All view functions are re-exported here to maintain 100% backward compatibility
+# with urls.py and middleware.py imports.
+
+from tournament.views.auth import CustomLoginView, superuser_or_staff_required, register_view
+from tournament.views.dashboard import dashboard_view, hub_view
+from tournament.views.predictions import predictions_view, upload_avatar_view
+from tournament.views.leagues import join_league_view, switch_league_view
+from tournament.views.engine_admin import (
+    engine_admin_root_view,
+    engine_admin_login_view,
+    engine_admin_logout_view,
+    create_admin_user_view,
+    engine_admin_dashboard_view,
+    engine_admin_validate_tournament,
+    engine_admin_simulate_tournament,
+    engine_admin_reset_simulation,
+    engine_admin_toggle_publish,
+    engine_admin_preview_tournament,
+    engine_admin_pool_requests_view,
+    engine_admin_approve_pool_request_view,
+    engine_admin_reject_pool_request_view,
+)
+from tournament.views.pool_admin import (
+    request_pool_admin_view,
+    pool_admin_dashboard_view,
+    verify_member_view,
+    update_pool_branding_view,
+    pool_admin_add_player_view,
+    pool_admin_remove_player_view,
+    update_pool_points_view,
+    add_pool_sidebet_view,
+    pool_admin_add_self_view,
+    pool_admin_reset_password_view,
+    toggle_tournament_player_view,
+)
+
+__all__ = [
+    # Auth
+    'CustomLoginView',
+    'superuser_or_staff_required',
+    'register_view',
+    # Dashboard
+    'dashboard_view',
+    'hub_view',
+    # Predictions
+    'predictions_view',
+    'upload_avatar_view',
+    # Leagues
+    'join_league_view',
+    'switch_league_view',
+    # Engine Admin (Port 2029)
+    'engine_admin_root_view',
+    'engine_admin_login_view',
+    'engine_admin_logout_view',
+    'engine_admin_dashboard_view',
+    'engine_admin_validate_tournament',
+    'engine_admin_simulate_tournament',
+    'engine_admin_reset_simulation',
+    'engine_admin_toggle_publish',
+    'engine_admin_preview_tournament',
+    'engine_admin_pool_requests_view',
+    'engine_admin_approve_pool_request_view',
+    'engine_admin_reject_pool_request_view',
+    # Pool Admin (Port 2028)
+    'request_pool_admin_view',
+    'pool_admin_dashboard_view',
+    'verify_member_view',
+    'update_pool_branding_view',
+]
