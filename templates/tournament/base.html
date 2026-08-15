@@ -49,32 +49,6 @@
                 </form>
             </div>
 
-            {% if user_leagues %}
-            <!-- Multi-Pool Switcher Dropdown -->
-            <div class="dropdown mt-2">
-                <button class="btn btn-sm btn-dark border border-emerald text-emerald dropdown-toggle px-3 fw-bold shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fa-solid fa-users-rectangle me-1 text-warning"></i>
-                    Vängrupp: <strong>{{ active_league.name }}</strong> ({{ active_league.invite_code }})
-                </button>
-                <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 p-2">
-                    <li class="dropdown-header text-secondary small fw-bold">DINA AKTIVA VÄNGRUPPER</li>
-                    {% for leg in user_leagues %}
-                    <li>
-                        <a class="dropdown-item d-flex align-items-center justify-content-between py-2 rounded {% if active_league and leg.id == active_league.id %}active bg-emerald text-dark fw-bold{% endif %}" href="{% url 'switch_league' leg.id %}">
-                            <span><i class="fa-solid fa-shield me-2"></i>{{ leg.name }}</span>
-                            <span class="badge bg-dark text-warning border border-warning border-opacity-30 ms-2">{{ leg.invite_code }}</span>
-                        </a>
-                    </li>
-                    {% endfor %}
-                    <li><hr class="dropdown-divider border-secondary opacity-25"></li>
-                    <li>
-                        <a class="dropdown-item text-warning small fw-bold text-center py-1.5" href="#" data-bs-toggle="modal" data-bs-target="#joinLeagueModal">
-                            <i class="fa-solid fa-plus-circle me-1"></i> Gå med i fler vängrupper
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            {% endif %}
 
             {% if request.user.is_authenticated and request.resolver_match.url_name != 'hub' %}
             <div class="d-flex align-items-center justify-content-center gap-2 mt-2">

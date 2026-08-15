@@ -38,8 +38,13 @@ def dashboard_view(request):
     # Scope active tournaments to the individual pool if configured
     if active_league and active_league.tournaments.filter(is_active=True).exists():
         active_tournaments = list(active_league.tournaments.filter(is_active=True))
+    elif active_league and active_league.tournaments.exists():
+        active_tournaments = list(active_league.tournaments.all())
     else:
         active_tournaments = list(Tournament.objects.filter(is_active=True))
+
+    if not active_tournaments and Tournament.objects.exists():
+        active_tournaments = list(Tournament.objects.all())
 
     if not active_tournaments:
         return render(request, 'tournament/no_active.html')

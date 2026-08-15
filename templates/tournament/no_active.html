@@ -1,0 +1,29 @@
+{% extends 'tournament/base.html' %}
+{% load static %}
+
+{% block title %}Inga aktiva mästerskap - Mästerskapstips{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="p-5 rounded-4 shadow-lg text-white" style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(16px);">
+                <div class="d-inline-flex p-3 rounded-circle mb-3" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3);">
+                    <i class="fa-solid fa-trophy fa-3x" style="color: #F59E0B;"></i>
+                </div>
+                
+                <h2 class="fw-bold text-white mb-2">Inga aktiva mästerskap</h2>
+                <p class="text-secondary mb-4" style="font-size: 1.05rem;">
+                    Det finns för närvarande inga aktiva mästerskap i vald vängrupp. Kontakta en administratör eller välj en annan vängrupp.
+                </p>
+
+                <div class="d-flex flex-wrap align-items-center justify-content-center gap-3">
+                    <a href="http://127.0.0.1:1981/hub/" class="btn btn-emerald rounded-pill px-4 fw-semibold">
+                        <i class="fa-solid fa-house me-2"></i>Tillbaka till Startsidan
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

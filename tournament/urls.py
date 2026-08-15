@@ -59,6 +59,7 @@ urlpatterns = [
     path('engine-admin/validate/<int:tournament_id>/', engine_admin_validate_tournament, name='engine_admin_validate'),
     path('engine-admin/simulate/<int:tournament_id>/', engine_admin_simulate_tournament, name='engine_admin_simulate'),
     path('engine-admin/reset-simulation/<int:tournament_id>/', engine_admin_reset_simulation, name='engine_admin_reset_simulation'),
+    path('engine-admin/update-tournament/<int:tournament_id>/', engine_admin_update_tournament, name='engine_admin_update_tournament'),
     path('engine-admin/toggle-publish/<int:tournament_id>/', engine_admin_toggle_publish, name='engine_admin_toggle_publish'),
     path('engine-admin/preview/<int:tournament_id>/', engine_admin_preview_tournament, name='engine_admin_preview'),
     path('engine-admin/pool-requests/', engine_admin_pool_requests_view, name='engine_admin_pool_requests'),
