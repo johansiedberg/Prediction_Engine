@@ -113,10 +113,14 @@ PREDICTION_ENGINE/
 │   ├── management/commands/
 │   │   ├── runserver.py      # Player server runner (Port 2028)
 │   │   ├── runserver_admin.py# Engine Admin runner (Port 2029)
+│   │   ├── seed_members.py   # Seeds 11 core members & admin user
 │   │   ├── setup_euro2028_final.py # Seed Euro 2028 tournament structure
 │   │   ├── setup_euro2028_qualifiers.py
 │   │   ├── setup_wfc_2026.py # Seed World Floorball Championships 2026
 │   │   └── setup_womens_euro_volleyball_2026.py
+│   │
+│   ├── fixtures/
+│   │   └── initial_data.json # Initial user accounts and profile fixtures
 │   │
 │   ├── models.py             # Tournament, Match, League, PointSystem, ScannedTournament
 │   ├── admin.py              # Django Admin registrations
@@ -129,11 +133,21 @@ PREDICTION_ENGINE/
 ├── manage.py
 └── README.md
 ```
-```
 
 ---
 
 ## 4. Development & Server Commands
+
+### Database & User Seeding
+
+To initialize all user accounts and league configurations:
+```bash
+# Option A: Run automated seeder command
+./venv/bin/python manage.py seed_members
+
+# Option B: Load serialized initial user fixture
+./venv/bin/python manage.py loaddata tournament/fixtures/initial_data.json
+```
 
 ### Running Local Servers
 

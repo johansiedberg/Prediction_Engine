@@ -1,0 +1,542 @@
+[
+{
+  "model": "auth.user",
+  "pk": 1,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$YwTitpwV5XWDrrjCaWCXaL$zFJkBBaZMWB4d87/A6tVJgKUIVtYwvdBCpZLPPF6tAU=",
+    "last_login": "2026-08-15T08:55:15.022Z",
+    "is_superuser": false,
+    "username": "johan.siedberg",
+    "first_name": "Johan",
+    "last_name": "Siedberg",
+    "email": "johan@siedberg.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:21.217Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 2,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$Q0ky7b23U1M0ld94PREUZg$f3H5FtSBQohA3z8qrPx+AEzCue1fhv2GmDSwNG1uLik=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "mikael.dahl",
+    "first_name": "Mikael",
+    "last_name": "Dahl",
+    "email": "mikael@dahl.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:23.581Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 3,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$2gxsd8lrh4tespxMeriNwu$H3s4bSxMrwTB7gUjpqLp2YYnK4QQV113ARgkP+oys2M=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "andreas.larsson",
+    "first_name": "Andreas",
+    "last_name": "Larsson",
+    "email": "andreas@larsson.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:26.132Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 4,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$MpYejr3LKI2cbJCLS7HMFf$50LHPfogU1zgYb9I8nMJIXSHLzuMq3acOPnjNR1OXVE=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "johan.svensson",
+    "first_name": "Johan",
+    "last_name": "Svensson",
+    "email": "johan@svensson.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:28.500Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 5,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$yX9GBiH938l5LdR13b11a6$0EToll49VNSW4xU1vdBiH8m1zHrZE0zt6k9vwT7W5TU=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "johan.meldo",
+    "first_name": "Johan",
+    "last_name": "Meldo",
+    "email": "johan@meldo.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:30.694Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 6,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$ScDc9HlBWcZyQioAF8qGtM$T8d9YztWYSL5iSKt/NnmzeCAYppHaV7Rpnf+LUWFBKc=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "erik.svensson",
+    "first_name": "Erik",
+    "last_name": "Svensson",
+    "email": "erik@svensson.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:32.485Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 7,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$sSBZ0z8QPLdskUoc6PLEdC$Zxi5h2YQdpoHaUeXcvCZEduZMgXBusI5Ve5dNqiDTG8=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "christoffer.ericsson",
+    "first_name": "Christoffer",
+    "last_name": "Ericsson",
+    "email": "christoffer@ericsson.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:34.438Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 8,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$gb6EatTrd4Bs2ZYByOaWqg$zLtfYnKUV6xgiBcZ+bWKYrJwdxDqpZ2OsS+1WNeJNN0=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "martin.gustafsson",
+    "first_name": "Martin",
+    "last_name": "Gustafsson",
+    "email": "martin@gustafsson.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:36.247Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 9,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$cIup5wTnABYSP2H6jMCMXb$+EaxT1POCz9hDDZporNXGfg1Yx2XPEQKDTHOUseqaUU=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "tommy.lycen",
+    "first_name": "Tommy",
+    "last_name": "Lycen",
+    "email": "tommy@lycen.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:38.322Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 10,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$CztHhLSVuamRwtVuW1U4Qe$9pEB1xuEZ2UCCo7mVj7isAabzreS6gqFzBFFhp/inAE=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "tommy.kallberg",
+    "first_name": "Tommy",
+    "last_name": "Källberg",
+    "email": "tommy@kallberg.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:41.996Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 11,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$AA1ahp12UyXF47U2FQb2PN$CZ096HgGuN6/c34MO8cGeM+Gswkw5a1+U+ckZ1zFUZI=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "martin.krantz",
+    "first_name": "Martin",
+    "last_name": "Krantz",
+    "email": "martin@krantz.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-08T18:59:43.718Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 12,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$0VlFR9Gl4UZlHAuycm3HLS$W2sWTmLQGz+qHZRUpXjW8ZfY0SSm6CFA0lwMNQXVwpc=",
+    "last_login": "2026-08-15T08:36:33.822Z",
+    "is_superuser": false,
+    "username": "johan.siedberg1",
+    "first_name": "Johan",
+    "last_name": "Siedberg",
+    "email": "johan.siedberg@gmail.com",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-10T19:03:42.548Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 13,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$Gx9E2IegrpVGls4Gt9wors$YYmweRrN+Vld9UUK+PSM8sEHO06y2sW1DJFBYdL5RfU=",
+    "last_login": "2026-08-10T19:09:26.337Z",
+    "is_superuser": true,
+    "username": "johansiedber",
+    "first_name": "Johan",
+    "last_name": "Siedberg",
+    "email": "johan@siedberg.se",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-08-10T19:05:15.909Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 14,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$ti6zCKBmdXYzce5s2HXYVc$4Hxlmof5n/eSi5TmVFxQdFPXzufosmY/TY1qIUn+5DQ=",
+    "last_login": "2026-08-15T09:02:46.510Z",
+    "is_superuser": true,
+    "username": "johansiedberg",
+    "first_name": "Johan",
+    "last_name": "Siedberg",
+    "email": "johan@siedberg.se",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2026-08-10T19:05:16.849Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 15,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$fKmNM1CMQBCByKN44WKFjD$BDPeUDXZv26+8e3uIlTMCRqAzqQoCSTCFPm85HnwdxA=",
+    "last_login": "2026-08-10T19:09:39.870Z",
+    "is_superuser": false,
+    "username": "testadmin",
+    "first_name": "TestAdmin",
+    "last_name": "Pooler",
+    "email": "testadmin@pooler.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-10T19:09:31.065Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 16,
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "test_player",
+    "first_name": "",
+    "last_name": "",
+    "email": "test@exempel.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-10T19:54:31.903Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 17,
+  "fields": {
+    "password": "",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "regular_tester",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-15T07:10:22.895Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 18,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$XNfryb88N1sof3ceAfBebM$puxw8tI5tMCmhNDREyV94xd1SFP+ABO2zTR3AKuEySU=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "rijad.corovic",
+    "first_name": "Rijad",
+    "last_name": "Corovic",
+    "email": "rijad.corovic@test.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-15T08:29:38.804Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 19,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$O06Gay3XR6xvNSx2MyNPCQ$JkG/7ZoInneGt0lN5yvL+m2U3ZKBak2ySDYCt4/qJgY=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "peter.svaerd",
+    "first_name": "Peter",
+    "last_name": "Svärd",
+    "email": "peter.svaerd@test.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-15T08:30:04.990Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "pk": 20,
+  "fields": {
+    "password": "pbkdf2_sha256$1500000$Wplr80bvwJcHbBslVMopo8$DW58BHTphUQx6GeqeCvkUaGAngXNHWlt32geKZec1QE=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "noah.eliasson",
+    "first_name": "Noah",
+    "last_name": "Eliasson",
+    "email": "noah.eliasson@test.se",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-08-15T08:30:24.133Z",
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 1,
+  "fields": {
+    "user": 1,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 2,
+  "fields": {
+    "user": 2,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 3,
+  "fields": {
+    "user": 3,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 4,
+  "fields": {
+    "user": 4,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 5,
+  "fields": {
+    "user": 5,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 6,
+  "fields": {
+    "user": 6,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 7,
+  "fields": {
+    "user": 7,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 8,
+  "fields": {
+    "user": 8,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 9,
+  "fields": {
+    "user": 9,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 10,
+  "fields": {
+    "user": 10,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 11,
+  "fields": {
+    "user": 11,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 12,
+  "fields": {
+    "user": 12,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 13,
+  "fields": {
+    "user": 13,
+    "avatar": "",
+    "last_selected_tournament": 1
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 14,
+  "fields": {
+    "user": 14,
+    "avatar": "",
+    "last_selected_tournament": 1
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 15,
+  "fields": {
+    "user": 15,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 16,
+  "fields": {
+    "user": 16,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 17,
+  "fields": {
+    "user": 17,
+    "avatar": "",
+    "last_selected_tournament": 1
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 18,
+  "fields": {
+    "user": 18,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 19,
+  "fields": {
+    "user": 19,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+},
+{
+  "model": "tournament.userprofile",
+  "pk": 20,
+  "fields": {
+    "user": 20,
+    "avatar": "",
+    "last_selected_tournament": null
+  }
+}
+]
