@@ -1,5 +1,6 @@
 # Dashboard and Hub views - main player-facing pages
 import json
+import collections
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -11,13 +12,35 @@ from tournament.models import (
 )
 from tournament.services.scoring import calc_pred_points, calc_pred_points_detail
 from tournament.services.analytics import generate_ai_match_analysis
-from tournament.editorial_engine.static_generators import generate_static_insights
+from tournament.services.cache_service import (
+    get_or_set_leaderboards_and_analytics,
+    get_or_set_static_insights_cached,
+    invalidate_tournament_cache
+)
 from tournament.editorial_engine.compiler import load_player_personas, find_persona_for_player
 
 
 @login_required(login_url='/')
 def dashboard_view(request):
-    active_tournaments = list(Tournament.objects.filter(is_active=True))
+    # Resolve User Joined Leagues for Multi-Pool Switcher
+    user_memberships = list(LeagueMember.objects.filter(player=request.user, league__is_active=True).select_related('league')) if request.user.is_authenticated else []
+    user_leagues = [m.league for m in user_memberships]
+    
+    session_league_id = request.session.get('active_league_id')
+    active_league = None
+    if session_league_id:
+        active_league = next((l for l in user_leagues if l.id == session_league_id), None)
+    if not active_league and user_leagues:
+        active_league = user_leagues[0]
+    if not active_league:
+        active_league = League.objects.filter(is_active=True).first()
+
+    # Scope active tournaments to the individual pool if configured
+    if active_league and active_league.tournaments.filter(is_active=True).exists():
+        active_tournaments = list(active_league.tournaments.filter(is_active=True))
+    else:
+        active_tournaments = list(Tournament.objects.filter(is_active=True))
+
     if not active_tournaments:
         return render(request, 'tournament/no_active.html')
 
@@ -25,7 +48,7 @@ def dashboard_view(request):
     selected_t_id = request.GET.get('tournament_id')
     if selected_t_id and selected_t_id.isdigit():
         target_t = Tournament.objects.filter(id=int(selected_t_id), is_active=True).first()
-        if target_t:
+        if target_t and (target_t in active_tournaments or not active_league or not active_league.tournaments.exists()):
             active_tournament = target_t
             request.session['selected_tournament_id'] = active_tournament.id
             if hasattr(request.user, 'profile'):
@@ -40,7 +63,7 @@ def dashboard_view(request):
 
         if session_t_id and any(t.id == session_t_id for t in active_tournaments):
             active_tournament = next(t for t in active_tournaments if t.id == session_t_id)
-        elif prof_t:
+        elif prof_t and any(t.id == prof_t.id for t in active_tournaments):
             active_tournament = prof_t
             request.session['selected_tournament_id'] = active_tournament.id
         else:
@@ -62,23 +85,30 @@ def dashboard_view(request):
     match_analytics = {}
     point_system = getattr(active_tournament, 'point_system', None) if active_tournament else None
 
-    # Resolve User Joined Leagues for Multi-Pool Switcher
-    user_memberships = list(LeagueMember.objects.filter(player=request.user, league__is_active=True).select_related('league')) if request.user.is_authenticated else []
-    user_leagues = [m.league for m in user_memberships]
-    
-    session_league_id = request.session.get('active_league_id')
-    active_league = None
-    if session_league_id:
-        active_league = next((l for l in user_leagues if l.id == session_league_id), None)
-    if not active_league and user_leagues:
-        active_league = user_leagues[0]
-    if not active_league:
-        active_league = League.objects.filter(is_active=True).first()
-
     # Prediction Data for Main Frame Tab
-    groups = active_tournament.tournament_groups.prefetch_related('teams', 'matches')
-    knockout_stages = list(active_tournament.knockout_stages.prefetch_related('matches'))
-    knockout_stages.sort(key=lambda s: s.matches.order_by('match_number').first().match_number if s.matches.exists() else 999)
+    tournament_teams = list(active_tournament.teams.all().order_by('name'))
+    all_matches = list(Match.objects.filter(tournament=active_tournament).order_by('date_time', 'match_number'))
+
+    # Pre-populate tournament in-memory lookup caches to eliminate all N+1 lookups
+    active_tournament._matches_by_number_dict = {m.match_number: m for m in all_matches if m.match_number}
+    active_tournament._teams_by_name_dict = {t.name.strip().lower(): t for t in tournament_teams}
+    
+    groups = list(active_tournament.tournament_groups.prefetch_related('teams', 'matches').all())
+    active_tournament._groups_by_code_dict = {
+        (g.name.split()[-1].upper() if g.name else ''): g for g in groups
+    }
+
+    for m in all_matches:
+        m.tournament = active_tournament
+
+    for g in groups:
+        for m in g.matches.all():
+            m.tournament = active_tournament
+
+    knockout_stages = list(active_tournament.knockout_stages.prefetch_related('matches').order_by('order', 'id'))
+    for ks in knockout_stages:
+        for m in ks.matches.all():
+            m.tournament = active_tournament
 
     groups_data = {}
     group_matches = {}
@@ -87,19 +117,18 @@ def dashboard_view(request):
         group_matches[str(group.id)] = [
             {
                 'id': str(match.id),
-                'home': match.get_home_team_info()['name'],
-                'away': match.get_away_team_info()['name']
+                'home': match.home_team.strip() if match.home_team else '',
+                'away': match.away_team.strip() if match.away_team else ''
             }
             for match in group.matches.all()
         ]
 
-    sidebets = active_tournament.sidebets.all()
-    tournament_teams = active_tournament.teams.all().order_by('name')
+    sidebets = list(active_tournament.sidebets.all())
     user_sidebet_answers = {
         a.sidebet_id: a.answer for a in SidebetAnswer.objects.filter(sidebet__tournament=active_tournament, player=request.user)
     }
     active_tab = request.GET.get('active_tab', '')
-    active_tab_name = request.GET.get('tab', 'home')
+    requested_tab = request.GET.get('tab', 'home')
 
     # Handle Prediction POST submission directly within dashboard main frame
     if request.method == 'POST':
@@ -138,6 +167,7 @@ def dashboard_view(request):
             player=request.user,
             defaults={'is_saved': True}
         )
+        invalidate_tournament_cache(active_tournament.id)
         post_active_tab = request.POST.get('active_tab', '').strip()
         if post_active_tab:
             return redirect(f'/dashboard/?tab=predictions&active_tab={post_active_tab}')
@@ -146,11 +176,16 @@ def dashboard_view(request):
     if active_tournament:
         is_player = active_tournament.players.filter(id=request.user.id, is_staff=False, is_superuser=False).exists() and not (request.user.is_staff or request.user.is_superuser)
         submission = TournamentSubmission.objects.filter(tournament=active_tournament, player=request.user).first()
+        is_saved = submission.is_saved if submission else False
+        is_verified = submission.is_verified if submission else False
+
+        # Until the user has verified predictions, NO other tab than My Predictions is allowed
+        if not is_verified and not is_admin:
+            active_tab_name = 'predictions'
+        else:
+            active_tab_name = requested_tab
         
         now = timezone.now()
-        matches_qs = Match.objects.filter(tournament=active_tournament).order_by('date_time', 'match_number')
-        all_matches = list(matches_qs)
-        
         finished_matches = [m for m in all_matches if m.is_finished or (m.home_goals is not None and m.away_goals is not None)]
         
         # 1. Look for unplayed matches scheduled for the future (date_time > now)
@@ -178,262 +213,59 @@ def dashboard_view(request):
 
         # Build Stage Breakdown Leaderboards (Excluding Admin/Staff users)
         players = list(active_tournament.players.filter(is_staff=False, is_superuser=False))
+        all_groups = groups
 
-        leaderboard = []
-        leaderboard_group_matches = []
-        leaderboard_group_standings = []
-        leaderboard_third_place = []
-        leaderboard_knockout = []
-        leaderboard_sidebets = []
+        # Bulk pre-fetch all submissions, predictions, and sidebet answers in 3 SQL queries
+        all_submissions_dict = {
+            s.player_id: s for s in TournamentSubmission.objects.filter(tournament=active_tournament)
+        }
+        
+        all_preds_qs = list(MatchPrediction.objects.filter(match__tournament=active_tournament).select_related('match', 'player'))
+        all_predictions_by_player = collections.defaultdict(list)
+        all_predictions_by_match = collections.defaultdict(list)
+        for pred in all_preds_qs:
+            all_predictions_by_player[pred.player_id].append(pred)
+            all_predictions_by_match[pred.match_id].append(pred)
+            
+        all_sidebet_answers = list(SidebetAnswer.objects.filter(sidebet__tournament=active_tournament).select_related('sidebet', 'player'))
+        sidebet_answers_by_player = collections.defaultdict(list)
+        for sba in all_sidebet_answers:
+            sidebet_answers_by_player[sba.player_id].append(sba)
 
-        all_groups = list(active_tournament.tournament_groups.prefetch_related('teams', 'matches').all())
+        # Get or compute cached leaderboards and base match analytics bundle
+        data_bundle = get_or_set_leaderboards_and_analytics(
+            tournament=active_tournament,
+            point_system=point_system,
+            players=players,
+            all_groups=all_groups,
+            all_matches=all_matches,
+            all_submissions_dict=all_submissions_dict,
+            all_predictions_by_player=all_predictions_by_player,
+            all_predictions_by_match=all_predictions_by_match,
+            sidebet_answers_by_player=sidebet_answers_by_player
+        )
 
-        for p in players:
-            p_sub = TournamentSubmission.objects.filter(tournament=active_tournament, player=p).first()
-            p_preds = MatchPrediction.objects.filter(match__tournament=active_tournament, player=p).select_related('match')
+        leaderboard = data_bundle['leaderboard']
+        leaderboard_group_matches = data_bundle['leaderboard_group_matches']
+        leaderboard_group_standings = data_bundle['leaderboard_group_standings']
+        leaderboard_third_place = data_bundle['leaderboard_third_place']
+        leaderboard_knockout = data_bundle['leaderboard_knockout']
+        leaderboard_sidebets = data_bundle['leaderboard_sidebets']
+        match_analytics_base = data_bundle['match_analytics_base']
+        base_group_standings = data_bundle['base_group_standings']
 
-            gm_pts = 0
-            gm_fullpott = 0
-            gm_ratt_mal = 0
-            gm_ratt_tecken = 0
-
-            ko_pts = 0
-            ko_fullpott = 0
-            ko_ratt_mal = 0
-            ko_ratt_tecken = 0
-
-            for pred in p_preds:
-                m = pred.match
-                pts = calc_pred_points(pred, m, point_system)
-                is_finished = m.is_finished or (m.home_goals is not None and m.away_goals is not None)
-
-                if is_finished:
-                    is_exact = (pred.home_goals == m.home_goals and pred.away_goals == m.away_goals)
-                    correct_home_g = (pred.home_goals == m.home_goals)
-                    correct_away_g = (pred.away_goals == m.away_goals)
-                    goals_matched = (1 if correct_home_g else 0) + (1 if correct_away_g else 0)
-
-                    actual_1x2 = '1' if m.home_goals > m.away_goals else ('2' if m.away_goals > m.home_goals else 'X')
-                    pred_1x2 = '1' if pred.home_goals > pred.away_goals else ('2' if pred.away_goals > pred.home_goals else 'X')
-                    is_correct_1x2 = (actual_1x2 == pred_1x2)
-
-                    if m.group_id:
-                        gm_pts += pts
-                        if is_exact: gm_fullpott += 1
-                        gm_ratt_mal += goals_matched
-                        if is_correct_1x2: gm_ratt_tecken += 1
-                    else:
-                        ko_pts += pts
-                        if is_exact: ko_fullpott += 1
-                        ko_ratt_mal += goals_matched
-                        if is_correct_1x2: ko_ratt_tecken += 1
-
-            gs_pts = 0
-            gs_ratt_placering = 0
-            gs_ratt_lagpoang = 0
-            gs_ratt_malskillnad = 0
-
-            p_preds_dict = {pred.match_id: pred for pred in p_preds}
-
-            for g in all_groups:
-                g_m_list = list(g.matches.all())
-                is_g_finished = len(g_m_list) > 0 and all(m.home_goals is not None and m.away_goals is not None for m in g_m_list)
-                if is_g_finished:
-                    st = g.get_standings()
-                    pred_dict = {}
-                    for row in st:
-                        t_name = row['team'].name if hasattr(row['team'], 'name') else str(row['team'])
-                        pred_dict[t_name] = {
-                            'team': row['team'], 'played': 0, 'won': 0, 'drawn': 0, 'lost': 0,
-                            'gf': 0, 'ga': 0, 'gd': 0, 'points': 0
-                        }
-                    for m in g_m_list:
-                        u_p = p_preds_dict.get(m.id)
-                        if u_p is not None and m.home_team and m.away_team:
-                            ht, at = m.home_team.strip(), m.away_team.strip()
-                            if ht in pred_dict and at in pred_dict:
-                                hg, ag = u_p.home_goals, u_p.away_goals
-                                pred_dict[ht]['played'] += 1
-                                pred_dict[at]['played'] += 1
-                                pred_dict[ht]['gf'] += hg
-                                pred_dict[ht]['ga'] += ag
-                                pred_dict[at]['gf'] += ag
-                                pred_dict[at]['ga'] += hg
-                                pred_dict[ht]['gd'] += (hg - ag)
-                                pred_dict[at]['gd'] += (ag - hg)
-                                if hg > ag:
-                                    pred_dict[ht]['won'] += 1
-                                    pred_dict[ht]['points'] += 3
-                                    pred_dict[at]['lost'] += 1
-                                elif hg < ag:
-                                    pred_dict[at]['won'] += 1
-                                    pred_dict[at]['points'] += 3
-                                    pred_dict[ht]['lost'] += 1
-                                else:
-                                    pred_dict[ht]['drawn'] += 1
-                                    pred_dict[at]['drawn'] += 1
-                                    pred_dict[ht]['points'] += 1
-                                    pred_dict[at]['points'] += 1
-
-                    sorted_p_list = list(pred_dict.values())
-                    sorted_p_list.sort(key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
-                    p_rank_map = {}
-                    for r_idx, p_item in enumerate(sorted_p_list, 1):
-                        t_k = p_item['team'].name if hasattr(p_item['team'], 'name') else str(p_item['team'])
-                        p_rank_map[t_k] = {'pred_rank': r_idx, 'pred_points': p_item['points'], 'pred_gd': p_item['gd']}
-
-                    p_plac_val = point_system.group_correct_placement if point_system else 2
-                    p_lagp_val = point_system.group_correct_points if point_system else 1
-                    p_gd_val = point_system.group_correct_goal_diff if point_system else 1
-
-                    for rank_idx, row in enumerate(st, 1):
-                        t_k = row['team'].name if hasattr(row['team'], 'name') else str(row['team'])
-                        p_info = p_rank_map.get(t_k, {'pred_rank': '-', 'pred_points': 0, 'pred_gd': 0})
-                        c_plac = (rank_idx == p_info['pred_rank'])
-                        c_lagp = (row['points'] == p_info['pred_points'])
-                        c_gd = (row['gd'] == p_info['pred_gd'])
-
-                        if c_plac:
-                            gs_ratt_placering += 1
-                            gs_pts += p_plac_val
-                        if c_lagp:
-                            gs_ratt_lagpoang += 1
-                            gs_pts += p_lagp_val
-                        if c_gd:
-                            gs_ratt_malskillnad += 1
-                            gs_pts += p_gd_val
-
-            tp_pts = 0
-            tp_ratt_lag = 0
-
-            sb_pts = 0
-            sb_ratt_antal = 0
-            p_sidebet_answers = SidebetAnswer.objects.filter(sidebet__tournament=active_tournament, player=p).select_related('sidebet')
-            for ans in p_sidebet_answers:
-                if ans.sidebet.is_answer_correct(ans.answer):
-                    sb_pts += ans.sidebet.points
-                    sb_ratt_antal += 1
-
-            tot_pts = gm_pts + gs_pts + tp_pts + ko_pts + sb_pts
-
-            p_name = f"{p.first_name} {p.last_name}".strip() if p.first_name else p.username
-            p_verified = p_sub.is_verified if p_sub else False
-
-            leaderboard.append({
-                'player': p,
-                'name': p_name,
-                'points': tot_pts,
-                'trend': 0,
-                'is_verified': p_verified
-            })
-            leaderboard_group_matches.append({
-                'player': p,
-                'name': p_name,
-                'points': gm_pts,
-                'fullpott': gm_fullpott,
-                'ratt_mal': gm_ratt_mal,
-                'ratt_tecken': gm_ratt_tecken,
-                'is_verified': p_verified
-            })
-            leaderboard_group_standings.append({
-                'player': p,
-                'name': p_name,
-                'points': gs_pts,
-                'ratt_placering': gs_ratt_placering,
-                'ratt_lagpoang': gs_ratt_lagpoang,
-                'ratt_malskillnad': gs_ratt_malskillnad,
-                'is_verified': p_verified
-            })
-            leaderboard_third_place.append({
-                'player': p,
-                'name': p_name,
-                'points': tp_pts,
-                'ratt_lag': tp_ratt_lag,
-                'is_verified': p_verified
-            })
-            leaderboard_knockout.append({
-                'player': p,
-                'name': p_name,
-                'points': ko_pts,
-                'fullpott': ko_fullpott,
-                'ratt_mal': ko_ratt_mal,
-                'ratt_tecken': ko_ratt_tecken,
-                'is_verified': p_verified
-            })
-            leaderboard_sidebets.append({
-                'player': p,
-                'name': p_name,
-                'points': sb_pts,
-                'ratt_antal': sb_ratt_antal,
-                'is_verified': p_verified
-            })
-
-        leaderboard.sort(key=lambda x: x['points'], reverse=True)
-        leaderboard_group_matches.sort(key=lambda x: (x['points'], x['fullpott'], x['ratt_tecken']), reverse=True)
-        leaderboard_group_standings.sort(key=lambda x: (x['points'], x['ratt_placering'], x['ratt_lagpoang'], x['ratt_malskillnad']), reverse=True)
-        leaderboard_third_place.sort(key=lambda x: (x['points'], x['ratt_lag']), reverse=True)
-        leaderboard_knockout.sort(key=lambda x: (x['points'], x['fullpott'], x['ratt_tecken']), reverse=True)
-        leaderboard_sidebets.sort(key=lambda x: (x['points'], x['ratt_antal']), reverse=True)
-
-        personas_list = load_player_personas()
-        # Build Match Analytics for all matches
+        # Personalize Match Analytics for current user
+        match_analytics = {}
         for m in all_matches:
-            all_preds = list(MatchPrediction.objects.filter(match=m).select_related('player'))
-            total_preds = len(all_preds)
-
-            is_reported = m.is_finished or (m.home_goals is not None and m.away_goals is not None)
-            actual_score = f"{m.home_goals} - {m.away_goals}" if is_reported else "- : -"
-
-            home_preds = []
-            draw_preds = []
-            away_preds = []
-
-            for p_pred in all_preds:
-                p_user = p_pred.player
-                p_name = f"{p_user.first_name} {p_user.last_name}".strip() if p_user.first_name else p_user.username
-                persona = find_persona_for_player(p_name, personas_list)
-                u_nick = persona.get('nicknames', [p_name])[0] if persona else (p_user.first_name or p_user.username)
-                item = {
-                    'username': u_nick,
-                    'home_goals': p_pred.home_goals,
-                    'away_goals': p_pred.away_goals,
-                    'penalty_winner': p_pred.penalty_winner,
-                }
-                if p_pred.home_goals > p_pred.away_goals:
-                    home_preds.append(item)
-                elif p_pred.home_goals == p_pred.away_goals:
-                    draw_preds.append(item)
-                else:
-                    away_preds.append(item)
-
-            home_preds.sort(key=lambda x: (x['home_goals'], x['home_goals'] + x['away_goals']), reverse=True)
-            draw_preds.sort(key=lambda x: (x['home_goals'] + x['away_goals']), reverse=True)
-            away_preds.sort(key=lambda x: (x['away_goals'], x['home_goals'] + x['away_goals']), reverse=True)
-
-            h_cnt = len(home_preds)
-            d_cnt = len(draw_preds)
-            a_cnt = len(away_preds)
-
-            h_pct = round((h_cnt / total_preds * 100)) if total_preds > 0 else 0
-            d_pct = round((d_cnt / total_preds * 100)) if total_preds > 0 else 0
-            a_pct = round((a_cnt / total_preds * 100)) if total_preds > 0 else 0
-
+            base_a = match_analytics_base.get(m.id, {})
             user_p = user_predictions.get(m.id)
-            ai_analysis = generate_ai_match_analysis(user_p, m, home_preds + draw_preds + away_preds, h_cnt, d_cnt, a_cnt, total_preds)
-
+            ai_analysis = generate_ai_match_analysis(
+                user_p, m, base_a.get('all_preds_list', []),
+                base_a.get('home_cnt', 0), base_a.get('draw_cnt', 0), base_a.get('away_cnt', 0),
+                base_a.get('total_preds', 0)
+            )
             match_analytics[m.id] = {
-                'total_preds': total_preds,
-                'is_reported': is_reported,
-                'actual_score': actual_score,
-                'home_cnt': h_cnt,
-                'draw_cnt': d_cnt,
-                'away_cnt': a_cnt,
-                'home_pct': h_pct,
-                'draw_pct': d_pct,
-                'away_pct': a_pct,
-                'home_preds': home_preds,
-                'draw_preds': draw_preds,
-                'away_preds': away_preds,
+                **base_a,
                 'ai_analysis': ai_analysis,
                 'user_detail': calc_pred_points_detail(user_p, m, point_system),
             }
@@ -657,15 +489,15 @@ def dashboard_view(request):
         })
 
     # Pre-calculate group stage completion for knockout matchup validation
-    is_all_groups_finished = len(all_groups) > 0 and all(
-        g.matches.filter(home_goals__isnull=False, away_goals__isnull=False).count() == g.matches.count() and g.matches.count() > 0
-        for g in all_groups
+    group_matches_list = [m for m in all_matches if m.group_id]
+    is_all_groups_finished = len(group_matches_list) > 0 and all(
+        m.home_goals is not None and m.away_goals is not None for m in group_matches_list
     )
 
     # Knockout Stage Full Data calculation for Resultat tab
     knockout_stage_full_data = []
     for ks in knockout_stages:
-        ks_matches = list(ks.matches.all().order_by('match_number'))
+        ks_matches = [m for m in all_matches if m.stage_id == ks.id]
         
         # 1. Determine actual qualifiers from this stage
         actual_stage_qualifiers = set()
@@ -789,11 +621,6 @@ def dashboard_view(request):
     actual_qual_names = { (t['team'].name if hasattr(t['team'], 'name') else str(t['team'])) for t in third_place_teams if t.get('is_qualified') }
     pred_qual_names = { (t['team'].name if hasattr(t['team'], 'name') else str(t['team'])) for t in pred_third_place_teams if t.get('is_qualified') }
 
-    is_all_groups_finished = len(all_groups) > 0 and all(
-        g.matches.filter(home_goals__isnull=False, away_goals__isnull=False).count() == g.matches.count() and g.matches.count() > 0
-        for g in all_groups
-    )
-
     enhanced_third_place_data = []
     max_len = max(len(third_place_teams), len(pred_third_place_teams))
     val_third_pts = point_system.knockout_qualified_third if point_system else 2
@@ -819,12 +646,11 @@ def dashboard_view(request):
     host_ranking_data = []
     if is_qualifying:
         host_patterns = ['england', 'ireland', 'scotland', 'wales', 'a1', 'b1', 'c1', 'd1']
-        all_t_objs = list(Team.objects.filter(tournament=active_tournament))
-        h_objs = [t for t in all_t_objs if any(hp in t.name.lower() for hp in host_patterns)]
+        h_objs = [t for t in tournament_teams if any(hp in t.name.lower() for hp in host_patterns)]
         for ht in h_objs:
             grp = ht.group
             if not grp: continue
-            st = grp.get_standings()
+            st = base_group_standings[grp.id]['standings'] if grp.id in base_group_standings else grp.get_standings()
             fifth_n = st[4]['team'].name if len(st) >= 5 and hasattr(st[4]['team'], 'name') else None
             h_m_list = [m for m in all_matches if m.group_id == grp.id and ht.name in (m.home_team, m.away_team)]
             if fifth_n:
@@ -847,7 +673,6 @@ def dashboard_view(request):
             h_item['rank'] = r_idx
             h_item['is_reserved_slot'] = (r_idx <= 2)
 
-
     # User Rank in Leaderboard
     user_rank = None
     user_total_points = 0
@@ -858,7 +683,7 @@ def dashboard_view(request):
             break
 
     # Overall Tournament Insights Calculation (Comparing total, individual, avg & historical data)
-    all_predictions = list(MatchPrediction.objects.filter(match__tournament=active_tournament))
+    all_predictions = all_preds_qs
     total_preds_count = len(all_predictions)
 
     if total_preds_count > 0:
@@ -872,7 +697,7 @@ def dashboard_view(request):
 
     player_goal_stats = []
     for p in players:
-        p_preds_list = [pred for pred in all_predictions if pred.player_id == p.id]
+        p_preds_list = all_predictions_by_player.get(p.id, [])
         if p_preds_list:
             p_tot_g = sum(pred.home_goals + pred.away_goals for pred in p_preds_list)
             p_avg_g = round(p_tot_g / len(p_preds_list), 2)
@@ -885,7 +710,7 @@ def dashboard_view(request):
 
     match_avg_goals = []
     for m in all_matches:
-        m_preds = [pred for pred in all_predictions if pred.match_id == m.id]
+        m_preds = all_predictions_by_match.get(m.id, [])
         if m_preds:
             m_tot_g = sum(pred.home_goals + pred.away_goals for pred in m_preds)
             m_avg_g = round(m_tot_g / len(m_preds), 2)
@@ -899,7 +724,8 @@ def dashboard_view(request):
     england_matches = [m for m in all_matches if 'england' in (m.home_team or '').lower() or 'england' in (m.away_team or '').lower()]
     england_draw_pct = 0
     if england_matches:
-        eng_preds = [p for p in all_predictions if p.match_id in [m.id for m in england_matches]]
+        eng_m_ids = {m.id for m in england_matches}
+        eng_preds = [p for p in all_predictions if p.match_id in eng_m_ids]
         if eng_preds:
             draws = [p for p in eng_preds if p.home_goals == p.away_goals]
             england_draw_pct = round((len(draws) / len(eng_preds)) * 100)
@@ -971,17 +797,23 @@ def dashboard_view(request):
         'user_sidebet_correct': user_sidebet_correct,
         'groups_data_json': json.dumps(groups_data),
         'group_matches_json': json.dumps(group_matches),
-        'static_insights': generate_static_insights(active_tournament),
+        'static_insights': get_or_set_static_insights_cached(active_tournament),
     }
 
-    # Build active tournaments summary for multi-tournament switcher modal
+    # Build active tournaments summary for multi-tournament switcher modal (Batch query)
     active_tournaments_summary = []
     has_multiple_tournaments = len(active_tournaments) > 1
+    active_t_ids = [t.id for t in active_tournaments]
+
+    from django.db.models import Count
+    matches_counts_by_t = {row['tournament_id']: row['cnt'] for row in Match.objects.filter(tournament_id__in=active_t_ids).values('tournament_id').annotate(cnt=Count('id'))}
+    preds_counts_by_t = {row['match__tournament_id']: row['cnt'] for row in MatchPrediction.objects.filter(match__tournament_id__in=active_t_ids, player=request.user).values('match__tournament_id').annotate(cnt=Count('id'))}
+    subs_by_t = {s.tournament_id: s for s in TournamentSubmission.objects.filter(tournament_id__in=active_t_ids, player=request.user)}
 
     for t in active_tournaments:
-        t_sub = TournamentSubmission.objects.filter(tournament=t, player=request.user).first()
-        m_count = Match.objects.filter(tournament=t).count()
-        p_count = MatchPrediction.objects.filter(match__tournament=t, player=request.user).count()
+        t_sub = subs_by_t.get(t.id)
+        m_count = matches_counts_by_t.get(t.id, 0)
+        p_count = preds_counts_by_t.get(t.id, 0)
 
         if m_count == 0:
             status_text = "Ej aktiverad"
@@ -1006,7 +838,6 @@ def dashboard_view(request):
 
         icon_url = t.icon.url if (t.icon and hasattr(t.icon, 'url')) else None
 
-
         active_tournaments_summary.append({
             'tournament': t,
             'id': t.id,
@@ -1019,13 +850,13 @@ def dashboard_view(request):
             'players_count': t.players.count(),
         })
 
-
     context['active_tournaments_summary'] = active_tournaments_summary
     context['has_multiple_tournaments'] = has_multiple_tournaments
 
-    # Automatically check and trigger Gazzetta Special Editions for completed round milestones
-    from tournament.editorial_engine.detectors import check_and_trigger_special_editions
-    check_and_trigger_special_editions(active_tournament)
+    # Automatically check and trigger Gazzetta Special Editions if finished matches exist
+    if finished_matches:
+        from tournament.editorial_engine.detectors import check_and_trigger_special_editions
+        check_and_trigger_special_editions(active_tournament)
 
     context['daily_gazettes'] = DailyGazette.objects.filter(tournament=active_tournament).order_by('-publish_date', '-created_at')
     context['active_tab'] = active_tab

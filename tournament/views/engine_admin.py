@@ -6,15 +6,23 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.db.models import Count, Q, Max
+from django.db.models import Count, Q, Max, F
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 
-from tournament.models import Tournament, League, MatchPrediction, PoolAdminRequest
+from tournament.models import (
+    Tournament, League, MatchPrediction, PoolAdminRequest, ScannedTournament,
+    PointSystem, Sidebet
+)
 from django.contrib.auth.models import User
 
 from tournament.views.auth import superuser_or_staff_required
 from tournament.services.tournament_admin import get_tournament_checklist_status, get_tournament_total_status
 from tournament.services.pool_admin_service import approve_pool_admin_request, reject_pool_admin_request
+from tournament.services.cache_service import invalidate_tournament_cache
+from tournament.services.scout_service import (
+    parse_and_save_scouted_json, convert_scanned_to_live_tournament, scrape_web_for_tournaments
+)
 
 
 def engine_admin_root_view(request):
@@ -194,6 +202,122 @@ def engine_admin_dashboard_view(request):
             'status': tot_status['label'],
         })
 
+    # 5. AI Tournament Scout Prospects (Sorted nearest in time first)
+    scanned_list = ScannedTournament.objects.select_related('converted_tournament').order_by(
+        F('start_date').asc(nulls_last=True), '-created_at'
+    )
+    scanned_data = []
+    scout_counts = {
+        'total': scanned_list.count(),
+        'grade_a': scanned_list.filter(completeness_grade='GRADE_A').count(),
+        'grade_b': scanned_list.filter(completeness_grade='GRADE_B').count(),
+        'grade_c': scanned_list.filter(completeness_grade='GRADE_C').count(),
+        'converted': scanned_list.filter(status='CONVERTED').count(),
+        'watchlist': scanned_list.filter(status='WATCHLIST').count(),
+        'new': scanned_list.filter(status='NEW').count(),
+    }
+
+    SPORT_ICONS = {
+        'football': '⚽',
+        'soccer': '⚽',
+        'ice hockey': '🏒',
+        'ishockey': '🏒',
+        'hockey': '🏒',
+        'floorball': '🏑',
+        'innebandy': '🏑',
+        'handball': '🤾',
+        'handboll': '🤾',
+        'rugby': '🏉',
+        'basketball': '🏀',
+        'basket': '🏀',
+        'water polo': '🤽',
+        'volleyball': '🏐',
+    }
+
+    today = timezone.localdate()
+
+    for p in scanned_list:
+        payload = p.payload or {}
+        groups = payload.get('groups', [])
+        fixtures = payload.get('fixtures_sample', [])
+        knockouts = payload.get('knockout_mapping_sample', [])
+        sidebets = payload.get('sidebets_suggestions', [])
+        
+        teams_count = sum(len(g.get('teams', [])) for g in groups) or payload.get('tournament_config', {}).get('total_teams', 0)
+        groups_count = len(groups)
+        matches_count = len(fixtures) + len(knockouts)
+        sidebets_count = len(sidebets)
+
+        sport_clean = (p.sport or '').lower().strip()
+        icon = SPORT_ICONS.get(sport_clean, '🏆')
+
+        days_to_start = None
+        if p.start_date:
+            days_to_start = (p.start_date - today).days
+
+        grade_meta = {
+            'GRADE_A': {'label': 'Grade A (100% Redo)', 'badge_class': 'bg-success text-white', 'emoji': '🟢'},
+            'GRADE_B': {'label': 'Grade B (Nästan redo)', 'badge_class': 'bg-warning text-dark', 'emoji': '🟡'},
+            'GRADE_C': {'label': 'Grade C (Bevakningslista)', 'badge_class': 'bg-info text-dark', 'emoji': '🟠'},
+            'GRADE_D': {'label': 'Grade D (Ej kompatibel)', 'badge_class': 'bg-danger text-white', 'emoji': '🔴'},
+        }.get(p.completeness_grade, {'label': p.completeness_grade, 'badge_class': 'bg-secondary text-white', 'emoji': '⚪'})
+
+        status_meta = {
+            'NEW': {'label': 'Nytt Prospekt', 'badge_class': 'bg-primary text-white'},
+            'WATCHLIST': {'label': 'Bevakningslista', 'badge_class': 'bg-info text-dark'},
+            'CONVERTED': {'label': 'Konverterad till Turnering', 'badge_class': 'bg-success text-white'},
+            'ARCHIVED': {'label': 'Arkiverad', 'badge_class': 'bg-secondary text-white'},
+        }.get(p.status, {'label': p.status, 'badge_class': 'bg-secondary text-white'})
+
+        audit = payload.get('scouting_audit', {})
+        grade_reason = p.grade_reason or audit.get('grade_reason') or ''
+        missing_items = audit.get('missing_items', [])
+        action_needed = audit.get('action_needed', '')
+
+        if not missing_items:
+            if p.completeness_grade == 'GRADE_B':
+                missing_items = [
+                    "Exakta matchtider/klockslag saknas eller är preliminära",
+                    "Vissa deltagande lag/playoff-platser inväntar kvalificering"
+                ]
+            elif p.completeness_grade == 'GRADE_C':
+                missing_items = [
+                    "Officiell lottning ej genomförd",
+                    "Spelschema och matchdatum ej fastställda",
+                    "Deltagande lag ej klara"
+                ]
+            elif p.completeness_grade == 'GRADE_D':
+                missing_items = [
+                    "Sporttypen eller turneringsstrukturen saknar 1X2-/tabellmekanik",
+                    "Turneringen har redan passerat eller avbrutits"
+                ]
+
+        draw_done = audit.get('draw_completed', False) or (len(groups) > 0)
+        fixtures_done = audit.get('fixtures_dated', False) or (len(fixtures) > 0)
+
+        scanned_data.append({
+            'prospect': p,
+            'teams_count': teams_count,
+            'groups_count': groups_count,
+            'matches_count': matches_count,
+            'sidebets_count': sidebets_count,
+            'sport_icon': icon,
+            'days_to_start': days_to_start,
+            'grade_meta': grade_meta,
+            'status_meta': status_meta,
+            'grade_reason': grade_reason,
+            'missing_items': missing_items,
+            'action_needed': action_needed,
+            'official_source_url': p.official_source_url or payload.get('master_event', {}).get('official_source_url') or '',
+            'draw_done': draw_done,
+            'fixtures_done': fixtures_done,
+            'groups': groups,
+            'fixtures': fixtures,
+            'knockouts': knockouts,
+            'sidebets': sidebets,
+            'raw_json': json.dumps(payload, ensure_ascii=False, indent=2),
+        })
+
     context = {
         'total_leagues': total_leagues,
         'total_users': total_users,
@@ -205,8 +329,11 @@ def engine_admin_dashboard_view(request):
         'admin_emails_str': admin_emails_str,
         'users_list': users_query,
         'tournaments_data': tournaments_data,
+        'scanned_tournaments': scanned_data,
+        'scout_counts': scout_counts,
     }
     return render(request, 'tournament/engine_admin.html', context)
+
 
 
 @superuser_or_staff_required
@@ -291,19 +418,16 @@ def engine_admin_validate_tournament(request, tournament_id):
     })
 
 
-WORLD_CUP_2026_NATIONAL_TEAMS = [
-    'Mexiko', 'Danmark', 'Sydafrika', 'Sydkorea',
-    'Kanada', 'Schweiz', 'Qatar', 'Colombia',
-    'USA', 'Paraguay', 'Australien', 'Turkiet',
-    'Brasilien', 'Kroatien', 'Nigeria', 'Japan',
-    'Argentina', 'Österrike', 'Marocko', 'Ukraina',
-    'Frankrike', 'Polen', 'Chile', 'Saudiarabien',
-    'England', 'Sverige', 'Senegal', 'Peru',
-    'Spanien', 'Uruguay', 'Skottland', 'Algeriet',
-    'Tyskland', 'Ecuador', 'Elfenbenskusten', 'Iran',
-    'Nederländerna', 'Portugal', 'Kamerun', 'Egypten',
-    'Belgien', 'Italien', 'Serbien', 'Tunisien',
-    'Tjeckien', 'Ghana', 'Norge', 'Wales'
+EURO_2028_EUROPEAN_TEAMS = [
+    'Spanien', 'Frankrike', 'England', 'Belgien', 'Nederländerna', 'Portugal',
+    'Italien', 'Kroatien', 'Tyskland', 'Danmark', 'Turkiet', 'Sverige',
+    'Tjeckien', 'Grekland', 'Skottland', 'Wales', 'Polen', 'Ungern',
+    'Ukraina', 'Österrike', 'Schweiz', 'Serbien', 'Slovakien', 'Norge',
+    'Georgien', 'Irland', 'Nordmakedonien', 'Montenegro', 'Albanien', 'Armenien',
+    'Island', 'Bosnien och Hercegovina', 'Slovenien', 'Bulgarien', 'Finland', 'Nordirland',
+    'Cypern', 'Gibraltar', 'Malta', 'Färöarna', 'Andorra', 'San Marino',
+    'Azerbajdzjan', 'Kazakstan', 'Kosovo', 'Luxemburg', 'Lettland', 'Rumänien',
+    'Liechtenstein', 'Moldavien', 'Belarus', 'Litauen', 'Estland', 'Israel'
 ]
 
 
@@ -312,7 +436,7 @@ WORLD_CUP_2026_NATIONAL_TEAMS = [
 def engine_admin_simulate_tournament(request, tournament_id):
     """
     Human-in-the-loop simulation:
-    - If teams contain generic placeholders (e.g. A1, A2, B1, B2, Lag 1, Team 1), dynamically populates real World Cup 2026 National Teams.
+    - If teams contain generic placeholders (e.g. A1, A2, B1, B2, Lag 1, Team 1), dynamically populates real National Teams (UEFA teams for Euro tournaments, World Cup teams otherwise).
     - If teams are ALREADY real seeded teams (e.g. England, France, Japan, Poland), PRESERVES them intact!
     - Generates realistic test scores for visual verification of standings & knockout progression.
     """
@@ -321,9 +445,15 @@ def engine_admin_simulate_tournament(request, tournament_id):
     all_teams = list(tournament.teams.all())
     placeholder_teams = [t for t in all_teams if re.match(r'^([A-L][1-8]|Lag\s*\d+|Team\s*\d+)$', t.name.strip(), re.IGNORECASE)]
     
-    # Only assign World Cup 2026 teams if placeholder teams exist!
+    # Dynamically select nation team pool
+    if 'euro' in tournament.name.lower():
+        available_pool = EURO_2028_EUROPEAN_TEAMS
+    else:
+        available_pool = WORLD_CUP_2026_NATIONAL_TEAMS
+
+    # Only assign national teams if placeholder teams exist!
     if placeholder_teams:
-        assigned_nat_teams = WORLD_CUP_2026_NATIONAL_TEAMS[:max(len(placeholder_teams), 1)]
+        assigned_nat_teams = available_pool[:max(len(placeholder_teams), 1)]
         team_mapping = {}
         for idx, team in enumerate(placeholder_teams):
             nat_name = assigned_nat_teams[idx % len(assigned_nat_teams)]
@@ -349,6 +479,8 @@ def engine_admin_simulate_tournament(request, tournament_id):
         match.save()
         simulated_count += 1
 
+    invalidate_tournament_cache(tournament.id)
+
     return JsonResponse({
         'status': 'success',
         'message': f'Simulerade matcher för {len(all_teams)} lag i "{tournament.name}". Grupptabeller och slutspel har beräknats!',
@@ -360,17 +492,58 @@ def engine_admin_simulate_tournament(request, tournament_id):
 @require_POST
 def engine_admin_reset_simulation(request, tournament_id):
     """
-    Full Reset before publishing:
-    Wipes simulated match scores while preserving real seeded team names.
+    Full Reset:
+    - Resets all teams back to their official pre-draw group placeholders (e.g. A1, A2, B1, G5, etc.).
+    - Updates group match home/away team names back to the corresponding placeholders.
+    - Wipes all simulated match scores and finishes.
     """
     tournament = get_object_or_404(Tournament, id=tournament_id)
     
-    reset_count = tournament.matches.update(home_goals=None, away_goals=None, is_finished=False)
+    # 1. Reset Teams to Group Placeholders (A1, A2, B1, B2...)
+    groups = tournament.tournament_groups.all().order_by('order', 'id')
+    team_mapping = {}
+    total_teams_reset = 0
+
+    for g_idx, group in enumerate(groups):
+        parts = group.name.strip().split()
+        if parts and len(parts[-1]) == 1 and parts[-1].isalpha():
+            letter = parts[-1].upper()
+        else:
+            letter = chr(ord('A') + g_idx)
+        
+        group_teams = list(group.teams.all().order_by('id'))
+        for t_idx, team in enumerate(group_teams):
+            old_name = team.name
+            placeholder_name = f"{letter}{t_idx + 1}"
+            team_mapping[old_name] = placeholder_name
+            
+            team.name = placeholder_name
+            team.code = ''
+            team.save()
+            total_teams_reset += 1
+
+    # 2. Reset Matches: restore placeholder names in group fixtures & wipe scores
+    reset_matches_count = 0
+    for match in tournament.matches.all():
+        if match.home_team in team_mapping:
+            match.home_team = team_mapping[match.home_team]
+        if match.away_team in team_mapping:
+            match.away_team = team_mapping[match.away_team]
+        
+        match.home_goals = None
+        match.away_goals = None
+        match.is_finished = False
+        match.box_score_data = {}
+        match.save()
+        reset_matches_count += 1
+
+    invalidate_tournament_cache(tournament.id)
 
     return JsonResponse({
         'status': 'success',
-        'message': f'Nollställde simulerade testresultat för {reset_count} matcher i "{tournament.name}". Turneringen är nu 100% ren!',
-        'reset_count': reset_count,
+        'message': f'Nollställde simulerade testresultat för {reset_matches_count} matcher och återställde {total_teams_reset} lag till korrekta placeholders i "{tournament.name}".',
+        'reset_count': reset_matches_count,
+        'teams_reset_count': total_teams_reset,
     })
 
 
@@ -417,6 +590,7 @@ def engine_admin_toggle_publish(request, tournament_id):
         tournament.is_paused = True
 
     tournament.save()
+    invalidate_tournament_cache(tournament.id)
     chk = get_tournament_checklist_status(tournament)
     tot = get_tournament_total_status(tournament, chk)
 
@@ -532,3 +706,384 @@ def engine_admin_reject_pool_request_view(request, request_id):
         return JsonResponse({'status': 'success', 'message': 'Förfrågan avvisad.'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+@superuser_or_staff_required
+@require_POST
+def engine_admin_update_tournament(request, tournament_id):
+    """Updates tournament name, logotype (icon), and backdrop banner."""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    name = request.POST.get('name', '').strip()
+    if not name:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'status': 'error', 'message': 'Turneringsnamnet kan inte vara tomt.'}, status=400)
+        messages.error(request, 'Turneringsnamnet kan inte vara tomt.')
+        return redirect('/engine-admin/')
+
+    tournament.name = name
+
+    # Handle Icon / Logotype
+    clear_icon = request.POST.get('clear_icon') in ['true', '1', 'on']
+    if clear_icon:
+        if tournament.icon:
+            tournament.icon.delete(save=False)
+        tournament.icon = None
+    elif 'icon' in request.FILES:
+        tournament.icon = request.FILES['icon']
+
+    # Handle Backdrop Banner
+    clear_backdrop = request.POST.get('clear_backdrop') in ['true', '1', 'on']
+    if clear_backdrop:
+        if tournament.backdrop:
+            tournament.backdrop.delete(save=False)
+        tournament.backdrop = None
+    elif 'backdrop' in request.FILES:
+        tournament.backdrop = request.FILES['backdrop']
+
+    tournament.save()
+    invalidate_tournament_cache(tournament.id)
+
+    icon_url = tournament.icon.url if tournament.icon else None
+    backdrop_url = tournament.backdrop.url if tournament.backdrop else None
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '') or request.POST.get('ajax') == '1':
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Turneringen "{tournament.name}" har sparats!',
+            'tournament': {
+                'id': tournament.id,
+                'name': tournament.name,
+                'icon_url': icon_url,
+                'backdrop_url': backdrop_url,
+            }
+        })
+
+    messages.success(request, f'Turneringen "{tournament.name}" har sparats!')
+    return redirect('/engine-admin/')
+
+
+# --- AI Tournament Scout Endpoints ---
+
+@superuser_or_staff_required
+@require_POST
+def scout_import_json_view(request):
+    """Imports or updates a ScannedTournament from JSON payload."""
+    try:
+        raw_data = request.POST.get('json_data')
+        if not raw_data and request.body:
+            try:
+                body_json = json.loads(request.body.decode('utf-8'))
+                raw_data = body_json.get('json_data') if isinstance(body_json, dict) else request.body.decode('utf-8')
+            except Exception:
+                raw_data = request.body.decode('utf-8')
+
+        if not raw_data:
+            return JsonResponse({'status': 'error', 'message': 'Ingen JSON-data mottogs.'}, status=400)
+
+        payload = json.loads(raw_data) if isinstance(raw_data, str) else raw_data
+        scanned_obj, created, error = parse_and_save_scouted_json(payload)
+
+        if error:
+            return JsonResponse({'status': 'error', 'message': error}, status=400)
+
+        verb = 'importerades som nytt prospekt' if created else 'uppdaterades'
+        return JsonResponse({
+            'status': 'success',
+            'message': f'"{scanned_obj.name}" {verb} ({scanned_obj.completeness_grade})!',
+            'prospect': {
+                'id': scanned_obj.id,
+                'name': scanned_obj.name,
+                'grade': scanned_obj.completeness_grade,
+                'status': scanned_obj.status,
+            }
+        })
+    except json.JSONDecodeError as jde:
+        return JsonResponse({'status': 'error', 'message': f'Ogiltig JSON: {str(jde)}'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Ett fel uppstod: {str(e)}'}, status=500)
+
+
+@superuser_or_staff_required
+@require_POST
+def scout_convert_view(request, prospect_id):
+    """Converts a ScannedTournament prospect into a full live tournament."""
+    try:
+        is_active = request.POST.get('is_active') in ['true', '1', 'on']
+        
+        # Optional custom point system payload
+        custom_pts = None
+        custom_pts_str = request.POST.get('custom_point_system')
+        if custom_pts_str:
+            try:
+                custom_pts = json.loads(custom_pts_str)
+            except Exception:
+                pass
+
+        tournament, error = convert_scanned_to_live_tournament(
+            scanned_id=prospect_id,
+            admin_user=request.user,
+            is_active=is_active,
+            custom_point_system=custom_pts
+        )
+
+        if error:
+            return JsonResponse({'status': 'error', 'message': error}, status=400)
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Turneringen "{tournament.name}" har skapats och finns nu i Engine Admin!',
+            'tournament_id': tournament.id,
+            'tournament_name': tournament.name,
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Kunde inte konvertera prospekt: {str(e)}'}, status=500)
+
+
+@superuser_or_staff_required
+@require_POST
+def scout_update_status_view(request, prospect_id):
+    """Updates status for a ScannedTournament (e.g. WATCHLIST, ARCHIVED, NEW)."""
+    prospect = get_object_or_404(ScannedTournament, id=prospect_id)
+    new_status = request.POST.get('status', '').upper().strip()
+
+    valid_statuses = ['NEW', 'WATCHLIST', 'CONVERTED', 'ARCHIVED']
+    if new_status not in valid_statuses:
+        return JsonResponse({'status': 'error', 'message': f'Ogiltig status "{new_status}".'}, status=400)
+
+    prospect.status = new_status
+    prospect.save()
+
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Status för "{prospect.name}" ändrades till {new_status}.',
+        'prospect_id': prospect.id,
+        'new_status': prospect.status
+    })
+
+
+@superuser_or_staff_required
+@require_POST
+def scout_delete_view(request, prospect_id):
+    """Deletes a ScannedTournament prospect from staging."""
+    prospect = get_object_or_404(ScannedTournament, id=prospect_id)
+    name = prospect.name
+    prospect.delete()
+
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Prospektet "{name}" raderades från scout-listan.'
+    })
+
+
+@superuser_or_staff_required
+def scout_prospect_json_view(request, prospect_id):
+    """Returns raw payload JSON for review modal."""
+    prospect = get_object_or_404(ScannedTournament, id=prospect_id)
+    return JsonResponse({
+        'status': 'success',
+        'prospect': {
+            'id': prospect.id,
+            'name': prospect.name,
+            'sport': prospect.sport,
+            'organizer': prospect.organizer,
+            'host_country': prospect.host_country,
+            'start_date': str(prospect.start_date) if prospect.start_date else '',
+            'end_date': str(prospect.end_date) if prospect.end_date else '',
+            'grade': prospect.completeness_grade,
+            'grade_reason': prospect.grade_reason,
+            'official_source_url': prospect.official_source_url or prospect.payload.get('master_event', {}).get('official_source_url') or '',
+            'status': prospect.status,
+            'payload': prospect.payload,
+        }
+    })
+
+
+@superuser_or_staff_required
+@require_POST
+def scout_scrape_web_view(request):
+    """Triggers AI web scanning across official sports federations to discover upcoming tournaments."""
+    try:
+        custom_query = request.POST.get('query', '').strip()
+        created_cnt, updated_cnt, prospects = scrape_web_for_tournaments(custom_query)
+        total_found = len(prospects)
+        
+        msg = f"Webbscanning slutförd! {total_found} turneringar scannades och auditerades ({created_cnt} nya, {updated_cnt} uppdaterade)."
+        return JsonResponse({
+            'status': 'success',
+            'message': msg,
+            'created_count': created_cnt,
+            'updated_count': updated_cnt,
+            'total_count': total_found,
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Fel under webbscanning: {str(e)}'}, status=500)
+
+
+@superuser_or_staff_required
+def tournament_points_sidebets_get_view(request, tournament_id):
+    """Returns PointSystem rules and Sidebets list for a given tournament."""
+    tour = get_object_or_404(Tournament, id=tournament_id)
+    ps, _ = PointSystem.objects.get_or_create(tournament=tour)
+    sidebets = tour.sidebets.all().order_by('id')
+
+    sidebets_list = [{
+        'id': sb.id,
+        'question': sb.question,
+        'points': sb.points,
+        'question_type': sb.question_type,
+        'correct_answers': sb.correct_answers or '',
+    } for sb in sidebets]
+
+    points_data = {
+        # Match scoring
+        'match_correct_1x2': ps.match_correct_1x2,
+        'match_correct_goals_per_team': ps.match_correct_goals_per_team,
+        'match_correct_total_goals': ps.match_correct_total_goals,
+        # Group scoring
+        'group_correct_placement': ps.group_correct_placement,
+        'group_correct_points': ps.group_correct_points,
+        'group_correct_goals_scored': ps.group_correct_goals_scored,
+        'group_correct_goals_conceded': ps.group_correct_goals_conceded,
+        'group_correct_goal_diff': ps.group_correct_goal_diff,
+        'group_team_qualified': ps.group_team_qualified,
+        # Special table scoring
+        'qualifying_table_team_qualified': ps.qualifying_table_team_qualified,
+        'qualifying_table_exact_rank': ps.qualifying_table_exact_rank,
+        'qualifying_table_points': ps.qualifying_table_points,
+        'qualifying_table_goals_scored': ps.qualifying_table_goals_scored,
+        'qualifying_table_goals_conceded': ps.qualifying_table_goals_conceded,
+        'qualifying_table_goal_diff': ps.qualifying_table_goal_diff,
+        # Knockout scoring
+        'knockout_qualified_third': ps.knockout_qualified_third,
+        'knockout_round_of_16': ps.knockout_round_of_16,
+        'knockout_quarterfinal': ps.knockout_quarterfinal,
+        'knockout_semifinal': ps.knockout_semifinal,
+        'knockout_bronze_match': ps.knockout_bronze_match,
+        'knockout_final': ps.knockout_final,
+    }
+
+    return JsonResponse({
+        'status': 'success',
+        'tournament_id': tour.id,
+        'tournament_name': tour.name,
+        'points': points_data,
+        'sidebets': sidebets_list,
+    })
+
+
+@superuser_or_staff_required
+@require_POST
+def tournament_points_save_view(request, tournament_id):
+    """Saves updated PointSystem values for a tournament."""
+    tour = get_object_or_404(Tournament, id=tournament_id)
+    ps, _ = PointSystem.objects.get_or_create(tournament=tour)
+
+    FIELDS = [
+        'match_correct_1x2',
+        'match_correct_goals_per_team',
+        'match_correct_total_goals',
+        'group_correct_placement',
+        'group_correct_points',
+        'group_correct_goals_scored',
+        'group_correct_goals_conceded',
+        'group_correct_goal_diff',
+        'group_team_qualified',
+        'qualifying_table_team_qualified',
+        'qualifying_table_exact_rank',
+        'qualifying_table_points',
+        'qualifying_table_goals_scored',
+        'qualifying_table_goals_conceded',
+        'qualifying_table_goal_diff',
+        'knockout_qualified_third',
+        'knockout_round_of_16',
+        'knockout_quarterfinal',
+        'knockout_semifinal',
+        'knockout_bronze_match',
+        'knockout_final',
+    ]
+
+    for f in FIELDS:
+        if f in request.POST:
+            try:
+                val = int(request.POST.get(f, 0))
+                setattr(ps, f, max(0, val))
+            except (ValueError, TypeError):
+                pass
+
+    ps.save()
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Poängsystemet för "{tour.name}" sparades framgångsrikt!'
+    })
+
+
+@superuser_or_staff_required
+@require_POST
+def tournament_sidebet_save_view(request, tournament_id):
+    """Creates or updates a single Sidebet for a tournament."""
+    tour = get_object_or_404(Tournament, id=tournament_id)
+    sidebet_id = request.POST.get('sidebet_id')
+    question = request.POST.get('question', '').strip()
+    question_type = request.POST.get('question_type', 'TEXT').strip()
+    points_raw = request.POST.get('points', 5)
+    correct_answers = request.POST.get('correct_answers', '').strip()
+
+    if not question:
+        return JsonResponse({'status': 'error', 'message': 'Frågetext kan inte vara tom.'}, status=400)
+
+    try:
+        points = max(1, int(points_raw))
+    except (ValueError, TypeError):
+        points = 5
+
+    if question_type not in ['TEAM', 'TEXT']:
+        question_type = 'TEXT'
+
+    if sidebet_id:
+        sb = get_object_or_404(Sidebet, id=sidebet_id, tournament=tour)
+        sb.question = question
+        sb.question_type = question_type
+        sb.points = points
+        sb.correct_answers = correct_answers
+        sb.save()
+        msg = 'Sidebet uppdaterades.'
+    else:
+        sb = Sidebet.objects.create(
+            tournament=tour,
+            question=question,
+            question_type=question_type,
+            points=points,
+            correct_answers=correct_answers
+        )
+        msg = 'Ny sidebet skapades.'
+
+    return JsonResponse({
+        'status': 'success',
+        'message': msg,
+        'sidebet': {
+            'id': sb.id,
+            'question': sb.question,
+            'question_type': sb.question_type,
+            'points': sb.points,
+            'correct_answers': sb.correct_answers or '',
+        }
+    })
+
+
+@superuser_or_staff_required
+@require_POST
+def tournament_sidebet_delete_view(request, tournament_id, sidebet_id):
+    """Deletes a single Sidebet from a tournament."""
+    tour = get_object_or_404(Tournament, id=tournament_id)
+    sb = get_object_or_404(Sidebet, id=sidebet_id, tournament=tour)
+    q = sb.question
+    sb.delete()
+
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Sidebet "{q}" raderades.'
+    })
+
+
+

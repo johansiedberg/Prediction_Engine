@@ -232,7 +232,7 @@
         {% for group in groups %}
         <li class="nav-item" role="presentation">
             <button class="nav-link {% if forloop.first %}active{% endif %}" id="group-{{ group.id }}-tab" data-bs-toggle="pill" data-bs-target="#group-{{ group.id }}" type="button" role="tab">
-                Grupp {{ group.name }}
+                {% if "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}
             </button>
         </li>
         {% endfor %}
@@ -258,7 +258,7 @@
                 <!-- LEFT SIDE: Matches Standalone Floating Card -->
                 <div class="col-lg-7">
                     <div class="glass-card p-4">
-                        <h4 class="fw-bold text-white mb-3">Spelschema Grupp {{ group.name }}</h4>
+                        <h4 class="fw-bold text-white mb-3">Spelschema {% if "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}</h4>
                         
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle mb-0" style="border-collapse: separate; border-spacing: 0 8px;">
@@ -331,7 +331,7 @@
                 <!-- RIGHT SIDE: Live Standings Standalone Floating Card -->
                 <div class="col-lg-5">
                     <div class="standings-card p-4 sticky-top" style="top: 20px;">
-                        <h4 class="fw-bold text-white mb-3">Tabell Grupp {{ group.name }}</h4>
+                        <h4 class="fw-bold text-white mb-3">Tabell {% if "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}</h4>
                         <div class="table-responsive">
                             <table class="table table-sm align-middle standings-table mb-0" id="standings-table-g{{ group.id }}">
                                 <thead>
@@ -524,23 +524,44 @@ document.addEventListener("DOMContentLoaded", function () {
     const groupMatches = {{ group_matches_json|safe }};
 
     const countryCodeMap = {
-        'sweden': 'se', 'england': 'gb-eng', 'united kingdom': 'gb', 'wales': 'gb-wls',
-        'scotland': 'gb-sct', 'northern ireland': 'gb-nir', 'france': 'fr', 'germany': 'de',
-        'spain': 'es', 'italy': 'it', 'portugal': 'pt', 'netherlands': 'nl', 'belgium': 'be',
-        'denmark': 'dk', 'norway': 'no', 'finland': 'fi', 'iceland': 'is', 'poland': 'pl',
-        'croatia': 'hr', 'ukraine': 'ua', 'switzerland': 'ch', 'austria': 'at', 'hungary': 'hu',
-        'czech republic': 'cz', 'czechia': 'cz', 'slovakia': 'sk', 'serbia': 'rs', 'romania': 'ro',
-        'turkey': 'tr', 'türkiye': 'tr', 'greece': 'gr', 'albania': 'al', 'slovenia': 'si',
-        'georgia': 'ge', 'brazil': 'br', 'argentina': 'ar', 'uruguay': 'uy', 'colombia': 'co',
-        'chile': 'cl', 'mexico': 'mx', 'united states': 'us', 'usa': 'us', 'canada': 'ca',
-        'japan': 'jp', 'south korea': 'kr', 'australia': 'au', 'morocco': 'ma', 'senegal': 'sn',
-        'cameroon': 'cm', 'ghana': 'gh', 'nigeria': 'ng', 'bulgaria': 'bg', 'republic of ireland': 'ie',
-        'ireland': 'ie', 'montenegro': 'me', 'malta': 'mt',
+        // English
+        'sweden': 'se', 'england': 'gb-eng', 'united kingdom': 'gb', 'great britain': 'gb',
+        'wales': 'gb-wls', 'scotland': 'gb-sct', 'northern ireland': 'gb-nir', 'france': 'fr',
+        'germany': 'de', 'spain': 'es', 'italy': 'it', 'portugal': 'pt', 'netherlands': 'nl',
+        'belgium': 'be', 'denmark': 'dk', 'norway': 'no', 'finland': 'fi', 'iceland': 'is',
+        'poland': 'pl', 'croatia': 'hr', 'ukraine': 'ua', 'switzerland': 'ch', 'austria': 'at',
+        'hungary': 'hu', 'czech republic': 'cz', 'czechia': 'cz', 'slovakia': 'sk', 'serbia': 'rs',
+        'romania': 'ro', 'turkey': 'tr', 'türkiye': 'tr', 'greece': 'gr', 'albania': 'al',
+        'slovenia': 'si', 'georgia': 'ge', 'brazil': 'br', 'argentina': 'ar', 'uruguay': 'uy',
+        'colombia': 'co', 'chile': 'cl', 'mexico': 'mx', 'united states': 'us', 'usa': 'us',
+        'canada': 'ca', 'japan': 'jp', 'south korea': 'kr', 'korea republic': 'kr', 'australia': 'au',
+        'morocco': 'ma', 'senegal': 'sn', 'cameroon': 'cm', 'ghana': 'gh', 'nigeria': 'ng',
+        'bulgaria': 'bg', 'republic of ireland': 'ie', 'ireland': 'ie', 'montenegro': 'me',
+        'malta': 'mt', 'bosnia and herzegovina': 'ba', 'bosnia': 'ba', 'north macedonia': 'mk',
+        'macedonia': 'mk', 'kosovo': 'xk', 'luxembourg': 'lu', 'armenia': 'am', 'azerbaijan': 'az',
+        'cyprus': 'cy', 'estonia': 'ee', 'faroe islands': 'fo', 'latvia': 'lv', 'lithuania': 'lt',
+        'moldova': 'md', 'kazakhstan': 'kz', 'andorra': 'ad', 'gibraltar': 'gi', 'liechtenstein': 'li',
+        'san marino': 'sm', 'belarus': 'by', 'south africa': 'za', 'qatar': 'qa', 'paraguay': 'py',
+        'saudi arabia': 'sa', 'peru': 'pe', 'algeria': 'dz', 'ecuador': 'ec', 'ivory coast': 'ci',
+        'côte d\'ivoire': 'ci', 'iran': 'ir', 'egypt': 'eg', 'tunisia': 'tn', 'israel': 'il',
+
+        // Swedish
         'sverige': 'se', 'tyskland': 'de', 'frankrike': 'fr', 'spanien': 'es', 'italien': 'it',
         'nederländerna': 'nl', 'belgien': 'be', 'österrike': 'at', 'schweiz': 'ch', 'tjeckien': 'cz',
         'slovakien': 'sk', 'kroatien': 'hr', 'nordirland': 'gb-nir', 'skottland': 'gb-sct',
         'turkiet': 'tr', 'grekland': 'gr', 'ungern': 'hu', 'irland': 'ie', 'bulgarien': 'bg',
-        'norge': 'no', 'danmark': 'dk', 'finland': 'fi', 'island': 'is', 'polen': 'pl', 'serbien': 'rs'
+        'norge': 'no', 'danmark': 'dk', 'finland': 'fi', 'island': 'is', 'polen': 'pl',
+        'serbien': 'rs', 'bosnien och hercegovina': 'ba', 'bosnien': 'ba', 'nordmakedonien': 'mk',
+        'luxemburg': 'lu', 'armenien': 'am', 'azerbajdzjan': 'az', 'cypern': 'cy', 'estland': 'ee',
+        'färöarna': 'fo', 'lettland': 'lv', 'litauen': 'lt', 'ukraina': 'ua', 'moldavien': 'md',
+        'kazakstan': 'kz', 'rumänien': 'ro', 'georgien': 'ge', 'albanien': 'al', 'slovenien': 'si',
+        'montenegro': 'me', 'malta': 'mt', 'gibraltar': 'gi', 'andorra': 'ad', 'san marino': 'sm',
+        'liechtenstein': 'li', 'belarus': 'by', 'vitryssland': 'by', 'israel': 'il',
+        'mexiko': 'mx', 'sydafrika': 'za', 'sydkorea': 'kr', 'kanada': 'ca', 'kamerun': 'cm',
+        'marocko': 'ma', 'australien': 'au', 'brasilien': 'br', 'algeriet': 'dz', 'ecuador': 'ec',
+        'egypten': 'eg', 'elfenbenskusten': 'ci', 'paraguay': 'py', 'peru': 'pe', 'qatar': 'qa',
+        'saudiarabien': 'sa', 'tunisien': 'tn', 'usa': 'us', 'japan': 'jp', 'senegal': 'sn',
+        'ghana': 'gh', 'nigeria': 'ng', 'chile': 'cl', 'colombia': 'co', 'uruguay': 'uy', 'argentina': 'ar'
     };
 
     function getFlagCode(teamName) {
@@ -622,6 +643,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!tableBody) return;
         tableBody.innerHTML = '';
 
+        const isQualifyingTournament = {% if active_tournament.has_runners_up_table or is_qualifying %}true{% else %}false{% endif %};
+        const hasBestThirdsTable = {% if active_tournament.has_best_thirds_table or not is_qualifying %}true{% else %}false{% endif %};
+
         sortedTeams.forEach((team, index) => {
             const s = stats[team];
             const flagCode = getFlagCode(team);
@@ -631,9 +655,51 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const rankClass = index === 0 ? 'rank-1' : (index === 1 ? 'rank-2' : (index === 2 ? 'rank-3' : 'rank-4'));
 
+            let borderStyle = 'border-bottom: none !important;';
+            let rowOpacity = 'opacity: 1;';
+            let textColor = 'text-white';
+
+            if (isQualifyingTournament) {
+                if (index === 0) {
+                    borderStyle = 'border-bottom: 1.5px dashed rgba(255, 255, 255, 0.7) !important;';
+                    textColor = 'text-white';
+                } else if (index === 1) {
+                    borderStyle = 'border-bottom: 2px solid rgba(255, 255, 255, 0.85) !important;';
+                    rowOpacity = 'opacity: 0.82;';
+                    textColor = 'text-slate-200';
+                } else {
+                    rowOpacity = 'opacity: 0.35;';
+                    textColor = 'text-secondary';
+                }
+            } else if (hasBestThirdsTable) {
+                if (index < 2) {
+                    if (index === 1) {
+                        borderStyle = 'border-bottom: 1.5px dashed rgba(255, 255, 255, 0.7) !important;';
+                    }
+                    textColor = 'text-white';
+                } else if (index === 2) {
+                    borderStyle = 'border-bottom: 2px solid rgba(255, 255, 255, 0.85) !important;';
+                    rowOpacity = 'opacity: 0.82;';
+                    textColor = 'text-slate-200';
+                } else {
+                    rowOpacity = 'opacity: 0.35;';
+                    textColor = 'text-secondary';
+                }
+            } else {
+                if (index < 2) {
+                    if (index === 1) {
+                        borderStyle = 'border-bottom: 2px solid rgba(255, 255, 255, 0.85) !important;';
+                    }
+                    textColor = 'text-white';
+                } else {
+                    rowOpacity = 'opacity: 0.35;';
+                    textColor = 'text-secondary';
+                }
+            }
+
             const row = `
-                <tr>
-                    <td class="fw-bold text-white px-3 py-2 d-flex align-items-center">
+                <tr style="${borderStyle} ${rowOpacity}" class="${textColor}">
+                    <td class="fw-bold px-3 py-2 d-flex align-items-center">
                         <span class="rank-badge ${rankClass} me-2">${index + 1}</span>
                         ${flagHtml}${team}
                     </td>
@@ -665,7 +731,7 @@ document.addEventListener("DOMContentLoaded", function () {
             let homeRaw = row.getAttribute('data-home-raw') || '';
             let awayRaw = row.getAttribute('data-away-raw') || '';
 
-            // Resolve placeholder codes like A1, B2, Winner Match 37
+            // Resolve placeholder codes like 1st Group A, 3rd Group C/E/F/H/I, A1, B2, Winner Match 37
             let homeResolved = resolvePlaceholder(homeRaw, matchWinners, matchLosers);
             let awayResolved = resolvePlaceholder(awayRaw, matchWinners, matchLosers);
 
@@ -724,26 +790,20 @@ document.addEventListener("DOMContentLoaded", function () {
                     loser = homeResolved;
                     if (tiebreakerBox) tiebreakerBox.style.display = 'none';
                 } else {
-                    // DRAW: Tiebreaker required!
-                    if (tiebreakerBox) tiebreakerBox.style.display = 'block';
+                    if (tiebreakerBox) tiebreakerBox.style.display = 'flex';
                     const selectedTb = hiddenTbInput ? hiddenTbInput.value : '';
 
-                    if (selectedTb === homeResolved) {
-                        winner = homeResolved;
-                        loser = awayResolved;
-                        if (homeTbBtn) homeTbBtn.classList.add('active');
-                        if (awayTbBtn) awayTbBtn.classList.remove('active');
-                    } else if (selectedTb === awayResolved) {
+                    if (selectedTb === awayResolved) {
                         winner = awayResolved;
                         loser = homeResolved;
-                        if (awayTbBtn) awayTbBtn.classList.add('active');
-                        if (homeTbBtn) homeTbBtn.classList.remove('active');
+                        if (awayTbBtn) { awayTbBtn.classList.add('active-pill'); awayTbBtn.classList.remove('inactive-pill'); }
+                        if (homeTbBtn) { homeTbBtn.classList.add('inactive-pill'); homeTbBtn.classList.remove('active-pill'); }
                     } else {
-                        // Default to home team if not yet picked
                         if (hiddenTbInput) hiddenTbInput.value = homeResolved;
                         winner = homeResolved;
                         loser = awayResolved;
-                        if (homeTbBtn) homeTbBtn.classList.add('active');
+                        if (homeTbBtn) { homeTbBtn.classList.add('active-pill'); homeTbBtn.classList.remove('inactive-pill'); }
+                        if (awayTbBtn) { awayTbBtn.classList.add('inactive-pill'); awayTbBtn.classList.remove('active-pill'); }
                     }
                 }
             } else {
@@ -759,34 +819,91 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!rawStr) return 'TBD';
         const str = rawStr.trim();
 
-        // 1. Group Standing placeholders e.g. A1, B2
-        const groupMatch = str.match(/^([A-F])([1-4])$/i);
-        if (groupMatch) {
-            const grpLetter = groupMatch[1].toUpperCase();
-            const posIndex = parseInt(groupMatch[2], 10) - 1;
-
-            const grpId = Object.keys(groupsData).find(id => {
-                const groupPane = document.getElementById(`group-${id}`);
-                return groupPane && groupPane.innerHTML.includes(`Spelschema Group ${grpLetter}`);
-            });
-
-            if (grpId && groupStandingsResults[grpId] && groupStandingsResults[grpId][posIndex]) {
-                return groupStandingsResults[grpId][posIndex];
-            }
-        }
-
-        // 2. Winner of Match X
-        const winMatch = str.match(/^Winner Match (\d+)$/i) || str.match(/^Vinnare Match (\d+)$/i) || str.match(/^Vinnare M(\d+)$/i);
+        // 1. Winner / Loser matches (e.g. Winner Match 37, Vinnare Match 37, Winner M37, Loser Match 49)
+        const winMatch = str.match(/^(?:Winner|Vinnare)\s+(?:Match\s+|M)?(\d+)$/i);
         if (winMatch) {
             const mNum = winMatch[1];
             return winnersMap[mNum] || `Vinnare M${mNum}`;
         }
 
-        // 3. Loser of Match X
-        const loseMatch = str.match(/^Loser Match (\d+)$/i) || str.match(/^FÖRLORARE Match (\d+)$/i) || str.match(/^Förlorare M(\d+)$/i);
+        const loseMatch = str.match(/^(?:Loser|Förlorare)\s+(?:Match\s+|M)?(\d+)$/i);
         if (loseMatch) {
             const mNum = loseMatch[1];
             return losersMap[mNum] || `Förlorare M${mNum}`;
+        }
+
+        // 2. Group placement placeholders:
+        // "1st Group A", "2nd Group B", "3rd Group C", "1:a Grupp A", "1A", "2B", "A1", "B2"
+        let idx = null;
+        let grpLetter = null;
+
+        const mFull = str.match(/^(\d+)(?:st|nd|rd|th|:a)?\s+(?:Group|Grupp)\s+([A-L])$/i);
+        if (mFull) {
+            idx = parseInt(mFull[1], 10) - 1;
+            grpLetter = mFull[2].toUpperCase();
+        } else {
+            const mRev = str.match(/^([1-5])([A-L])$/i);
+            if (mRev) {
+                idx = parseInt(mRev[1], 10) - 1;
+                grpLetter = mRev[2].toUpperCase();
+            } else {
+                const mShort = str.match(/^([A-L])([1-5])$/i);
+                if (mShort) {
+                    grpLetter = mShort[1].toUpperCase();
+                    idx = parseInt(mShort[2], 10) - 1;
+                }
+            }
+        }
+
+        if (grpLetter && idx !== null) {
+            const grpId = Object.keys(groupsData).find(id => {
+                const groupPane = document.getElementById(`group-${id}`);
+                return groupPane && (groupPane.innerHTML.includes(`Spelschema Grupp ${grpLetter}`) || groupPane.innerHTML.includes(`Group ${grpLetter}`) || groupPane.innerHTML.includes(`Grupp ${grpLetter}`));
+            });
+
+            if (grpId && groupStandingsResults[grpId] && groupStandingsResults[grpId][idx]) {
+                return groupStandingsResults[grpId][idx];
+            }
+        }
+
+        // 3. 3rd-place combo placeholders:
+        // "3rd Group C/E/F/H/I", "3rd Group D/E/F", "3DEF", "3ABCD", "DEF3"
+        let grpLetters = [];
+        const mThirdSlash = str.match(/^(?:3rd\s+(?:Group\s+)?)?([A-L](?:\/[A-L])+)/i);
+        if (mThirdSlash) {
+            grpLetters = mThirdSlash[1].toUpperCase().split('/');
+        } else {
+            const thirdComboMatch = str.match(/^3?([A-L]{2,6})3?$/i);
+            if (thirdComboMatch) {
+                grpLetters = thirdComboMatch[1].toUpperCase().split('');
+            }
+        }
+
+        if (grpLetters.length > 0) {
+            let candidateThirds = [];
+            grpLetters.forEach(letItem => {
+                const grpId = Object.keys(groupsData).find(id => {
+                    const groupPane = document.getElementById(`group-${id}`);
+                    return groupPane && (groupPane.innerHTML.includes(`Spelschema Grupp ${letItem}`) || groupPane.innerHTML.includes(`Group ${letItem}`) || groupPane.innerHTML.includes(`Grupp ${letItem}`));
+                });
+                if (grpId && groupStandingsResults[grpId] && groupStandingsResults[grpId][2] && groupStatsMap[grpId]) {
+                    const teamName = groupStandingsResults[grpId][2];
+                    const teamStats = groupStatsMap[grpId][teamName];
+                    if (teamStats) {
+                        candidateThirds.push({ team: teamName, stats: teamStats });
+                    }
+                }
+            });
+
+            if (candidateThirds.length > 0) {
+                candidateThirds.sort((a, b) => {
+                    if (b.stats.points !== a.stats.points) return b.stats.points - a.stats.points;
+                    if (b.stats.gd !== a.stats.gd) return b.stats.gd - a.stats.gd;
+                    if (b.stats.gf !== a.stats.gf) return b.stats.gf - a.stats.gf;
+                    return b.stats.won - a.stats.won;
+                });
+                return candidateThirds[0].team;
+            }
         }
 
         return str;

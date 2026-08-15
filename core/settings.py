@@ -49,6 +49,10 @@ INSTALLED_APPS = [
     'tournament',
 ]
 
+# Shared Single Sign-On Secret Key for credentials-free redirection from Social Hub
+HERRKLUBB_SSO_SECRET = 'toarps-herrklubb-sso-secret-key-1981-2028'
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

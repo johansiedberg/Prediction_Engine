@@ -2,25 +2,32 @@ from django.urls import path
 from django.contrib.auth.views import LogoutView
 from .views import (
     CustomLoginView, dashboard_view, predictions_view, upload_avatar_view,
-    hub_view, join_league_view, switch_league_view,
+    hub_view, join_league_view, switch_league_view, sso_login_view,
     # Engine Admin (Port 2029)
     create_admin_user_view,
     engine_admin_dashboard_view, engine_admin_validate_tournament,
     engine_admin_simulate_tournament, engine_admin_reset_simulation,
     engine_admin_toggle_publish, engine_admin_preview_tournament,
     engine_admin_pool_requests_view, engine_admin_approve_pool_request_view,
-    engine_admin_reject_pool_request_view,
+    engine_admin_reject_pool_request_view, engine_admin_update_tournament,
+    tournament_points_sidebets_get_view, tournament_points_save_view,
+    tournament_sidebet_save_view, tournament_sidebet_delete_view,
+    scout_import_json_view, scout_convert_view, scout_update_status_view,
+    scout_delete_view, scout_prospect_json_view, scout_scrape_web_view,
     # Pool Admin (Port 2028)
+    pool_admin_hub_view, create_pool_direct_view,
     request_pool_admin_view, pool_admin_dashboard_view,
+    pool_admin_tournament_config_view,
     verify_member_view, update_pool_branding_view,
     pool_admin_add_player_view, pool_admin_remove_player_view,
     update_pool_points_view, add_pool_sidebet_view,
     pool_admin_add_self_view, pool_admin_reset_password_view,
-    toggle_tournament_player_view,
+    toggle_tournament_player_view, toggle_pool_tournament_view,
 )
 
 urlpatterns = [
     path('', CustomLoginView.as_view(), name='login'),
+    path('sso/login/', sso_login_view, name='sso_login'),
     path('hub/', hub_view, name='hub'),
     path('dashboard/', dashboard_view, name='dashboard'),
     path('predictions/', predictions_view, name='predictions'),
@@ -30,8 +37,11 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
 
     # Pool Admin Portal (Port 2028)
+    path('pool-admin/', pool_admin_hub_view, name='pool_admin_hub'),
+    path('pool-admin/create/', create_pool_direct_view, name='create_pool_direct'),
     path('pool-admin/request/', request_pool_admin_view, name='request_pool_admin'),
     path('pool-admin/<int:league_id>/', pool_admin_dashboard_view, name='pool_admin_dashboard'),
+    path('pool-admin/<int:league_id>/tournament/<int:tournament_id>/', pool_admin_tournament_config_view, name='pool_admin_tournament_config'),
     path('pool-admin/verify-member/<int:member_id>/', verify_member_view, name='verify_member'),
     path('pool-admin/branding/<int:league_id>/', update_pool_branding_view, name='update_pool_branding'),
     path('pool-admin/<int:league_id>/add-player/', pool_admin_add_player_view, name='pool_admin_add_player'),
@@ -41,6 +51,7 @@ urlpatterns = [
     path('pool-admin/<int:league_id>/points/', update_pool_points_view, name='update_pool_points'),
     path('pool-admin/<int:league_id>/sidebet/', add_pool_sidebet_view, name='add_pool_sidebet'),
     path('pool-admin/<int:league_id>/toggle-player/<int:tournament_id>/<int:user_id>/', toggle_tournament_player_view, name='toggle_tournament_player'),
+    path('pool-admin/<int:league_id>/toggle-tournament/<int:tournament_id>/', toggle_pool_tournament_view, name='toggle_pool_tournament'),
 
     # Engine Admin Routes (Port 2029)
     path('engine-admin/create-admin-user/', create_admin_user_view, name='create_admin_user'),
@@ -53,4 +64,16 @@ urlpatterns = [
     path('engine-admin/pool-requests/', engine_admin_pool_requests_view, name='engine_admin_pool_requests'),
     path('engine-admin/pool-requests/approve/<int:request_id>/', engine_admin_approve_pool_request_view, name='engine_admin_approve_pool_request'),
     path('engine-admin/pool-requests/reject/<int:request_id>/', engine_admin_reject_pool_request_view, name='engine_admin_reject_pool_request'),
+    # Engine Admin Tournament Points & Sidebets Management Routes
+    path('engine-admin/tournament/<int:tournament_id>/points-sidebets/', tournament_points_sidebets_get_view, name='engine_admin_tournament_points_sidebets'),
+    path('engine-admin/tournament/<int:tournament_id>/save-points/', tournament_points_save_view, name='engine_admin_tournament_save_points'),
+    path('engine-admin/tournament/<int:tournament_id>/save-sidebet/', tournament_sidebet_save_view, name='engine_admin_tournament_save_sidebet'),
+    path('engine-admin/tournament/<int:tournament_id>/delete-sidebet/<int:sidebet_id>/', tournament_sidebet_delete_view, name='engine_admin_tournament_delete_sidebet'),
+    # AI Tournament Scout Routes
+    path('engine-admin/scout/import-json/', scout_import_json_view, name='scout_import_json'),
+    path('engine-admin/scout/scrape-now/', scout_scrape_web_view, name='scout_scrape_web'),
+    path('engine-admin/scout/convert/<int:prospect_id>/', scout_convert_view, name='scout_convert'),
+    path('engine-admin/scout/status/<int:prospect_id>/', scout_update_status_view, name='scout_update_status'),
+    path('engine-admin/scout/delete/<int:prospect_id>/', scout_delete_view, name='scout_delete'),
+    path('engine-admin/scout/prospect/<int:prospect_id>/json/', scout_prospect_json_view, name='scout_prospect_json'),
 ]

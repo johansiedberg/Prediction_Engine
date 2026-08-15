@@ -17,3 +17,9 @@ media/
 .idea/
 .antigravity/
 .gemini/
+
+# OS metadata
+.DS_Store
+*.DS_Store
+Thumbs.db
+

@@ -89,3 +89,86 @@ class EngineHubTestCase(TestCase):
         response = self.client.post('/league/join/', {'invite_code': 'ENGINE8'}, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(LeagueMember.objects.filter(league=self.league, player=self.user).exists())
+
+
+class EngineAdminTournamentUpdateTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser('admin_user', 'admin@engine.test', 'adminpass123')
+        self.staff = User.objects.create_user('staff_user', 'staff@engine.test', 'staffpass123', is_staff=True)
+        self.normal_user = User.objects.create_user('player1', 'p1@engine.test', 'playerpass123')
+        self.tournament = Tournament.objects.create(name='Original Tournament Name', admin=self.admin)
+
+    def test_update_tournament_name_by_admin(self):
+        self.client.login(username='admin_user', password='adminpass123')
+        response = self.client.post(
+            f'/engine-admin/update-tournament/{self.tournament.id}/',
+            {'name': 'UEFA Euro 2028 UK & Ireland'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_HOST='localhost:2029'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+        self.tournament.refresh_from_db()
+        self.assertEqual(self.tournament.name, 'UEFA Euro 2028 UK & Ireland')
+
+    def test_update_tournament_upload_images(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.client.login(username='staff_user', password='staffpass123')
+
+        # 1x1 transparent PNG bytes
+        dummy_png = (
+            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06'
+            b'\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01'
+            b'\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+        )
+        icon_file = SimpleUploadedFile("euro28_logo.png", dummy_png, content_type="image/png")
+        backdrop_file = SimpleUploadedFile("euro28_backdrop.png", dummy_png, content_type="image/png")
+
+        response = self.client.post(
+            f'/engine-admin/update-tournament/{self.tournament.id}/',
+            {
+                'name': 'Updated UEFA Euro 2028',
+                'icon': icon_file,
+                'backdrop': backdrop_file,
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_HOST='localhost:2029'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertIsNotNone(data['tournament']['icon_url'])
+        self.assertIsNotNone(data['tournament']['backdrop_url'])
+
+        self.tournament.refresh_from_db()
+        self.assertTrue(bool(self.tournament.icon))
+        self.assertTrue(bool(self.tournament.backdrop))
+
+        # Test clear images
+        clear_response = self.client.post(
+            f'/engine-admin/update-tournament/{self.tournament.id}/',
+            {
+                'name': 'Updated UEFA Euro 2028',
+                'clear_icon': '1',
+                'clear_backdrop': '1',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_HOST='localhost:2029'
+        )
+        self.assertEqual(clear_response.status_code, 200)
+        self.tournament.refresh_from_db()
+        self.assertFalse(bool(self.tournament.icon))
+        self.assertFalse(bool(self.tournament.backdrop))
+
+    def test_unauthorized_user_forbidden(self):
+        self.client.login(username='player1', password='playerpass123')
+        response = self.client.post(
+            f'/engine-admin/update-tournament/{self.tournament.id}/',
+            {'name': 'Hacked Name'},
+            HTTP_HOST='localhost:2029'
+        )
+        self.tournament.refresh_from_db()
+        self.assertEqual(self.tournament.name, 'Original Tournament Name')
+        self.assertNotEqual(self.tournament.name, 'Hacked Name')
+

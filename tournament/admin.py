@@ -109,6 +109,7 @@ class LeagueAdmin(admin.ModelAdmin):
     list_display = ('name', 'invite_code', 'admin', 'master_event', 'is_active', 'is_actual_knockout_open')
     list_editable = ('is_active', 'is_actual_knockout_open')
     search_fields = ('name', 'invite_code', 'admin__username')
+    filter_horizontal = ('tournaments',)
 
 
 @admin.register(PlayerPersona)
@@ -133,10 +134,62 @@ class LeagueMemberAdmin(admin.ModelAdmin):
 
 @admin.register(Tournament)
 class TournamentAdmin(admin.ModelAdmin):
-    list_display = ('name', 'is_active', 'is_actual_knockout_open')
-    list_editable = ('is_active', 'is_actual_knockout_open')
+    list_display = ('name', 'icon_preview_thumb', 'is_active', 'is_paused', 'is_actual_knockout_open')
+    list_editable = ('is_active', 'is_paused', 'is_actual_knockout_open')
+    search_fields = ('name',)
+    readonly_fields = ('icon_preview', 'backdrop_preview')
     inlines = [PointSystemInline, GroupInline, TeamInline, KnockoutStageInline, MatchInline, SidebetInline]
     filter_horizontal = ('players',)
+
+    fieldsets = (
+        ('1. Grundinformation & Status', {
+            'fields': ('name', 'admin', 'is_active', 'is_paused', 'is_actual_knockout_open')
+        }),
+        ('2. Branding & Visuellt tema', {
+            'description': 'Ladda upp turneringslogotyp (emblem/ikon) och bakgrundsbild (backdrop banner).',
+            'fields': (
+                'icon',
+                'icon_preview',
+                'backdrop',
+                'backdrop_preview',
+            )
+        }),
+        ('3. Slutspels- & Rankningsregler', {
+            'fields': ('has_runners_up_table', 'has_host_ranking_table', 'has_best_thirds_table')
+        }),
+        ('4. Deltagande Spelare', {
+            'classes': ('collapse',),
+            'fields': ('players',)
+        }),
+    )
+
+    def icon_preview_thumb(self, obj):
+        if obj.icon:
+            return format_html('<img src="{}" style="height: 28px; width: 28px; object-fit: contain; vertical-align: middle; border-radius: 4px;" />', obj.icon.url)
+        return format_html('<span style="color: #999; font-size: 0.8rem;">Standardikon</span>')
+    icon_preview_thumb.short_description = "Logotyp"
+
+    def icon_preview(self, obj):
+        if obj.icon:
+            return format_html(
+                '<div style="margin-top: 5px;">'
+                '<img src="{}" style="max-height: 80px; max-width: 160px; object-fit: contain; border-radius: 6px; padding: 4px; background: #0B0F19; border: 1px solid #374151;" />'
+                '</div>',
+                obj.icon.url
+            )
+        return format_html('<span style="color: #999;">Ingen specifik logotyp uppladdad (standardikon används).</span>')
+    icon_preview.short_description = "Förhandsgranskning Logotyp"
+
+    def backdrop_preview(self, obj):
+        if obj.backdrop:
+            return format_html(
+                '<div style="margin-top: 5px;">'
+                '<img src="{}" style="max-height: 120px; max-width: 320px; object-fit: cover; border-radius: 8px; border: 1px solid #374151;" />'
+                '</div>',
+                obj.backdrop.url
+            )
+        return format_html('<span style="color: #999;">Ingen specifik bakgrundsbild uppladdad (standardbakgrund används).</span>')
+    backdrop_preview.short_description = "Förhandsgranskning Bakgrund"
 
     class Media:
         css = {

@@ -1,3 +1,4 @@
+import secrets
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -7,6 +8,82 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from tournament.models import League, LeagueMember, Tournament, PoolAdminRequest, MasterEvent
 from tournament.services.pool_admin_service import get_player_progress_matrix
+
+
+@login_required
+def pool_admin_hub_view(request):
+    """Mina Pooler Hub: Overview of all pools managed by the user with direct creation modal."""
+    if request.user.is_superuser:
+        managed_leagues = League.objects.all().prefetch_related('members', 'tournaments').order_by('-created_at')
+    else:
+        managed_leagues = League.objects.filter(admin=request.user).prefetch_related('members', 'tournaments').order_by('-created_at')
+
+    pending_request = PoolAdminRequest.objects.filter(user=request.user, status='PENDING').first()
+
+    leagues_data = []
+    for l in managed_leagues:
+        active_t_count = l.tournaments.filter(is_active=True).count()
+        members_count = l.members.count()
+        verified_count = l.members.filter(is_verified=True).count()
+        leagues_data.append({
+            'league': l,
+            'active_t_count': active_t_count,
+            'members_count': members_count,
+            'verified_count': verified_count,
+        })
+
+    context = {
+        'leagues_data': leagues_data,
+        'managed_leagues': managed_leagues,
+        'pending_request': pending_request,
+    }
+    return render(request, 'tournament/pool_admin_hub.html', context)
+
+
+@login_required
+@require_POST
+def create_pool_direct_view(request):
+    """Allows an approved pool admin or superuser to directly create a new pool."""
+    pool_name = request.POST.get('pool_name', '').strip()
+    description = request.POST.get('description', '').strip()
+    invite_code = request.POST.get('invite_code', '').strip().upper()
+    primary_color = request.POST.get('primary_color', '#10b981').strip()
+
+    if not pool_name:
+        messages.error(request, "Vänligen ange ett namn på din pool.")
+        return redirect('pool_admin_hub')
+
+    if invite_code:
+        if League.objects.filter(invite_code=invite_code).exists():
+            messages.error(request, f"Pool ID '{invite_code}' används redan. Välj en annan unik kod.")
+            return redirect('pool_admin_hub')
+    else:
+        invite_code = secrets.token_hex(3).upper()
+        while League.objects.filter(invite_code=invite_code).exists():
+            invite_code = secrets.token_hex(3).upper()
+
+    league = League.objects.create(
+        name=pool_name,
+        description=description,
+        admin=request.user,
+        invite_code=invite_code,
+        primary_color=primary_color,
+    )
+
+    if 'logo' in request.FILES:
+        league.logo = request.FILES['logo']
+        league.save()
+
+    # Automatically add creator as verified member
+    LeagueMember.objects.create(
+        league=league,
+        player=request.user,
+        is_verified=True
+    )
+
+    messages.success(request, f"Poolen '{pool_name}' (ID: {invite_code}) har skapats!")
+    return redirect('pool_admin_dashboard', league_id=league.id)
+
 
 @ensure_csrf_cookie
 def request_pool_admin_view(request):
@@ -38,7 +115,7 @@ def request_pool_admin_view(request):
                 user_league = League.objects.filter(admin=user).first()
                 if user_league:
                     messages.success(request, f"Välkommen tillbaka, {user.first_name or user.username}!")
-                    return redirect('pool_admin_dashboard', league_id=user_league.id)
+                    return redirect('pool_admin_hub')
                 else:
                     messages.info(request, "Välkommen! Din Pool-Admin ansökan behandlas eller har inte aktiverats än.")
                     return redirect('request_pool_admin')
@@ -106,49 +183,102 @@ def request_pool_admin_view(request):
         'pending_request': pending_request
     })
 
+
 @login_required
 def pool_admin_dashboard_view(request, league_id):
-    from tournament.models import LeaguePointSystem, Sidebet
+    """Individual Pool Dashboard: Members list & active pool tournaments with visual tournament browser."""
     league = get_object_or_404(League, id=league_id)
 
     if league.admin != request.user and not request.user.is_superuser:
         return HttpResponseForbidden("Du har inte behörighet att administrera denna liga.")
 
-    active_tournaments = Tournament.objects.filter(is_active=True)
-
-    # Selected tournament selection: Pool Admin MUST explicitly choose a Tournament first!
-    selected_tournament_id = request.GET.get('tournament_id')
-    selected_tournament = None
-    if selected_tournament_id:
-        selected_tournament = active_tournaments.filter(id=selected_tournament_id).first()
-
-    point_system, _ = LeaguePointSystem.objects.get_or_create(league=league)
-
-    if selected_tournament:
-        sidebets = Sidebet.objects.filter(tournament=selected_tournament)
-        players_data = get_player_progress_matrix(league, selected_tournament)
-        enrolled_user_ids = set(selected_tournament.players.values_list('id', flat=True))
+    # All user's managed leagues for fast header switcher
+    if request.user.is_superuser:
+        all_managed_leagues = League.objects.all().order_by('name')
     else:
-        sidebets = Sidebet.objects.none()
-        players_data = []
-        enrolled_user_ids = set()
+        all_managed_leagues = League.objects.filter(admin=request.user).order_by('name')
+
+    # Tournaments active in THIS pool
+    pool_tournaments = league.tournaments.filter(is_active=True).prefetch_related('sidebets', 'players')
+    pool_tournament_ids = set(pool_tournaments.values_list('id', flat=True))
+
+    # All globally active tournaments in engine (Available for this pool)
+    available_tournaments = Tournament.objects.filter(is_active=True).exclude(id__in=pool_tournament_ids)
+
+    # Paused / Inactive / Coming tournaments in engine
+    coming_tournaments = Tournament.objects.filter(is_active=False)
+
+    # Members in this pool
+    members = league.members.all().select_related('player').order_by('player__first_name', 'player__username')
 
     # Check if admin is enrolled as player
     is_admin_enrolled = league.members.filter(player=request.user).exists()
 
     context = {
         'league': league,
-        'point_system': point_system,
-        'active_tournaments': active_tournaments,
-        'selected_tournament': selected_tournament,
-        'master_events': MasterEvent.objects.filter(is_active=True),
-        'sidebets': sidebets,
-        'players_data': players_data,
+        'all_managed_leagues': all_managed_leagues,
+        'pool_tournaments': pool_tournaments,
+        'available_tournaments': available_tournaments,
+        'coming_tournaments': coming_tournaments,
+        'members': members,
         'is_admin_enrolled': is_admin_enrolled,
-        'enrolled_user_ids': enrolled_user_ids,
-        'members': league.members.all().select_related('player')
     }
     return render(request, 'tournament/pool_admin.html', context)
+
+
+@login_required
+def pool_admin_tournament_config_view(request, league_id, tournament_id):
+    """Dedicated configuration workspace for a single tournament inside a pool."""
+    from tournament.models import LeaguePointSystem, Sidebet
+    league = get_object_or_404(League, id=league_id)
+
+    if league.admin != request.user and not request.user.is_superuser:
+        return HttpResponseForbidden("Du har inte behörighet att administrera denna liga.")
+
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    is_active_in_pool = league.tournaments.filter(id=tournament.id).exists()
+
+    point_system, _ = LeaguePointSystem.objects.get_or_create(league=league)
+    sidebets = Sidebet.objects.filter(tournament=tournament)
+    players_data = get_player_progress_matrix(league, tournament)
+    enrolled_user_ids = set(tournament.players.values_list('id', flat=True))
+    members = league.members.all().select_related('player').order_by('player__first_name', 'player__username')
+
+    context = {
+        'league': league,
+        'tournament': tournament,
+        'is_active_in_pool': is_active_in_pool,
+        'point_system': point_system,
+        'sidebets': sidebets,
+        'players_data': players_data,
+        'enrolled_user_ids': enrolled_user_ids,
+        'members': members,
+    }
+    return render(request, 'tournament/pool_admin_tournament_config.html', context)
+
+
+@login_required
+@require_POST
+def toggle_pool_tournament_view(request, league_id, tournament_id):
+    """Activates or deactivates a tournament for this individual pool."""
+    league = get_object_or_404(League, id=league_id)
+    if league.admin != request.user and not request.user.is_superuser:
+        return HttpResponseForbidden("Åtkomst nekad.")
+
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    action = request.POST.get('action')
+    return_to = request.POST.get('return_to', 'dashboard')
+
+    if action == 'deactivate' or (not action and tournament in league.tournaments.all()):
+        league.tournaments.remove(tournament)
+        messages.info(request, f"Turneringen '{tournament.name}' har kopplats bort från {league.name}.")
+    else:
+        league.tournaments.add(tournament)
+        messages.success(request, f"Turneringen '{tournament.name}' är nu aktiverad för {league.name}!")
+
+    if return_to == 'config':
+        return redirect('pool_admin_tournament_config', league_id=league.id, tournament_id=tournament.id)
+    return redirect('pool_admin_dashboard', league_id=league.id)
 
 
 @login_required
@@ -164,6 +294,9 @@ def toggle_tournament_player_view(request, league_id, tournament_id, user_id):
 
     tournament = get_object_or_404(Tournament, id=tournament_id)
     player = get_object_or_404(User, id=user_id)
+
+    # Ensure tournament is active in this pool when connecting players
+    league.tournaments.add(tournament)
 
     if player in tournament.players.all():
         tournament.players.remove(player)
@@ -187,7 +320,7 @@ def toggle_tournament_player_view(request, league_id, tournament_id, user_id):
         })
 
     messages.success(request, msg)
-    return redirect(f"/pool-admin/{league.id}/?tournament_id={tournament.id}#sec-participants")
+    return redirect('pool_admin_tournament_config', league_id=league.id, tournament_id=tournament.id)
 
 
 @login_required
@@ -354,6 +487,12 @@ def update_pool_points_view(request, league_id):
     if league.admin != request.user and not request.user.is_superuser:
         return HttpResponseForbidden("Åtkomst nekad.")
 
+    tournament_id = request.POST.get('tournament_id')
+    if tournament_id:
+        t_obj = Tournament.objects.filter(id=tournament_id).first()
+        if t_obj:
+            league.tournaments.add(t_obj)
+
     point_system, _ = LeaguePointSystem.objects.get_or_create(league=league)
 
     # Match scoring
@@ -380,7 +519,9 @@ def update_pool_points_view(request, league_id):
 
     point_system.save()
     messages.success(request, "Poängreglerna har sparats för din pool!")
-    return redirect(f"/pool-admin/{league.id}/#sec-set-points")
+    if tournament_id:
+        return redirect('pool_admin_tournament_config', league_id=league.id, tournament_id=tournament_id)
+    return redirect('pool_admin_dashboard', league_id=league.id)
 
 
 @login_required
@@ -402,6 +543,7 @@ def add_pool_sidebet_view(request, league_id):
         return redirect('pool_admin_dashboard', league_id=league.id)
 
     tournament = get_object_or_404(Tournament, id=tournament_id)
+    league.tournaments.add(tournament)
     Sidebet.objects.create(
         tournament=tournament,
         question=question,
@@ -410,4 +552,4 @@ def add_pool_sidebet_view(request, league_id):
     )
 
     messages.success(request, f"Egen bonusfråga '{question}' ({points}p) har skapats för {tournament.name}!")
-    return redirect(f"/pool-admin/{league.id}/?tournament_id={tournament.id}#sec-sidebets")
+    return redirect('pool_admin_tournament_config', league_id=league.id, tournament_id=tournament.id)

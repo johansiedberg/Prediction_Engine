@@ -85,8 +85,9 @@
 
                     <!-- Clean Text Navigation Menu (No buttons, no emojis) -->
                     <ul class="nav gap-2 align-items-center mb-0" id="mainMenuNav" role="tablist">
+                        {% if is_verified or is_admin %}
                         <li class="nav-item" role="presentation">
-                            <button class="main-nav-link {% if active_tab_name == 'home' or not active_tab_name %}active{% endif %}" id="tab-home-link" data-bs-toggle="tab" data-bs-target="#tab-home" type="button" role="tab" aria-controls="tab-home" aria-selected="{% if active_tab_name == 'home' or not active_tab_name %}true{% else %}false{% endif %}">Hem</button>
+                            <button class="main-nav-link {% if active_tab_name == 'home' %}active{% endif %}" id="tab-home-link" data-bs-toggle="tab" data-bs-target="#tab-home" type="button" role="tab" aria-controls="tab-home" aria-selected="{% if active_tab_name == 'home' %}true{% else %}false{% endif %}">Hem</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="main-nav-link {% if active_tab_name == 'results' %}active{% endif %}" id="tab-results-link" data-bs-toggle="tab" data-bs-target="#tab-results" type="button" role="tab" aria-controls="tab-results" aria-selected="{% if active_tab_name == 'results' %}true{% else %}false{% endif %}">Resultat</button>
@@ -103,6 +104,36 @@
                         <li class="nav-item" role="presentation">
                             <button class="main-nav-link {% if active_tab_name == 'rules' %}active{% endif %}" id="tab-rules-link" data-bs-toggle="tab" data-bs-target="#tab-rules" type="button" role="tab" aria-controls="tab-rules" aria-selected="{% if active_tab_name == 'rules' %}true{% else %}false{% endif %}">Regler & Poäng</button>
                         </li>
+                        {% else %}
+                        <li class="nav-item" role="presentation">
+                            <button class="main-nav-link text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                                <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Hem
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="main-nav-link text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                                <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Resultat
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="main-nav-link text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                                <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Topplista
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="main-nav-link text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                                <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Analys & Insikter
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="main-nav-link active" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="true">Mina Tips</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="main-nav-link text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                                <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Regler & Poäng
+                            </button>
+                        </li>
+                        {% endif %}
                     </ul>
                 </div>
 
@@ -120,12 +151,9 @@
             <!-- MAIN TAB CONTENT CONTAINER (Starts right at top of glass frame!) -->
             <div class="tab-content" id="mainMenuTabContent">
                 
+                {% if is_verified or is_admin %}
                 <!-- 1. HEM TAB (Dashboard overview) -->
-                <div class="tab-pane fade {% if active_tab_name == 'home' or not active_tab_name %}show active{% endif %}" id="tab-home" role="tabpanel" aria-labelledby="tab-home-link">
-                    {% if not is_verified %}
-                        {% include 'tournament/predictions_content.html' %}
-                    {% else %}
-                    
+                <div class="tab-pane fade {% if active_tab_name == 'home' %}show active{% endif %}" id="tab-home" role="tabpanel" aria-labelledby="tab-home-link">
                     <style>
                         @media (min-width: 992px) {
                             .dashboard-home-grid {
@@ -502,14 +530,10 @@
 
                         </div>
                     </div>
-                    {% endif %}
                 </div>
 
                 <!-- 2. RESULTAT TAB (Section Groupstage Side-by-Side Design) -->
                 <div class="tab-pane fade {% if active_tab_name == 'results' %}show active{% endif %}" id="tab-results" role="tabpanel" aria-labelledby="tab-results-link">
-                    {% if not is_verified %}
-                        {% include 'tournament/predictions_content.html' %}
-                    {% else %}
                     <div class="p-4 rounded-4" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
                         
                         <!-- Header & Navigation Pills Bar -->
@@ -801,7 +825,8 @@
                                                     </thead>
                                                     <tbody>
                                                         {% for row in item.standings %}
-                                                        <tr>
+                                                        {% with rank=row.actual_rank %}
+                                                        <tr style="{% if is_qualifying %}{% if rank == 1 %}border-bottom: 1.5px dashed rgba(255, 255, 255, 0.7) !important;{% elif rank == 2 %}border-bottom: 2px solid rgba(255, 255, 255, 0.85) !important; opacity: 0.82;{% elif rank > 2 %}opacity: 0.35;{% endif %}{% else %}{% if rank == 2 %}border-bottom: 1.5px dashed rgba(255, 255, 255, 0.7) !important;{% elif rank == 3 %}border-bottom: 2px solid rgba(255, 255, 255, 0.85) !important; opacity: 0.82;{% elif rank > 3 %}opacity: 0.35;{% endif %}{% endif %}">
                                                             <!-- Left: Actual Result -->
                                                             <td class="py-2 px-2 text-center fw-bold text-white-50 align-middle" style="background: rgba(16, 185, 129, 0.08) !important;">{{ row.actual_rank }}</td>
                                                             <td class="py-2 px-2 fw-bold text-white align-middle" style="background: rgba(16, 185, 129, 0.08) !important; min-width: 140px;">
@@ -888,6 +913,7 @@
                                                                 {% else %}<span class="text-secondary opacity-30" style="font-size: 0.72rem;">-</span>{% endif %}
                                                             </td>
                                                         </tr>
+                                                        {% endwith %}
                                                         {% empty %}
                                                         <tr><td colspan="18" class="text-center text-muted py-3">Inga lag i gruppen ännu.</td></tr>
                                                         {% endfor %}
@@ -1395,14 +1421,10 @@
                         </div>
 
                     </div>
-                    {% endif %}
                 </div>
 
                 <!-- 3. TOPPLISTA TAB (Total & Stage Breakdown Leaderboards) -->
                 <div class="tab-pane fade {% if active_tab_name == 'leaderboard' %}show active{% endif %}" id="tab-leaderboard" role="tabpanel" aria-labelledby="tab-leaderboard-link">
-                    {% if not is_verified %}
-                        {% include 'tournament/predictions_content.html' %}
-                    {% else %}
                     <div class="d-flex flex-column gap-4">
                         
                         <!-- 1. TOTAL LEADERBOARD CARD -->
@@ -1722,14 +1744,10 @@
                         </div>
 
                     </div>
-                    {% endif %}
                 </div>
 
                 <!-- 4. ANALYS & INSIKTER TAB (Full AI Insights Overview & Tournament Aggregate Trends) -->
                 <div class="tab-pane fade {% if active_tab_name == 'insights' %}show active{% endif %}" id="tab-insights" role="tabpanel" aria-labelledby="tab-insights-link">
-                    {% if not is_verified %}
-                        {% include 'tournament/predictions_content.html' %}
-                    {% else %}
                     <div class="d-flex flex-column gap-4">
                         
                         <!-- 1. AGGREGATE STATS & HISTORICAL COMPARISON CARDS -->
@@ -2196,19 +2214,16 @@
                             </div>
                         </div>
                         {% endfor %}
-
-
                     </div>
-                    {% endif %}
                 </div>
-
-
+                {% endif %}
 
                 <!-- 5. MINA TIPS TAB (Embedded Prediction Forms & Tables Within Main Frame) -->
                 <div class="tab-pane fade {% if active_tab_name == 'predictions' %}show active{% endif %}" id="tab-predictions" role="tabpanel" aria-labelledby="tab-predictions-link">
                     {% include 'tournament/predictions_content.html' %}
                 </div>
 
+                {% if is_verified or is_admin %}
                 <!-- 6. REGLER & POÄNG TAB (Two Distinct Sections: Tournament Rules & Tip Scoring System) -->
                 <div class="tab-pane fade {% if active_tab_name == 'rules' %}show active{% endif %}" id="tab-rules" role="tabpanel" aria-labelledby="tab-rules-link">
                     <div class="p-4 p-md-5 rounded-4" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.12); color: #cbd5e1; font-size: 0.76rem;">
@@ -2390,6 +2405,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
 
             </div>
 

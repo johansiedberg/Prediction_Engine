@@ -1,0 +1,972 @@
+{% extends 'tournament/base.html' %}
+{% load static %}
+
+{% block title %}Konfigurera {{ tournament.name }} — {{ league.name }} (Pool Admin){% endblock %}
+
+{% block backdrop_style %}background: #0B0F19; background-image: radial-gradient(circle at 50% 0%, rgba(30, 41, 59, 0.45) 0%, rgba(11, 15, 25, 0.98) 80%);{% endblock %}
+
+{% block content %}
+<div class="container py-4 my-2" style="max-width: 1200px;">
+
+    <!-- TOP BREADCRUMB & HEADER -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="{% url 'hub' %}" class="text-emerald text-decoration-none"><i class="fa-solid fa-house me-1"></i>Hub</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'pool_admin_hub' %}" class="text-emerald text-decoration-none">Mina Pooler</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'pool_admin_dashboard' league.id %}" class="text-emerald text-decoration-none">{{ league.name }}</a></li>
+                    <li class="breadcrumb-item active text-white" aria-current="page">{{ tournament.name }}</li>
+                </ol>
+            </nav>
+            <div class="d-flex align-items-center gap-3 mt-1">
+                {% if tournament.icon %}
+                <img src="{{ tournament.icon.url }}" alt="{{ tournament.name }}" style="width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); border-radius: 8px;">
+                {% endif %}
+                <div>
+                    <h1 class="fw-extrabold text-white mb-0" style="font-size: 1.75rem; letter-spacing: -0.5px;">
+                        {{ tournament.name }}
+                    </h1>
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                        <span class="text-white small fw-bold" style="opacity: 0.75;">Pool:</span>
+                        <span class="badge px-2 py-0.5 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);">
+                            <i class="fa-solid fa-users me-1"></i>{{ league.name }}
+                        </span>
+                        <span class="badge bg-secondary bg-opacity-30 text-white font-monospace">Engine ID: #{{ tournament.id }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{% url 'pool_admin_dashboard' league.id %}" class="btn btn-outline-secondary btn-sm fw-bold px-3 py-2" style="border-radius: 10px;">
+                <i class="fa-solid fa-arrow-left me-1.5"></i>Tillbaka till {{ league.name }}
+            </a>
+            <form method="post" action="{% url 'toggle_pool_tournament' league.id tournament.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="return_to" value="config">
+                {% if is_active_in_pool %}
+                <button type="submit" class="btn btn-outline-danger btn-sm fw-bold px-3 py-2" style="border-radius: 10px;" onclick="return confirm('Är du säker på att du vill inaktivera denna turnering från din pool?');">
+                    <i class="fa-solid fa-unlink me-1.5"></i>Inaktivera för poolen
+                </button>
+                {% else %}
+                <button type="submit" class="btn btn-emerald btn-sm fw-bold px-3.5 py-2" style="background: #10b981; color: #ffffff; border-radius: 10px;">
+                    <i class="fa-solid fa-check me-1.5"></i>Aktivera för poolen
+                </button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- STICKY FLOW NAVIGATOR -->
+    <div class="sticky-top py-2.5 px-4 mb-4 rounded-4 shadow-lg d-flex align-items-center" style="top: 15px; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(16px); border: 1px solid rgba(16, 185, 129, 0.4); z-index: 1020;">
+        <div class="d-flex flex-wrap align-items-center gap-2" style="font-size: 0.88rem;">
+            <span id="flow-nav-sec-set-points" class="flow-nav-item flow-nav-active" onclick="scrollToSection('sec-set-points')">
+                <i class="fa-solid fa-calculator me-1 text-warning"></i>1. Poängregler
+            </span>
+            <span class="text-white opacity-40 mx-1">&rarr;</span>
+            <span id="flow-nav-sec-sidebets" class="flow-nav-item" onclick="scrollToSection('sec-sidebets')">
+                <i class="fa-solid fa-circle-question me-1 text-info"></i>2. Bonusfrågor (Sidebets)
+            </span>
+            <span class="text-white opacity-40 mx-1">&rarr;</span>
+            <span id="flow-nav-sec-participants" class="flow-nav-item" onclick="scrollToSection('sec-participants')">
+                <i class="fa-solid fa-user-check me-1 text-success"></i>3. Koppla Deltagare
+            </span>
+            <span class="text-white opacity-40 mx-1">&rarr;</span>
+            <span id="flow-nav-sec-progress-matrix" class="flow-nav-item" onclick="scrollToSection('sec-progress-matrix')">
+                <i class="fa-solid fa-chart-simple me-1 text-primary"></i>4. Deltagarmatris &amp; Status
+            </span>
+        </div>
+    </div>
+
+    <style>
+    .flow-nav-item {
+        font-weight: 500;
+        opacity: 0.7;
+        color: #cbd5e1;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        padding: 4px 10px;
+        border-radius: 8px;
+    }
+    .flow-nav-item:hover {
+        opacity: 1;
+        color: #ffffff;
+        background: rgba(255,255,255,0.05);
+    }
+    .flow-nav-active {
+        font-weight: 700 !important;
+        opacity: 1 !important;
+        color: #ffffff !important;
+        background: rgba(16, 185, 129, 0.2) !important;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .text-emerald { color: #10b981 !important; }
+    </style>
+
+    <!-- CONFIGURATION SECTIONS -->
+    <div class="d-flex flex-column gap-4">
+
+        <!-- SECTION 1: SET POINTS (POÄNGREGLER) -->
+        <div id="sec-set-points" class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15) !important; border-radius: 16px;">
+                        <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4">
+                            <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-calculator me-2 text-warning"></i>2. Sätt Poängregler</h5>
+                            <p class="text-white mb-0 mt-1 small" style="opacity: 0.85;">Anpassa poängberäkningen för enskilda matcher, grupptabeller, kvalificering och slutspel i {{ tournament.name }}.</p>
+                        </div>
+                        <div class="card-body p-4">
+                            <form method="post" action="{% url 'update_pool_points' league.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="tournament_id" value="{{ tournament.id }}">
+                                
+                                <div class="d-flex flex-column gap-4">
+                                    
+                                    <!-- ETAPP 1: MATCHSCORING (SINGELMATCHER) -->
+                                    <div class="p-4 rounded-4" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(16, 185, 129, 0.35);">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(16, 185, 129, 0.2); color: #34d399;">
+                                                <i class="fa-solid fa-futbol"></i>
+                                            </div>
+                                            <h5 class="fw-bold text-white mb-0">Etapp 1: Matchscoring (Enskilda Matcher)</h5>
+                                        </div>
+                                        <p class="text-white small mb-3" style="opacity: 0.9; line-height: 1.5;">
+                                            Poäng för enskilda matcher baserat på vinnare/oavgjort (1X2), exakt mål per lag (R1 &amp; R2) och målskillnad (+/-).
+                                        </p>
+                                        
+                                        <div class="row g-4 align-items-stretch">
+                                            <!-- LEFT COLUMN: SINGLE STACKED INPUTS -->
+                                            <div class="col-lg-6">
+                                                <div class="d-flex flex-column gap-3 p-3 rounded-4 h-100" style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.15);">
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Matchutgång (1X2 Tecken)</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('match_correct_1x2', -1)">-</button>
+                                                            <input type="number" id="pts_match_correct_1x2" name="match_correct_1x2" value="{{ point_system.match_correct_1x2 }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('match_correct_1x2', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Mål per lag (R1 &amp; R2 / Exakt)</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('match_correct_goals_per_team', -1)">-</button>
+                                                            <input type="number" id="pts_match_correct_goals_per_team" name="match_correct_goals_per_team" value="{{ point_system.match_correct_goals_per_team }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('match_correct_goals_per_team', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Målskillnad (+/- / Diff)</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_goal_diff', -1)">-</button>
+                                                            <input type="number" id="pts_group_correct_goal_diff" name="group_correct_goal_diff" value="{{ point_system.group_correct_goal_diff }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_goal_diff', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- RIGHT COLUMN: DIMMED VISUAL EXAMPLE CARD -->
+                                            <div class="col-lg-6">
+                                                <div class="p-3.5 rounded-4 h-100 d-flex flex-column justify-content-between" style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.18); opacity: 0.88;">
+                                                    <div>
+                                                        <div class="d-flex align-items-center justify-content-around bg-dark bg-opacity-60 p-3 rounded-3 mb-3 border border-secondary border-opacity-15">
+                                                            <div class="text-center">
+                                                                <div class="text-white small fw-semibold mb-1" style="opacity: 0.75;">Slutresultat (Verkligt)</div>
+                                                                <div class="badge px-3 py-1.5 fw-bold" style="font-size: 0.95rem; background: rgba(16, 185, 129, 0.15); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.25);">
+                                                                    Hemma 2 – 1 Borta
+                                                                </div>
+                                                            </div>
+                                                            <div class="text-center">
+                                                                <div class="text-white small fw-semibold mb-1" style="opacity: 0.75;">Spelarens Tipskupong</div>
+                                                                <div class="badge px-3 py-1.5 fw-bold" style="font-size: 0.95rem; background: rgba(59, 130, 246, 0.15); color: #bfdbfe; border: 1px solid rgba(59, 130, 246, 0.25);">
+                                                                    Hemma 4 – 1 Borta
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="d-flex flex-column gap-2 mb-3" style="font-size: 0.8rem;">
+                                                            <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.18);">
+                                                                <span class="text-white" style="opacity: 0.85;"><i class="fa-solid fa-circle-check me-1.5 text-success" style="opacity: 0.8;"></i>Rätt 1X2 Tecken (Hemmavinst):</span>
+                                                                <span class="fw-bold text-white" style="opacity: 0.9;">+{{ point_system.match_correct_1x2 }}p</span>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.18);">
+                                                                <span class="text-white" style="opacity: 0.85;"><i class="fa-solid fa-circle-check me-1.5 text-success" style="opacity: 0.8;"></i>Rätt Bortalagsmål (1 mål):</span>
+                                                                <span class="fw-bold text-white" style="opacity: 0.9;">+{{ point_system.match_correct_goals_per_team }}p</span>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: rgba(148, 163, 184, 0.05); border: 1px solid rgba(148, 163, 184, 0.12);">
+                                                                <span class="text-white" style="opacity: 0.65;"><i class="fa-solid fa-circle-xmark text-secondary me-1.5"></i>Hemmalagsmål (Tippade 4, blev 2):</span>
+                                                                <span class="fw-bold text-secondary">0p</span>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: rgba(148, 163, 184, 0.05); border: 1px solid rgba(148, 163, 184, 0.12);">
+                                                                <span class="text-white" style="opacity: 0.65;"><i class="fa-solid fa-circle-xmark text-secondary me-1.5"></i>Målskillnad (Tippade +3, blev +1):</span>
+                                                                <span class="fw-bold text-secondary">0p</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="p-2.5 rounded-3 d-flex justify-content-between align-items-center fw-semibold" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); color: #a7f3d0; font-size: 0.85rem;">
+                                                        <span>Totalt Utdelade Poäng i Matchen:</span>
+                                                        <span class="fw-bold">+{% widthratio point_system.match_correct_1x2|add:point_system.match_correct_goals_per_team 1 1 %}p</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ETAPP 2: GRUPPTABELLER (EXEMPEL UTFALL VS EXEMPEL TIPPNING WITH HIGH READABILITY & PERFECT COLUMN ALIGNMENT) -->
+                                    <div class="p-4 rounded-4" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(59, 130, 246, 0.35);">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(59, 130, 246, 0.2); color: #93c5fd;">
+                                                <i class="fa-solid fa-table-list"></i>
+                                            </div>
+                                            <h5 class="fw-bold text-white mb-0">Etapp 2: Grupptabeller</h5>
+                                        </div>
+                                        <p class="text-white small mb-3" style="opacity: 0.9; line-height: 1.5;">
+                                            Hur slutgiltig tabellplacering, poäng och statistik i gruppspelet poängsätts.
+                                        </p>
+
+                                        <div class="row g-4 align-items-stretch">
+                                            <!-- LEFT COLUMN: SINGLE STACKED INPUTS -->
+                                            <div class="col-lg-6">
+                                                <div class="d-flex flex-column gap-3 p-3 rounded-4 h-100" style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.15);">
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Exakt Grupplacering (Rank 1-4)</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_placement', -1)">-</button>
+                                                            <input type="number" id="pts_group_correct_placement" name="group_correct_placement" value="{{ point_system.group_correct_placement }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_placement', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Exakt Totalpoäng (Points)</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_points', -1)">-</button>
+                                                            <input type="number" id="pts_group_correct_points" name="group_correct_points" value="{{ point_system.group_correct_points }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_points', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Gjorda Mål (Goals for / GM)</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_goals_scored', -1)">-</button>
+                                                            <input type="number" id="pts_group_correct_goals_scored" name="group_correct_goals_scored" value="{{ point_system.group_correct_goals_scored }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_goals_scored', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Insläppta Mål (Goals against / IM)</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_goals_conceded', -1)">-</button>
+                                                            <input type="number" id="pts_group_correct_goals_conceded" name="group_correct_goals_conceded" value="{{ point_system.group_correct_goals_conceded }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_goals_conceded', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Målskillnad i gruppen (Goal difference / Diff)</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_goal_diff', -1)">-</button>
+                                                            <input type="number" id="pts_group_correct_goal_diff" name="group_correct_goal_diff" value="{{ point_system.group_correct_goal_diff }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_goal_diff', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- RIGHT COLUMN: DIMMED VISUAL EXAMPLES (EXEMPEL UTFALL & EXEMPEL TIPPNING ALIGNED 1-TO-1) -->
+                                            <div class="col-lg-6">
+                                                <div class="p-3.5 rounded-4 h-100 d-flex flex-column justify-content-between" style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.18); opacity: 0.92;">
+                                                    <div>
+                                                        <!-- ACTUAL TABLE (EXEMPEL UTFALL) -->
+                                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                                            <span class="badge px-3 py-1.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); font-size: 0.88rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.4));">Exempel utfall</span>
+                                                        </div>
+                                                        <div class="table-responsive mb-3">
+                                                            <table class="table table-dark table-sm mb-0 align-middle text-start" style="font-size: 0.82rem; background: rgba(15, 23, 42, 0.65); table-layout: fixed; width: 100%;">
+                                                                <thead>
+                                                                    <tr class="text-secondary" style="background: rgba(15, 23, 42, 0.85); font-size: 0.8rem;">
+                                                                        <th class="ps-2 text-start" style="width: 18%;">Rank</th>
+                                                                        <th class="text-start" style="width: 34%;">Lag</th>
+                                                                        <th class="text-start" style="width: 12%;">GM</th>
+                                                                        <th class="text-start" style="width: 12%;">IM</th>
+                                                                        <th class="text-start" style="width: 12%;">Diff</th>
+                                                                        <th class="text-start" style="width: 12%;">Poäng</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                                                                        <td class="ps-2 text-start fw-bold text-warning">1</td>
+                                                                        <td class="text-start fw-bold text-white">Sverige 🇸🇪</td>
+                                                                        <td class="text-start text-white">5</td>
+                                                                        <td class="text-start text-white">1</td>
+                                                                        <td class="text-start text-emerald fw-semibold">+4</td>
+                                                                        <td class="text-start text-warning fw-bold">5p</td>
+                                                                    </tr>
+                                                                    <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                                                                        <td class="ps-2 text-start fw-bold text-warning">2</td>
+                                                                        <td class="text-start fw-bold text-white">Danmark 🇩🇰</td>
+                                                                        <td class="text-start text-white">4</td>
+                                                                        <td class="text-start text-white">2</td>
+                                                                        <td class="text-start text-emerald fw-semibold">+2</td>
+                                                                        <td class="text-start text-warning fw-bold">4p</td>
+                                                                    </tr>
+                                                                    <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                                                                        <td class="ps-2 text-start text-secondary fw-bold">3</td>
+                                                                        <td class="text-start text-white">Brasilien 🇧🇷</td>
+                                                                        <td class="text-start text-white">4</td>
+                                                                        <td class="text-start text-white">2</td>
+                                                                        <td class="text-start text-danger fw-semibold">-2</td>
+                                                                        <td class="text-start text-white">3p</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="ps-2 text-start text-secondary fw-bold">4</td>
+                                                                        <td class="text-start text-white">Italien 🇮🇹</td>
+                                                                        <td class="text-start text-white">0</td>
+                                                                        <td class="text-start text-white">8</td>
+                                                                        <td class="text-start text-danger fw-semibold">-8</td>
+                                                                        <td class="text-start text-white">0p</td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+
+                                                        <!-- PREDICTED TABLE (EXEMPEL TIPPNING MATCHING EXACT COLS) -->
+                                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                                            <span class="badge px-3 py-1.5 fw-extrabold" style="background: rgba(59, 130, 246, 0.25); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.5); font-size: 0.88rem; filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.4));">Exempel tippning</span>
+                                                        </div>
+                                                        <div class="table-responsive mb-3">
+                                                            <table class="table table-dark table-sm mb-0 align-middle text-start" style="font-size: 0.82rem; background: rgba(15, 23, 42, 0.65); table-layout: fixed; width: 100%;">
+                                                                <thead>
+                                                                    <tr class="text-secondary" style="background: rgba(15, 23, 42, 0.85); font-size: 0.8rem;">
+                                                                        <th class="ps-2 text-start" style="width: 18%;">Rank</th>
+                                                                        <th class="text-start" style="width: 34%;">Lag</th>
+                                                                        <th class="text-start" style="width: 12%;">GM</th>
+                                                                        <th class="text-start" style="width: 12%;">IM</th>
+                                                                        <th class="text-start" style="width: 12%;">Diff</th>
+                                                                        <th class="text-start" style="width: 12%;">Poäng</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                                                                        <td class="ps-2 text-start text-secondary fw-bold">1</td>
+                                                                        <td class="text-start fw-bold text-white">Danmark 🇩🇰</td>
+                                                                        <td class="text-start text-emerald fw-bold">4 <span class="badge px-1 py-0.5 ms-0.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.6); font-size: 0.68rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));">✅</span></td>
+                                                                        <td class="text-start text-emerald fw-bold">2 <span class="badge px-1 py-0.5 ms-0.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.6); font-size: 0.68rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));">✅</span></td>
+                                                                        <td class="text-start text-emerald fw-bold">+2 <span class="badge px-1 py-0.5 ms-0.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.6); font-size: 0.68rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));">✅</span></td>
+                                                                        <td class="text-start text-white" style="opacity: 0.88;">6p</td>
+                                                                    </tr>
+                                                                    <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                                                                        <td class="ps-2 text-start text-secondary fw-bold">2</td>
+                                                                        <td class="text-start fw-bold text-white">Sverige 🇸🇪</td>
+                                                                        <td class="text-start text-emerald fw-bold">5 <span class="badge px-1 py-0.5 ms-0.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.6); font-size: 0.68rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));">✅</span></td>
+                                                                        <td class="text-start text-emerald fw-bold">1 <span class="badge px-1 py-0.5 ms-0.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.6); font-size: 0.68rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));">✅</span></td>
+                                                                        <td class="text-start text-emerald fw-bold">+4 <span class="badge px-1 py-0.5 ms-0.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.6); font-size: 0.68rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));">✅</span></td>
+                                                                        <td class="text-start text-emerald fw-bold">5p <span class="badge px-1 py-0.5 ms-0.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.6); font-size: 0.68rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));">✅</span></td>
+                                                                    </tr>
+                                                                    <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                                                                        <td class="ps-2 text-start text-emerald fw-bold">3 <span class="badge px-1 py-0.5 ms-0.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.6); font-size: 0.68rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));">✅</span></td>
+                                                                        <td class="text-start fw-bold text-white">Brasilien 🇧🇷</td>
+                                                                        <td class="text-start text-white" style="opacity: 0.88;">2</td>
+                                                                        <td class="text-start text-white" style="opacity: 0.88;">5</td>
+                                                                        <td class="text-start text-white" style="opacity: 0.88;">-3</td>
+                                                                        <td class="text-start text-white" style="opacity: 0.88;">4p</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="ps-2 text-start text-emerald fw-bold">4 <span class="badge px-1 py-0.5 ms-0.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.6); font-size: 0.68rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));">✅</span></td>
+                                                                        <td class="text-start fw-bold text-white">Italien 🇮🇹</td>
+                                                                        <td class="text-start text-white" style="opacity: 0.88;">3</td>
+                                                                        <td class="text-start text-emerald fw-bold">8 <span class="badge px-1 py-0.5 ms-0.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.6); font-size: 0.68rem; filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));">✅</span></td>
+                                                                        <td class="text-start text-white" style="opacity: 0.88;">-1</td>
+                                                                        <td class="text-start text-white" style="opacity: 0.88;">1p</td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+
+                                                        <!-- SHORT EXPLANATION TEXT -->
+                                                        <div class="p-2.5 rounded-3" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.22); font-size: 0.78rem;">
+                                                            <div class="fw-bold text-info mb-1"><i class="fa-solid fa-circle-info me-1.5"></i>Poängberäkning vid exakt placering vs statistik</div>
+                                                            <p class="mb-0 text-white" style="opacity: 0.85; font-size: 0.75rem; line-height: 1.45;">
+                                                                <strong>Exakt Grupplacering:</strong> Brasilien (3 <span class="badge px-1 py-0.5 ms-0.5 fw-bold" style="background: rgba(16, 185, 129, 0.25); color: #34d399;">✅</span>) och Italien (4 <span class="badge px-1 py-0.5 ms-0.5 fw-bold" style="background: rgba(16, 185, 129, 0.25); color: #34d399;">✅</span>) tippades på sin exakta slutgiltiga tabellplacering och ger poäng för exakt rank. För Italien stämde även insläppta mål (8 <span class="badge px-1 py-0.5 ms-0.5 fw-bold" style="background: rgba(16, 185, 129, 0.25); color: #34d399;">✅</span>)!
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ETAPP 3: KVALIFICERINGSTABELL (PROMINENT HIGH-VISIBILITY 5P BADGE) -->
+                                    <div class="p-4 rounded-4" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(245, 158, 11, 0.35);">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
+                                                <i class="fa-solid fa-ticket"></i>
+                                            </div>
+                                            <h5 class="fw-bold text-white mb-0">Etapp 3: Kvalificeringstabell</h5>
+                                        </div>
+                                        <p class="text-white small mb-3" style="opacity: 0.9; line-height: 1.5;">
+                                            Beräkning av kvalificeringstabeller (t.ex. rankning av bästa grupptvåor eller bästa treor) baserat på spelarnas tippade matcher och det verkliga utfallet enligt turneringens regler. Poäng delas ut för lag som placerar sig på kvalificerande plats i tabellen.
+                                        </p>
+
+                                        <div class="row g-4 align-items-stretch">
+                                            <!-- LEFT COLUMN: SINGLE FIELD FOR KVALIFICERANDE LAG -->
+                                            <div class="col-lg-6">
+                                                <div class="d-flex flex-column gap-3 p-3 rounded-4 h-100 justify-content-center" style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.15);">
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Kvalificerande lag</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('qualifying_table_team_qualified', -1)">-</button>
+                                                            <input type="number" id="pts_qualifying_table_team_qualified" name="qualifying_table_team_qualified" value="{{ point_system.qualifying_table_team_qualified }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('qualifying_table_team_qualified', 1)">+</button>
+                                                        </div>
+                                                        <div class="form-text text-white mt-1.5" style="font-size: 0.74rem; opacity: 0.75;">
+                                                            Poäng som ges när tippat lag hamnar på en kvalificerande plats i tabellen.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- RIGHT COLUMN: DIMMED VISUAL QUALIFYING TABELL WITH PROMINENT 5P BADGES -->
+                                            <div class="col-lg-6">
+                                                <div class="p-3.5 rounded-4 h-100 d-flex flex-column justify-content-between" style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.18); opacity: 0.88;">
+                                                    <div>
+                                                        <div class="table-responsive mb-3">
+                                                            <table class="table table-dark table-sm mb-0 align-middle text-start" style="font-size: 0.78rem; background: rgba(15, 23, 42, 0.6);">
+                                                                <thead>
+                                                                    <tr class="text-secondary" style="background: rgba(15, 23, 42, 0.8);">
+                                                                        <th class="text-start ps-2">Plats</th>
+                                                                        <th class="text-start">Faktiskt Utfall (Actual)</th>
+                                                                        <th class="text-start">Spelarens Tips (Predicted)</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                                                                        <td class="ps-2 text-start text-secondary fw-bold">1</td>
+                                                                        <td class="text-start text-white fw-semibold" style="opacity: 0.9;">Denmark 🇩🇰</td>
+                                                                        <td class="text-start text-white fw-semibold" style="opacity: 0.9;">Sweden 🇸🇪 <span class="badge px-2 py-0.5 ms-1.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); font-size: 0.78rem; text-shadow: 0 0 6px rgba(52, 211, 153, 0.4);">5p</span></td>
+                                                                    </tr>
+                                                                    <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                                                                        <td class="ps-2 text-start text-secondary fw-bold">2</td>
+                                                                        <td class="text-start text-white fw-semibold" style="opacity: 0.9;">Portugal 🇵🇹</td>
+                                                                        <td class="text-start text-white fw-semibold" style="opacity: 0.9;">Ghana 🇬🇭</td>
+                                                                    </tr>
+                                                                    <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                                                                        <td class="ps-2 text-start text-secondary fw-bold">3</td>
+                                                                        <td class="text-start text-white fw-semibold" style="opacity: 0.9;">England 🏴󠁧󠁢󠁥󠁮󠁧󠁿</td>
+                                                                        <td class="text-start text-white fw-semibold" style="opacity: 0.9;">Denmark 🇩🇰 <span class="badge px-2 py-0.5 ms-1.5 fw-extrabold" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); font-size: 0.78rem; text-shadow: 0 0 6px rgba(52, 211, 153, 0.4);">5p</span></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <td class="ps-2 text-start text-secondary fw-bold">4</td>
+                                                                        <td class="text-start text-white fw-semibold" style="opacity: 0.9;">Sweden 🇸🇪</td>
+                                                                        <td class="text-start text-white fw-semibold" style="opacity: 0.9;">Brazil 🇧🇷</td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+
+                                                        <div class="p-2.5 rounded-3" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.22); font-size: 0.8rem;">
+                                                            <div class="fw-bold text-warning mb-1"><i class="fa-solid fa-check-double me-1.5"></i>= Poäng för tippade Sweden + Denmark</div>
+                                                            <p class="mb-0 text-white" style="opacity: 0.8; font-size: 0.76rem;">
+                                                                Spelaren tippade Sweden (1:a) och Denmark (3:e). I verkligheten kvalificerade sig Denmark (1:a) och Sweden (4:e). Båda lag tog sig vidare ➔ Poäng delas ut för båda tippade kvalificerade lag!
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ETAPP 4: SLUTSPEL, AVANCEMANG -->
+                                    <div class="p-4 rounded-4" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(239, 68, 68, 0.35);">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(239, 68, 68, 0.2); color: #fca5a5;">
+                                                <i class="fa-solid fa-trophy"></i>
+                                            </div>
+                                            <h5 class="fw-bold text-white mb-0">Etapp 4: Slutspel, avancemang</h5>
+                                        </div>
+                                        <p class="text-white small mb-3" style="opacity: 0.9; line-height: 1.5;">
+                                            Enskilda matcher följer samma matchpoäng som i gruppspelet. Utöver det så sätt poäng för att rätt lag avancerar oavsett resultat eller avgörande på förlängning/straffar.
+                                        </p>
+
+                                        <div class="row g-4 align-items-stretch">
+                                            <!-- LEFT COLUMN: SINGLE STACKED INPUTS -->
+                                            <div class="col-lg-6">
+                                                <div class="d-flex flex-column gap-3 p-3 rounded-4 h-100" style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.15);">
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Åttondelsfinal Bonus</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_round_of_16', -1)">-</button>
+                                                            <input type="number" id="pts_knockout_round_of_16" name="knockout_round_of_16" value="{{ point_system.knockout_round_of_16 }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_round_of_16', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Kvartsfinal Bonus</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_quarterfinal', -1)">-</button>
+                                                            <input type="number" id="pts_knockout_quarterfinal" name="knockout_quarterfinal" value="{{ point_system.knockout_quarterfinal }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_quarterfinal', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Semifinal Bonus</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_semifinal', -1)">-</button>
+                                                            <input type="number" id="pts_knockout_semifinal" name="knockout_semifinal" value="{{ point_system.knockout_semifinal }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_semifinal', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label text-white small fw-bold mb-1">Bronsmatch &amp; Final</label>
+                                                        <div class="input-group input-group-sm">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_final', -1)">-</button>
+                                                            <input type="number" id="pts_knockout_final" name="knockout_final" value="{{ point_system.knockout_final }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_final', 1)">+</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- RIGHT COLUMN: DIMMED KNOCKOUT EXAMPLES CARD WITH MATCH LAYOUT -->
+                                            <div class="col-lg-6">
+                                                <div class="p-3.5 rounded-4 h-100 d-flex flex-column justify-content-between" style="background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(148, 163, 184, 0.18); opacity: 0.92;">
+                                                    <div class="d-flex flex-column gap-4">
+                                                        
+                                                        <!-- KNOCKOUT EXAMPLE 1: EXEMPEL ÅTTONDELSFINAL -->
+                                                        <div class="p-3 rounded-4" style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25);">
+                                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                                <span class="badge px-3 py-1.5 fw-extrabold" style="background: rgba(239, 68, 68, 0.25); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.5); font-size: 0.88rem; filter: drop-shadow(0 0 4px rgba(252, 165, 165, 0.4));">Exempel Åttondelsfinal</span>
+                                                            </div>
+                                                            
+                                                            <!-- MATCH CARD LAYOUT -->
+                                                            <div class="d-flex align-items-center justify-content-around bg-dark bg-opacity-60 p-2.5 rounded-3 mb-2 border border-secondary border-opacity-15">
+                                                                <div class="text-center">
+                                                                    <div class="text-white small fw-semibold mb-1" style="font-size: 0.72rem; opacity: 0.85;">Slutresultat (Verkligt)</div>
+                                                                    <div class="badge px-2.5 py-1 fw-bold" style="font-size: 0.84rem; background: rgba(16, 185, 129, 0.15); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.25);">
+                                                                        5 – 1 <span class="d-block font-normal" style="font-size: 0.68rem; opacity: 0.85;">(Danmark avancerar)</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="text-center">
+                                                                    <div class="text-white small fw-semibold mb-1" style="font-size: 0.72rem; opacity: 0.85;">Spelarens Tipskupong</div>
+                                                                    <div class="badge px-2.5 py-1 fw-bold" style="font-size: 0.84rem; background: rgba(59, 130, 246, 0.15); color: #bfdbfe; border: 1px solid rgba(59, 130, 246, 0.25);">
+                                                                        1 – 1 <span class="d-block font-normal" style="font-size: 0.68rem; opacity: 0.85;">(Danmark avancerar)</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- INDIVIDUAL MATCH & ADVANCEMENT POINTS BREAKDOWN -->
+                                                            <div class="d-flex flex-column gap-1.5 mb-2" style="font-size: 0.76rem;">
+                                                                <div class="d-flex justify-content-between align-items-center p-1.5 rounded" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.18);">
+                                                                    <span class="text-white" style="opacity: 0.95;"><i class="fa-solid fa-circle-check me-1 text-success"></i>Rätt matchtippning:</span>
+                                                                    <span class="fw-bold text-white">+{{ point_system.match_correct_1x2 }}p</span>
+                                                                </div>
+                                                                <div class="d-flex justify-content-between align-items-center p-1.5 rounded" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3);">
+                                                                    <span class="text-white" style="opacity: 0.95;"><i class="fa-solid fa-trophy me-1 text-warning"></i>Rätt Avancerande Lag i Åttondelsfinal:</span>
+                                                                    <span class="fw-bold text-warning">+{{ point_system.knockout_round_of_16 }}p</span>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="p-2 rounded-3 d-flex justify-content-between align-items-center fw-semibold" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #a7f3d0; font-size: 0.8rem;">
+                                                                <span>Totalt Utdelade Poäng (Åttondel):</span>
+                                                                <span class="fw-bold">+{% widthratio point_system.match_correct_1x2|add:point_system.knockout_round_of_16 1 1 %}p</span>
+                                                            </div>
+                                                        </div>
+
+
+                                                        <!-- KNOCKOUT EXAMPLE 3: EXEMPEL BRONSMATCH -->
+                                                        <div class="p-3 rounded-4" style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25);">
+                                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                                <span class="badge px-3 py-1.5 fw-extrabold" style="background: rgba(168, 85, 247, 0.25); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.5); font-size: 0.88rem; filter: drop-shadow(0 0 4px rgba(192, 132, 252, 0.4));">Exempel Bronsmatch</span>
+                                                            </div>
+                                                            
+                                                            <!-- MATCH CARD LAYOUT -->
+                                                            <div class="d-flex align-items-center justify-content-around bg-dark bg-opacity-60 p-2.5 rounded-3 mb-2 border border-secondary border-opacity-15">
+                                                                <div class="text-center">
+                                                                    <div class="text-white small fw-semibold mb-1" style="font-size: 0.72rem; opacity: 0.85;">Slutresultat (Verkligt)</div>
+                                                                    <div class="badge px-2.5 py-1 fw-bold" style="font-size: 0.84rem; background: rgba(16, 185, 129, 0.15); color: #a7f3d0; border: 1px solid rgba(16, 185, 129, 0.25);">
+                                                                        Sverige 2 – 3 Italien <span class="d-block font-normal" style="font-size: 0.68rem; opacity: 0.85;">(Italien avancerar)</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="text-center">
+                                                                    <div class="text-white small fw-semibold mb-1" style="font-size: 0.72rem; opacity: 0.85;">Spelarens Tipskupong</div>
+                                                                    <div class="badge px-2.5 py-1 fw-bold" style="font-size: 0.84rem; background: rgba(59, 130, 246, 0.15); color: #bfdbfe; border: 1px solid rgba(59, 130, 246, 0.25);">
+                                                                        Sverige 2 – 2 Italien <span class="d-block font-normal" style="font-size: 0.68rem; opacity: 0.85;">(Italien avancerar)</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- INDIVIDUAL MATCH & ADVANCEMENT POINTS BREAKDOWN -->
+                                                            <div class="d-flex flex-column gap-1.5 mb-2" style="font-size: 0.76rem;">
+                                                                <div class="d-flex justify-content-between align-items-center p-1.5 rounded" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.18);">
+                                                                    <span class="text-white" style="opacity: 0.95;"><i class="fa-solid fa-circle-check me-1 text-success"></i>Rätt matchtippning:</span>
+                                                                    <span class="fw-bold text-white">+{{ point_system.match_correct_1x2 }}p</span>
+                                                                </div>
+                                                                <div class="d-flex justify-content-between align-items-center p-1.5 rounded" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3);">
+                                                                    <span class="text-white" style="opacity: 0.95;"><i class="fa-solid fa-trophy me-1 text-warning"></i>Rätt Avancerande Lag i Bronsmatch:</span>
+                                                                    <span class="fw-bold text-warning">+{{ point_system.knockout_final }}p</span>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="p-2 rounded-3 d-flex justify-content-between align-items-center fw-semibold" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #a7f3d0; font-size: 0.8rem;">
+                                                                <span>Totalt Utdelade Poäng (Bronsmatch):</span>
+                                                                <span class="fw-bold">+{% widthratio point_system.match_correct_1x2|add:point_system.knockout_final 1 1 %}p</span>
+                                                            </div>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                                <div class="mt-4 pt-2">
+                                    <button type="submit" class="btn fw-extrabold px-4 py-2.5" style="background: #f59e0b; color: #0f172a; border-radius: 10px; font-size: 0.95rem;">
+                                        <i class="fa-solid fa-save me-1.5"></i>Spara Poängregler
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: SIDEBETS -->
+
+        <!-- SECTION 2: SIDEBETS (BONUSFRÅGOR) -->
+        <div id="sec-sidebets" class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15) !important; border-radius: 16px;">
+            <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4">
+                <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-circle-question me-2 text-info"></i>2. Bonusfrågor (Sidebets)</h5>
+                <p class="text-white mb-0 mt-1 small" style="opacity: 0.85;">Skapa och anpassa bonusfrågor för {{ tournament.name }}.</p>
+            </div>
+            <div class="card-body p-4">
+                
+                <!-- CURRENT SIDEBETS LIST -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-list-check me-1.5 text-warning"></i>Befintliga Bonusfrågor ({{ sidebets.count }})</h6>
+                    <div class="list-group list-group-flush border-0">
+                        {% for sb in sidebets %}
+                        <div class="list-group-item bg-transparent text-white px-3 py-2.5 border-bottom border-secondary border-opacity-15 d-flex align-items-center justify-content-between rounded-3 mb-2" style="background: rgba(15,23,42,0.6) !important; border: 1px solid rgba(148,163,184,0.12) !important;">
+                            <div class="d-flex align-items-center gap-2.5">
+                                <span class="badge text-warning px-2.5 py-1 fw-bold" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3);">
+                                    +{{ sb.points }}p
+                                </span>
+                                <span class="fw-semibold text-white">{{ sb.question }}</span>
+                            </div>
+                            <span class="badge bg-secondary bg-opacity-30 text-white">{{ sb.get_question_type_display }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="text-white small p-3 rounded-3 text-center" style="background: rgba(15,23,42,0.5); opacity: 0.75;">
+                            Inga bonusfrågor skapade för denna turnering ännu.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- ADD NEW SIDEBET FORM -->
+                <div class="p-3.5 rounded-4" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-plus-circle text-info me-1.5"></i>Lägg till en egen bonusfråga</h6>
+                    <form method="post" action="{% url 'add_pool_sidebet' league.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="tournament_id" value="{{ tournament.id }}">
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-white small fw-bold">Fråga</label>
+                                <input type="text" name="question" class="form-control form-control-sm" placeholder="T.ex. Vilket lag gör flest mål i turneringen?" required style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-white small fw-bold">Frågetyp</label>
+                                <select name="question_type" class="form-select form-select-sm" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                    <option value="TEXT">Fritext (t.ex. spelarnamn)</option>
+                                    <option value="TEAM">Välj lag (dropdown)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-white small fw-bold">Poäng för rätt svar</label>
+                                <input type="number" name="points" value="5" min="1" max="50" class="form-control form-control-sm text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                            </div>
+                        </div>
+
+                        <div class="mt-3 text-end">
+                            <button type="submit" class="btn btn-sm btn-info fw-bold px-3 py-1.5" style="border-radius: 8px;">
+                                <i class="fa-solid fa-plus me-1"></i>Skapa Bonusfråga
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SECTION 3: CHOOSE PARTICIPANTS (KOPPLA DELTAGARE) -->
+        <div id="sec-participants" class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15) !important; border-radius: 16px;">
+            <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4 d-flex align-items-center justify-content-between">
+                <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-user-check me-2 text-success"></i>3. Koppla Deltagare</h5>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-white small mb-4" style="opacity: 0.85;">
+                    Välj vilka av {{ league.name }}s deltagare som ska delta i {{ tournament.name }}. Klicka på <strong>+ Lägg till</strong> för att registrera en deltagare utan sidomladdning.
+                </p>
+
+                <div class="row g-4">
+                    <!-- LEFT PANE: ALL POOL MEMBERS -->
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 h-100" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.2);">
+                            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-20 pb-2">
+                                <h6 class="fw-bold text-white mb-0"><i class="fa-solid fa-users me-1.5 text-info"></i>Deltagare i Poolen (Alla)</h6>
+                                <span class="badge bg-secondary bg-opacity-30 text-white">{{ members.count }}</span>
+                            </div>
+
+                            <div class="list-group list-group-flush border-0" id="all-pool-members-list">
+                                {% for member in members %}
+                                <div class="list-group-item bg-transparent text-white px-2 py-2 border-bottom border-secondary border-opacity-15 d-flex align-items-center justify-content-between" id="pool-member-row-{{ member.player.id }}">
+                                    <div class="d-flex align-items-center gap-3">
+                                        {% if member.player == league.admin %}
+                                        <span style="font-size: 1.15rem; line-height: 1;" title="Pool Admin">🛠️</span>
+                                        {% else %}
+                                        <span style="font-size: 1.1rem; line-height: 1;" title="Spelare">👟</span>
+                                        {% endif %}
+                                        <div>
+                                            <div class="fw-bold text-white small">{{ member.player.get_full_name|default:member.player.username }}</div>
+                                            <div class="text-white" style="font-size: 0.7rem; opacity: 0.75;">{{ member.player.email }}</div>
+                                        </div>
+                                    </div>
+
+                                    <div id="pool-member-action-{{ member.player.id }}">
+                                        {% if member.player.id in enrolled_user_ids %}
+                                        <span class="badge px-2 py-1 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399;"><i class="fa-solid fa-check me-1"></i>Tillagd</span>
+                                        {% else %}
+                                        <form method="post" action="{% url 'toggle_tournament_player' league.id tournament.id member.player.id %}" class="d-inline" onsubmit="toggleParticipantAjax(event, this, {{ member.player.id }})">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-xs fw-bold px-2 py-1" style="background: #10b981; color: #ffffff; border-radius: 6px; font-size: 0.72rem;">
+                                                <i class="fa-solid fa-plus me-1"></i>Lägg till
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT PANE: COUPLED TOURNAMENT PARTICIPANTS -->
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 h-100" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(16, 185, 129, 0.3);">
+                            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-20 pb-2">
+                                <h6 class="fw-bold text-white mb-0"><i class="fa-solid fa-trophy me-1.5 text-warning"></i>Kopplade till {{ tournament.name }}</h6>
+                                <span class="badge px-2 py-1 fw-bold" id="tournament-enrolled-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">{{ enrolled_user_ids|length }} kopplade</span>
+                            </div>
+
+                            <div class="list-group list-group-flush border-0" id="tournament-enrolled-list">
+                                {% for member in members %}
+                                {% if member.player.id in enrolled_user_ids %}
+                                <div class="list-group-item bg-transparent text-white px-2 py-2 border-bottom border-secondary border-opacity-15 d-flex align-items-center justify-content-between" id="enrolled-row-{{ member.player.id }}">
+                                    <div class="d-flex align-items-center gap-3">
+                                        {% if member.player == league.admin %}
+                                        <span style="font-size: 1.15rem; line-height: 1;" title="Pool Admin">🛠️</span>
+                                        {% else %}
+                                        <span style="font-size: 1.1rem; line-height: 1;" title="Spelare">👟</span>
+                                        {% endif %}
+                                        <div>
+                                            <div class="fw-bold text-white small">{{ member.player.get_full_name|default:member.player.username }}</div>
+                                            <div class="text-white" style="font-size: 0.7rem; opacity: 0.75;">{{ member.player.email }}</div>
+                                        </div>
+                                    </div>
+
+                                    <form method="post" action="{% url 'toggle_tournament_player' league.id tournament.id member.player.id %}" class="d-inline" onsubmit="toggleParticipantAjax(event, this, {{ member.player.id }})">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-xs fw-bold px-2 py-1" style="background: rgba(239, 68, 68, 0.18); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; font-size: 0.72rem;" title="Ta bort från turnering">
+                                            <i class="fa-solid fa-user-minus me-1"></i>Ta bort
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endif %}
+                                {% empty %}
+                                <div class="text-center text-white py-4 small" id="no-enrolled-msg" style="opacity: 0.7;">Inga deltagare kopplade ännu.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: DELTAGARMATRIS & STATUS -->
+        <div id="sec-progress-matrix" class="card border-0 shadow-lg mb-4" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15) !important; border-radius: 16px;">
+            <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4">
+                <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-chart-simple me-2 text-primary"></i>4. Deltagarmatris &amp; Tippningsstatus</h5>
+                <p class="text-white mb-0 mt-1 small" style="opacity: 0.85;">Övervaka hur deltagarna ligger till med sina tips i {{ tournament.name }}.</p>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0 align-middle" style="background: transparent;">
+                        <thead>
+                            <tr style="background: rgba(15,23,42,0.95); font-size: 0.78rem; text-transform: uppercase;">
+                                <th class="ps-4 py-3 text-white fw-bold">Deltagare</th>
+                                <th class="text-center py-3 text-white fw-bold">Gruppspel</th>
+                                <th class="text-center py-3 text-white fw-bold">Slutspel</th>
+                                <th class="text-center py-3 text-white fw-bold">Bonusfrågor</th>
+                                <th class="text-center py-3 text-white fw-bold pe-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in players_data %}
+                            <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                                <td class="ps-4 py-3">
+                                    <div class="fw-bold text-white" style="font-size: 0.92rem;">{{ p.name }}</div>
+                                    <div class="text-white small" style="font-size: 0.75rem; opacity: 0.65;">{{ p.email }}</div>
+                                </td>
+                                <td class="text-center py-3">
+                                    <span class="badge px-2 py-1 {% if p.group_predicted == p.group_total and p.group_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}">
+                                        {{ p.group_predicted }}/{{ p.group_total }}
+                                    </span>
+                                </td>
+                                <td class="text-center py-3">
+                                    <span class="badge px-2 py-1 {% if p.knockout_predicted == p.knockout_total and p.knockout_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}">
+                                        {{ p.knockout_predicted }}/{{ p.knockout_total }}
+                                    </span>
+                                </td>
+                                <td class="text-center py-3">
+                                    <span class="badge px-2 py-1 {% if p.sidebets_answered == p.sidebets_total and p.sidebets_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}">
+                                        {{ p.sidebets_answered }}/{{ p.sidebets_total }}
+                                    </span>
+                                </td>
+                                <td class="text-center pe-4 py-3">
+                                    {% if p.overall_status == 'Complete' %}
+                                    <span class="badge px-2.5 py-1 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">Färdig</span>
+                                    {% elif p.overall_status == 'In Progress' %}
+                                    <span class="badge px-2.5 py-1 fw-bold" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">Påbörjad</span>
+                                    {% else %}
+                                    <span class="badge px-2.5 py-1 fw-bold" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8;">Ej påbörjad</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-white py-4" style="opacity: 0.7;">Inga deltagare i matrisen.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+function adjustPts(fieldName, delta) {
+    const el = document.getElementById('pts_' + fieldName);
+    if (el) {
+        let val = parseInt(el.value) || 0;
+        val += delta;
+        if (val < 0) val = 0;
+        el.value = val;
+    }
+}
+
+function scrollToSection(sectionId) {
+    setActiveFlowNav(sectionId);
+    const el = document.getElementById(sectionId);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function setActiveFlowNav(activeSectionId) {
+    const navItems = document.querySelectorAll('.flow-nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('flow-nav-active');
+    });
+    const activeNav = document.getElementById('flow-nav-' + activeSectionId);
+    if (activeNav) {
+        activeNav.classList.add('flow-nav-active');
+    }
+}
+
+// AJAX Handler for toggling tournament participant without full page reload
+function toggleParticipantAjax(event, form, userId) {
+    event.preventDefault();
+    const actionUrl = form.action;
+    const formData = new FormData(form);
+
+    fetch(actionUrl, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update Enrolled Counter Badge
+            const badge = document.getElementById('tournament-enrolled-badge');
+            if (badge) {
+                badge.innerText = data.enrolled_count + ' kopplade';
+            }
+
+            const poolActionDiv = document.getElementById('pool-member-action-' + userId);
+            const enrolledList = document.getElementById('tournament-enrolled-list');
+            const noEnrolledMsg = document.getElementById('no-enrolled-msg');
+
+            if (data.enrolled) {
+                if (poolActionDiv) {
+                    poolActionDiv.innerHTML = `<span class="badge px-2 py-1 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399;"><i class="fa-solid fa-check me-1"></i>Tillagd</span>`;
+                }
+
+                if (noEnrolledMsg) {
+                    noEnrolledMsg.style.display = 'none';
+                }
+
+                if (enrolledList && !document.getElementById('enrolled-row-' + userId)) {
+                    const avatar = data.is_admin ? '🛠️' : '👟';
+                    const newRow = document.createElement('div');
+                    newRow.id = 'enrolled-row-' + userId;
+                    newRow.className = 'list-group-item bg-transparent text-white px-2 py-2 border-bottom border-secondary border-opacity-15 d-flex align-items-center justify-content-between';
+                    newRow.innerHTML = `
+                        <div class="d-flex align-items-center gap-3">
+                            <span style="font-size: 1.1rem; line-height: 1;">${avatar}</span>
+                            <div>
+                                <div class="fw-bold text-white small">${data.user_name}</div>
+                                <div class="text-white" style="font-size: 0.7rem; opacity: 0.75;">${data.user_email}</div>
+                            </div>
+                        </div>
+                        <form method="post" action="${actionUrl}" class="d-inline" onsubmit="toggleParticipantAjax(event, this, ${userId})">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${formData.get('csrfmiddlewaretoken')}">
+                            <button type="submit" class="btn btn-xs fw-bold px-2 py-1" style="background: rgba(239, 68, 68, 0.18); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; font-size: 0.72rem;" title="Ta bort från turnering">
+                                <i class="fa-solid fa-user-minus me-1"></i>Ta bort
+                            </button>
+                        </form>
+                    `;
+                    enrolledList.appendChild(newRow);
+                }
+            } else {
+                if (poolActionDiv) {
+                    poolActionDiv.innerHTML = `
+                        <form method="post" action="${actionUrl}" class="d-inline" onsubmit="toggleParticipantAjax(event, this, ${userId})">
+                            <input type="hidden" name="csrfmiddlewaretoken" value="${formData.get('csrfmiddlewaretoken')}">
+                            <button type="submit" class="btn btn-xs fw-bold px-2 py-1" style="background: #10b981; color: #ffffff; border-radius: 6px; font-size: 0.72rem;">
+                                <i class="fa-solid fa-plus me-1"></i>Lägg till
+                            </button>
+                        </form>
+                    `;
+                }
+
+                const enrolledRow = document.getElementById('enrolled-row-' + userId);
+                if (enrolledRow) {
+                    enrolledRow.remove();
+                }
+
+                if (enrolledList && enrolledList.querySelectorAll('.list-group-item').length === 0) {
+                    if (noEnrolledMsg) noEnrolledMsg.style.display = 'block';
+                }
+            }
+        }
+    })
+    .catch(err => {
+        console.error('AJAX toggle participant error:', err);
+    });
+}
+</script>
+{% endblock %}

@@ -38,125 +38,145 @@
                 <span id="pool-requests-badge" class="badge bg-warning text-dark ms-1" style="display:none;"></span>
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold px-4 py-2.5 rounded-pill shadow-sm text-white" id="scout-tab" data-bs-toggle="pill" data-bs-target="#scout-pane" type="button" role="tab">
+                <i class="fa-solid fa-wand-magic-sparkles me-2 text-warning"></i>4. AI Tournament Scout
+                <span id="scout-badge" class="badge bg-warning text-dark ms-1">{{ scout_counts.total }}</span>
+            </button>
+        </li>
     </ul>
 
     <!-- Main Section Contents -->
     <div class="tab-content" id="adminMainSectionsContent">
 
-        <!-- SECTION 1: TOURNAMENTS -->
+        <!-- SECTION 1: TOURNAMENTS (Rows Layout) -->
         <div class="tab-pane fade show active" id="tournaments-pane" role="tabpanel">
-            <div class="row g-4">
+            <div class="row g-3">
                 {% for item in tournaments_data %}
-                <div class="col-12 col-xl-6">
-                    <div class="card bg-transparent text-white border border-secondary border-opacity-30 rounded-4 shadow-sm h-100 overflow-hidden">
+                <div class="col-12">
+                    <div class="card bg-transparent text-white border border-secondary border-opacity-30 rounded-4 shadow-sm overflow-hidden" id="tournament-card-{{ item.tournament.id }}" style="background: rgba(15, 23, 42, 0.6) !important;">
                         
-                        <!-- Tournament Header Bar with Integrated Total Status Pill & Activation Button -->
-                        <div class="card-header bg-transparent p-3.5 border-bottom border-secondary border-opacity-25">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                                <div>
-                                    <div class="d-flex align-items-center gap-2 mb-1.5">
-                                        <!-- Integrated Total Status Pill Badge (Faded solid color, font in black) -->
-                                        <span id="status-pill-{{ item.tournament.id }}" 
-                                              class="badge rounded-pill font-monospace fw-extrabold px-3 py-1.5 text-uppercase shadow-sm" 
-                                              style="{{ item.total_status.style }} font-size: 0.75rem; letter-spacing: 0.5px;">
-                                            {{ item.total_status.label }}
-                                        </span>
-                                        <span class="text-secondary small font-monospace">ID: #{{ item.tournament.id }}</span>
+                        <!-- Tournament Header Row with Optional Backdrop Background & Logotype -->
+                        <div class="card-header bg-transparent p-3.5 border-bottom border-secondary border-opacity-25 position-relative" 
+                             id="tour-card-header-{{ item.tournament.id }}"
+                             style="{% if item.tournament.backdrop %}background: linear-gradient(180deg, rgba(9, 13, 22, 0.78) 0%, rgba(9, 13, 22, 0.95) 100%), url('{{ item.tournament.backdrop.url }}'); background-size: cover; background-position: center;{% endif %}">
+                            
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                <!-- Left Info Block -->
+                                <div class="d-flex align-items-center gap-3">
+                                    <div id="tour-icon-container-{{ item.tournament.id }}">
+                                        {% if item.tournament.icon %}
+                                            <img src="{{ item.tournament.icon.url }}" alt="{{ item.tournament.name }}" id="tour-icon-img-{{ item.tournament.id }}" style="height: 46px; width: 46px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));" class="rounded-2">
+                                        {% else %}
+                                            <div class="d-flex align-items-center justify-content-center bg-dark border border-secondary border-opacity-40 rounded-3" style="width: 46px; height: 46px;" id="tour-icon-placeholder-{{ item.tournament.id }}">
+                                                <i class="fa-solid fa-trophy text-warning fs-5"></i>
+                                            </div>
+                                        {% endif %}
                                     </div>
-                                    <h3 class="fw-extrabold mb-0 text-white">{{ item.tournament.name }}</h3>
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <!-- Status Pill Badge -->
+                                            <span id="status-pill-{{ item.tournament.id }}" 
+                                                  class="badge rounded-pill font-monospace fw-extrabold px-2.5 py-1 text-uppercase shadow-sm" 
+                                                  style="{{ item.total_status.style }} font-size: 0.72rem; letter-spacing: 0.5px;">
+                                                {{ item.total_status.label }}
+                                            </span>
+                                            <span class="text-secondary small font-monospace">ID: #{{ item.tournament.id }}</span>
+                                        </div>
+                                        <h4 class="fw-extrabold mb-0 text-white" id="tour-name-display-{{ item.tournament.id }}">{{ item.tournament.name }}</h4>
+                                    </div>
                                 </div>
 
-                                <!-- Activation / Deactivation Toggle Button (Responds strictly to status) -->
-                                <div>
+                                <!-- Middle Metrics Chips -->
+                                <div class="d-none d-lg-flex align-items-center gap-2 font-monospace small">
+                                    <span class="badge bg-dark border border-secondary border-opacity-30 text-warning px-3 py-2 rounded-pill">
+                                        <i class="fa-solid fa-shield-halved me-1"></i>{{ item.teams_count }} Lag
+                                    </span>
+                                    <span class="badge bg-dark border border-secondary border-opacity-30 text-info px-3 py-2 rounded-pill">
+                                        <i class="fa-solid fa-table-cells-large me-1"></i>{{ item.groups_count }} Grupper
+                                    </span>
+                                    <span class="badge bg-dark border border-secondary border-opacity-30 text-emerald px-3 py-2 rounded-pill">
+                                        <i class="fa-solid fa-futbol me-1"></i>{{ item.matches_count }} Matcher
+                                    </span>
+                                    <span class="badge bg-dark border border-secondary border-opacity-30 text-danger px-3 py-2 rounded-pill">
+                                        <i class="fa-solid fa-trophy me-1"></i>{{ item.knockout_count }} Slutspel
+                                    </span>
+                                </div>
+
+                                <!-- Right Action Buttons -->
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <!-- POÄNG & SIDEBETS BUTTON -->
+                                    <button type="button" class="btn btn-outline-warning btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5"
+                                            id="tour-points-btn-{{ item.tournament.id }}"
+                                            onclick="openPointsSidebetsModal({{ item.tournament.id }})"
+                                            title="Konfigurera poängsystem och bonusfrågor">
+                                        <i class="fa-solid fa-sliders text-warning"></i><span>Poäng & Sidebets</span>
+                                    </button>
+
+                                    <!-- EDIT BRANDING & NAME BUTTON -->
+                                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5"
+                                            id="tour-edit-btn-{{ item.tournament.id }}"
+                                            onclick="openEditTournamentModal({{ item.tournament.id }})"
+                                            title="Byt namn eller ladda upp bakgrund/logotyp">
+                                        <i class="fa-solid fa-pen-to-square"></i><span>Branding</span>
+                                    </button>
+
+                                    <!-- SEE TOURNAMENT BUTTON -->
+                                    <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" 
+                                            onclick="openSeeTournament({{ item.tournament.id }})">
+                                        <i class="fa-solid fa-eye"></i><span>Granska</span>
+                                    </button>
+                                    
+                                    <!-- CHECKLIST BUTTON -->
+                                    <button class="btn btn-outline-info btn-sm rounded-pill fw-bold px-3 py-1.5 position-relative d-inline-flex align-items-center gap-1.5" onclick="validateTournament({{ item.tournament.id }})" title="{{ item.checklist_status.title }}">
+                                        <i class="fa-solid fa-clipboard-check"></i><span>Checklist</span>
+                                        <span id="chk-indicator-{{ item.tournament.id }}" class="ms-1" style="font-size: 0.95rem; line-height: 1;">
+                                            {{ item.checklist_status.emoji }}
+                                        </span>
+                                    </button>
+                                    
+                                    <!-- KÖR SIMULATOR BUTTON -->
+                                    <button class="btn btn-outline-warning btn-sm rounded-pill fw-bold px-3 py-1.5 position-relative d-inline-flex align-items-center gap-1.5" onclick="simulateTournament({{ item.tournament.id }})">
+                                        <i class="fa-solid fa-gamepad"></i><span>Simulator</span>
+                                        <span id="sim-emoji-{{ item.tournament.id }}" class="ms-1 {% if item.scored_matches_count == 0 %}d-none{% endif %}" style="font-size: 0.95rem; line-height: 1;">
+                                            ✅
+                                        </span>
+                                    </button>
+                                    
+                                    <!-- ÅTERSTÄLL BUTTON -->
+                                    <button class="btn btn-outline-secondary btn-sm rounded-pill fw-semibold px-2.5 py-1.5 d-inline-flex align-items-center" onclick="resetSimulation({{ item.tournament.id }})" title="Nollställ alla simulerade resultat">
+                                        <i class="fa-solid fa-rotate-left"></i>
+                                    </button>
+
+                                    <!-- Activation / Deactivation Toggle Button -->
                                     {% if item.total_status.code == 'BLOCKED' %}
-                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 shadow-sm fw-bold opacity-50" 
+                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5 shadow-sm fw-bold opacity-50" 
                                             id="pub-btn-{{ item.tournament.id }}" 
                                             disabled 
-                                            title="🚨 Kan ej aktiveras: Åtgärda rödmarkerade varningar i Checklist först!">
-                                        <i class="fa-solid fa-ban me-1.5" id="pub-btn-icon-{{ item.tournament.id }}"></i>
-                                        <span id="pub-btn-text-{{ item.tournament.id }}">Publicera & Aktivera</span>
+                                            title="🚨 Kan ej aktiveras: Åtgärda Checklist först!">
+                                        <i class="fa-solid fa-ban me-1" id="pub-btn-icon-{{ item.tournament.id }}"></i>
+                                        <span id="pub-btn-text-{{ item.tournament.id }}">Aktivera</span>
                                     </button>
                                     {% elif item.total_status.code == 'ACTIVE' %}
-                                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3.5 shadow-sm fw-bold" 
+                                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3.5 py-1.5 shadow-sm fw-bold" 
                                             id="pub-btn-{{ item.tournament.id }}" 
                                             onclick="togglePublish({{ item.tournament.id }})">
-                                        <i class="fa-solid fa-power-off me-1.5" id="pub-btn-icon-{{ item.tournament.id }}"></i>
+                                        <i class="fa-solid fa-power-off me-1" id="pub-btn-icon-{{ item.tournament.id }}"></i>
                                         <span id="pub-btn-text-{{ item.tournament.id }}">Avaktivera</span>
                                     </button>
                                     {% else %}
-                                    <!-- DRAFT or PAUSED: Possible to Activate -->
-                                    <button class="btn btn-outline-success btn-sm rounded-pill px-3.5 shadow-sm fw-bold" 
+                                    <button class="btn btn-outline-success btn-sm rounded-pill px-3.5 py-1.5 shadow-sm fw-bold" 
                                             id="pub-btn-{{ item.tournament.id }}" 
                                             onclick="togglePublish({{ item.tournament.id }})">
-                                        <i class="fa-solid fa-power-off me-1.5" id="pub-btn-icon-{{ item.tournament.id }}"></i>
-                                        <span id="pub-btn-text-{{ item.tournament.id }}">Publicera & Aktivera</span>
+                                        <i class="fa-solid fa-power-off me-1" id="pub-btn-icon-{{ item.tournament.id }}"></i>
+                                        <span id="pub-btn-text-{{ item.tournament.id }}">Publicera</span>
                                     </button>
                                     {% endif %}
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="card-body p-4">
-                            
-                            <!-- Transparent Metrics Count Row -->
-                            <div class="row g-2 mb-4 text-center">
-                                <div class="col-3">
-                                    <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-transparent">
-                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Lag</div>
-                                        <div class="fw-extrabold fs-4 text-warning">{{ item.teams_count }}</div>
-                                    </div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-transparent">
-                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Grupper</div>
-                                        <div class="fw-extrabold fs-4 text-info">{{ item.groups_count }}</div>
-                                    </div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-transparent">
-                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Matcher</div>
-                                        <div class="fw-extrabold fs-4 text-emerald">{{ item.matches_count }}</div>
-                                    </div>
-                                </div>
-                                <div class="col-3">
-                                    <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-transparent">
-                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Slutspel</div>
-                                        <div class="fw-extrabold fs-4 text-danger">{{ item.knockout_count }}</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Control & Review Action Buttons -->
-                            <div class="d-flex flex-wrap align-items-center mb-3" style="gap: 20px;">
-                                <!-- SEE TOURNAMENT BUTTON -->
-                                <button class="btn btn-outline-light btn-sm rounded-3 px-3.5 fw-bold shadow-sm d-inline-flex align-items-center" style="gap: 10px;" onclick="openSeeTournament({{ item.tournament.id }})">
-                                    <i class="fa-solid fa-eye"></i><span>See Tournament</span>
-                                </button>
-                                
-                                <!-- CHECKLIST BUTTON (Frameless Popping Top-Right Indicator Emoji) -->
-                                <button class="btn btn-outline-info btn-sm rounded-3 fw-bold px-3.5 position-relative d-inline-flex align-items-center" style="gap: 10px;" onclick="validateTournament({{ item.tournament.id }})" title="{{ item.checklist_status.title }}">
-                                    <i class="fa-solid fa-clipboard-check"></i><span>Checklist</span>
-                                    <span id="chk-indicator-{{ item.tournament.id }}" class="position-absolute top-0 start-100 translate-middle" style="font-size: 1.15rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
-                                        {{ item.checklist_status.emoji }}
-                                    </span>
-                                </button>
-                                
-                                <!-- KÖR SIMULATOR BUTTON (Frameless Popping Top-Right Indicator Emoji) -->
-                                <button class="btn btn-outline-warning btn-sm rounded-3 fw-bold px-3.5 position-relative d-inline-flex align-items-center" style="gap: 10px;" onclick="simulateTournament({{ item.tournament.id }})">
-                                    <i class="fa-solid fa-gamepad"></i><span>Kör Simulator</span>
-                                    <span id="sim-emoji-{{ item.tournament.id }}" class="position-absolute top-0 start-100 translate-middle {% if item.scored_matches_count == 0 %}d-none{% endif %}" style="font-size: 1.15rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
-                                        ✅
-                                    </span>
-                                </button>
-                                
-                                <!-- ÅTERSTÄLL BUTTON -->
-                                <button class="btn btn-outline-secondary btn-sm rounded-3 fw-semibold px-3 d-inline-flex align-items-center" style="gap: 10px;" onclick="resetSimulation({{ item.tournament.id }})" title="Nollställ alla simulerade resultat">
-                                    <i class="fa-solid fa-rotate-left"></i><span>Återställ</span>
-                                </button>
-                            </div>
-
-                            <!-- Checklist Results Output Box -->
-                            <div id="validation-box-{{ item.tournament.id }}" class="d-none mt-3 p-3 rounded-3 border border-secondary border-opacity-25 bg-transparent">
+                            <!-- Expandable Drawer for Checklist & Simulation Output -->
+                            <div id="validation-box-{{ item.tournament.id }}" class="d-none mt-3 p-3 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-75">
                                 <div class="d-flex align-items-center justify-content-between mb-2">
                                     <strong class="text-info fs-7 text-uppercase"><i class="fa-solid fa-clipboard-check me-1"></i> Checklist Rapport:</strong>
                                     <span id="overall-badge-{{ item.tournament.id }}" class="badge bg-transparent"></span>
@@ -164,16 +184,15 @@
                                 <ul class="list-unstyled mb-0 small" id="validation-list-{{ item.tournament.id }}"></ul>
                             </div>
 
-                            <!-- Simulation Status Alert Box -->
-                            <div id="simulation-box-{{ item.tournament.id }}" class="d-none mt-3 p-3 rounded-3 border border-warning border-opacity-30 bg-transparent">
+                            <div id="simulation-box-{{ item.tournament.id }}" class="d-none mt-3 p-3 rounded-3 border border-warning border-opacity-30 bg-dark bg-opacity-75">
                                 <div class="d-flex align-items-center text-warning mb-1">
                                     <i class="fa-solid fa-bolt me-2 fs-5"></i>
                                     <strong class="small text-uppercase font-monospace">Simulator-status</strong>
                                 </div>
                                 <p class="mb-0 small text-light" id="simulation-msg-{{ item.tournament.id }}"></p>
                             </div>
-
                         </div>
+
                     </div>
                 </div>
                 {% empty %}
@@ -448,21 +467,473 @@
 
         </div>
 
-        <!-- SECTION 3: POOL-ADMIN REQUESTS -->
-        <div class="tab-pane fade" id="pool-requests-pane" role="tabpanel">
-            <div class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.12) !important; border-radius: 16px;">
-                <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4 d-flex align-items-center justify-content-between">
-                    <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-shield-halved me-2 text-warning"></i>Pool-Admin-ansökningar</h5>
-                    <button class="btn btn-sm btn-outline-secondary fw-bold" onclick="loadPoolRequests()"><i class="fa-solid fa-rotate-right me-1"></i>Uppdatera</button>
+        <!-- SECTION 4: AI TOURNAMENT SCOUT -->
+        <div class="tab-pane fade" id="scout-pane" role="tabpanel">
+            
+            <!-- Scout Header Banner & Actions Toolbar -->
+            <div class="card bg-transparent text-white border border-secondary border-opacity-30 rounded-4 p-4 mb-4 shadow-sm border-start border-4 border-info">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-info text-dark font-monospace text-uppercase px-2.5 py-1 fw-bold">
+                                <i class="fa-solid fa-wand-magic-sparkles me-1"></i>AI Tournament Scout
+                            </span>
+                            <span class="text-secondary small">Gemini Web-Scanning Pipeline</span>
+                        </div>
+                        <h3 class="fw-extrabold mb-1 text-white">Scannade Turneringar & Prospekt</h3>
+                        <p class="text-secondary mb-0 small">Automatiskt scannade och granskade turneringar. Verifiera lottning, spelschema och konvertera godkända turneringar med ett klick.</p>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button class="btn btn-info rounded-pill px-3.5 py-2 fw-bold shadow-sm text-dark" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
+                            <i class="fa-solid fa-satellite-dish me-1.5"></i>Scanna webben nu
+                        </button>
+                        <button class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#importScoutJsonModal">
+                            <i class="fa-solid fa-file-import me-1.5"></i>Importera Scout-JSON
+                        </button>
+                        <button class="btn btn-outline-light rounded-pill px-3.5 py-2 fw-bold shadow-sm" onclick="copyGeminiPromptToClipboard()">
+                            <i class="fa-solid fa-copy me-1.5"></i>Kopiera Gemini-Prompt
+                        </button>
+                    </div>
                 </div>
-                <div class="card-body p-4" id="pool-requests-list">
-                    <p class="text-secondary text-center py-5"><i class="fa-solid fa-hourglass-half fa-2x mb-2 d-block"></i>Klicka på fliken för att ladda ansökningar...</p>
+
+                <!-- Filter Pills Row -->
+                <div class="d-flex flex-wrap align-items-center gap-2 mt-4 pt-3 border-top border-secondary border-opacity-20">
+                    <span class="text-secondary small me-2 font-monospace text-uppercase">Filter:</span>
+                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3);">
+                        Alla (<span id="count-scout-all">{{ scout_counts.total }}</span>)
+                    </button>
+                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_A" onclick="filterScoutProspects('GRADE_A', this)" style="background: rgba(16,185,129,0.12); color: #2eca8b; border: 1px solid rgba(16,185,129,0.3);">
+                        🟢 Grade A (Redo) (<span id="count-scout-grade-a">{{ scout_counts.grade_a }}</span>)
+                    </button>
+                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_B" onclick="filterScoutProspects('GRADE_B', this)" style="background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3);">
+                        🟡 Grade B (Nästan redo) (<span id="count-scout-grade-b">{{ scout_counts.grade_b }}</span>)
+                    </button>
+                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_C" onclick="filterScoutProspects('GRADE_C', this)" style="background: rgba(6,182,212,0.12); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3);">
+                        🟠 Grade C (Bevakning) (<span id="count-scout-grade-c">{{ scout_counts.grade_c }}</span>)
+                    </button>
                 </div>
             </div>
+
+            <!-- Prospects Card Grid (Full-Width Rows, Sorted Nearest in Time First) -->
+            <div class="row g-3" id="scoutProspectsGrid">
+                {% if scanned_tournaments %}
+                    {% for item in scanned_tournaments %}
+                        <!-- Full Prospect Row for Selectable Tournaments -->
+                        <div class="col-12 scout-prospect-item" 
+                             data-grade="{{ item.prospect.completeness_grade }}" 
+                             data-status="{{ item.prospect.status }}"
+                             id="prospect-card-{{ item.prospect.id }}">
+                            <div class="card bg-transparent text-white border border-secondary border-opacity-30 rounded-4 shadow-sm overflow-hidden" 
+                                 style="background: rgba(15, 23, 42, 0.7) !important; backdrop-filter: blur(14px);">
+                                
+                                <!-- Row Card Header -->
+                                <div class="card-header bg-transparent p-3.5 border-bottom border-secondary border-opacity-25">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="d-flex align-items-center justify-content-center bg-dark border border-secondary border-opacity-40 rounded-3 text-warning fs-3 flex-shrink-0" style="width: 52px; height: 52px;">
+                                                {{ item.sport_icon }}
+                                            </div>
+                                            <div>
+                                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                                    <span class="badge {{ item.grade_meta.badge_class }} rounded-pill px-2.5 py-1 font-monospace fw-bold small">
+                                                        {{ item.grade_meta.emoji }} {{ item.grade_meta.label }}
+                                                    </span>
+                                                    <span class="badge {{ item.status_meta.badge_class }} rounded-pill px-2.5 py-1 font-monospace small">
+                                                        {{ item.status_meta.label }}
+                                                    </span>
+                                                    {% if item.days_to_start is not None %}
+                                                        {% if item.days_to_start > 0 %}
+                                                            <span class="badge bg-dark border border-info border-opacity-40 text-info font-monospace rounded-pill px-2.5 py-1 small">
+                                                                <i class="fa-regular fa-clock me-1"></i>Om {{ item.days_to_start }} dagar
+                                                            </span>
+                                                        {% elif item.days_to_start == 0 %}
+                                                            <span class="badge bg-danger text-white font-monospace rounded-pill px-2.5 py-1 small animate-pulse">
+                                                                <i class="fa-solid fa-bolt me-1"></i>Startar idag!
+                                                            </span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                    <span class="text-secondary small font-monospace">#{{ item.prospect.id }}</span>
+                                                </div>
+                                                <h4 class="fw-extrabold mb-0 text-white d-flex align-items-center gap-2">
+                                                    {{ item.prospect.name }}
+                                                </h4>
+                                                <div class="text-secondary small mt-0.5 d-flex flex-wrap align-items-center gap-2">
+                                                    <span><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ item.prospect.host_country|default:"Värdnation ej angiven" }}</span>
+                                                    &bull; <span><i class="fa-regular fa-calendar text-info me-1"></i>{{ item.prospect.start_date|date:"Y-m-d"|default:"TBD" }} &ndash; {{ item.prospect.end_date|date:"Y-m-d"|default:"TBD" }}</span>
+                                                    {% if item.prospect.organizer %}&bull; <span class="badge bg-secondary bg-opacity-30 text-light">{{ item.prospect.organizer }}</span>{% endif %}
+                                                    {% if item.official_source_url %}
+                                                        &bull; <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size: 0.72rem;">
+                                                            <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiell sida
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Right Action Buttons in Header -->
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <button class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5" onclick="viewRawJsonProspect({{ item.prospect.id }})" title="Visa rå JSON">
+                                                <i class="fa-solid fa-code me-1"></i>JSON
+                                            </button>
+
+                                            {% if item.prospect.status != 'WATCHLIST' %}
+                                            <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5" onclick="updateProspectStatus({{ item.prospect.id }}, 'WATCHLIST')">
+                                                <i class="fa-solid fa-eye me-1"></i>Bevaka
+                                            </button>
+                                            {% else %}
+                                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5" onclick="updateProspectStatus({{ item.prospect.id }}, 'NEW')">
+                                                <i class="fa-solid fa-arrow-rotate-left me-1"></i>Tillbaka till Ny
+                                            </button>
+                                            {% endif %}
+
+                                            <!-- DIRECT CREATE BUTTON -->
+                                            <button class="btn btn-success btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="convertDirect({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}')">
+                                                <i class="fa-solid fa-bolt"></i><span>Skapa nu</span>
+                                            </button>
+
+                                            <!-- REVIEW & CONVERT MODAL BUTTON -->
+                                            <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="openReviewConvertModal({{ item.prospect.id }})">
+                                                <i class="fa-solid fa-wand-magic-sparkles"></i><span>Granska & Skapa</span>
+                                            </button>
+
+                                            <button class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1.5 ms-1" onclick="deleteProspect({{ item.prospect.id }})" title="Radera från Scout">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-body p-4">
+                                    <div class="row g-4">
+                                        <!-- Left Column: Metrics & Grade Issue Bulletpoints -->
+                                        <div class="col-12 col-lg-5 col-xl-5">
+                                            
+                                            <!-- Metrics Capsules -->
+                                            <div class="row g-2 mb-3 text-center">
+                                                <div class="col-3">
+                                                    <div class="p-2 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-40">
+                                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Lag</div>
+                                                        <div class="fw-extrabold fs-5 text-warning">{{ item.teams_count }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="p-2 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-40">
+                                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Grupper</div>
+                                                        <div class="fw-extrabold fs-5 text-info">{{ item.groups_count }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="p-2 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-40">
+                                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Matcher</div>
+                                                        <div class="fw-extrabold fs-5 text-success">{{ item.matches_count }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="p-2 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-40">
+                                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Sidebets</div>
+                                                        <div class="fw-extrabold fs-5 text-primary">{{ item.sidebets_count }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Audit & Grade Issue Bulletpoints Box -->
+                                            <div class="p-3 rounded-3 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.85);">
+                                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                                    <span class="text-uppercase font-monospace fw-bold fs-7 {{ item.grade_meta.badge_class }} px-2 py-0.5 rounded-1">
+                                                        <i class="fa-solid fa-clipboard-check me-1"></i>Graderingsanalys & Krav
+                                                    </span>
+                                                    <span class="text-secondary small font-monospace">{{ item.grade_meta.label }}</span>
+                                                </div>
+                                                
+                                                <!-- Status Checklist Bullets -->
+                                                <div class="d-flex flex-column gap-1.5 mb-2.5 pb-2 border-bottom border-secondary border-opacity-20 small">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        {% if item.draw_done %}
+                                                            <span class="text-success flex-shrink-0"><i class="fa-solid fa-circle-check"></i></span>
+                                                            <span class="text-light">Lottning: <strong class="text-white">Genomförd</strong> ({{ item.teams_count }} lag i {{ item.groups_count }} grupper)</span>
+                                                        {% else %}
+                                                            <span class="text-danger flex-shrink-0"><i class="fa-solid fa-circle-xmark"></i></span>
+                                                            <span class="text-danger">Lottning: <strong>Ej genomförd / Väntar på kval</strong></span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        {% if item.fixtures_done %}
+                                                            <span class="text-success flex-shrink-0"><i class="fa-solid fa-circle-check"></i></span>
+                                                            <span class="text-light">Spelschema: <strong class="text-white">Fastställt</strong> ({{ item.matches_count }} matcher)</span>
+                                                        {% else %}
+                                                            <span class="text-warning flex-shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                                                            <span class="text-warning">Spelschema: <strong>Exakta klockslag/datum saknas</strong></span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+
+                                                <!-- Missing Items Bullet Points -->
+                                                {% if item.missing_items %}
+                                                <div class="mb-2">
+                                                    <div class="text-warning small fw-bold mb-1.5 d-flex align-items-center gap-1.5">
+                                                        <i class="fa-solid fa-circle-exclamation text-warning"></i>Identifierade brister & saknade uppgifter:
+                                                    </div>
+                                                    <ul class="list-unstyled mb-0 d-flex flex-column gap-1.5 ps-1 small">
+                                                        {% for m in item.missing_items %}
+                                                        <li class="d-flex align-items-start gap-2 text-light">
+                                                            <span class="text-danger flex-shrink-0 mt-0.5"><i class="fa-solid fa-xmark"></i></span>
+                                                            <span>{{ m }}</span>
+                                                        </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                                {% endif %}
+
+                                                <!-- Recommended Action Bullet -->
+                                                {% if item.action_needed %}
+                                                <div class="mt-2.5 pt-2 border-top border-secondary border-opacity-20 small">
+                                                    <div class="d-flex align-items-start gap-2 text-info">
+                                                        <span class="text-warning flex-shrink-0 mt-0.5"><i class="fa-solid fa-lightbulb"></i></span>
+                                                        <div><strong class="text-warning">Åtgärd:</strong> <span class="text-light">{{ item.action_needed }}</span></div>
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                        <!-- Right Column: Accordion Previews (Groups, Schedule, Sidebets) -->
+                                        <div class="col-12 col-lg-7 col-xl-7">
+                                            <div class="accordion accordion-flush" id="prospectAccordion-{{ item.prospect.id }}">
+                                            
+                                            <!-- 1. Grupper & Lag -->
+                                            <div class="accordion-item bg-transparent border-bottom border-secondary border-opacity-20">
+                                                <h2 class="accordion-header" id="headingGroups-{{ item.prospect.id }}">
+                                                    <button class="accordion-button collapsed bg-transparent text-white px-0 py-2.5 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGroups-{{ item.prospect.id }}">
+                                                        <i class="fa-solid fa-users me-2 text-warning"></i><strong>Gruppindelning & Lag</strong> ({{ item.groups_count }} grupper, {{ item.teams_count }} lag)
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseGroups-{{ item.prospect.id }}" class="accordion-collapse collapse" data-bs-parent="#prospectAccordion-{{ item.prospect.id }}">
+                                                    <div class="accordion-body px-0 py-3">
+                                                        <div class="row g-2">
+                                                            {% for g in item.groups %}
+                                                            <div class="col-12 col-md-6 col-xl-3">
+                                                                <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-60 h-100">
+                                                                    <div class="fw-bold text-warning small mb-2 border-bottom border-secondary border-opacity-20 pb-1">
+                                                                        {{ g.name }}
+                                                                    </div>
+                                                                    <div class="d-flex flex-column gap-1.5">
+                                                                        {% for t in g.teams %}
+                                                                        <div class="d-flex align-items-center gap-2 small">
+                                                                            {% if t.code %}
+                                                                                <img src="https://flagcdn.com/w40/{{ t.code|lower }}.png" alt="{{ t.name }}" style="width: 20px; height: 14px; object-fit: cover;" class="rounded-1 border border-secondary border-opacity-40">
+                                                                            {% else %}
+                                                                                <i class="fa-solid fa-shield text-secondary" style="font-size: 14px;"></i>
+                                                                            {% endif %}
+                                                                            <span class="text-white">{{ t.name|default:t }}</span>
+                                                                        </div>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            {% empty %}
+                                                            <div class="text-secondary small">Inga grupper lottade ännu.</div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- 2. Spelschema & Slutspel -->
+                                            <div class="accordion-item bg-transparent border-bottom border-secondary border-opacity-20">
+                                                <h2 class="accordion-header" id="headingFixtures-{{ item.prospect.id }}">
+                                                    <button class="accordion-button collapsed bg-transparent text-white px-0 py-2.5 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFixtures-{{ item.prospect.id }}">
+                                                        <i class="fa-solid fa-calendar-days me-2 text-info"></i><strong>Spelschema & Slutspelsstruktur</strong> ({{ item.matches_count }} matcher)
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseFixtures-{{ item.prospect.id }}" class="accordion-collapse collapse" data-bs-parent="#prospectAccordion-{{ item.prospect.id }}">
+                                                    <div class="accordion-body px-0 py-3">
+                                                        {% if item.fixtures %}
+                                                        <div class="table-responsive small mb-3" style="max-height: 220px; overflow-y: auto;">
+                                                            <table class="table table-dark table-sm table-borderless align-middle mb-0">
+                                                                <thead class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30 sticky-top bg-dark">
+                                                                    <tr>
+                                                                        <th style="width: 40px;">#</th>
+                                                                        <th>Steg/Grupp</th>
+                                                                        <th>Datum & Tid</th>
+                                                                        <th>Match</th>
+                                                                        <th>Arena</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for f in item.fixtures %}
+                                                                    <tr class="border-bottom border-secondary border-opacity-10">
+                                                                        <td class="font-monospace text-secondary">{{ f.match_number }}</td>
+                                                                        <td><span class="badge bg-secondary bg-opacity-30 text-light">{{ f.stage_or_group }}</span></td>
+                                                                        <td class="text-info font-monospace">{{ f.date_time|slice:":16"|default:"-" }}</td>
+                                                                        <td class="fw-bold text-white">{{ f.home_team }} &ndash; {{ f.away_team }}</td>
+                                                                        <td class="text-secondary small">{{ f.venue|default:"-" }}</td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                        {% else %}
+                                                        <div class="text-secondary small mb-2">Inget fastställt spelschema tillgängligt i prospektet ännu.</div>
+                                                        {% endif %}
+
+                                                        {% if item.knockouts %}
+                                                        <div class="fw-bold text-info small mb-2"><i class="fa-solid fa-diagram-project me-1"></i>Slutspelskopplingar:</div>
+                                                        <div class="d-flex flex-wrap gap-2">
+                                                            {% for k in item.knockouts %}
+                                                            <div class="p-2 rounded-2 bg-dark bg-opacity-60 border border-secondary border-opacity-20 small">
+                                                                <span class="text-warning font-monospace">M{{ k.match_number }} ({{ k.stage }}):</span>
+                                                                <span class="text-white">{{ k.home_placeholder }}</span> vs <span class="text-white">{{ k.away_placeholder }}</span>
+                                                            </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- 3. Bonusfrågor (Sidebets) -->
+                                            <div class="accordion-item bg-transparent">
+                                                <h2 class="accordion-header" id="headingSidebets-{{ item.prospect.id }}">
+                                                    <button class="accordion-button collapsed bg-transparent text-white px-0 py-2.5 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSidebets-{{ item.prospect.id }}">
+                                                        <i class="fa-solid fa-trophy me-2 text-primary"></i><strong>Föreslagna Sidebets</strong> ({{ item.sidebets_count }} st)
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseSidebets-{{ item.prospect.id }}" class="accordion-collapse collapse" data-bs-parent="#prospectAccordion-{{ item.prospect.id }}">
+                                                    <div class="accordion-body px-0 py-3">
+                                                        <div class="d-flex flex-column gap-2">
+                                                            {% for sb in item.sidebets %}
+                                                            <div class="p-2.5 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-20 d-flex align-items-center justify-content-between small">
+                                                                <div>
+                                                                    <strong class="text-white">{{ sb.question }}</strong>
+                                                                    <div class="text-secondary mt-0.5">Typ: <span class="badge bg-secondary bg-opacity-40">{{ sb.question_type }}</span></div>
+                                                                </div>
+                                                                <span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-30 font-monospace fw-bold">{{ sb.points }}p</span>
+                                                            </div>
+                                                            {% empty %}
+                                                            <div class="text-secondary small">Inga sidebets specificerade i prospektet.</div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="text-center py-5 border border-secondary border-opacity-25 rounded-4 p-5 bg-dark bg-opacity-40">
+                            <i class="fa-solid fa-radar fa-3x text-secondary mb-3"></i>
+                            <h4 class="text-white">Inga scannade turneringar hittades</h4>
+                            <p class="text-secondary small">Klicka på "Scanna webben nu" eller "Importera Scout-JSON" för att lägga till prospekt.</p>
+                            <button class="btn btn-info rounded-pill px-4 py-2 fw-bold text-dark mt-2" onclick="triggerWebScrapeNow()">
+                                <i class="fa-solid fa-satellite-dish me-1.5"></i>Scanna webben nu
+                            </button>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
         </div>
 
     </div>
 
+</div>
+
+<!-- MODAL 1: IMPORT SCOUT JSON MODAL -->
+<div class="modal fade" id="importScoutJsonModal" tabindex="-1" aria-labelledby="importScoutJsonModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 text-warning">
+                        <i class="fa-solid fa-file-import"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-extrabold text-white mb-0" id="importScoutJsonModalLabel">Importera Gemini Scout-JSON</h5>
+                        <span class="text-secondary small">Klistra in strukturerad JSON från Gemini Tournament Scout</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <label for="scoutJsonInput" class="form-label text-secondary small fw-bold text-uppercase mb-0">JSON Payload:</label>
+                    <button class="btn btn-outline-info btn-sm rounded-pill" onclick="loadSampleScoutJson()">
+                        <i class="fa-solid fa-vial me-1"></i>Ladda testexempel (Innebandy-VM 2026)
+                    </button>
+                </div>
+                
+                <textarea class="form-control bg-dark text-white font-monospace border-secondary border-opacity-30 rounded-3 mb-3" 
+                          id="scoutJsonInput" 
+                          rows="14" 
+                          placeholder="Klistra in JSON-objektet här (med 'master_event', 'tournament_config', 'groups', 'fixtures_sample', osv.)..."
+                          style="font-size: 0.82rem;"></textarea>
+
+                <div id="scoutJsonValidationFeedback" class="small text-danger mb-2" style="display:none;"></div>
+            </div>
+
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Avbryt</button>
+                <button type="button" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" onclick="submitScoutJsonImport()">
+                    <i class="fa-solid fa-check me-1.5"></i>Validera & Importera
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 2: PRE-CREATION REVIEW & CONVERT MODAL -->
+<div class="modal fade" id="reviewConvertModal" tabindex="-1" aria-labelledby="reviewConvertModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-25 text-success">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-extrabold text-white mb-0" id="reviewConvertModalLabel">Granska & Konvertera till Live Turnering</h5>
+                        <span class="text-secondary small" id="reviewModalSubtitle">Verifiera data innan live-databasobjekt skapas</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            
+            <div class="modal-body p-4" id="reviewModalBody">
+                <div class="text-center py-5 text-secondary">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x mb-3 text-warning"></i>
+                    <p>Laddar turneringsstruktur och granskningsdata...</p>
+                </div>
+            </div>
+
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Stäng</button>
+                <button type="button" class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" id="confirmConvertBtn" onclick="executeConvertTournament()">
+                    <i class="fa-solid fa-circle-check me-1.5"></i>Skapa Turnering i Engine Admin
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL 3: VIEW RAW JSON PROSPECT MODAL -->
+<div class="modal fade" id="rawJsonModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <h5 class="modal-title fw-bold text-white mb-0"><i class="fa-solid fa-code me-2 text-warning"></i>Rå JSON-Payload</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            <div class="modal-body p-4">
+                <pre class="bg-dark text-success p-3 rounded-3 font-monospace small mb-0" id="rawJsonContent" style="max-height: 450px; overflow: auto;"></pre>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- SEE TOURNAMENT REVIEW MODAL CONTAINER -->
@@ -477,8 +948,497 @@
     </div>
 </div>
 
+<!-- EDIT TOURNAMENT BRANDING & NAME MODAL CONTAINER -->
+<div class="modal fade" id="editTournamentModal" tabindex="-1" aria-labelledby="editTournamentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 text-warning">
+                        <i class="fa-solid fa-paintbrush"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-extrabold text-white mb-0" id="editTournamentModalLabel">Redigera Turnering & Branding</h5>
+                        <span class="text-secondary small font-monospace" id="editModalTournamentIdText">ID: #</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            
+            <form id="editTournamentForm" enctype="multipart/form-data" onsubmit="submitEditTournament(event)">
+                {% csrf_token %}
+                <input type="hidden" id="editTournamentId" name="tournament_id" value="">
+                <input type="hidden" id="editClearIcon" name="clear_icon" value="0">
+                <input type="hidden" id="editClearBackdrop" name="clear_backdrop" value="0">
+
+                <div class="modal-body p-4">
+                    
+                    <div id="editTournamentAlert" class="alert d-none mb-4 py-2 px-3 small rounded-3" role="alert"></div>
+
+                    <!-- 1. Tournament Name -->
+                    <div class="mb-4">
+                        <label for="editTournamentName" class="form-label text-light fw-bold small text-uppercase font-monospace">
+                            <i class="fa-solid fa-heading text-warning me-1.5"></i>Turneringsnamn *
+                        </label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary border-opacity-50 py-2.5 px-3 rounded-3" 
+                               id="editTournamentName" name="name" required placeholder="t.ex. UEFA Euro 2028, VM 2026...">
+                        <div class="form-text text-secondary small">Namnet visas för användare på startsidan, menybaren och tippningsvyn.</div>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- 2. Tournament Logotype / Icon -->
+                        <div class="col-12 col-md-6">
+                            <div class="p-3.5 rounded-4 border border-secondary border-opacity-25 bg-dark bg-opacity-50 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <label class="form-label text-light fw-bold small text-uppercase font-monospace mb-2 d-flex align-items-center justify-content-between">
+                                        <span><i class="fa-solid fa-shield-cat text-info me-1.5"></i>Turneringslogotyp</span>
+                                        <span class="badge bg-secondary bg-opacity-25 text-info font-monospace" style="font-size: 0.7rem;">Ikon / Emblem</span>
+                                    </label>
+
+                                    <!-- Live Preview Area -->
+                                    <div class="p-3 mb-3 rounded-3 border border-secondary border-opacity-25 bg-black d-flex flex-column align-items-center justify-content-center text-center position-relative" style="min-height: 120px;">
+                                        <img id="editIconPreview" src="" alt="Förhandsgranskning Ikon" class="d-none" 
+                                             style="max-height: 70px; max-width: 120px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.8));">
+                                        <div id="editIconEmptyState" class="text-secondary small">
+                                            <i class="fa-solid fa-trophy fs-3 mb-1 text-secondary opacity-50 d-block"></i>
+                                            <span>Ingen logotyp vald</span>
+                                        </div>
+                                        <button type="button" id="editRemoveIconBtn" class="btn btn-outline-danger btn-xs rounded-pill position-absolute top-0 end-0 m-2 d-none" 
+                                                onclick="clearTournamentIcon()" title="Ta bort vald logotyp">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- File input -->
+                                    <div class="mb-2">
+                                        <input type="file" class="form-control form-control-sm bg-dark text-white border-secondary border-opacity-50" 
+                                               id="editTournamentIconInput" name="icon" accept="image/*" onchange="handleIconSelection(this)">
+                                    </div>
+                                </div>
+                                <div class="form-text text-secondary fs-7">
+                                    Rekommenderas: PNG/WEBP med transparent bakgrund (256x256 el. 512x512).
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Tournament Backdrop Banner -->
+                        <div class="col-12 col-md-6">
+                            <div class="p-3.5 rounded-4 border border-secondary border-opacity-25 bg-dark bg-opacity-50 h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <label class="form-label text-light fw-bold small text-uppercase font-monospace mb-2 d-flex align-items-center justify-content-between">
+                                        <span><i class="fa-solid fa-image text-emerald me-1.5"></i>Bakgrundsbild</span>
+                                        <span class="badge bg-secondary bg-opacity-25 text-emerald font-monospace" style="font-size: 0.7rem;">Backdrop Header</span>
+                                    </label>
+
+                                    <!-- Live Preview Area -->
+                                    <div class="p-3 mb-3 rounded-3 border border-secondary border-opacity-25 bg-black d-flex flex-column align-items-center justify-content-center text-center position-relative overflow-hidden" 
+                                         id="editBackdropPreviewContainer" style="min-height: 120px; background-size: cover; background-position: center;">
+                                        <div id="editBackdropEmptyState" class="text-secondary small">
+                                            <i class="fa-solid fa-panorama fs-3 mb-1 text-secondary opacity-50 d-block"></i>
+                                            <span>Ingen specifik bakgrund vald</span>
+                                        </div>
+                                        <button type="button" id="editRemoveBackdropBtn" class="btn btn-outline-danger btn-xs rounded-pill position-absolute top-0 end-0 m-2 d-none" 
+                                                onclick="clearTournamentBackdrop()" title="Ta bort vald bakgrund">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- File input -->
+                                    <div class="mb-2">
+                                        <input type="file" class="form-control form-control-sm bg-dark text-white border-secondary border-opacity-50" 
+                                               id="editTournamentBackdropInput" name="backdrop" accept="image/*" onchange="handleBackdropSelection(this)">
+                                    </div>
+                                </div>
+                                <div class="form-text text-secondary fs-7">
+                                    Rekommenderas: WEBP/JPG (1920x1080) med mörkt/stämningsfullt motiv.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold" data-bs-dismiss="modal">Avbryt</button>
+                    <button type="submit" id="editSubmitBtn" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                        <i class="fa-solid fa-floppy-disk" id="editSubmitBtnIcon"></i>
+                        <span id="editSubmitBtnText">Spara ändringar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- TOURNAMENT POINTS & SIDEBETS MANAGEMENT MODAL -->
+<div class="modal fade" id="pointsSidebetsModal" tabindex="-1" aria-labelledby="pointsSidebetsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-2.5 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 text-warning fs-5">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h5 class="modal-title fw-extrabold text-white mb-0" id="pointsSidebetsModalLabel">Poängsystem & Sidebets</h5>
+                            <span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 rounded-pill font-monospace small px-2.5 py-0.5" id="psModalTourBadge">ID: #</span>
+                        </div>
+                        <span class="text-secondary small" id="psModalTourSubtitle">Konfigurera standardpoäng och hantera bonusfrågor för turneringen</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+
+            <!-- Modal Nav Tabs Header -->
+            <div class="px-4 pt-3 pb-0 border-bottom border-secondary border-opacity-20" style="background: rgba(15, 23, 42, 0.6);">
+                <ul class="nav nav-tabs border-0 gap-2" id="pointsSidebetsTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold text-white border-0 rounded-top-3 px-3.5 py-2.5" id="ps-points-tab" data-bs-toggle="tab" data-bs-target="#ps-points-pane" type="button" role="tab">
+                            <i class="fa-solid fa-calculator text-warning me-2"></i>1. Poängsystem (Match & Slutspel)
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-white border-0 rounded-top-3 px-3.5 py-2.5" id="ps-sidebets-tab" data-bs-toggle="tab" data-bs-target="#ps-sidebets-pane" type="button" role="tab">
+                            <i class="fa-solid fa-bullseye text-info me-2"></i>2. Sidebets & Bonusfrågor <span id="psModalSidebetCountBadge" class="badge bg-info text-dark rounded-pill ms-1 font-monospace">0</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="modal-body p-4 tab-content" id="pointsSidebetsTabContent">
+                <!-- TAB 1: POINTS CONFIGURATION -->
+                <div class="tab-pane fade show active" id="ps-points-pane" role="tabpanel">
+                    <div id="psPointsAlert" class="alert d-none mb-3 py-2 px-3 small rounded-3" role="alert"></div>
+
+                    <!-- Presets Quick Bar -->
+                    <div class="p-3 mb-4 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-40 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <div>
+                            <strong class="text-white small d-block"><i class="fa-solid fa-wand-magic-sparkles text-warning me-1.5"></i>Snabbmallar (Presets):</strong>
+                            <span class="text-secondary fs-8">Fyll i beprövade poängregler med ett klick</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="applyPointsPreset('standard')">
+                                ⚽ Standard (3/5/2)
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-3" onclick="applyPointsPreset('hockey')">
+                                🏒 Ishockey / Hög-poäng
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm rounded-pill px-3" onclick="applyPointsPreset('knockout')">
+                                ⚡ Slutspelsfokus
+                            </button>
+                        </div>
+                    </div>
+
+                    <form id="pointsSystemForm" onsubmit="submitSavePoints(event)">
+                        <input type="hidden" id="psTournamentId" name="tournament_id" value="">
+                        
+                        <div class="row g-4">
+                            <!-- 1. Matchtippning -->
+                            <div class="col-12 col-lg-6">
+                                <div class="p-3.5 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-50 h-100">
+                                    <h6 class="fw-extrabold text-warning text-uppercase font-monospace mb-3 pb-2 border-bottom border-secondary border-opacity-20 d-flex align-items-center justify-content-between">
+                                        <span><i class="fa-solid fa-futbol me-2"></i>1. Matchtippning</span>
+                                        <span class="badge bg-secondary bg-opacity-30 text-light font-monospace fs-8">1X2 & Mål</span>
+                                    </h6>
+                                    <div class="mb-3">
+                                        <label class="form-label text-light small fw-semibold mb-1">Rätt tecken (1X2):</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_match_correct_1x2" name="match_correct_1x2" value="3">
+                                            <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">poäng</span>
+                                        </div>
+                                        <div class="form-text text-secondary fs-8">Standard: 3p för rätt vinnare eller oavgjort.</div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label text-light small fw-semibold mb-1">Rätt antal mål per lag (Exakt resultat-del):</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_match_correct_goals_per_team" name="match_correct_goals_per_team" value="3">
+                                            <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">poäng</span>
+                                        </div>
+                                    </div>
+                                    <div class="mb-0">
+                                        <label class="form-label text-light small fw-semibold mb-1">Rätt totalt antal mål i matchen:</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_match_correct_total_goals" name="match_correct_total_goals" value="1">
+                                            <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">poäng</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 2. Gruppspelsplacering & Tabell -->
+                            <div class="col-12 col-lg-6">
+                                <div class="p-3.5 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-50 h-100">
+                                    <h6 class="fw-extrabold text-info text-uppercase font-monospace mb-3 pb-2 border-bottom border-secondary border-opacity-20 d-flex align-items-center justify-content-between">
+                                        <span><i class="fa-solid fa-table-list me-2"></i>2. Gruppspelstabeller</span>
+                                        <span class="badge bg-secondary bg-opacity-30 text-light font-monospace fs-8">Placering & Mål</span>
+                                    </h6>
+                                    <div class="row g-2">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Exakt placering (Rank):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_group_correct_placement" name="group_correct_placement" value="2">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Rätt grupp-poäng:</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_group_correct_points" name="group_correct_points" value="1">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Rätt gjorda mål (GF):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_group_correct_goals_scored" name="group_correct_goals_scored" value="1">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Rätt insläppta mål (GA):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_group_correct_goals_conceded" name="group_correct_goals_conceded" value="1">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-1">
+                                            <label class="form-label text-light small fw-semibold mb-1">Målskillnad (+/- GD):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_group_correct_goal_diff" name="group_correct_goal_diff" value="1">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-1">
+                                            <label class="form-label text-light small fw-semibold mb-1">Lag kvalificerat (Avancemang):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_group_team_qualified" name="group_team_qualified" value="0">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 3. Special- & Extratabeller -->
+                            <div class="col-12 col-lg-6">
+                                <div class="p-3.5 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-50 h-100">
+                                    <h6 class="fw-extrabold text-emerald text-uppercase font-monospace mb-3 pb-2 border-bottom border-secondary border-opacity-20 d-flex align-items-center justify-content-between">
+                                        <span><i class="fa-solid fa-ranking-star me-2"></i>3. Extratabeller (Bästa 3:or m.m.)</span>
+                                        <span class="badge bg-secondary bg-opacity-30 text-light font-monospace fs-8">Kvalranking</span>
+                                    </h6>
+                                    <div class="row g-2">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Kvalificerat lag (Bästa 3:a):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_qualifying_table_team_qualified" name="qualifying_table_team_qualified" value="5">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Exakt rank i 3:e-tabell:</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_qualifying_table_exact_rank" name="qualifying_table_exact_rank" value="0">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-1">
+                                            <label class="form-label text-light small fw-semibold mb-1">Poäng i 3:e-tabell:</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_qualifying_table_points" name="qualifying_table_points" value="0">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-1">
+                                            <label class="form-label text-light small fw-semibold mb-1">Målskillnad i 3:e-tabell:</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_qualifying_table_goal_diff" name="qualifying_table_goal_diff" value="0">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 4. Slutspelssteg -->
+                            <div class="col-12 col-lg-6">
+                                <div class="p-3.5 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-50 h-100">
+                                    <h6 class="fw-extrabold text-danger text-uppercase font-monospace mb-3 pb-2 border-bottom border-secondary border-opacity-20 d-flex align-items-center justify-content-between">
+                                        <span><i class="fa-solid fa-trophy me-2"></i>4. Slutspelssteg (Knockout)</span>
+                                        <span class="badge bg-secondary bg-opacity-30 text-light font-monospace fs-8">Rätt lag vidare</span>
+                                    </h6>
+                                    <div class="row g-2">
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Åttondelsfinal (R16 / Playoff):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_round_of_16" name="knockout_round_of_16" value="3">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Kvartsfinal (QF):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_quarterfinal" name="knockout_quarterfinal" value="4">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Semifinal (SF):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_semifinal" name="knockout_semifinal" value="5">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Bronsmatch:</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_bronze_match" name="knockout_bronze_match" value="0">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 mb-1">
+                                            <label class="form-label text-light small fw-semibold mb-1">Final & Mästare (Guld):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_final" name="knockout_final" value="8">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top border-secondary border-opacity-20 d-flex align-items-center justify-content-end gap-2">
+                            <button type="submit" id="savePointsBtn" class="btn btn-warning rounded-pill px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk" id="savePointsBtnIcon"></i>
+                                <span id="savePointsBtnText">Spara Poängsystem</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- TAB 2: SIDEBETS CONFIGURATION -->
+                <div class="tab-pane fade" id="ps-sidebets-pane" role="tabpanel">
+                    <div id="psSidebetsAlert" class="alert d-none mb-3 py-2 px-3 small rounded-3" role="alert"></div>
+
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom border-secondary border-opacity-20">
+                        <div>
+                            <h5 class="text-white fw-bold mb-0">Bonusfrågor (Sidebets)</h5>
+                            <span class="text-secondary small">Skapa och redigera frågor som deltagarna kan tippa inför eller under turneringen</span>
+                        </div>
+                        <button type="button" class="btn btn-info btn-sm rounded-pill px-3.5 py-2 fw-bold shadow-sm" onclick="showAddSidebetForm()">
+                            <i class="fa-solid fa-plus me-1.5"></i>Skapa ny Sidebet
+                        </button>
+                    </div>
+
+                    <!-- Add New Sidebet Form (Collapsible/Hidden by default) -->
+                    <div id="newSidebetCard" class="card bg-dark border border-info border-opacity-40 rounded-3 p-3.5 mb-4 shadow-sm d-none">
+                        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-20">
+                            <strong class="text-info small fw-bold"><i class="fa-solid fa-circle-plus me-1.5"></i>Ny Sidebet / Bonusfråga:</strong>
+                            <button type="button" class="btn-close btn-close-white btn-sm" onclick="hideAddSidebetForm()"></button>
+                        </div>
+                        <form id="newSidebetForm" onsubmit="submitNewSidebet(event)">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-7">
+                                    <label class="form-label text-light small fw-semibold">Frågetext *</label>
+                                    <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="new_sb_question" required placeholder="t.ex. Vilket land vinner turneringen?">
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label text-light small fw-semibold">Frågetyp</label>
+                                    <select class="form-select form-select-sm bg-dark text-white border-secondary" id="new_sb_type">
+                                        <option value="TEAM">Välj lag (dropdown)</option>
+                                        <option value="TEXT" selected>Fritext (t.ex. spelarnamn)</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-2">
+                                    <label class="form-label text-light small fw-semibold">Poäng</label>
+                                    <input type="number" min="1" max="100" class="form-control form-control-sm bg-dark text-white border-secondary" id="new_sb_points" value="10" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-light small fw-semibold">Rätt svar (Valfritt nu, kan sättas efter turneringen)</label>
+                                    <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="new_sb_correct" placeholder="t.ex. Sverige, Viktor Gyökeres (separera flera med komma)">
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2 mt-3">
+                                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="hideAddSidebetForm()">Avbryt</button>
+                                <button type="submit" class="btn btn-info btn-sm rounded-pill px-4 fw-bold">Skapa Fråga</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- List of Existing Sidebets -->
+                    <div id="sidebetsListContainer" class="d-flex flex-column gap-3">
+                        <!-- Rendered dynamically via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <!-- CSRF & Interactivity Script -->
 <script>
+    function showModalSafe(modalId) {
+        const modalEl = document.getElementById(modalId);
+        if (!modalEl) {
+            console.error('Modal element not found:', modalId);
+            return;
+        }
+
+        // Move modal to body to prevent stacking context or z-index trapping
+        if (modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
+
+        if (window.bootstrap && window.bootstrap.Modal) {
+            try {
+                const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+                return;
+            } catch(e) {
+                console.warn('Bootstrap modal.show failed, using CSS fallback:', e);
+            }
+        }
+        // Direct CSS fallback
+        modalEl.classList.add('show');
+        modalEl.style.display = 'block';
+        modalEl.removeAttribute('aria-hidden');
+        modalEl.setAttribute('aria-modal', 'true');
+        
+        let backdrop = document.getElementById(modalId + '-backdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = modalId + '-backdrop';
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.onclick = () => hideModalSafe(modalId);
+            document.body.appendChild(backdrop);
+        }
+        document.body.classList.add('modal-open');
+    }
+
+    function hideModalSafe(modalId) {
+        const modalEl = document.getElementById(modalId);
+        if (!modalEl) return;
+        if (window.bootstrap && window.bootstrap.Modal) {
+            try {
+                const modal = window.bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            } catch(e) {}
+        }
+        modalEl.classList.remove('show');
+        modalEl.style.display = 'none';
+        modalEl.setAttribute('aria-hidden', 'true');
+        modalEl.removeAttribute('aria-modal');
+        const backdrop = document.getElementById(modalId + '-backdrop');
+        if (backdrop) backdrop.remove();
+        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+    }
+
     function getCSRFToken() {
         const name = 'csrftoken';
         let cookieValue = null;
@@ -497,25 +1457,664 @@
 
     function copyAdminEmails() {
         const copyText = document.getElementById("adminEmailsInput");
+        if (!copyText) return;
         copyText.select();
         copyText.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(copyText.value);
-        alert("Kopierade alla Pool Admin E-postadresser till urklipp!");
+        navigator.clipboard.writeText(copyText.value).then(() => {
+            alert("Kopierade alla Pool Admin E-postadresser till urklipp!");
+        }).catch(() => {
+            document.execCommand('copy');
+            alert("Kopierade alla Pool Admin E-postadresser till urklipp!");
+        });
+    }
+
+    // --- TOURNAMENT BRANDING & NAME MODAL LOGIC ---
+    let currentEditingTournamentId = null;
+
+    function openEditTournamentModal(tournamentId, tournamentName, iconUrl, backdropUrl) {
+        currentEditingTournamentId = tournamentId;
+
+        if (!tournamentName) {
+            const nameEl = document.getElementById(`tour-name-display-${tournamentId}`);
+            tournamentName = nameEl ? nameEl.innerText.trim() : '';
+        }
+        if (!iconUrl) {
+            const iconEl = document.getElementById(`tour-icon-img-${tournamentId}`);
+            iconUrl = iconEl ? iconEl.src : '';
+        }
+
+        document.getElementById('editTournamentId').value = tournamentId;
+        document.getElementById('editModalTournamentIdText').innerText = `ID: #${tournamentId}`;
+        document.getElementById('editTournamentName').value = tournamentName;
+        document.getElementById('editClearIcon').value = '0';
+        document.getElementById('editClearBackdrop').value = '0';
+        document.getElementById('editTournamentIconInput').value = '';
+        document.getElementById('editTournamentBackdropInput').value = '';
+
+        const alertEl = document.getElementById('editTournamentAlert');
+        alertEl.className = 'alert d-none mb-4 py-2 px-3 small rounded-3';
+        alertEl.innerText = '';
+
+        // Setup Icon preview
+        const iconPreview = document.getElementById('editIconPreview');
+        const iconEmpty = document.getElementById('editIconEmptyState');
+        const removeIconBtn = document.getElementById('editRemoveIconBtn');
+        if (iconUrl && iconUrl.trim() !== '') {
+            iconPreview.src = iconUrl;
+            iconPreview.classList.remove('d-none');
+            iconEmpty.classList.add('d-none');
+            removeIconBtn.classList.remove('d-none');
+        } else {
+            iconPreview.src = '';
+            iconPreview.classList.add('d-none');
+            iconEmpty.classList.remove('d-none');
+            removeIconBtn.classList.add('d-none');
+        }
+
+        // Setup Backdrop preview
+        const backdropContainer = document.getElementById('editBackdropPreviewContainer');
+        const backdropEmpty = document.getElementById('editBackdropEmptyState');
+        const removeBackdropBtn = document.getElementById('editRemoveBackdropBtn');
+        if (backdropUrl && backdropUrl.trim() !== '') {
+            backdropContainer.style.backgroundImage = `linear-gradient(180deg, rgba(9,13,22,0.6) 0%, rgba(9,13,22,0.85) 100%), url('${backdropUrl}')`;
+            backdropEmpty.classList.add('d-none');
+            removeBackdropBtn.classList.remove('d-none');
+        } else {
+            backdropContainer.style.backgroundImage = '';
+            backdropEmpty.classList.remove('d-none');
+            removeBackdropBtn.classList.add('d-none');
+        }
+
+        showModalSafe('editTournamentModal');
+    }
+
+    function handleIconSelection(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const iconPreview = document.getElementById('editIconPreview');
+                const iconEmpty = document.getElementById('editIconEmptyState');
+                const removeIconBtn = document.getElementById('editRemoveIconBtn');
+                iconPreview.src = e.target.result;
+                iconPreview.classList.remove('d-none');
+                iconEmpty.classList.add('d-none');
+                removeIconBtn.classList.remove('d-none');
+                document.getElementById('editClearIcon').value = '0';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function clearTournamentIcon() {
+        document.getElementById('editTournamentIconInput').value = '';
+        document.getElementById('editClearIcon').value = '1';
+        const iconPreview = document.getElementById('editIconPreview');
+        const iconEmpty = document.getElementById('editIconEmptyState');
+        const removeIconBtn = document.getElementById('editRemoveIconBtn');
+        iconPreview.src = '';
+        iconPreview.classList.add('d-none');
+        iconEmpty.classList.remove('d-none');
+        removeIconBtn.classList.add('d-none');
+    }
+
+    function handleBackdropSelection(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const backdropContainer = document.getElementById('editBackdropPreviewContainer');
+                const backdropEmpty = document.getElementById('editBackdropEmptyState');
+                const removeBackdropBtn = document.getElementById('editRemoveBackdropBtn');
+                backdropContainer.style.backgroundImage = `linear-gradient(180deg, rgba(9,13,22,0.6) 0%, rgba(9,13,22,0.85) 100%), url('${e.target.result}')`;
+                backdropEmpty.classList.add('d-none');
+                removeBackdropBtn.classList.remove('d-none');
+                document.getElementById('editClearBackdrop').value = '0';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function clearTournamentBackdrop() {
+        document.getElementById('editTournamentBackdropInput').value = '';
+        document.getElementById('editClearBackdrop').value = '1';
+        const backdropContainer = document.getElementById('editBackdropPreviewContainer');
+        const backdropEmpty = document.getElementById('editBackdropEmptyState');
+        const removeBackdropBtn = document.getElementById('editRemoveBackdropBtn');
+        backdropContainer.style.backgroundImage = '';
+        backdropEmpty.classList.remove('d-none');
+        removeBackdropBtn.classList.add('d-none');
+    }
+
+    function submitEditTournament(event) {
+        event.preventDefault();
+        const form = document.getElementById('editTournamentForm');
+        const tournamentId = document.getElementById('editTournamentId').value;
+        const submitBtn = document.getElementById('editSubmitBtn');
+        const submitBtnIcon = document.getElementById('editSubmitBtnIcon');
+        const submitBtnText = document.getElementById('editSubmitBtnText');
+        const alertEl = document.getElementById('editTournamentAlert');
+
+        const formData = new FormData(form);
+
+        submitBtn.disabled = true;
+        submitBtnIcon.className = 'fa-solid fa-spinner fa-spin';
+        submitBtnText.innerText = 'Sparar...';
+
+        fetch(`/engine-admin/update-tournament/${tournamentId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(res => res.json().then(data => ({ status: res.status, data })))
+        .then(({ status, data }) => {
+            submitBtn.disabled = false;
+            submitBtnIcon.className = 'fa-solid fa-floppy-disk';
+            submitBtnText.innerText = 'Spara ändringar';
+
+            if (status === 200 && data.status === 'success') {
+                const tour = data.tournament;
+                // Update Card Name
+                const nameEl = document.getElementById(`tour-name-display-${tour.id}`);
+                if (nameEl) nameEl.innerText = tour.name;
+
+                // Update Card Header Backdrop
+                const headerEl = document.getElementById(`tour-card-header-${tour.id}`);
+                if (headerEl) {
+                    if (tour.backdrop_url) {
+                        headerEl.style.backgroundImage = `linear-gradient(180deg, rgba(9, 13, 22, 0.72) 0%, rgba(9, 13, 22, 0.95) 100%), url('${tour.backdrop_url}')`;
+                        headerEl.style.backgroundSize = 'cover';
+                        headerEl.style.backgroundPosition = 'center';
+                    } else {
+                        headerEl.style.backgroundImage = '';
+                    }
+                }
+
+                // Update Card Icon
+                const iconContainer = document.getElementById(`tour-icon-container-${tour.id}`);
+                if (iconContainer) {
+                    if (tour.icon_url) {
+                        iconContainer.innerHTML = `<img src="${tour.icon_url}" alt="${tour.name}" id="tour-icon-img-${tour.id}" style="height: 48px; width: 48px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));" class="rounded-2">`;
+                    } else {
+                        iconContainer.innerHTML = `<div class="d-flex align-items-center justify-content-center bg-dark border border-secondary border-opacity-40 rounded-3" style="width: 48px; height: 48px;" id="tour-icon-placeholder-${tour.id}"><i class="fa-solid fa-trophy text-warning fs-5"></i></div>`;
+                    }
+                }
+
+                // Update Edit Button onclick attributes
+                const editBtn = document.getElementById(`tour-edit-btn-${tour.id}`);
+                if (editBtn) {
+                    const safeName = tour.name.replace(/'/g, "\\'");
+                    const safeIcon = (tour.icon_url || '').replace(/'/g, "\\'");
+                    const safeBackdrop = (tour.backdrop_url || '').replace(/'/g, "\\'");
+                    editBtn.setAttribute('onclick', `openEditTournamentModal(${tour.id}, '${safeName}', '${safeIcon}', '${safeBackdrop}')`);
+                }
+
+                // Close modal
+                const modalEl = document.getElementById('editTournamentModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            } else {
+                alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+                alertEl.innerText = data.message || 'Ett fel uppstod vid sparande.';
+                alertEl.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            submitBtn.disabled = false;
+            submitBtnIcon.className = 'fa-solid fa-floppy-disk';
+            submitBtnText.innerText = 'Spara ändringar';
+            alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+            alertEl.innerText = 'Kunde inte ansluta till servern: ' + err;
+            alertEl.classList.remove('d-none');
+        });
+    }
+
+    // ==========================================
+    // --- POINTS SYSTEM & SIDEBETS MODAL LOGIC ---
+    // ==========================================
+    let currentPsTournamentId = null;
+    let currentSidebetsData = [];
+
+    function openPointsSidebetsModal(tournamentId, tournamentName) {
+        currentPsTournamentId = tournamentId;
+
+        if (!tournamentName) {
+            const nameEl = document.getElementById(`tour-name-display-${tournamentId}`);
+            tournamentName = nameEl ? nameEl.innerText.trim() : `Turnering #${tournamentId}`;
+        }
+
+        document.getElementById('psTournamentId').value = tournamentId;
+        document.getElementById('psModalTourBadge').innerText = `ID: #${tournamentId}`;
+        document.getElementById('psModalTourSubtitle').innerText = `${tournamentName} — Standardregler för poäng och bonusfrågor`;
+
+        const pointsAlert = document.getElementById('psPointsAlert');
+        pointsAlert.className = 'alert d-none mb-3 py-2 px-3 small rounded-3';
+        pointsAlert.innerText = '';
+
+        const sidebetsAlert = document.getElementById('psSidebetsAlert');
+        sidebetsAlert.className = 'alert d-none mb-3 py-2 px-3 small rounded-3';
+        sidebetsAlert.innerText = '';
+
+        hideAddSidebetForm();
+
+        // Show modal safely
+        showModalSafe('pointsSidebetsModal');
+
+        // Switch to tab 1 by default
+        const firstTab = document.getElementById('ps-points-tab');
+        if (firstTab) {
+            firstTab.click();
+        }
+
+        // Fetch data via AJAX
+        fetch(`/engine-admin/tournament/${tournamentId}/points-sidebets/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const pts = data.points || {};
+                const setVal = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = val;
+                };
+
+                setVal('f_match_correct_1x2', pts.match_correct_1x2 ?? 3);
+                setVal('f_match_correct_goals_per_team', pts.match_correct_goals_per_team ?? 3);
+                setVal('f_match_correct_total_goals', pts.match_correct_total_goals ?? 1);
+
+                setVal('f_group_correct_placement', pts.group_correct_placement ?? 2);
+                setVal('f_group_correct_points', pts.group_correct_points ?? 1);
+                setVal('f_group_correct_goals_scored', pts.group_correct_goals_scored ?? 1);
+                setVal('f_group_correct_goals_conceded', pts.group_correct_goals_conceded ?? 1);
+                setVal('f_group_correct_goal_diff', pts.group_correct_goal_diff ?? 1);
+                setVal('f_group_team_qualified', pts.group_team_qualified ?? 0);
+
+                setVal('f_qualifying_table_team_qualified', pts.qualifying_table_team_qualified ?? 5);
+                setVal('f_qualifying_table_exact_rank', pts.qualifying_table_exact_rank ?? 0);
+                setVal('f_qualifying_table_points', pts.qualifying_table_points ?? 0);
+                setVal('f_qualifying_table_goal_diff', pts.qualifying_table_goal_diff ?? 0);
+
+                setVal('f_knockout_round_of_16', pts.knockout_round_of_16 ?? 3);
+                setVal('f_knockout_quarterfinal', pts.knockout_quarterfinal ?? 4);
+                setVal('f_knockout_semifinal', pts.knockout_semifinal ?? 5);
+                setVal('f_knockout_bronze_match', pts.knockout_bronze_match ?? 0);
+                setVal('f_knockout_final', pts.knockout_final ?? 8);
+
+                // Render Sidebets
+                currentSidebetsData = data.sidebets || [];
+                renderSidebetsList(currentSidebetsData);
+            } else {
+                pointsAlert.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+                pointsAlert.innerText = data.message || 'Kunde inte hämta poängregler.';
+                pointsAlert.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            pointsAlert.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+            pointsAlert.innerText = 'Nätverksfel vid hämtning av data: ' + err;
+            pointsAlert.classList.remove('d-none');
+        });
+    }
+
+    function applyPointsPreset(preset) {
+        if (preset === 'standard') {
+            // Standard Football/Handball
+            document.getElementById('f_match_correct_1x2').value = 3;
+            document.getElementById('f_match_correct_goals_per_team').value = 3;
+            document.getElementById('f_match_correct_total_goals').value = 1;
+            document.getElementById('f_group_correct_placement').value = 2;
+            document.getElementById('f_group_correct_points').value = 1;
+            document.getElementById('f_group_correct_goals_scored').value = 1;
+            document.getElementById('f_group_correct_goals_conceded').value = 1;
+            document.getElementById('f_group_correct_goal_diff').value = 1;
+            document.getElementById('f_group_team_qualified').value = 0;
+            document.getElementById('f_qualifying_table_team_qualified').value = 5;
+            document.getElementById('f_qualifying_table_exact_rank').value = 0;
+            document.getElementById('f_qualifying_table_points').value = 0;
+            document.getElementById('f_qualifying_table_goal_diff').value = 0;
+            document.getElementById('f_knockout_round_of_16').value = 3;
+            document.getElementById('f_knockout_quarterfinal').value = 4;
+            document.getElementById('f_knockout_semifinal').value = 5;
+            document.getElementById('f_knockout_bronze_match').value = 0;
+            document.getElementById('f_knockout_final').value = 8;
+        } else if (preset === 'hockey') {
+            // Ice hockey / high goals
+            document.getElementById('f_match_correct_1x2').value = 3;
+            document.getElementById('f_match_correct_goals_per_team').value = 4;
+            document.getElementById('f_match_correct_total_goals').value = 2;
+            document.getElementById('f_group_correct_placement').value = 3;
+            document.getElementById('f_group_correct_points').value = 1;
+            document.getElementById('f_group_correct_goals_scored').value = 1;
+            document.getElementById('f_group_correct_goals_conceded').value = 1;
+            document.getElementById('f_group_correct_goal_diff').value = 2;
+            document.getElementById('f_group_team_qualified').value = 1;
+            document.getElementById('f_qualifying_table_team_qualified').value = 5;
+            document.getElementById('f_qualifying_table_exact_rank').value = 2;
+            document.getElementById('f_qualifying_table_points').value = 1;
+            document.getElementById('f_qualifying_table_goal_diff').value = 1;
+            document.getElementById('f_knockout_round_of_16').value = 3;
+            document.getElementById('f_knockout_quarterfinal').value = 5;
+            document.getElementById('f_knockout_semifinal').value = 7;
+            document.getElementById('f_knockout_bronze_match').value = 3;
+            document.getElementById('f_knockout_final').value = 10;
+        } else if (preset === 'knockout') {
+            // Knockout heavy
+            document.getElementById('f_match_correct_1x2').value = 2;
+            document.getElementById('f_match_correct_goals_per_team').value = 3;
+            document.getElementById('f_match_correct_total_goals').value = 1;
+            document.getElementById('f_group_correct_placement').value = 1;
+            document.getElementById('f_group_correct_points').value = 0;
+            document.getElementById('f_group_correct_goals_scored').value = 0;
+            document.getElementById('f_group_correct_goals_conceded').value = 0;
+            document.getElementById('f_group_correct_goal_diff').value = 0;
+            document.getElementById('f_group_team_qualified').value = 2;
+            document.getElementById('f_qualifying_table_team_qualified').value = 4;
+            document.getElementById('f_qualifying_table_exact_rank').value = 0;
+            document.getElementById('f_qualifying_table_points').value = 0;
+            document.getElementById('f_qualifying_table_goal_diff').value = 0;
+            document.getElementById('f_knockout_round_of_16').value = 4;
+            document.getElementById('f_knockout_quarterfinal').value = 6;
+            document.getElementById('f_knockout_semifinal').value = 8;
+            document.getElementById('f_knockout_bronze_match').value = 4;
+            document.getElementById('f_knockout_final').value = 12;
+        }
+        
+        const alertEl = document.getElementById('psPointsAlert');
+        alertEl.className = 'alert alert-info py-2 px-3 small rounded-3 mb-3';
+        alertEl.innerText = `Snabbmall "${preset.toUpperCase()}" applicerades på formuläret. Klicka på "Spara Poängsystem" för att spara.`;
+        alertEl.classList.remove('d-none');
+    }
+
+    function submitSavePoints(e) {
+        e.preventDefault();
+        if (!currentPsTournamentId) return;
+
+        const form = document.getElementById('pointsSystemForm');
+        const formData = new FormData(form);
+        const submitBtn = document.getElementById('savePointsBtn');
+        const submitBtnIcon = document.getElementById('savePointsBtnIcon');
+        const submitBtnText = document.getElementById('savePointsBtnText');
+        const alertEl = document.getElementById('psPointsAlert');
+
+        submitBtn.disabled = true;
+        submitBtnIcon.className = 'fa-solid fa-spinner fa-spin';
+        submitBtnText.innerText = 'Sparar...';
+
+        fetch(`/engine-admin/tournament/${currentPsTournamentId}/save-points/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            submitBtn.disabled = false;
+            submitBtnIcon.className = 'fa-solid fa-floppy-disk';
+            submitBtnText.innerText = 'Spara Poängsystem';
+
+            if (data.status === 'success') {
+                alertEl.className = 'alert alert-success py-2 px-3 small rounded-3 mb-3';
+                alertEl.innerText = data.message || 'Poängreglerna sparades framgångsrikt!';
+                alertEl.classList.remove('d-none');
+                setTimeout(() => { alertEl.classList.add('d-none'); }, 4000);
+            } else {
+                alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+                alertEl.innerText = data.message || 'Ett fel uppstod vid sparande.';
+                alertEl.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            submitBtn.disabled = false;
+            submitBtnIcon.className = 'fa-solid fa-floppy-disk';
+            submitBtnText.innerText = 'Spara Poängsystem';
+            alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+            alertEl.innerText = 'Kunde inte spara poäng: ' + err;
+            alertEl.classList.remove('d-none');
+        });
+    }
+
+    // --- SIDEBETS JAVASCRIPT LOGIC ---
+    function renderSidebetsList(sidebets) {
+        const container = document.getElementById('sidebetsListContainer');
+        const countBadge = document.getElementById('psModalSidebetCountBadge');
+        countBadge.innerText = sidebets.length;
+
+        if (!sidebets || sidebets.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5 border border-secondary border-opacity-25 rounded-3 bg-dark bg-opacity-25 p-4" id="emptySidebetsState">
+                    <i class="fa-solid fa-bullseye fa-2x text-secondary mb-2 opacity-50"></i>
+                    <h6 class="text-white">Inga bonusfrågor skapade än</h6>
+                    <p class="text-secondary small mb-3">Lägg till frågor som t.ex. "Vilket lag vinner turneringen?", "Vem vinner skytteligan?" osv.</p>
+                    <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-3.5" onclick="showAddSidebetForm()">
+                        <i class="fa-solid fa-plus me-1"></i>Skapa första frågan
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        sidebets.forEach((sb, idx) => {
+            html += `
+                <div class="card bg-dark bg-opacity-60 border border-secondary border-opacity-30 rounded-3 p-3 shadow-sm" id="sidebet-card-${sb.id}">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2 pb-2 border-bottom border-secondary border-opacity-20">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-secondary bg-opacity-40 text-light font-monospace small">#${idx + 1}</span>
+                            <span class="badge ${sb.question_type === 'TEAM' ? 'bg-primary bg-opacity-20 text-primary border border-primary border-opacity-30' : 'bg-info bg-opacity-20 text-info border border-info border-opacity-30'} rounded-pill font-monospace small">
+                                ${sb.question_type === 'TEAM' ? 'Lagval (Dropdown)' : 'Fritext / Spelare'}
+                            </span>
+                            <span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 rounded-pill font-monospace small">
+                                ${sb.points} poäng
+                            </span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-outline-success btn-xs rounded-pill px-2.5 py-1" onclick="saveExistingSidebet(${sb.id})" title="Spara ändringar på denna fråga">
+                                <i class="fa-solid fa-check me-1"></i>Spara
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-xs rounded-pill px-2 py-1" onclick="deleteSidebetItem(${sb.id})" title="Radera frågan">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label text-secondary fs-8 mb-1">Fråga:</label>
+                            <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="sb_q_${sb.id}" value="${escapeHtml(sb.question)}">
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label text-secondary fs-8 mb-1">Typ:</label>
+                            <select class="form-select form-select-sm bg-dark text-white border-secondary" id="sb_type_${sb.id}">
+                                <option value="TEAM" ${sb.question_type === 'TEAM' ? 'selected' : ''}>Lagval</option>
+                                <option value="TEXT" ${sb.question_type === 'TEXT' ? 'selected' : ''}>Fritext</option>
+                            </select>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label text-secondary fs-8 mb-1">Poäng:</label>
+                            <input type="number" min="1" max="100" class="form-control form-control-sm bg-dark text-white border-secondary" id="sb_pts_${sb.id}" value="${sb.points}">
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label class="form-label text-secondary fs-8 mb-1">Rätt svar:</label>
+                            <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" id="sb_ans_${sb.id}" value="${escapeHtml(sb.correct_answers || '')}" placeholder="Separera m. komma">
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function showAddSidebetForm() {
+        const card = document.getElementById('newSidebetCard');
+        card.classList.remove('d-none');
+        document.getElementById('new_sb_question').focus();
+    }
+
+    function hideAddSidebetForm() {
+        const card = document.getElementById('newSidebetCard');
+        card.classList.add('d-none');
+        document.getElementById('newSidebetForm').reset();
+    }
+
+    function submitNewSidebet(e) {
+        e.preventDefault();
+        if (!currentPsTournamentId) return;
+
+        const question = document.getElementById('new_sb_question').value.trim();
+        const question_type = document.getElementById('new_sb_type').value;
+        const points = document.getElementById('new_sb_points').value;
+        const correct_answers = document.getElementById('new_sb_correct').value.trim();
+
+        if (!question) return;
+
+        const formData = new FormData();
+        formData.append('question', question);
+        formData.append('question_type', question_type);
+        formData.append('points', points);
+        formData.append('correct_answers', correct_answers);
+
+        const alertEl = document.getElementById('psSidebetsAlert');
+
+        fetch(`/engine-admin/tournament/${currentPsTournamentId}/save-sidebet/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success' && data.sidebet) {
+                currentSidebetsData.push(data.sidebet);
+                renderSidebetsList(currentSidebetsData);
+                hideAddSidebetForm();
+
+                alertEl.className = 'alert alert-success py-2 px-3 small rounded-3 mb-3';
+                alertEl.innerText = data.message || 'Ny sidebet lades till!';
+                alertEl.classList.remove('d-none');
+                setTimeout(() => { alertEl.classList.add('d-none'); }, 3000);
+            } else {
+                alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+                alertEl.innerText = data.message || 'Kunde inte skapa sidebet.';
+                alertEl.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+            alertEl.innerText = 'Fel vid skapande av sidebet: ' + err;
+            alertEl.classList.remove('d-none');
+        });
+    }
+
+    function saveExistingSidebet(sidebetId) {
+        if (!currentPsTournamentId) return;
+
+        const question = document.getElementById(`sb_q_${sidebetId}`).value.trim();
+        const question_type = document.getElementById(`sb_type_${sidebetId}`).value;
+        const points = document.getElementById(`sb_pts_${sidebetId}`).value;
+        const correct_answers = document.getElementById(`sb_ans_${sidebetId}`).value.trim();
+
+        const formData = new FormData();
+        formData.append('sidebet_id', sidebetId);
+        formData.append('question', question);
+        formData.append('question_type', question_type);
+        formData.append('points', points);
+        formData.append('correct_answers', correct_answers);
+
+        const alertEl = document.getElementById('psSidebetsAlert');
+
+        fetch(`/engine-admin/tournament/${currentPsTournamentId}/save-sidebet/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success' && data.sidebet) {
+                // Update local array
+                const idx = currentSidebetsData.findIndex(s => s.id === sidebetId);
+                if (idx !== -1) {
+                    currentSidebetsData[idx] = data.sidebet;
+                    renderSidebetsList(currentSidebetsData);
+                }
+
+                alertEl.className = 'alert alert-success py-2 px-3 small rounded-3 mb-3';
+                alertEl.innerText = `Sidebet #${sidebetId} sparades!`;
+                alertEl.classList.remove('d-none');
+                setTimeout(() => { alertEl.classList.add('d-none'); }, 3000);
+            } else {
+                alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+                alertEl.innerText = data.message || 'Kunde inte spara sidebet.';
+                alertEl.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+            alertEl.innerText = 'Fel vid sparande: ' + err;
+            alertEl.classList.remove('d-none');
+        });
+    }
+
+    function deleteSidebetItem(sidebetId) {
+        if (!currentPsTournamentId) return;
+        if (!confirm('Är du säker på att du vill radera denna bonusfråga?')) return;
+
+        const alertEl = document.getElementById('psSidebetsAlert');
+
+        fetch(`/engine-admin/tournament/${currentPsTournamentId}/delete-sidebet/${sidebetId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                currentSidebetsData = currentSidebetsData.filter(s => s.id !== sidebetId);
+                renderSidebetsList(currentSidebetsData);
+
+                alertEl.className = 'alert alert-warning py-2 px-3 small rounded-3 mb-3';
+                alertEl.innerText = data.message || 'Sidebet raderades.';
+                alertEl.classList.remove('d-none');
+                setTimeout(() => { alertEl.classList.add('d-none'); }, 3000);
+            } else {
+                alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+                alertEl.innerText = data.message || 'Kunde inte radera sidebet.';
+                alertEl.classList.remove('d-none');
+            }
+        })
+        .catch(err => {
+            alertEl.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+            alertEl.innerText = 'Fel vid radering: ' + err;
+            alertEl.classList.remove('d-none');
+        });
     }
 
     // OPEN SEE TOURNAMENT REVIEW MODAL
     function openSeeTournament(tournamentId) {
-        const modalEl = document.getElementById('seeTournamentModal');
         const modalBody = document.getElementById('seeTournamentModalBody');
-        const modal = new bootstrap.Modal(modalEl);
-        
         modalBody.innerHTML = `
             <div class="p-5 text-center text-secondary">
                 <i class="fa-solid fa-spinner fa-spin fs-1 mb-3 text-warning"></i>
                 <p class="mb-0">Laddar turneringens grupper, tabeller och slutspelsstruktur...</p>
             </div>
         `;
-        modal.show();
+        showModalSafe('seeTournamentModal');
 
         fetch(`/engine-admin/preview/${tournamentId}/`)
         .then(res => res.text())
@@ -785,7 +2384,540 @@
         return cookieValue;
     }
 
-    // Pre-load requests list and badge count on page load
-    loadPoolRequests();
+    // ==========================================
+    // AI TOURNAMENT SCOUT JAVASCRIPT HANDLERS
+    // ==========================================
+    let currentReviewProspectId = null;
+    let currentReviewPayload = null;
+
+    function filterScoutProspects(filterKey, btn) {
+        document.querySelectorAll('.scout-filter-btn').forEach(b => {
+            b.classList.remove('active');
+            b.style.opacity = '0.7';
+        });
+        if (btn) {
+            btn.classList.add('active');
+            btn.style.opacity = '1';
+        }
+
+        const items = document.querySelectorAll('.scout-prospect-item');
+        items.forEach(item => {
+            const grade = item.getAttribute('data-grade');
+            const status = item.getAttribute('data-status');
+
+            if (filterKey === 'all') {
+                item.style.display = '';
+            } else if (filterKey === 'CONVERTED') {
+                item.style.display = (status === 'CONVERTED') ? '' : 'none';
+            } else {
+                item.style.display = (grade === filterKey) ? '' : 'none';
+            }
+        });
+    }
+
+    function loadSampleScoutJson() {
+        const sample = {
+            "scouting_audit": {
+                "scan_timestamp": new Date().toISOString(),
+                "completeness_grade": "GRADE_A",
+                "is_compatible_sport": true,
+                "is_upcoming": true,
+                "draw_completed": true,
+                "fixtures_dated": true
+            },
+            "master_event": {
+                "name": "Men's World Floorball Championship 2026",
+                "code": "iff-wfc-2026",
+                "sport": "Floorball",
+                "organizer": "IFF",
+                "host_country": "Finland",
+                "start_date": "2026-12-04",
+                "end_date": "2026-12-13"
+            },
+            "tournament_config": {
+                "name": "Innebandy-VM Herrar 2026",
+                "total_teams": 16,
+                "has_best_thirds_table": false,
+                "has_runners_up_table": false,
+                "has_host_ranking_table": false,
+                "knockout_stages": ["Playoff Round", "Quarterfinals", "Semifinals", "Bronze Match", "Final"]
+            },
+            "groups": [
+                {
+                    "name": "Grupp A",
+                    "order": 1,
+                    "teams": [
+                        {"name": "Finland", "code": "fi"},
+                        {"name": "Latvia", "code": "lv"},
+                        {"name": "Switzerland", "code": "ch"},
+                        {"name": "Norway", "code": "no"}
+                    ]
+                },
+                {
+                    "name": "Grupp B",
+                    "order": 2,
+                    "teams": [
+                        {"name": "Sweden", "code": "se"},
+                        {"name": "Czech Republic", "code": "cz"},
+                        {"name": "Slovakia", "code": "sk"},
+                        {"name": "Germany", "code": "de"}
+                    ]
+                },
+                {
+                    "name": "Grupp C",
+                    "order": 3,
+                    "teams": [
+                        {"name": "Estonia", "code": "ee"},
+                        {"name": "Slovenia", "code": "si"},
+                        {"name": "Singapore", "code": "sg"},
+                        {"name": "Thailand", "code": "th"}
+                    ]
+                },
+                {
+                    "name": "Grupp D",
+                    "order": 4,
+                    "teams": [
+                        {"name": "Denmark", "code": "dk"},
+                        {"name": "Philippines", "code": "ph"},
+                        {"name": "Canada", "code": "ca"},
+                        {"name": "Japan", "code": "jp"}
+                    ]
+                }
+            ],
+            "fixtures_sample": [
+                {"match_number": 1, "stage_or_group": "Grupp A", "date_time": "2026-12-05T17:00:00+02:00", "home_team": "Norway", "away_team": "Latvia", "venue": "Kauppi Sports Center, Tampere"},
+                {"match_number": 2, "stage_or_group": "Grupp A", "date_time": "2026-12-05T19:00:00+02:00", "home_team": "Finland", "away_team": "Switzerland", "venue": "Hakametsä Ice Hall, Tampere"},
+                {"match_number": 3, "stage_or_group": "Grupp B", "date_time": "2026-12-05T14:00:00+02:00", "home_team": "Germany", "away_team": "Czech Republic", "venue": "Kauppi Sports Center, Tampere"},
+                {"match_number": 4, "stage_or_group": "Grupp B", "date_time": "2026-12-05T16:30:00+02:00", "home_team": "Sweden", "away_team": "Slovakia", "venue": "Hakametsä Ice Hall, Tampere"}
+            ],
+            "knockout_mapping_sample": [
+                {"match_number": 25, "stage": "Playoff Round", "home_placeholder": "3rd Group A", "away_placeholder": "2nd Group D"},
+                {"match_number": 26, "stage": "Playoff Round", "home_placeholder": "4th Group A", "away_placeholder": "1st Group D"},
+                {"match_number": 29, "stage": "Quarterfinals", "home_placeholder": "1st Group A", "away_placeholder": "Winner Match 25"},
+                {"match_number": 30, "stage": "Quarterfinals", "home_placeholder": "1st Group B", "away_placeholder": "Winner Match 26"}
+            ],
+            "sidebets_suggestions": [
+                {"question": "Vilket land vinner Innebandy-VM 2026?", "question_type": "TEAM", "points": 10},
+                {"question": "Vilket land tar silver (förlorar finalen)?", "question_type": "TEAM", "points": 6},
+                {"question": "Vem vinner turneringens poängliga (mål + assist)?", "question_type": "TEXT", "points": 8}
+            ]
+        };
+        document.getElementById('scoutJsonInput').value = JSON.stringify(sample, null, 2);
+    }
+
+    function submitScoutJsonImport() {
+        const rawJson = document.getElementById('scoutJsonInput').value.trim();
+        const feedback = document.getElementById('scoutJsonValidationFeedback');
+        feedback.style.display = 'none';
+
+        if (!rawJson) {
+            feedback.textContent = 'Vänligen klistra in en JSON-payload.';
+            feedback.style.display = '';
+            return;
+        }
+
+        try {
+            JSON.parse(rawJson);
+        } catch (err) {
+            feedback.textContent = 'Ogiltig JSON: ' + err.message;
+            feedback.style.display = '';
+            return;
+        }
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+        const formData = new FormData();
+        formData.append('json_data', rawJson);
+
+        fetch('/engine-admin/scout/import-json/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken},
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                hideModalSafe('importScoutJsonModal');
+                alert('✅ ' + data.message);
+                location.reload();
+            } else {
+                feedback.textContent = 'Fel: ' + data.message;
+                feedback.style.display = '';
+            }
+        })
+        .catch(err => {
+            feedback.textContent = 'Nätverksfel vid import: ' + err.message;
+            feedback.style.display = '';
+        });
+    }
+
+    function openReviewConvertModal(prospectId) {
+        currentReviewProspectId = prospectId;
+
+        const btn = document.getElementById('confirmConvertBtn');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-circle-check me-1.5"></i>Skapa Turnering i Engine Admin';
+        }
+
+        const modalBody = document.getElementById('reviewModalBody');
+        modalBody.innerHTML = `
+            <div class="text-center py-5 text-secondary">
+                <i class="fa-solid fa-spinner fa-spin fa-2x mb-3 text-warning"></i>
+                <p>Laddar granskningsdata...</p>
+            </div>
+        `;
+        showModalSafe('reviewConvertModal');
+
+        fetch(`/engine-admin/scout/prospect/${prospectId}/json/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status !== 'success') {
+                modalBody.innerHTML = `<div class="alert alert-danger">${data.message || 'Kunde inte läsa prospektdata.'}</div>`;
+                return;
+            }
+
+            const p = data.prospect;
+            const payload = p.payload || {};
+            currentReviewPayload = payload;
+
+            const groups = payload.groups || [];
+            const fixtures = payload.fixtures_sample || [];
+            const knockouts = payload.knockout_mapping_sample || [];
+            const sidebets = payload.sidebets_suggestions || [];
+            const config = payload.tournament_config || {};
+
+            const audit = payload.scouting_audit || {};
+            const gradeReason = p.grade_reason || audit.grade_reason || '';
+            const missingItems = audit.missing_items || [];
+            const actionNeeded = audit.action_needed || '';
+
+            let groupsHtml = groups.map(g => `
+                <div class="col-12 col-md-6 mb-2">
+                    <div class="p-3 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-20 h-100">
+                        <strong class="text-warning d-block mb-2">${g.name}</strong>
+                        <div class="d-flex flex-column gap-1">
+                            ${(g.teams || []).map(t => {
+                                const code = (typeof t === 'object') ? (t.code || '') : '';
+                                const name = (typeof t === 'object') ? (t.name || '') : t;
+                                const flag = code ? `<img src="https://flagcdn.com/w40/${code.toLowerCase()}.png" style="width:20px;height:14px;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">` : '';
+                                return `<div class="d-flex align-items-center text-white small">${flag}${name}</div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            modalBody.innerHTML = `
+                <div class="row g-4">
+                    <!-- Column 1: Info & Groups -->
+                    <div class="col-12 col-lg-7">
+                        <div class="p-3 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-40 mb-3">
+                            <h4 class="fw-extrabold text-white mb-1">${p.name}</h4>
+                            <div class="text-secondary small mb-2 d-flex flex-wrap align-items-center gap-2">
+                                <span class="badge bg-warning text-dark font-monospace">${p.sport}</span>
+                                <span class="badge bg-info text-dark font-monospace">${p.grade}</span>
+                                <span><i class="fa-solid fa-location-dot me-1"></i>${p.host_country || '-'}</span> &bull; 
+                                <span><i class="fa-regular fa-calendar me-1"></i>${p.start_date || 'TBD'} &ndash; ${p.end_date || 'TBD'}</span>
+                                ${p.official_source_url ? `&bull; <a href="${p.official_source_url}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1 px-2 rounded-pill font-monospace"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiell webbplats</a>` : ''}
+                            </div>
+
+                            <!-- Audit Callout in Review Modal -->
+                            <div class="p-2.5 rounded-2 bg-dark border border-secondary border-opacity-30 small">
+                                <div class="text-warning fw-bold mb-1"><i class="fa-solid fa-magnifying-glass me-1"></i>Graderingsanalys:</div>
+                                <p class="text-light mb-1">${gradeReason || 'Ingen motivering sparad.'}</p>
+                                ${missingItems.length > 0 ? `
+                                    <div class="text-danger fw-bold small mt-1.5 mb-0.5"><i class="fa-solid fa-triangle-exclamation me-1"></i>Saknade detaljer:</div>
+                                    <ul class="ps-3 mb-1 text-secondary small">
+                                        ${missingItems.map(m => `<li class="text-light">${m}</li>`).join('')}
+                                    </ul>
+                                ` : ''}
+                                ${actionNeeded ? `<div class="text-info mt-1"><i class="fa-solid fa-lightbulb me-1 text-warning"></i><strong>Åtgärd:</strong> ${actionNeeded}</div>` : ''}
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold text-white mb-2"><i class="fa-solid fa-users me-1 text-warning"></i>Grupper & Lag (${groups.length} grupper):</h6>
+                        <div class="row g-2 mb-3">${groupsHtml || '<p class="text-secondary small">Inga grupper angivna.</p>'}</div>
+
+                        <h6 class="fw-bold text-white mb-2"><i class="fa-solid fa-calendar me-1 text-info"></i>Spelschema (${fixtures.length} matcher i prospektet):</h6>
+                        <div class="table-responsive small border border-secondary border-opacity-20 rounded-3 mb-3" style="max-height: 180px; overflow-y: auto;">
+                            <table class="table table-dark table-sm table-borderless align-middle mb-0">
+                                <thead class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-20 sticky-top bg-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Grupp</th>
+                                        <th>Datum</th>
+                                        <th>Match</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${fixtures.map(f => `
+                                        <tr class="border-bottom border-secondary border-opacity-10">
+                                            <td class="font-monospace text-secondary">${f.match_number}</td>
+                                            <td><span class="badge bg-secondary bg-opacity-30">${f.stage_or_group}</span></td>
+                                            <td class="text-info font-monospace">${(f.date_time || '').slice(0, 16)}</td>
+                                            <td class="fw-bold text-white">${f.home_team} vs ${f.away_team}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Options & Actions -->
+                    <div class="col-12 col-lg-5">
+                        <div class="p-3.5 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-50">
+                            <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-sliders me-1 text-success"></i>Konfiguration:</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-bold mb-1">Publiceringsläge:</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="convertIsActiveSwitch" checked>
+                                    <label class="form-check-label text-white small" for="convertIsActiveSwitch">Publicera & Gör Aktiv direkt</label>
+                                </div>
+                            </div>
+
+                            <hr class="border-secondary border-opacity-20 my-3">
+
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-bold mb-1">Standardpoäng & Sidebets:</label>
+                                <p class="text-secondary fs-8 mb-2">Turneringen skapas med sportstandard. Du kan när som helst finjustera alla poängregler och bonusfrågor via knappen <strong>"Poäng & Sidebets"</strong> i Flik 1.</p>
+                            </div>
+
+                            <hr class="border-secondary border-opacity-20 my-3">
+
+                            <h6 class="fw-bold text-white mb-2"><i class="fa-solid fa-trophy me-1 text-primary"></i>Föreslagna Sidebets (${sidebets.length} st):</h6>
+                            <div class="d-flex flex-column gap-1.5 mb-3">
+                                ${sidebets.map(sb => `
+                                    <div class="p-2 rounded-2 bg-dark bg-opacity-70 border border-secondary border-opacity-20 small d-flex align-items-center justify-content-between">
+                                        <span class="text-white">${sb.question}</span>
+                                        <span class="badge bg-primary bg-opacity-20 text-primary font-monospace ms-2">${sb.points}p</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(err => {
+            modalBody.innerHTML = `<div class="alert alert-danger">Fel vid inläsning: ${err.message}</div>`;
+        });
+    }
+
+    function convertDirect(prospectId, prospectName) {
+        if (!confirm(`Vill du skapa och importera turneringen "${prospectName}" till Engine Admin?`)) return;
+
+        const csrfToken = getCSRFToken();
+        const formData = new FormData();
+        formData.append('is_active', 'true');
+
+        fetch(`/engine-admin/scout/convert/${prospectId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('🎉 ' + data.message);
+                location.reload();
+            } else {
+                alert('Fel vid skapande: ' + data.message);
+            }
+        })
+        .catch(err => {
+            alert('Nätverksfel vid skapande: ' + err.message);
+        });
+    }
+
+    function executeConvertTournament() {
+        if (!currentReviewProspectId) return;
+
+        const btn = document.getElementById('confirmConvertBtn');
+        const isActive = document.getElementById('convertIsActiveSwitch')?.checked ?? true;
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Skapar turnering...';
+        }
+
+        const csrfToken = getCSRFToken();
+        const formData = new FormData();
+        formData.append('is_active', isActive ? 'true' : 'false');
+
+        fetch(`/engine-admin/scout/convert/${currentReviewProspectId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                hideModalSafe('reviewConvertModal');
+                alert('🎉 ' + data.message);
+                location.reload();
+            } else {
+                alert('Fel: ' + data.message);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-circle-check me-1.5"></i>Skapa Turnering i Engine Admin';
+                }
+            }
+        })
+        .catch(err => {
+            alert('Nätverksfel: ' + err.message);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-circle-check me-1.5"></i>Skapa Turnering i Engine Admin';
+            }
+        });
+    }
+
+    function updateProspectStatus(prospectId, newStatus) {
+        const csrfToken = getCSRFToken();
+        const formData = new FormData();
+        formData.append('status', newStatus);
+
+        fetch(`/engine-admin/scout/status/${prospectId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Fel: ' + data.message);
+            }
+        })
+        .catch(err => alert('Nätverksfel: ' + err.message));
+    }
+
+    function deleteProspect(prospectId) {
+        if (!confirm('Är du säker på att du vill radera detta prospekt från Scout?')) return;
+        const csrfToken = getCSRFToken();
+
+        fetch(`/engine-admin/scout/delete/${prospectId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const card = document.getElementById(`prospect-card-${prospectId}`);
+                if (card) {
+                    card.style.transition = 'all 0.3s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = 'scale(0.95)';
+                    setTimeout(() => card.remove(), 300);
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert('Fel vid radering: ' + data.message);
+            }
+        })
+        .catch(err => alert('Nätverksfel: ' + err.message));
+    }
+
+    function viewRawJsonProspect(prospectId) {
+        fetch(`/engine-admin/scout/prospect/${prospectId}/json/`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                document.getElementById('rawJsonContent').textContent = JSON.stringify(data.prospect.payload, null, 2);
+                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('rawJsonModal'));
+                modal.show();
+            }
+        });
+    }
+
+    function copyGeminiPromptToClipboard() {
+        const promptText = `# SYSTEM INSTRUCTION: PREDICTION ENGINE TOURNAMENT SCOUT & DATA AUDITOR
+You are the Master Sports Tournament Intelligence Scout for the Prediction Engine Platform.
+Search and extract upcoming sports tournaments matching:
+- Sports Compatibility: Football, Ice Hockey, Floorball, Handball, Rugby, Basketball. Reject Tennis/Swimming.
+- Status: UPCOMING tournaments only (not past/concluded).
+- Seeding & Draw: Confirm if official draw is done and teams are named.
+- Output: Completeness Grade (A/B/C/D) and valid Engine Admin JSON.`;
+
+        navigator.clipboard.writeText(promptText).then(() => {
+            alert('📋 Gemini-prompten har kopierats till urklipp! Du kan nu klistra in den i Gemini eller AI Studio.');
+        }).catch(() => {
+            prompt('Kopiera prompten härifrån:', promptText);
+        });
+    }
+
+    function triggerWebScrapeNow() {
+        const btn = document.getElementById('scrapeWebNowBtn');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-satellite-dish fa-spin me-1.5"></i>Scannar webben...';
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+        fetch('/engine-admin/scout/scrape-now/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrfToken},
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('🚀 ' + data.message);
+                location.reload();
+            } else {
+                alert('Fel vid webbscanning: ' + data.message);
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        })
+        .catch(err => {
+            alert('Nätverksfel vid webbscanning: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
+    }
+
+    // Pre-load requests list and attach global dismiss handlers
+    document.addEventListener('DOMContentLoaded', function() {
+        // Move all modals directly to document.body to prevent stacking context or z-index trapping
+        document.querySelectorAll('.modal').forEach(modal => {
+            if (modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+        });
+
+        try {
+            loadPoolRequests();
+        } catch(e) {
+            console.error('Initial loadPoolRequests error:', e);
+        }
+
+        // Global dismiss handler for all modal close buttons
+        document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const modalEl = this.closest('.modal');
+                if (modalEl) {
+                    hideModalSafe(modalEl.id);
+                }
+            });
+        });
+    });
 </script>
 {% endblock %}

@@ -19,6 +19,7 @@ class MasterEvent(models.Model):
 
 class League(models.Model):
     master_event = models.ForeignKey(MasterEvent, on_delete=models.CASCADE, related_name='leagues', null=True, blank=True)
+    tournaments = models.ManyToManyField('Tournament', related_name='leagues', blank=True, help_text="Tournaments activated and configured for this individual pool")
     name = models.CharField(max_length=200, help_text="Private friend group or commercial pool name")
     description = models.TextField(blank=True, help_text="Pool description from creation form")
     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='managed_leagues')
@@ -49,6 +50,9 @@ class LeagueMember(models.Model):
 
     class Meta:
         unique_together = ('league', 'player')
+        indexes = [
+            models.Index(fields=['league', 'player', 'is_verified']),
+        ]
 
     def __str__(self):
         return f"{self.player.username} in {self.league.name}"
@@ -376,6 +380,9 @@ class Group(models.Model):
 
     def get_standings(self, user_predictions=None):
         """Calculates live or predicted group table standings."""
+        if user_predictions is None and hasattr(self, '_actual_standings_cache'):
+            return self._actual_standings_cache
+
         teams = self.teams.all()
         standings = {team.name: {
             'team': team,
@@ -436,6 +443,8 @@ class Group(models.Model):
             key=lambda x: (x['points'], x['gd'], x['gf'], x['won']),
             reverse=True
         )
+        if user_predictions is None:
+            self._actual_standings_cache = sorted_standings
         return sorted_standings
 
 
@@ -535,6 +544,25 @@ COUNTRY_CODE_MAP = {
     'elfenbenskusten': 'ci',
     'egypten': 'eg',
     'tunisien': 'tn',
+    'mexiko': 'mx',
+    'sydkorea': 'kr',
+    'kanada': 'ca',
+    'kamerun': 'cm',
+    'marocko': 'ma',
+    'australien': 'au',
+    'brasilien': 'br',
+    'ecuador': 'ec',
+    'paraguay': 'py',
+    'peru': 'pe',
+    'qatar': 'qa',
+    'japan': 'jp',
+    'senegal': 'sn',
+    'ghana': 'gh',
+    'nigeria': 'ng',
+    'chile': 'cl',
+    'colombia': 'co',
+    'uruguay': 'uy',
+    'argentina': 'ar',
 
     # Swedish names
     'sverige': 'se',
@@ -576,6 +604,54 @@ COUNTRY_CODE_MAP = {
     'ukraina': 'ua',
     'moldavien': 'md',
     'kazakstan': 'kz',
+    'rumänien': 'ro',
+    'georgien': 'ge',
+    'albanien': 'al',
+    'slovenien': 'si',
+    'montenegro': 'me',
+    'malta': 'mt',
+    'gibraltar': 'gi',
+    'andorra': 'ad',
+    'san marino': 'sm',
+    'liechtenstein': 'li',
+    'belarus': 'by',
+    'vitryssland': 'by',
+    'israel': 'il',
+    'singapore': 'sg',
+    'thailand': 'th',
+    'philippines': 'ph',
+    'filippinerna': 'ph',
+    'new zealand': 'nz',
+    'nya zeeland': 'nz',
+    'south africa': 'za',
+    'sydafrika': 'za',
+    'fiji': 'fj',
+    'samoa': 'ws',
+    'tonga': 'to',
+    'egypt': 'eg',
+    'egypten': 'eg',
+    'türkiye': 'tr',
+    'turkey': 'tr',
+    'czechia': 'cz',
+    'poland': 'pl',
+    'romania': 'ro',
+    'slovakia': 'sk',
+    'brazil': 'br',
+    'australia': 'au',
+    'mexico': 'mx',
+    'mexiko': 'mx',
+    'south korea': 'kr',
+    'sydkorea': 'kr',
+    'china': 'cn',
+    'kina': 'cn',
+    'wales': 'gb-wls',
+    'england': 'gb-eng',
+    'scotland': 'gb-sct',
+    'ireland': 'ie',
+    'united states': 'us',
+    'usa': 'us',
+    'canada': 'ca',
+    'kanada': 'ca',
 }
 
 
@@ -633,6 +709,12 @@ class Match(models.Model):
 
     class Meta:
         ordering = ['match_number']
+        indexes = [
+            models.Index(fields=['tournament', 'date_time']),
+            models.Index(fields=['tournament', 'is_finished']),
+            models.Index(fields=['tournament', 'group']),
+            models.Index(fields=['tournament', 'stage']),
+        ]
 
     def __str__(self):
         home_info = self.get_home_team_info()
@@ -652,12 +734,20 @@ class Match(models.Model):
             return {'name': '-', 'code': '', 'flag_url': '', 'display_name': '-'}
         
         team_str_clean = team_str.strip()
+
+        # Check in-memory match cache when user_predictions is None
+        if user_predictions is None:
+            if not hasattr(self, '_resolved_team_cache'):
+                self._resolved_team_cache = {}
+            if team_str_clean in self._resolved_team_cache:
+                return self._resolved_team_cache[team_str_clean]
         
         # 1. Match Winner/Loser knockout dependencies (e.g. "Winner Match 37", "Loser Match 49")
         m_kw = re.match(r'^(Winner|Loser|Vinnare|Förlorare)\s+(?:Match\s+)?(\d+)$', team_str_clean, re.IGNORECASE)
         if m_kw:
             role, match_num = m_kw.group(1).lower(), int(m_kw.group(2))
-            ref_match = self.tournament.matches.filter(match_number=match_num).first()
+            matches_map = getattr(self.tournament, '_matches_by_number_dict', None)
+            ref_match = matches_map.get(match_num) if matches_map is not None else self.tournament.matches.filter(match_number=match_num).first()
             if ref_match:
                 winner_info = None
                 loser_info = None
@@ -687,47 +777,81 @@ class Match(models.Model):
 
                 target_info = winner_info if role in ('winner', 'vinnare') else loser_info
                 if target_info and target_info['name'] and target_info['name'] != '-':
-                    return {
+                    res = {
                         'name': target_info['name'],
                         'code': target_info['code'],
                         'flag_url': target_info['flag_url'],
                         'display_name': f"{target_info['name']} ({team_str_clean})"
                     }
+                    if user_predictions is None:
+                        self._resolved_team_cache[team_str_clean] = res
+                    return res
 
-        # 2. Match Group placeholder codes (e.g. "A1", "B2", "L5")
-        m = re.match(r'^([A-L])([1-5])$', team_str_clean, re.IGNORECASE)
+        # 2. Match Group placeholder codes (e.g. "1st Group A", "2nd Group B", "A1", "1A", "B2", "L5")
+        idx = None
+        group_code = None
 
-        if m:
-            group_code, idx = m.group(1).upper(), int(m.group(2))
-            group = self.tournament.tournament_groups.filter(name__icontains=group_code).first()
+        m_full = re.match(r'^(\d+)(?:st|nd|rd|th|:a)?\s+(?:Group|Grupp)\s+([A-L])$', team_str_clean, re.IGNORECASE)
+        if m_full:
+            idx, group_code = int(m_full.group(1)), m_full.group(2).upper()
+        else:
+            m = re.match(r'^([A-L])([1-5])$', team_str_clean, re.IGNORECASE)
+            if m:
+                group_code, idx = m.group(1).upper(), int(m.group(2))
+            else:
+                m_rev = re.match(r'^([1-5])([A-L])$', team_str_clean, re.IGNORECASE)
+                if m_rev:
+                    idx, group_code = int(m_rev.group(1)), m_rev.group(2).upper()
+
+        if group_code and idx is not None:
+            if not hasattr(self.tournament, '_groups_by_code_dict'):
+                self.tournament._groups_by_code_dict = {
+                    (g.name.split()[-1].upper() if g.name else ''): g for g in self.tournament.tournament_groups.prefetch_related('teams').all()
+                }
+            group = self.tournament._groups_by_code_dict.get(group_code)
             if group:
-                standings = group.get_standings(user_predictions)
-                if 0 <= idx - 1 < len(standings):
-                    t = standings[idx - 1]['team']
-                    return {
-                        'name': t.name,
-                        'code': t.code,
-                        'flag_url': t.flag_url,
-                        'display_name': f"{t.name} ({team_str_clean})"
-                    }
-                else:
-                    teams = list(group.teams.all())
-                    if 0 <= idx - 1 < len(teams):
-                        t = teams[idx - 1]
+                if user_predictions is not None:
+                    standings = group.get_standings(user_predictions)
+                    if 0 <= idx - 1 < len(standings):
+                        t = standings[idx - 1]['team']
                         return {
                             'name': t.name,
                             'code': t.code,
                             'flag_url': t.flag_url,
                             'display_name': f"{t.name} ({team_str_clean})"
                         }
+                
+                teams = list(group.teams.all())
+                if 0 <= idx - 1 < len(teams):
+                    t = teams[idx - 1]
+                    res = {
+                        'name': t.name,
+                        'code': t.code,
+                        'flag_url': t.flag_url,
+                        'display_name': f"{t.name} ({team_str_clean})"
+                    }
+                    if user_predictions is None:
+                        self._resolved_team_cache[team_str_clean] = res
+                    return res
 
-        # 3. Third-place combination placeholders (e.g. "3DEF", "3ADEF", "3ABCD", "3ABC", "DEF3")
-        m_third = re.match(r'^(3?([A-F]{2,4})3?)$', team_str_clean, re.IGNORECASE)
-        if m_third:
-            group_letters = m_third.group(2).upper()
+        # 3. Third-place combination placeholders (e.g. "3rd Group C/E/F/H/I", "3rd Group D/E/F", "3DEF", "3ABCD", "DEF3")
+        group_letters = []
+        m_third_slash = re.match(r'^(?:3rd\s+(?:Group\s+)?)?([A-L](?:/[A-L])+)', team_str_clean, re.IGNORECASE)
+        if m_third_slash:
+            group_letters = [g.upper() for g in m_third_slash.group(1).split('/')]
+        else:
+            m_third = re.match(r'^(3?([A-L]{2,6})3?)$', team_str_clean, re.IGNORECASE)
+            if m_third:
+                group_letters = list(m_third.group(2).upper())
+
+        if group_letters:
+            if not hasattr(self.tournament, '_groups_by_code_dict'):
+                self.tournament._groups_by_code_dict = {
+                    (g.name.split()[-1].upper() if g.name else ''): g for g in self.tournament.tournament_groups.prefetch_related('teams').all()
+                }
             thirds = []
             for g_let in group_letters:
-                grp = self.tournament.tournament_groups.filter(name__icontains=g_let).first()
+                grp = self.tournament._groups_by_code_dict.get(g_let)
                 if grp:
                     st = grp.get_standings(user_predictions)
                     if len(st) >= 3:
@@ -735,42 +859,55 @@ class Match(models.Model):
             if thirds:
                 thirds.sort(key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
                 t = thirds[0]['team']
-                return {
+                res = {
                     'name': t.name,
                     'code': t.code,
                     'flag_url': t.flag_url,
                     'display_name': f"{t.name} ({team_str_clean})"
                 }
+                if user_predictions is None:
+                    self._resolved_team_cache[team_str_clean] = res
+                return res
 
-        # 3. Direct Team model match in tournament
-        team = self.tournament.teams.filter(name__iexact=team_str_clean).first()
+        # 3. Direct Team model match in tournament (Zero-query in-memory lookup)
+        if not hasattr(self.tournament, '_teams_by_name_dict'):
+            self.tournament._teams_by_name_dict = {t.name.strip().lower(): t for t in self.tournament.teams.all()}
+        
+        team = self.tournament._teams_by_name_dict.get(team_str_clean.lower())
         if team:
-            return {
+            res = {
                 'name': team.name,
                 'code': team.code,
                 'flag_url': team.flag_url,
                 'display_name': team.name
             }
+            if user_predictions is None:
+                self._resolved_team_cache[team_str_clean] = res
+            return res
         
         # 4. Fallback using country code map
         clean_key = team_str_clean.lower()
         if clean_key in COUNTRY_CODE_MAP:
             code = COUNTRY_CODE_MAP[clean_key]
-            return {
+            res = {
                 'name': team_str_clean,
                 'code': code,
                 'flag_url': f"https://flagcdn.com/w40/{code}.png",
                 'display_name': team_str_clean
             }
+            if user_predictions is None:
+                self._resolved_team_cache[team_str_clean] = res
+            return res
 
-        return {
+        res = {
             'name': team_str_clean,
             'code': '',
             'flag_url': '',
             'display_name': team_str_clean
         }
-
-
+        if user_predictions is None:
+            self._resolved_team_cache[team_str_clean] = res
+        return res
 
 
 class MatchPrediction(models.Model):
@@ -784,6 +921,13 @@ class MatchPrediction(models.Model):
     home_goals = models.PositiveIntegerField(default=0)
     away_goals = models.PositiveIntegerField(default=0)
     penalty_winner = models.CharField(max_length=100, blank=True, null=True, help_text="Tiebreaker winner team name")
+
+    class Meta:
+        unique_together = ('match', 'player')
+        indexes = [
+            models.Index(fields=['match', 'player']),
+            models.Index(fields=['player']),
+        ]
 
     def __str__(self):
         return f"{self.player.username} - Match {self.match.match_number}"
@@ -816,6 +960,9 @@ class Sidebet(models.Model):
     class Meta:
         verbose_name = "Bonusfråga"
         verbose_name_plural = "Bonusfrågor"
+        indexes = [
+            models.Index(fields=['tournament']),
+        ]
 
     def __str__(self):
         return f"{self.question} ({self.points}p)"
@@ -828,6 +975,10 @@ class SidebetAnswer(models.Model):
 
     class Meta:
         unique_together = ('sidebet', 'player')
+        indexes = [
+            models.Index(fields=['sidebet', 'player']),
+            models.Index(fields=['player']),
+        ]
         verbose_name = "Spelarens bonussvar"
         verbose_name_plural = "Spelarnas bonussvar"
 
@@ -844,6 +995,10 @@ class TournamentSubmission(models.Model):
 
     class Meta:
         unique_together = ('tournament', 'player')
+        indexes = [
+            models.Index(fields=['tournament', 'player']),
+            models.Index(fields=['player']),
+        ]
 
     def __str__(self):
         status = "Verified" if self.is_verified else ("Saved" if self.is_saved else "Pending")
@@ -1108,3 +1263,50 @@ class PoolAdminRequest(models.Model):
 
     def __str__(self):
         return f"{self.user.username} → {self.pool_name} ({self.status})"
+
+
+# --- AI Tournament Scout Models ---
+
+class ScannedTournament(models.Model):
+    """
+    Represents an AI-scouted tournament prospect before conversion into a live tournament.
+    Stores raw JSON data extracted by Gemini along with validation metadata and lifecycle status.
+    """
+    GRADE_CHOICES = (
+        ('GRADE_A', 'Grade A - 100% Redo (Grön)'),
+        ('GRADE_B', 'Grade B - Nästan redo (Gul)'),
+        ('GRADE_C', 'Grade C - Bevakning / Lottning pågår (Orange)'),
+        ('GRADE_D', 'Grade D - Ej kompatibel / Avslutad (Röd)'),
+    )
+
+    STATUS_CHOICES = (
+        ('NEW', 'Nytt prospekt'),
+        ('WATCHLIST', 'Bevakningslista'),
+        ('CONVERTED', 'Konverterad till Turnering'),
+        ('ARCHIVED', 'Arkiverad / Ignorerad'),
+    )
+
+    name = models.CharField(max_length=200, help_text="Tournament display name (e.g. Innebandy-VM Herrar 2026)")
+    master_event_code = models.SlugField(max_length=100, blank=True, help_text="Master Event slug (e.g. iff-wfc-2026)")
+    sport = models.CharField(max_length=100, default='Football', help_text="Sport discipline (e.g. Football, Floorball, Ice Hockey)")
+    organizer = models.CharField(max_length=100, blank=True, help_text="Federation / Organizer (e.g. UEFA, FIFA, IFF)")
+    host_country = models.CharField(max_length=150, blank=True, help_text="Host Country / Cities")
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    completeness_grade = models.CharField(max_length=20, choices=GRADE_CHOICES, default='GRADE_A')
+    grade_reason = models.TextField(blank=True, help_text="Detailed audit explanation of why this grade was assigned and what details are missing")
+    official_source_url = models.URLField(max_length=500, blank=True, help_text="Direct URL to official federation/tournament website")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
+    payload = models.JSONField(default=dict, help_text="Complete JSON payload from Gemini Tournament Scout")
+    converted_tournament = models.ForeignKey(Tournament, on_delete=models.SET_NULL, null=True, blank=True, related_name='scouted_sources')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Scanned Tournament Prospect"
+        verbose_name_plural = "Scanned Tournament Prospects"
+
+    def __str__(self):
+        return f"[{self.completeness_grade}] {self.name} ({self.status})"
+

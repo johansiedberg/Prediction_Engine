@@ -112,3 +112,52 @@ def register_view(request):
         form = UserRegistrationForm(initial={'invite_code': initial_code})
 
     return render(request, 'tournament/register.html', {'form': form})
+
+
+from django.http import HttpResponseBadRequest
+from django.core.signing import TimestampSigner, SignatureExpired, BadSignature
+
+def sso_login_view(request):
+    token = request.GET.get('token')
+    if not token:
+        return HttpResponseBadRequest("Missing token parameter.")
+    
+    signer = TimestampSigner(key=settings.HERRKLUBB_SSO_SECRET, salt='sso-salt')
+    try:
+        # Verify token signature and enforce max_age of 60 seconds
+        payload = signer.unsign_object(token, max_age=60)
+    except (SignatureExpired, BadSignature):
+        return HttpResponseBadRequest("SSO link has expired or is invalid.")
+    
+    email = payload.get('email')
+    username = payload.get('username')
+    first_name = payload.get('first_name', '')
+    last_name = payload.get('last_name', '')
+    
+    if not email:
+        return HttpResponseBadRequest("Invalid payload: email is required.")
+    
+    # Retrieve user by email or create them dynamically
+    user = User.objects.filter(email=email).first()
+    if not user:
+        base_username = email.split('@')[0]
+        user_name = base_username
+        counter = 1
+        while User.objects.filter(username=user_name).exists():
+            user_name = f"{base_username}{counter}"
+            counter += 1
+        
+        user = User.objects.create_user(
+            username=user_name,
+            email=email,
+            first_name=first_name,
+            last_name=last_name
+        )
+        # Note: Signals in models.py will auto-create UserProfile and enroll them in active tournaments
+    
+    # Standard Django login session hook
+    user.backend = 'django.contrib.auth.backends.ModelBackend'
+    login(request, user)
+    
+    return redirect('hub')
+

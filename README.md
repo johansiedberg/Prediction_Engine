@@ -9,6 +9,8 @@ The main objective of the platform is to digitize and automate the entire workfl
 * **Automated Point Calculation:** The system automatically calculates tournament points across multiple competition stages and updates participant rankings in real time based on actual match results.
 * **Flexible Pool Scoring Systems:** Pool Administrators can configure pool-specific scoring rules across 4 distinct stages (Match predictions, Group tables, Qualification tables, and Knockout advancement) plus bonus Sidebets.
 * **Dual-Portal Architecture:** Strict separation between master tournament setup/administration (Engine Admin) and pool competition/member management (Player & Pool Admin).
+* **AI Tournament Scout & Ingestion:** Automated scouting and ingestion of international tournament fixtures and groups using Gemini structured scouting prompts (`ScoutService` & `ScannedTournament`).
+* **High-Performance Caching & Indexing:** Multi-layer cache service and optimized database indexes for lightning-fast leaderboard and prediction calculations.
 * **AI Match & Field Analytics:** Dynamic AI-generated editorial summaries providing match analysis, individual tips, outliers, and rivalry banter.
 
 ---
@@ -30,27 +32,29 @@ The application features three interaction roles across two dedicated developmen
  └──────────┬──────────┘                               └──────────┬──────────┘
             │                                                     │
  ┌──────────┴──────────┐                               ┌──────────┴──────────┐
- │ • Master Tournaments│                               │ • Pool Dashboard    │
- │ • Approve Pools     │                               │ • Rule Configuration│
- │ • Result Reporting  │                               │ • Member Status     │
- │ • Tournament Sim    │                               │ • Player Tipping    │
+ │ • Master Tournaments│                               │ • Pool Admin Hub    │
+ │ • AI Scout Ingestion│                               │ • Rule Configuration│
+ │ • Approve Pools     │                               │ • Member Status     │
+ │ • Result Reporting  │                               │ • Player Tipping    │
+ │ • Tournament Sim    │                               │ • Live Leaderboard  │
  └─────────────────────┘                               └─────────────────────┘
 ```
 
 ### 1. Engine Admin (System Master — Port 2029)
 Access URL: `http://127.0.0.1:2029`
-* **Master Tournament Creation:** Create and manage tournaments, define group stages, knockout paths, and master match schedules.
+* **Master Tournament Creation & AI Scout:** Create tournaments manually or import scanned tournament structures via AI scouting prompts.
 * **Pool Request Management:** Review, approve, or reject pool creation requests (`PoolAdminRequest`) submitted by users.
 * **Result Reporting & Settlement:** Enter official match results and verify tournament state transitions.
-* **Simulation & Validation:** Run test simulations and validate tournament integrity via system checklists.
+* **Simulation & Validation:** Run test simulations and validate tournament integrity via system checklists and preview modals.
 
 ### 2. Pool Admin (Pool Manager — Port 2028)
 Access URL: `http://127.0.0.1:2028/pool-admin/<league_id>/`
+* **Pool Admin Hub:** Centralized hub for managing active pools and tournament rule configurations (`pool_admin_hub.html`).
 * **Custom Pool Branding:** Customize pool logo, header banner, and primary accent color.
 * **Member Verification:** Manage pool participants, verify player submissions, and track prediction completion matrices.
 * **4-Stage Point Rule Configuration:**
   * **Etapp 1 (Matcher):** 1X2 outcome, exact match score, goals per team, goal difference.
-  * **Etapp 2 (Grupptabeller):** Exact group rank, correct points, scored goals, conceded goals, goal diff. Visual example with Sweden (5p) & Denmark (4p).
+  * **Etapp 2 (Grupptabeller):** Exact group rank, correct points, scored goals, conceded goals, goal diff.
   * **Etapp 3 (Kvalificeringstabell):** Point rules for third-place rankings / runners-up tables.
   * **Etapp 4 (Slutspel, avancemang):** Stage advancement bonuses for Åttondelsfinal, Kvartsfinal, Semifinal, Bronsmatch, and Final.
   * **Sidebets:** Configure bonus questions (e.g., top scorer, tournament winner).
@@ -58,7 +62,7 @@ Access URL: `http://127.0.0.1:2028/pool-admin/<league_id>/`
 ### 3. Player (Participant — Port 2028)
 Access URL: `http://127.0.0.1:2028`
 * **Interactive Prediction Sheet:** Submit predictions for group matches, knockout stages, and sidebets.
-* **Dynamic Leaderboard & Live Standings:** Real-time point updates, position tracking, and historical performance breakdowns.
+* **Dynamic Leaderboard & Live Standings:** Real-time point updates, position tracking, and historical performance breakdowns powered by `cache_service`.
 * **AI Match Analytics:** Banter-rich, tailored commentary comparing user predictions with group trends.
 
 ---
@@ -78,8 +82,10 @@ PREDICTION_ENGINE/
 ├── templates/
 │   └── tournament/
 │       ├── base.html         # Main aesthetic layout
-│       ├── pool_admin.html   # Pool Admin management & 4-stage point setup
+│       ├── pool_admin_hub.html # Pool Admin master league hub
+│       ├── pool_admin_tournament_config.html # Pool 4-stage point rule configuration
 │       ├── engine_admin.html # Engine Admin master portal & simulation
+│       ├── engine_admin_preview_modal.html # Engine Admin tournament preview
 │       ├── hub.html          # Player hub & predictions dashboard
 │       ├── login.html
 │       ├── register.html
@@ -89,32 +95,40 @@ PREDICTION_ENGINE/
 │   ├── services/             # Pure Business Logic Service Layer
 │   │   ├── __init__.py
 │   │   ├── scoring.py        # Point calculation engine
+│   │   ├── cache_service.py  # Multi-layer leaderboard & prediction caching
+│   │   ├── scout_service.py  # AI tournament scout & ingestion service
 │   │   ├── analytics.py      # AI match & field analysis
 │   │   ├── tournament_admin.py # Tournament checklist & validation
 │   │   └── pool_admin_service.py # Player progress matrix & request approval
 │   │
 │   ├── views/                # Modular View Packages
 │   │   ├── __init__.py
-│   │   ├── auth.py           # Port-aware authentication & decorators
+│   │   ├── auth.py           # Port-aware authentication & SSO receiver
 │   │   ├── engine_admin.py   # Port 2029 Engine Admin views
 │   │   ├── pool_admin.py     # Port 2028 Pool Admin views
-│   │   ├── match_views.py    # Predictions & score updates
-│   │   └── tournament_views.py # Hub, leaderboard & statistics
+│   │   ├── dashboard.py      # Leaderboard, predictions & overview
+│   │   └── match_views.py    # Predictions & score updates
 │   │
 │   ├── editorial_engine/     # AI Reporter & Match Commentary Generators
 │   ├── management/commands/
 │   │   ├── runserver.py      # Player server runner (Port 2028)
-│   │   └── runserver_admin.py# Engine Admin runner (Port 2029)
+│   │   ├── runserver_admin.py# Engine Admin runner (Port 2029)
+│   │   ├── setup_euro2028_final.py # Seed Euro 2028 tournament structure
+│   │   ├── setup_euro2028_qualifiers.py
+│   │   ├── setup_wfc_2026.py # Seed World Floorball Championships 2026
+│   │   └── setup_womens_euro_volleyball_2026.py
 │   │
-│   ├── models.py             # Tournament, Match, League, PointSystem models
+│   ├── models.py             # Tournament, Match, League, PointSystem, ScannedTournament
 │   ├── admin.py              # Django Admin registrations
 │   ├── forms.py              # User & pool forms
 │   ├── urls.py               # Application URL routes
 │   └── middleware.py         # Port-based access control middleware
 │
+├── GEMINI_TOURNAMENT_SCOUT_PROMPT.txt # AI Tournament Scout extraction template
 ├── db.sqlite3
 ├── manage.py
 └── README.md
+```
 ```
 
 ---

@@ -1,5 +1,6 @@
 {% load static %}
-<div class="modal-header border-bottom border-secondary border-opacity-25 p-0 overflow-hidden" style="background: #090D16;">
+<div class="modal-header border-bottom border-secondary border-opacity-25 p-0 overflow-hidden" 
+     style="background: #090D16; {% if tournament.backdrop %}background: linear-gradient(180deg, rgba(9, 13, 22, 0.7) 0%, rgba(9, 13, 22, 0.95) 100%), url('{{ tournament.backdrop.url }}'); background-size: cover; background-position: center;{% endif %}">
     <div class="w-100">
         <!-- Total Status Banner (Faded solid color, font in black) -->
         <div class="px-4 py-2 font-monospace text-uppercase shadow-sm d-flex align-items-center justify-content-between" style="{{ total_status.style }} font-size: 0.85rem; letter-spacing: 0.5px;">
@@ -7,7 +8,17 @@
             <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Stäng"></button>
         </div>
         <div class="p-4 d-flex align-items-center justify-content-between">
-            <h3 class="fw-extrabold text-white mb-0"><i class="fa-solid fa-trophy text-warning me-2"></i>{{ tournament.name }}</h3>
+            <div class="d-flex align-items-center gap-3">
+                {% if tournament.icon %}
+                <img src="{{ tournament.icon.url }}" alt="{{ tournament.name }}" style="height: 48px; width: 48px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.8));">
+                {% else %}
+                <i class="fa-solid fa-trophy text-warning fs-2"></i>
+                {% endif %}
+                <div>
+                    <h3 class="fw-extrabold text-white mb-0">{{ tournament.name }}</h3>
+                    <span class="text-secondary small font-monospace">ID: #{{ tournament.id }}</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
