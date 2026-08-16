@@ -3,6 +3,9 @@
 
 {% block title %}Logga in — Mästerskapstipset{% endblock %}
 
+{% block header_style %}background: #0B0F19; border-bottom: 1px solid rgba(148, 163, 184, 0.12);{% endblock %}
+{% block backdrop_style %}background: #0B0F19;{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-center align-items-center py-3">
     <div class="login-card" style="max-width: 440px; width: 100%;">
@@ -21,15 +24,6 @@
                 <i class="fa-solid fa-circle-exclamation me-1.5" style="color: #EF4444;"></i>
                 <strong class="text-white">Felaktig e-post eller lösenord.</strong> Försök igen.
             </div>
-        {% endif %}
-
-        {% if messages %}
-        {% for message in messages %}
-        <div class="alert border-0 rounded-3 py-2 px-3 small mb-3 text-center"
-            style="background: rgba({% if message.tags == 'success' %}16, 185, 129{% elif message.tags == 'warning' %}245, 158, 11{% else %}59, 130, 246{% endif %}, 0.15); color: #{% if message.tags == 'success' %}34d399{% elif message.tags == 'warning' %}fbbf24{% else %}93c5fd{% endif %}; border: 1px solid rgba({% if message.tags == 'success' %}16, 185, 129{% elif message.tags == 'warning' %}245, 158, 11{% else %}59, 130, 246{% endif %}, 0.3);">
-            {{ message }}
-        </div>
-        {% endfor %}
         {% endif %}
 
         <form method="post">
