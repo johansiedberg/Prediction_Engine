@@ -706,7 +706,7 @@ def dashboard_view(request):
         if p_preds_list:
             p_tot_g = sum(pred.home_goals + pred.away_goals for pred in p_preds_list)
             p_avg_g = round(p_tot_g / len(p_preds_list), 2)
-            p_name = f"{p.first_name} {p.last_name}".strip() if p.first_name else p.username
+            p_name = f"{p.first_name} {p.last_name}".strip() if p.first_name else p.email
             player_goal_stats.append({'name': p_name, 'avg_goals': p_avg_g, 'total_goals': p_tot_g})
 
     player_goal_stats.sort(key=lambda x: x['avg_goals'], reverse=True)
@@ -874,12 +874,12 @@ def hub_view(request):
     """Startsida for Prediction Engine users after login."""
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
-    full_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+    full_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.email
     persona = find_persona_for_player(full_name)
     if persona and persona.get('nicknames'):
         user_nickname = persona['nicknames'][0]
     else:
-        user_nickname = request.user.first_name or request.user.username
+        user_nickname = request.user.first_name or request.user.email
 
     # Leagues where user is admin (for Pool-Admin card shortcut links)
     user_admin_leagues = list(League.objects.filter(admin=request.user, is_active=True))

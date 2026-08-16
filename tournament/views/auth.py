@@ -76,14 +76,8 @@ def register_view(request):
             password = form.cleaned_data['password1']
             invite_code = form.cleaned_data.get('invite_code', '').strip().upper()
 
-            # Use email as username (slugified to ensure uniqueness)
-            base_username = email.split('@')[0]
-            username = base_username
-            counter = 1
-            while User.objects.filter(username=username).exists():
-                username = f"{base_username}{counter}"
-                counter += 1
-
+            # Unique ID is the email address
+            username = email.lower()
             user = User.objects.create_user(
                 username=username,
                 email=email,
@@ -103,7 +97,7 @@ def register_view(request):
                     messages.warning(request, f"Koden '{invite_code}' hittades inte, men ditt konto skapades.")
 
             # Auto-login after registration
-            login(request, user)
+            login(request, user, backend='tournament.backends.EmailAuthBackend')
             messages.success(request, f"Välkommen, {first_name}! Ditt konto är skapat.")
             return redirect('/hub/')
     else:
@@ -129,8 +123,7 @@ def sso_login_view(request):
     except (SignatureExpired, BadSignature):
         return HttpResponseBadRequest("SSO link has expired or is invalid.")
     
-    email = payload.get('email')
-    username = payload.get('username')
+    email = payload.get('email', '').strip().lower()
     first_name = payload.get('first_name', '')
     last_name = payload.get('last_name', '')
     
@@ -138,17 +131,10 @@ def sso_login_view(request):
         return HttpResponseBadRequest("Invalid payload: email is required.")
     
     # Retrieve user by email or create them dynamically
-    user = User.objects.filter(email=email).first()
+    user = User.objects.filter(email__iexact=email).first()
     if not user:
-        base_username = email.split('@')[0]
-        user_name = base_username
-        counter = 1
-        while User.objects.filter(username=user_name).exists():
-            user_name = f"{base_username}{counter}"
-            counter += 1
-        
         user = User.objects.create_user(
-            username=user_name,
+            username=email,
             email=email,
             first_name=first_name,
             last_name=last_name
@@ -156,7 +142,7 @@ def sso_login_view(request):
         # Note: Signals in models.py will auto-create UserProfile and enroll them in active tournaments
     
     # Standard Django login session hook
-    user.backend = 'django.contrib.auth.backends.ModelBackend'
+    user.backend = 'tournament.backends.EmailAuthBackend'
     login(request, user)
     
     return redirect('hub')

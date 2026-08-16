@@ -35,14 +35,18 @@ def engine_admin_root_view(request):
 def engine_admin_login_view(request):
     """Processes login specifically for Port 2029 Engine Admin."""
     if request.method == 'POST':
-        uname = request.POST.get('username', '').strip()
+        login_input = request.POST.get('email', '').strip() or request.POST.get('username', '').strip()
         pwd = request.POST.get('password', '').strip()
-        user = authenticate(request, username=uname, password=pwd)
+        user = authenticate(request, username=login_input, password=pwd)
+        if user is None:
+            user_obj = User.objects.filter(email__iexact=login_input).first()
+            if user_obj:
+                user = authenticate(request, username=user_obj.username, password=pwd)
         if user is not None and (user.is_superuser or user.is_staff):
             login(request, user)
             return redirect('/')
         else:
-            messages.error(request, "Ogiltigt användarnamn, lösenord eller saknad Engine Admin-behörighet.")
+            messages.error(request, "Felaktig e-postadress, lösenord eller saknad Engine Admin-behörighet.")
     return render(request, 'tournament/engine_admin_login.html')
 
 
@@ -95,13 +99,8 @@ def create_admin_user_view(request):
             messages.error(request, err)
         return redirect('/')
 
-    # Create the user
-    base_username = email.split('@')[0]
-    username = base_username
-    counter = 1
-    while User.objects.filter(username=username).exists():
-        username = f"{base_username}{counter}"
-        counter += 1
+    # Create the user with email as unique username/identifier
+    username = email.lower()
 
     is_superuser = (role == 'superuser')
     new_user = User.objects.create_user(
@@ -115,7 +114,7 @@ def create_admin_user_view(request):
     )
 
     role_label = "Superuser" if is_superuser else "Staff Admin"
-    messages.success(request, f"Admin-konto skapat för {first_name} {last_name} ({role_label}). Användarnamn: {username}")
+    messages.success(request, f"Admin-konto skapat för {first_name} {last_name} ({role_label}). E-post: {email}")
     return redirect('/')
 
 
@@ -672,13 +671,14 @@ def engine_admin_pool_requests_view(request):
     for req in requests:
         data.append({
             'id': req.id,
-            'user': req.user.username,
+            'user': req.user.get_full_name() or req.user.email,
+            'user_email': req.user.email,
             'pool_name': req.pool_name,
             'description': req.description,
             'master_event': req.master_event.name if req.master_event else None,
             'status': req.status,
             'created_at': req.created_at.isoformat() if req.created_at else None,
-            'reviewed_by': req.reviewed_by.username if req.reviewed_by else None,
+            'reviewed_by': (req.reviewed_by.get_full_name() or req.reviewed_by.email) if req.reviewed_by else None,
             'rejection_reason': req.rejection_reason,
             'league_id': req.league.id if req.league else None
         })

@@ -36,7 +36,7 @@ class SpecialEditionReporter:
         """Helper to get player display name."""
         if not user:
             return "Spelare"
-        return f"{user.first_name} {user.last_name}".strip() if user.first_name else user.username
+        return f"{user.first_name} {user.last_name}".strip() if user.first_name else user.email
 
     @classmethod
     def calculate_leaderboard(cls, tournament: Tournament) -> list:

@@ -55,12 +55,12 @@ def detect_daily_events(tournament: Tournament, matchday_number: int = None):
         # 2. Detect Outlier Victory (exact scoreline predicted by only 1 player)
         exact_preds = [p for p in preds if p.home_goals == match.home_goals and p.away_goals == match.away_goals]
         for p in exact_preds:
-            p_name = p.player.first_name + " " + p.player.last_name if p.player.first_name else p.player.username
+            p_name = p.player.first_name + " " + p.player.last_name if p.player.first_name else p.player.email
             player_fullpotts[p_name] = player_fullpotts.get(p_name, 0) + 1
 
         if len(exact_preds) == 1:
             hero = exact_preds[0]
-            hero_name = hero.player.first_name + " " + hero.player.last_name if hero.player.first_name else hero.player.username
+            hero_name = hero.player.first_name + " " + hero.player.last_name if hero.player.first_name else hero.player.email
             desc = f"{hero_name} var den ENDA spelaren i hela gänget som spikade det exakta resultatet {match.home_goals}-{match.away_goals} i {match.home_team} vs {match.away_team}."
             event, _ = InsightEvent.objects.get_or_create(
                 tournament=tournament,

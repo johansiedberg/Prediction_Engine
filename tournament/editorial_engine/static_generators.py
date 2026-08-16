@@ -41,7 +41,7 @@ def generate_static_insights(tournament: Tournament):
     tot_all_matches = 0
 
     for p in players:
-        p_name = p.first_name + " " + p.last_name if p.first_name else p.username
+        p_name = p.first_name + " " + p.last_name if p.first_name else p.email
         persona = find_persona_for_player(p_name, personas_list)
         p_nick = persona.get('nicknames', [p_name])[0] if persona else p_name
 
@@ -260,7 +260,7 @@ def generate_static_insights(tournament: Tournament):
                 lone_list = []
                 for a in answers:
                     if answers.filter(answer__iexact=a.answer).count() == 1:
-                        p_name = a.player.first_name + " " + a.player.last_name if a.player.first_name else a.player.username
+                        p_name = a.player.first_name + " " + a.player.last_name if a.player.first_name else a.player.email
                         persona = find_persona_for_player(p_name, personas_list)
                         p_nick = persona.get('nicknames', [p_name])[0] if persona else p_name
                         lone_list.append(f"{p_nick} ({a.answer})")
@@ -302,7 +302,7 @@ def generate_static_insights(tournament: Tournament):
                 
                 lone_list = []
                 for a in answers.exclude(answer__iexact=top['answer']):
-                    p_name = a.player.first_name + " " + a.player.last_name if a.player.first_name else a.player.username
+                    p_name = a.player.first_name + " " + a.player.last_name if a.player.first_name else a.player.email
                     persona = find_persona_for_player(p_name, personas_list)
                     p_nick = persona.get('nicknames', [p_name])[0] if persona else p_name
                     lone_list.append(f"{p_nick} ({a.answer})")

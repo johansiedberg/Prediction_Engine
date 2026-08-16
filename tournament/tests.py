@@ -172,3 +172,47 @@ class EngineAdminTournamentUpdateTestCase(TestCase):
         self.assertEqual(self.tournament.name, 'Original Tournament Name')
         self.assertNotEqual(self.tournament.name, 'Hacked Name')
 
+
+class EmailUserIdentificationTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='anna@exempel.se',
+            email='anna@exempel.se',
+            password='annapassword123',
+            first_name='Anna',
+            last_name='Andersson'
+        )
+
+    def test_authenticate_with_email_exact(self):
+        from django.contrib.auth import authenticate
+        user = authenticate(username='anna@exempel.se', password='annapassword123')
+        self.assertIsNotNone(user)
+        self.assertEqual(user.email, 'anna@exempel.se')
+
+    def test_authenticate_with_email_case_insensitive(self):
+        from django.contrib.auth import authenticate
+        user = authenticate(username='ANNA@EXEMPEL.SE', password='annapassword123')
+        self.assertIsNotNone(user)
+        self.assertEqual(user.email, 'anna@exempel.se')
+
+    def test_login_form_with_email(self):
+        from tournament.forms import CustomLoginForm
+        form = CustomLoginForm(data={'username': 'anna@exempel.se', 'password': 'annapassword123'})
+        self.assertTrue(form.is_valid())
+
+    def test_registration_creates_user_with_email_as_id(self):
+        response = self.client.post('/register/', {
+            'first_name': 'Bengt',
+            'last_name': 'Bengtsson',
+            'email': 'bengt@exempel.se',
+            'password1': 'bengtpass123',
+            'password2': 'bengtpass123',
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        bengt = User.objects.filter(email='bengt@exempel.se').first()
+        self.assertIsNotNone(bengt)
+        self.assertEqual(bengt.username, 'bengt@exempel.se')
+        self.assertEqual(bengt.first_name, 'Bengt')
+        self.assertEqual(bengt.last_name, 'Bengtsson')
+
+

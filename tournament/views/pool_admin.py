@@ -100,7 +100,7 @@ def request_pool_admin_view(request):
 
         if action == 'login':
             # Pool-Admin Login handler
-            uname = request.POST.get('username', '').strip()
+            uname = request.POST.get('username', '').strip() or request.POST.get('email', '').strip()
             pwd = request.POST.get('password', '').strip()
             user = authenticate(request, username=uname, password=pwd)
             if user is None:
@@ -110,17 +110,17 @@ def request_pool_admin_view(request):
                     user = authenticate(request, username=user_obj.username, password=pwd)
 
             if user is not None:
-                login(request, user)
+                login(request, user, backend='tournament.backends.EmailAuthBackend')
                 # Check if user owns a league
                 user_league = League.objects.filter(admin=user).first()
                 if user_league:
-                    messages.success(request, f"Välkommen tillbaka, {user.first_name or user.username}!")
+                    messages.success(request, f"Välkommen tillbaka, {user.first_name or user.email}!")
                     return redirect('pool_admin_hub')
                 else:
                     messages.info(request, "Välkommen! Din Pool-Admin ansökan behandlas eller har inte aktiverats än.")
                     return redirect('request_pool_admin')
             else:
-                messages.error(request, "Felaktig e-post/användarnamn eller lösenord.")
+                messages.error(request, "Felaktig e-postadress eller lösenord.")
                 return redirect('request_pool_admin')
 
         else:
@@ -148,13 +148,7 @@ def request_pool_admin_view(request):
                 if existing_user:
                     user = existing_user
                 else:
-                    base_username = email.split('@')[0]
-                    username = base_username
-                    counter = 1
-                    while DjangoUser.objects.filter(username=username).exists():
-                        username = f"{base_username}{counter}"
-                        counter += 1
-
+                    username = email.lower()
                     user = DjangoUser.objects.create_user(
                         username=username,
                         email=email,
@@ -162,7 +156,7 @@ def request_pool_admin_view(request):
                         first_name=first_name,
                         last_name=last_name or ''
                     )
-                login(request, user)
+                login(request, user, backend='tournament.backends.EmailAuthBackend')
 
             master_event = None
             if master_event_id:
@@ -209,7 +203,7 @@ def pool_admin_dashboard_view(request, league_id):
     coming_tournaments = Tournament.objects.filter(is_active=False)
 
     # Members in this pool
-    members = league.members.all().select_related('player').order_by('player__first_name', 'player__username')
+    members = league.members.all().select_related('player').order_by('player__first_name', 'player__email')
 
     # Check if admin is enrolled as player
     is_admin_enrolled = league.members.filter(player=request.user).exists()
@@ -242,7 +236,7 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
     sidebets = Sidebet.objects.filter(tournament=tournament)
     players_data = get_player_progress_matrix(league, tournament)
     enrolled_user_ids = set(tournament.players.values_list('id', flat=True))
-    members = league.members.all().select_related('player').order_by('player__first_name', 'player__username')
+    members = league.members.all().select_related('player').order_by('player__first_name', 'player__email')
 
     context = {
         'league': league,
@@ -301,11 +295,11 @@ def toggle_tournament_player_view(request, league_id, tournament_id, user_id):
     if player in tournament.players.all():
         tournament.players.remove(player)
         enrolled = False
-        msg = f"{player.get_full_name() or player.username} har tagits bort från {tournament.name}."
+        msg = f"{player.get_full_name() or player.email} har tagits bort från {tournament.name}."
     else:
         tournament.players.add(player)
         enrolled = True
-        msg = f"{player.get_full_name() or player.username} har lagts till i {tournament.name}."
+        msg = f"{player.get_full_name() or player.email} har lagts till i {tournament.name}."
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({
@@ -314,7 +308,7 @@ def toggle_tournament_player_view(request, league_id, tournament_id, user_id):
             'enrolled_count': tournament.players.count(),
             'message': msg,
             'user_id': player.id,
-            'user_name': player.get_full_name() or player.username,
+            'user_name': player.get_full_name() or player.email,
             'user_email': player.email,
             'is_admin': player == league.admin
         })
@@ -379,13 +373,7 @@ def pool_admin_add_player_view(request, league_id):
     if existing_user:
         player_user = existing_user
     else:
-        base_username = email.split('@')[0]
-        username = base_username
-        counter = 1
-        while DjangoUser.objects.filter(username=username).exists():
-            username = f"{base_username}{counter}"
-            counter += 1
-
+        username = email.lower()
         player_user = DjangoUser.objects.create_user(
             username=username,
             email=email,
@@ -422,7 +410,7 @@ def pool_admin_remove_player_view(request, league_id, member_id):
         messages.error(request, "Pool-Admin kan inte tas bort från poolen.")
         return redirect('pool_admin_dashboard', league_id=league.id)
 
-    player_name = member.player.get_full_name() or member.player.username
+    player_name = member.player.get_full_name() or member.player.email
     member.delete()
     messages.success(request, f"{player_name} har tagits bort från poolen.")
     return redirect('pool_admin_dashboard', league_id=league.id)
@@ -459,7 +447,7 @@ def pool_admin_reset_password_view(request, league_id, member_id):
     member.player.set_password(new_pwd)
     member.player.save()
 
-    player_name = member.player.get_full_name() or member.player.username
+    player_name = member.player.get_full_name() or member.player.email
     messages.success(request, f"Lösenordet för {player_name} har återställts till '{new_pwd}'. Klicka på e-postikonen bredvid deltagaren för att skicka inloggningsuppgifterna!")
     return redirect('pool_admin_dashboard', league_id=league.id)
 
@@ -475,7 +463,7 @@ def verify_member_view(request, member_id):
     member.is_verified = not member.is_verified
     member.save()
     status_str = "verifierats" if member.is_verified else "av-verifierats"
-    messages.success(request, f"Deltagare {member.player.username} har {status_str}.")
+    messages.success(request, f"Deltagare {member.player.get_full_name() or member.player.email} har {status_str}.")
     return redirect('pool_admin_dashboard', league_id=member.league.id)
 
 

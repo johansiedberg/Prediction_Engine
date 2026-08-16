@@ -29,22 +29,24 @@ class Command(BaseCommand):
         for m in members:
             last_clean = m['last_name'].lower().replace('ä', 'a').replace('å', 'a').replace('ö', 'o').replace(' ', '')
             password = f"{last_clean}2026"
+            email = m['email'].lower()
 
-            user = User.objects.filter(email=m['email']).first() or User.objects.filter(username=m['username']).first()
+            user = User.objects.filter(email__iexact=email).first() or User.objects.filter(username=m['username']).first()
             if not user:
                 user = User.objects.create(
-                    username=m['username'],
+                    username=email,
                     first_name=m['first_name'],
                     last_name=m['last_name'],
-                    email=m['email'],
+                    email=email,
                     is_active=True,
                 )
                 created = True
             else:
                 created = False
+                user.username = email
                 user.first_name = m['first_name']
                 user.last_name = m['last_name']
-                user.email = m['email']
+                user.email = email
                 user.is_active = True
 
             user.set_password(password)
@@ -60,22 +62,23 @@ class Command(BaseCommand):
                 updated_count += 1
 
         # 2. Ensure superuser johansiedberg exists
-        admin_user, admin_created = User.objects.get_or_create(
-            username='johansiedberg',
-            defaults={
-                'email': 'johan@siedberg.se',
-                'first_name': 'Johan',
-                'last_name': 'Siedberg',
-                'is_staff': True,
-                'is_superuser': True,
-                'is_active': True,
-            }
-        )
-        if admin_created:
+        admin_email = 'johan@siedberg.se'
+        admin_user = User.objects.filter(email__iexact=admin_email).first()
+        if not admin_user:
+            admin_user = User.objects.create(
+                username=admin_email,
+                email=admin_email,
+                first_name='Johan',
+                last_name='Siedberg',
+                is_staff=True,
+                is_superuser=True,
+                is_active=True,
+            )
             admin_user.set_password('admin2026')
             admin_user.save()
-            self.stdout.write(self.style.SUCCESS("Created superuser 'johansiedberg' with password 'admin2026'."))
+            self.stdout.write(self.style.SUCCESS(f"Created superuser '{admin_email}' with password 'admin2026'."))
         else:
+            admin_user.username = admin_email
             admin_user.is_staff = True
             admin_user.is_superuser = True
             admin_user.save()

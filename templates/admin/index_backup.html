@@ -36,7 +36,7 @@
             </caption>
             {% for u in users %}
             <tr class="model-user">
-                <th scope="row"><a href="{% url 'admin:auth_user_change' u.id %}">{{ u.username }}</a></th>
+                <th scope="row"><a href="{% url 'admin:auth_user_change' u.id %}">{{ u.get_full_name|default:u.email }}</a></th>
                 <td><a href="{% url 'admin:auth_user_change' u.id %}" class="changelink">Change</a></td>
             </tr>
             {% empty %}

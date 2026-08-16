@@ -36,7 +36,7 @@ def get_player_progress_matrix(league, tournament):
         players_data.append({
             'player': player,
             'member': member,
-            'name': f"{player.first_name} {player.last_name}".strip() or player.username,
+            'name': f"{player.first_name} {player.last_name}".strip() or player.email,
             'email': player.email,
             'date_joined': player.date_joined,
             'last_login': player.last_login,

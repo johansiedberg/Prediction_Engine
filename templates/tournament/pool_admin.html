@@ -118,7 +118,7 @@
                             <thead>
                                 <tr style="background: rgba(15,23,42,0.95); font-size: 0.78rem; text-transform: uppercase;">
                                     <th class="ps-4 py-3 text-white fw-bold">Deltagare</th>
-                                    <th class="text-center py-3 text-white fw-bold">Användarnamn</th>
+                                    <th class="text-center py-3 text-white fw-bold">E-post</th>
                                     <th class="text-center py-3 text-white fw-bold">Verifierad</th>
                                     <th class="text-center py-3 text-white fw-bold pe-4">Åtgärder</th>
                                 </tr>
@@ -135,7 +135,7 @@
                                             {% endif %}
                                             <div>
                                                 <div class="fw-bold text-white" style="font-size: 0.92rem;">
-                                                    {{ m.player.get_full_name|default:m.player.username }}
+                                                    {{ m.player.get_full_name|default:m.player.email }}
                                                     {% if m.player == league.admin %}
                                                     <span class="badge px-1.5 py-0.5 ms-1 text-warning fw-bold" style="font-size: 0.68rem; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3);">ADMIN</span>
                                                     {% endif %}
@@ -144,7 +144,7 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="text-center py-3 text-white-50 font-monospace small">{{ m.player.username }}</td>
+                                    <td class="text-center py-3 text-white-50 font-monospace small">{{ m.player.email }}</td>
                                     <td class="text-center py-3">
                                         <form method="post" action="{% url 'verify_member' m.id %}" class="d-inline">
                                             {% csrf_token %}
@@ -165,7 +165,7 @@
                                                 <i class="fa-solid fa-key me-1"></i>Lösenord
                                             </button>
                                             {% if m.player != league.admin %}
-                                            <form method="post" action="{% url 'pool_admin_remove_player' league.id m.id %}" class="d-inline" onsubmit="return confirm('Är du säker på att du vill ta bort {{ m.player.get_full_name|default:m.player.username }} från poolen?');">
+                                            <form method="post" action="{% url 'pool_admin_remove_player' league.id m.id %}" class="d-inline" onsubmit="return confirm('Är du säker på att du vill ta bort {{ m.player.get_full_name|default:m.player.email }} från poolen?');">
                                                 {% csrf_token %}
                                                 <button type="submit" class="btn btn-xs btn-outline-danger px-2 py-1" title="Ta bort från pool" style="border-radius: 6px; font-size: 0.75rem;">
                                                     <i class="fa-solid fa-trash"></i>
@@ -187,7 +187,7 @@
                                             <form method="post" action="{% url 'pool_admin_reset_password' league.id m.id %}">
                                                 {% csrf_token %}
                                                 <div class="modal-body p-3">
-                                                    <p class="small text-white-50 mb-2">Nytt lösenord för <strong>{{ m.player.get_full_name|default:m.player.username }}</strong>:</p>
+                                                    <p class="small text-white-50 mb-2">Nytt lösenord för <strong>{{ m.player.get_full_name|default:m.player.email }}</strong>:</p>
                                                     <input type="text" name="new_password" class="form-control form-control-sm" placeholder="Ange nytt lösenord" required style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
                                                 </div>
                                                 <div class="modal-footer border-top border-secondary border-opacity-20 py-2 px-3">

@@ -349,7 +349,7 @@
                                                         {% else %}
                                                             <span style="display: inline-block; width: 16px;" class="me-2 flex-shrink-0"></span>
                                                         {% endif %}
-                                                        <span class="fw-bold text-white text-nowrap text-truncate" style="font-size: 0.76rem;">{% if item.player.first_name %}{{ item.player.first_name }} {{ item.player.last_name }}{% else %}{{ item.player.username }}{% endif %}</span>
+                                                        <span class="fw-bold text-white text-nowrap text-truncate" style="font-size: 0.76rem;">{% if item.player.first_name %}{{ item.player.first_name }} {{ item.player.last_name }}{% else %}{{ item.player.email }}{% endif %}</span>
                                                     </div>
                                                 </td>
                                                 <td class="text-end py-1.5 px-2 fw-bold text-emerald text-nowrap" style="font-size: 0.78rem;">{{ item.points }} p</td>

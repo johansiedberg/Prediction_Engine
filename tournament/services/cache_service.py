@@ -190,7 +190,7 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
                 sb_ratt_antal += 1
 
         tot_pts = gm_pts + gs_pts + tp_pts + ko_pts + sb_pts
-        p_name = f"{p.first_name} {p.last_name}".strip() if p.first_name else p.username
+        p_name = f"{p.first_name} {p.last_name}".strip() if p.first_name else p.email
         p_verified = p_sub.is_verified if p_sub else False
 
         leaderboard.append({
@@ -266,9 +266,9 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
 
         for p_pred in all_preds:
             p_user = p_pred.player
-            p_name = f"{p_user.first_name} {p_user.last_name}".strip() if p_user.first_name else p_user.username
+            p_name = f"{p_user.first_name} {p_user.last_name}".strip() if p_user.first_name else p_user.email
             persona = find_persona_for_player(p_name, personas_list)
-            u_nick = persona.get('nicknames', [p_name])[0] if persona else (p_user.first_name or p_user.username)
+            u_nick = persona.get('nicknames', [p_name])[0] if persona else (p_user.first_name or p_user.email)
             item = {
                 'username': u_nick,
                 'home_goals': p_pred.home_goals,

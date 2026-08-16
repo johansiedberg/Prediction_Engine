@@ -55,7 +55,7 @@ class LeagueMember(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.player.username} in {self.league.name}"
+        return f"{self.player.get_full_name() or self.player.email} in {self.league.name}"
 
 
 class Tournament(models.Model):
@@ -930,7 +930,7 @@ class MatchPrediction(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.player.username} - Match {self.match.match_number}"
+        return f"{self.player.get_full_name() or self.player.email} - Match {self.match.match_number}"
 
 
 class Sidebet(models.Model):
@@ -983,7 +983,7 @@ class SidebetAnswer(models.Model):
         verbose_name_plural = "Spelarnas bonussvar"
 
     def __str__(self):
-        return f"{self.player.username} - {self.sidebet.question}: {self.answer}"
+        return f"{self.player.get_full_name() or self.player.email} - {self.sidebet.question}: {self.answer}"
 
 
 class TournamentSubmission(models.Model):
@@ -1002,7 +1002,7 @@ class TournamentSubmission(models.Model):
 
     def __str__(self):
         status = "Verified" if self.is_verified else ("Saved" if self.is_saved else "Pending")
-        return f"{self.player.username} - {self.tournament.name} [{status}]"
+        return f"{self.player.get_full_name() or self.player.email} - {self.tournament.name} [{status}]"
 
 
 class UserProfile(models.Model):
@@ -1016,7 +1016,7 @@ class UserProfile(models.Model):
         return None
 
     def __str__(self):
-        return f"Profil för {self.user.username}"
+        return f"Profil för {self.user.get_full_name() or self.user.email}"
 
 
 from django.db.models.signals import m2m_changed, post_save
@@ -1201,7 +1201,7 @@ class RoundLeaderboardSnapshot(models.Model):
         unique_together = ('tournament', 'round_number', 'player')
 
     def __str__(self):
-        return f"Round {self.round_number} ({self.round_name}) - #{self.rank} {self.player.username} ({self.points}p)"
+        return f"Round {self.round_number} ({self.round_name}) - #{self.rank} {self.player.get_full_name() or self.player.email} ({self.points}p)"
 
 
 class StyleExample(models.Model):
@@ -1262,7 +1262,7 @@ class PoolAdminRequest(models.Model):
         verbose_name_plural = "Pool Admin Requests"
 
     def __str__(self):
-        return f"{self.user.username} → {self.pool_name} ({self.status})"
+        return f"{self.user.get_full_name() or self.user.email} → {self.pool_name} ({self.status})"
 
 
 # --- AI Tournament Scout Models ---

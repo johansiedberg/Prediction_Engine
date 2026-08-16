@@ -108,7 +108,7 @@ class MasterEventAdmin(admin.ModelAdmin):
 class LeagueAdmin(admin.ModelAdmin):
     list_display = ('name', 'invite_code', 'admin', 'master_event', 'is_active', 'is_actual_knockout_open')
     list_editable = ('is_active', 'is_actual_knockout_open')
-    search_fields = ('name', 'invite_code', 'admin__username')
+    search_fields = ('name', 'invite_code', 'admin__email', 'admin__first_name', 'admin__last_name')
     filter_horizontal = ('tournaments',)
 
 
@@ -129,7 +129,7 @@ class BannedPhraseAdmin(admin.ModelAdmin):
 class LeagueMemberAdmin(admin.ModelAdmin):
     list_display = ('player', 'league', 'is_verified', 'joined_at')
     list_filter = ('league', 'is_verified')
-    search_fields = ('player__username', 'league__name')
+    search_fields = ('player__email', 'player__first_name', 'player__last_name', 'league__name')
 
 
 @admin.register(Tournament)
@@ -211,7 +211,7 @@ class TournamentSubmissionAdmin(admin.ModelAdmin):
     )
     list_filter = ('tournament', 'is_saved', 'is_verified')
     list_editable = ('is_verified',)
-    search_fields = ('player__username', 'player__email')
+    search_fields = ('player__email', 'player__first_name', 'player__last_name')
 
     def changelist_view(self, request, extra_context=None):
         """Auto-sync all non-staff users into TournamentSubmission records for active tournaments efficiently."""
@@ -268,7 +268,7 @@ class TournamentSubmissionAdmin(admin.ModelAdmin):
 class MatchPredictionAdmin(admin.ModelAdmin):
     list_display = ('player', 'match', 'prediction_phase', 'home_goals', 'away_goals', 'penalty_winner')
     list_filter = ('prediction_phase', 'match__tournament')
-    search_fields = ('player__username', 'match__home_team', 'match__away_team')
+    search_fields = ('player__email', 'player__first_name', 'player__last_name', 'match__home_team', 'match__away_team')
 
 
 @admin.register(Match)
@@ -325,14 +325,24 @@ class MatchAdmin(admin.ModelAdmin):
 class CustomUserCreationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ('username', 'email')
+        fields = ('email', 'first_name', 'last_name')
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.username = user.email.lower()
+        if commit:
+            user.save()
+        return user
 
 class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
+    list_display = ('email', 'first_name', 'last_name', 'is_staff', 'is_active')
+    search_fields = ('email', 'first_name', 'last_name')
+    ordering = ('email',)
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'password1', 'password2'),
+            'fields': ('email', 'first_name', 'last_name', 'password1', 'password2'),
         }),
     )
 
@@ -408,14 +418,14 @@ class EditorialSettingsAdmin(admin.ModelAdmin):
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'last_selected_tournament')
-    search_fields = ('user__username', 'user__first_name', 'user__last_name')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name')
 
 
 @admin.register(PoolAdminRequest)
 class PoolAdminRequestAdmin(admin.ModelAdmin):
     list_display = ('user', 'pool_name', 'master_event', 'status', 'created_at', 'reviewed_by')
     list_filter = ('status', 'master_event')
-    search_fields = ('user__username', 'pool_name')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'pool_name')
     readonly_fields = ('created_at', 'reviewed_at', 'reviewed_by', 'league')
     ordering = ('-created_at',)
     actions = ['approve_requests', 'reject_requests']

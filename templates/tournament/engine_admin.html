@@ -345,7 +345,7 @@
                                             </span>
                                         </td>
                                         <td class="text-light fw-semibold">
-                                            <i class="fa-solid fa-user-tie text-secondary me-1"></i>{{ row.admin.username }}
+                                            <i class="fa-solid fa-user-tie text-secondary me-1"></i>{{ row.admin.get_full_name|default:row.admin.email }}
                                         </td>
                                         <td>
                                             {% if row.admin_email != '-' %}
@@ -414,7 +414,7 @@
                                     {% for u in users_list %}
                                     <tr class="border-bottom border-secondary border-opacity-10">
                                         <td class="fw-bold text-white">
-                                            <i class="fa-solid fa-user-circle me-1.5 text-secondary"></i>{{ u.username }}
+                                            <i class="fa-solid fa-user-circle me-1.5 text-secondary"></i>{{ u.get_full_name|default:u.email }}
                                         </td>
                                         <td>
                                             {% if u.email %}

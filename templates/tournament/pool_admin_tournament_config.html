@@ -724,7 +724,7 @@
                                         <span style="font-size: 1.1rem; line-height: 1;" title="Spelare">👟</span>
                                         {% endif %}
                                         <div>
-                                            <div class="fw-bold text-white small">{{ member.player.get_full_name|default:member.player.username }}</div>
+                                            <div class="fw-bold text-white small">{{ member.player.get_full_name|default:member.player.email }}</div>
                                             <div class="text-white" style="font-size: 0.7rem; opacity: 0.75;">{{ member.player.email }}</div>
                                         </div>
                                     </div>
@@ -766,7 +766,7 @@
                                         <span style="font-size: 1.1rem; line-height: 1;" title="Spelare">👟</span>
                                         {% endif %}
                                         <div>
-                                            <div class="fw-bold text-white small">{{ member.player.get_full_name|default:member.player.username }}</div>
+                                            <div class="fw-bold text-white small">{{ member.player.get_full_name|default:member.player.email }}</div>
                                             <div class="text-white" style="font-size: 0.7rem; opacity: 0.75;">{{ member.player.email }}</div>
                                         </div>
                                     </div>
