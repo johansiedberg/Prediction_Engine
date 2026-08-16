@@ -215,4 +215,15 @@ class EmailUserIdentificationTestCase(TestCase):
         self.assertEqual(bengt.first_name, 'Bengt')
         self.assertEqual(bengt.last_name, 'Bengtsson')
 
+    def test_pool_admin_can_update_own_email(self):
+        self.client.login(username='anna@exempel.se', password='annapassword123')
+        response = self.client.post('/pool-admin/update-email/', {
+            'email': 'anna.new@exempel.se',
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, 'anna.new@exempel.se')
+        self.assertEqual(self.user.username, 'anna.new@exempel.se')
+
+
 

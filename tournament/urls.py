@@ -23,6 +23,7 @@ from .views import (
     update_pool_points_view, add_pool_sidebet_view,
     pool_admin_add_self_view, pool_admin_reset_password_view,
     toggle_tournament_player_view, toggle_pool_tournament_view,
+    update_pool_admin_email_view,
 )
 
 urlpatterns = [
@@ -39,6 +40,7 @@ urlpatterns = [
     # Pool Admin Portal (Port 2028)
     path('pool-admin/', pool_admin_hub_view, name='pool_admin_hub'),
     path('pool-admin/create/', create_pool_direct_view, name='create_pool_direct'),
+    path('pool-admin/update-email/', update_pool_admin_email_view, name='update_pool_admin_email'),
     path('pool-admin/request/', request_pool_admin_view, name='request_pool_admin'),
     path('pool-admin/<int:league_id>/', pool_admin_dashboard_view, name='pool_admin_dashboard'),
     path('pool-admin/<int:league_id>/tournament/<int:tournament_id>/', pool_admin_tournament_config_view, name='pool_admin_tournament_config'),

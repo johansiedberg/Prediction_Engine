@@ -25,7 +25,14 @@
             </p>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Pool Admin Account Email Button -->
+            <button type="button" class="btn btn-outline-light btn-sm fw-bold px-3 py-2 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#changeAdminEmailModal" style="border-radius: 10px; background: rgba(30, 41, 59, 0.5); border-color: rgba(148, 163, 184, 0.25);">
+                <i class="fa-solid fa-envelope text-info"></i>
+                <span>{{ request.user.email }}</span>
+                <span class="badge bg-secondary bg-opacity-40 text-white-50 px-1.5 py-0.5 small" style="font-size: 0.68rem;">Ändra</span>
+            </button>
+
             <a href="{% url 'hub' %}" class="btn btn-outline-secondary btn-sm fw-bold px-3 py-2" style="border-radius: 10px;">
                 <i class="fa-solid fa-arrow-left me-1.5"></i>Tillbaka till Hub
             </a>
@@ -35,88 +42,112 @@
         </div>
     </div>
 
-    <!-- POOLS GRID -->
-    <div class="row g-4">
-        {% for item in leagues_data %}
-        <div class="col-lg-6 col-xl-4">
-            <div class="card h-100 border-0 shadow-lg position-relative d-flex flex-column justify-content-between" style="background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(14px); border: 1px solid rgba(148, 163, 184, 0.18) !important; border-radius: 18px; transition: transform 0.2s ease, box-shadow 0.2s ease;">
-                
-                <div class="card-body p-4">
-                    <!-- Pool Header & Logo -->
-                    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
-                        <div class="d-flex align-items-center gap-3">
-                            {% if item.league.logo %}
-                            <img src="{{ item.league.logo.url }}" alt="{{ item.league.name }}" style="width: 52px; height: 52px; object-fit: cover; border-radius: 12px; border: 1px solid rgba(148,163,184,0.25); box-shadow: 0 4px 10px rgba(0,0,0,0.4);">
-                            {% else %}
-                            <div class="rounded-3 d-flex align-items-center justify-content-center fw-extrabold text-white" style="width: 52px; height: 52px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-size: 1.3rem; border-radius: 12px; box-shadow: 0 4px 10px rgba(16,185,129,0.3);">
-                                {{ item.league.name|slice:":1"|upper }}
-                            </div>
-                            {% endif %}
-                            <div>
-                                <h4 class="fw-bold text-white mb-0" style="font-size: 1.15rem;">{{ item.league.name }}</h4>
-                                <span class="badge px-2 py-0.5 mt-1 fw-bold" style="background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
-                                    <i class="fa-solid fa-shield me-1"></i>Pool Admin
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Invite Code Pill with Copy -->
-                        <div class="text-end">
-                            <span class="badge text-warning px-2.5 py-1.5 fw-extrabold" style="font-size: 0.88rem; letter-spacing: 1.5px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35); font-family: monospace;">
-                                {{ item.league.invite_code }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Description Preview -->
-                    {% if item.league.description %}
-                    <p class="text-white small mb-3 text-truncate-2" style="opacity: 0.75; font-size: 0.83rem; line-height: 1.45; min-height: 38px;">
-                        {{ item.league.description }}
-                    </p>
-                    {% else %}
-                    <p class="text-white small mb-3 fst-italic" style="opacity: 0.45; font-size: 0.83rem; min-height: 38px;">
-                        Ingen beskrivning angiven.
-                    </p>
-                    {% endif %}
-
-                    <!-- Key Metrics Row -->
-                    <div class="row g-2 pt-2 border-top border-secondary border-opacity-15 text-center">
-                        <div class="col-6">
-                            <div class="p-2.5 rounded-3" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148,163,184,0.12);">
-                                <div class="text-white small fw-bold" style="font-size: 0.72rem; opacity: 0.75; text-transform: uppercase;">Deltagare</div>
-                                <div class="fw-extrabold text-white fs-5 mt-0.5">
-                                    {{ item.members_count }}
-                                    <span class="small fw-normal text-success" style="font-size: 0.75rem;">({{ item.verified_count }} verifierade)</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-2.5 rounded-3" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148,163,184,0.12);">
-                                <div class="text-white small fw-bold" style="font-size: 0.72rem; opacity: 0.75; text-transform: uppercase;">Aktiva Turneringar</div>
-                                <div class="fw-extrabold text-warning fs-5 mt-0.5">
-                                    {{ item.active_t_count }}
-                                    <span class="small fw-normal text-white-50" style="font-size: 0.75rem;">kopplade</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Footer Action Button -->
-                <div class="card-footer bg-transparent border-top border-secondary border-opacity-15 p-3.5 pt-0">
-                    <a href="{% url 'pool_admin_dashboard' item.league.id %}" class="btn btn-sm w-100 fw-bold py-2 d-flex align-items-center justify-content-center gap-1.5" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 10px; font-size: 0.88rem;">
-                        <span>Hantera Pool</span>
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </a>
-                </div>
-
+    <!-- ACTIVE POOLS AS ROWS -->
+    <div class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15) !important; border-radius: 18px;">
+        <div class="card-header border-bottom border-secondary border-opacity-15 py-3.5 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="background: rgba(15, 23, 42, 0.95);">
+            <div>
+                <h5 class="fw-bold text-white mb-0">
+                    <i class="fa-solid fa-layer-group text-emerald me-2"></i>Aktiva Pooler
+                    <span class="badge bg-secondary bg-opacity-25 text-white-50 ms-2 fw-normal" style="font-size: 0.78rem;">{{ leagues_data|length }} st</span>
+                </h5>
+                <p class="text-white small mb-0 mt-0.5" style="opacity: 0.75;">Översikt över alla dina aktiva vängrupper och tippningspooler.</p>
             </div>
         </div>
-        {% empty %}
-        <div class="col-12">
-            <div class="card border-0 shadow-lg p-5 text-center" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); border: 1px dashed rgba(148, 163, 184, 0.25) !important; border-radius: 18px;">
+
+        <div class="card-body p-0">
+            {% if leagues_data %}
+            <div class="table-responsive">
+                <table class="table table-dark table-hover mb-0 align-middle" style="background: transparent;">
+                    <thead>
+                        <tr style="background: rgba(15,23,42,0.98); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <th class="ps-4 py-3 text-white fw-bold">Pool & Beskrivning</th>
+                            <th class="text-center py-3 text-white fw-bold">Pool ID</th>
+                            <th class="text-center py-3 text-white fw-bold">Deltagare</th>
+                            <th class="text-center py-3 text-white fw-bold">Aktiva Turneringar</th>
+                            <th class="text-center pe-4 py-3 text-white fw-bold">Åtgärd</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in leagues_data %}
+                        <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
+                            <!-- Pool Info & Logo -->
+                            <td class="ps-4 py-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    {% if item.league.logo %}
+                                    <img src="{{ item.league.logo.url }}" alt="{{ item.league.name }}" style="width: 44px; height: 44px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(148,163,184,0.25); box-shadow: 0 3px 8px rgba(0,0,0,0.3);">
+                                    {% else %}
+                                    <div class="rounded-3 d-flex align-items-center justify-content-center fw-extrabold text-white flex-shrink-0" style="width: 44px; height: 44px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-size: 1.15rem; border-radius: 10px; box-shadow: 0 3px 8px rgba(16,185,129,0.25);">
+                                        {{ item.league.name|slice:":1"|upper }}
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <a href="{% url 'pool_admin_dashboard' item.league.id %}" class="fw-bold text-white text-decoration-none text-hover-emerald" style="font-size: 0.96rem;">
+                                                {{ item.league.name }}
+                                            </a>
+                                            <span class="badge px-1.5 py-0.5 fw-bold" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.68rem;">
+                                                <i class="fa-solid fa-shield me-0.5"></i>Admin
+                                            </span>
+                                        </div>
+                                        {% if item.league.description %}
+                                        <div class="text-white small text-truncate mt-0.5" style="max-width: 420px; font-size: 0.78rem; opacity: 0.65;">
+                                            {{ item.league.description }}
+                                        </div>
+                                        {% else %}
+                                        <div class="text-white small fst-italic mt-0.5" style="font-size: 0.75rem; opacity: 0.4;">
+                                            Ingen beskrivning angiven.
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Invite Code / Pool ID -->
+                            <td class="text-center py-3">
+                                <div class="d-inline-flex align-items-center gap-1.5">
+                                    <span class="badge text-warning px-2.5 py-1.5 fw-extrabold font-monospace" style="font-size: 0.85rem; letter-spacing: 1.2px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35);">
+                                        {{ item.league.invite_code }}
+                                    </span>
+                                    <button class="btn btn-xs btn-outline-secondary text-white py-1 px-1.5" onclick="navigator.clipboard.writeText('{{ item.league.invite_code }}'); alert('Inbjudningskod {{ item.league.invite_code }} kopierad till urklipp!');" title="Kopiera kod" style="border-radius: 6px; font-size: 0.7rem;">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                </div>
+                            </td>
+
+                            <!-- Members Count -->
+                            <td class="text-center py-3">
+                                <div class="fw-bold text-white" style="font-size: 0.95rem;">
+                                    {{ item.members_count }}
+                                    <span class="small fw-normal text-success d-block" style="font-size: 0.75rem;">
+                                        <i class="fa-solid fa-circle-check me-0.5"></i>{{ item.verified_count }} verifierade
+                                    </span>
+                                </div>
+                            </td>
+
+                            <!-- Active Tournaments Count -->
+                            <td class="text-center py-3">
+                                <span class="badge px-2.5 py-1.5 fw-bold" style="background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); font-size: 0.82rem;">
+                                    <i class="fa-solid fa-trophy me-1"></i>{{ item.active_t_count }} st kopplade
+                                </span>
+                            </td>
+
+                            <!-- Action -->
+                            <td class="text-center pe-4 py-3">
+                                <a href="{% url 'pool_admin_dashboard' item.league.id %}" class="btn btn-sm fw-bold px-3 py-1.5 d-inline-flex align-items-center gap-1.5" style="background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; font-size: 0.84rem; text-decoration: none;">
+                                    <span>Hantera</span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="p-5 text-center">
                 <div class="fs-1 text-emerald mb-3"><i class="fa-solid fa-users-rectangle"></i></div>
-                <h3 class="fw-bold text-white mb-2">Du administrerar inga pooler än</h3>
+                <h4 class="fw-bold text-white mb-2">Du administrerar inga pooler än</h4>
                 <p class="text-white small mx-auto mb-4" style="max-width: 500px; opacity: 0.8; line-height: 1.6;">
                     Som Pool Admin kan du skapa en eller flera privata eller företagspooler, bjuda in vänner, konfigurera poängregler och aktivera turneringar.
                 </p>
@@ -126,10 +157,45 @@
                     </button>
                 </div>
             </div>
+            {% endif %}
         </div>
-        {% endfor %}
     </div>
 
+</div>
+
+<!-- MODAL: ÄNDRA POOL ADMIN E-POSTADRESS -->
+<div class="modal fade" id="changeAdminEmailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content bg-dark text-white border-secondary border-opacity-30 rounded-4" style="background: rgba(15, 23, 42, 0.98) !important; border: 1px solid rgba(56, 189, 248, 0.3) !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-20 py-3 px-4">
+                <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-envelope-circle-check text-info me-2"></i>Ändra min E-post</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'update_pool_admin_email' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <div class="modal-body text-start p-4">
+                    <p class="small text-white-50 mb-3">
+                        E-postadressen är ditt unika ID för inloggning på ditt konto.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label text-white small fw-bold">Nuvarande E-post</label>
+                        <input type="text" class="form-control" value="{{ request.user.email }}" disabled style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148,163,184,0.2); color: #94a3b8;">
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label text-white small fw-bold">Ny E-postadress <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control" placeholder="ny.epost@exempel.se" required autofocus style="background: rgba(15,23,42,0.95); border: 1px solid rgba(56,189,248,0.4); color: #ffffff;">
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-20 py-3 px-4">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Avbryt</button>
+                    <button type="submit" class="btn btn-info btn-sm fw-bold px-3" style="color: #ffffff; border-radius: 8px;">
+                        <i class="fa-solid fa-floppy-disk me-1.5"></i>Spara Ny E-post
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- MODAL: SKAPA NY POOL -->
@@ -179,11 +245,8 @@
 </div>
 
 <style>
-.text-truncate-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+.text-hover-emerald:hover {
+    color: #34d399 !important;
 }
 .text-emerald { color: #10b981 !important; }
 .btn-emerald:hover { background: #059669 !important; }

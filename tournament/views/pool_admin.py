@@ -85,6 +85,35 @@ def create_pool_direct_view(request):
     return redirect('pool_admin_dashboard', league_id=league.id)
 
 
+@login_required
+@require_POST
+def update_pool_admin_email_view(request):
+    """Allows a pool admin to change the email address of their own account."""
+    from django.db.models import Q
+    new_email = request.POST.get('email', '').strip().lower()
+    next_url = request.POST.get('next', '').strip() or request.META.get('HTTP_REFERER') or '/pool-admin/'
+
+    if not new_email or '@' not in new_email or '.' not in new_email:
+        messages.error(request, "Vänligen ange en giltig e-postadress.")
+        return redirect(next_url)
+
+    # Check if another user is already using this email or username
+    conflict = User.objects.filter(
+        Q(email__iexact=new_email) | Q(username__iexact=new_email)
+    ).exclude(id=request.user.id).exists()
+
+    if conflict:
+        messages.error(request, f"Det finns redan ett konto registrerat med e-postadressen '{new_email}'.")
+        return redirect(next_url)
+
+    request.user.email = new_email
+    request.user.username = new_email
+    request.user.save(update_fields=['email', 'username'])
+
+    messages.success(request, f"Din e-postadress har ändrats till '{new_email}'.")
+    return redirect(next_url)
+
+
 @ensure_csrf_cookie
 def request_pool_admin_view(request):
     """Pool-Admin portal page: allows existing Pool-Admins to log in OR new Pool-Admins to apply/create an account."""
