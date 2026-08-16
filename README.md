@@ -41,7 +41,7 @@ The application features three interaction roles across two dedicated developmen
 ```
 
 ### 1. Engine Admin (System Master — Port 2029)
-Access URL: `http://127.0.0.1:2029`
+Access URL: `https://127.0.0.1:2029` (or `http://` in local dev)
 
 > [!IMPORTANT]
 > **Strict Engine Admin Isolation & Global Scope:**
@@ -55,7 +55,7 @@ Access URL: `http://127.0.0.1:2029`
 * **Simulation & Validation:** Run test simulations and validate tournament integrity via system checklists and preview modals.
 
 ### 2. Pool Admin (Pool Manager — Port 2028)
-Access URL: `http://127.0.0.1:2028/pool-admin/<league_id>/`
+Access URL: `https://127.0.0.1:2028/pool-admin/<league_id>/` (or `http://` in local dev)
 * **Pool Admin Hub:** Centralized hub for managing active pools and tournament rule configurations (`pool_admin_hub.html`).
 * **Custom Pool Branding:** Customize pool logo, header banner, and primary accent color.
 * **Member Verification:** Manage pool participants, verify player submissions, and track prediction completion matrices.
@@ -67,7 +67,7 @@ Access URL: `http://127.0.0.1:2028/pool-admin/<league_id>/`
   * **Sidebets:** Configure bonus questions (e.g., top scorer, tournament winner).
 
 ### 3. Player (Participant — Port 2028)
-Access URL: `http://127.0.0.1:2028`
+Access URL: `https://127.0.0.1:2028` (or `http://` in local dev)
 * **Interactive Prediction Sheet:** Submit predictions for group matches, knockout stages, and sidebets.
 * **Dynamic Leaderboard & Live Standings:** Real-time point updates, position tracking, and historical performance breakdowns powered by `cache_service`.
 * **AI Match Analytics:** Banter-rich, tailored commentary comparing user predictions with group trends.
@@ -162,13 +162,13 @@ To initialize all user accounts and league configurations:
   ```bash
   ./venv/bin/python manage.py runserver 2028
   ```
-  Access at: `http://127.0.0.1:2028`
+  Access at: `https://127.0.0.1:2028` (or `http://` in local dev)
 
 * **Engine Admin (Master System Admin):** Default Port **2029**
   ```bash
   ./venv/bin/python manage.py runserver_admin 2029
   ```
-  Access at: `http://127.0.0.1:2029`
+  Access at: `https://127.0.0.1:2029` (or `http://` in local dev)
 
 ---
 

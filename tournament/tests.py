@@ -226,4 +226,31 @@ class EmailUserIdentificationTestCase(TestCase):
         self.assertEqual(self.user.username, 'anna.new@exempel.se')
 
 
+class WANHTTPSAccessTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user('wan_user', 'wan@test.com', 'password123', first_name='WAN', last_name='Tester')
+        self.admin = User.objects.create_superuser('wan_admin', 'admin@wan.test', 'adminpass123')
+
+    def test_player_app_wan_https_access(self):
+        self.client.login(username='wan_user', password='password123')
+        response = self.client.get(
+            '/hub/',
+            HTTP_HOST='217.31.171.173:2028',
+            HTTP_X_FORWARDED_PROTO='https',
+            secure=True
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_engine_admin_wan_https_access(self):
+        self.client.login(username='wan_admin', password='adminpass123')
+        response = self.client.get(
+            '/engine-admin/',
+            HTTP_HOST='217.31.171.173:2029',
+            HTTP_X_FORWARDED_PROTO='https',
+            secure=True
+        )
+        self.assertEqual(response.status_code, 200)
+
+
+
 
