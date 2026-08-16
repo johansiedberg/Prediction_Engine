@@ -300,33 +300,34 @@ class PointSystem(models.Model):
     tournament = models.OneToOneField(Tournament, on_delete=models.CASCADE, related_name='point_system')
     
     # Match Scoring
-    match_correct_goals_per_team = models.IntegerField(default=3)
-    match_correct_total_goals = models.IntegerField(default=1)
-    match_correct_1x2 = models.IntegerField(default=3)
+    match_correct_goals_per_team = models.IntegerField(default=2)
+    match_correct_total_goals = models.IntegerField(default=2)
+    match_correct_1x2 = models.IntegerField(default=4)
     
-    # 1. Regular Group Tables Scoring (Default: Points for rank, pts, GF, GA, GD. 0 for team qualified)
-    group_correct_placement = models.IntegerField(default=2, help_text="Points for exact rank in regular group table")
-    group_correct_points = models.IntegerField(default=1, help_text="Points for correct group points")
+    # 1. Regular Group Tables Scoring (Default: Rank=3, Pts=2, GF=1, GA=1, GD=1)
+    group_correct_placement = models.IntegerField(default=3, help_text="Points for exact rank in regular group table")
+    group_correct_points = models.IntegerField(default=2, help_text="Points for correct group points")
     group_correct_goals_scored = models.IntegerField(default=1, help_text="Points for correct GF in group table")
     group_correct_goals_conceded = models.IntegerField(default=1, help_text="Points for correct GA in group table")
     group_correct_goal_diff = models.IntegerField(default=1, help_text="Points for correct GD (+/-) in group table")
-    group_team_qualified = models.IntegerField(default=0, help_text="Points for team qualified from regular group table (Default 0)")
+    group_team_qualified = models.IntegerField(default=0, help_text="Points for team qualified from regular group table")
     
-    # 2. Qualifying / Special Ranking Tables Scoring (Hosts, Best Thirds, Runners-Up, Overall Rankings)
+    # 2. Qualifying / Special Ranking Tables Scoring
     qualifying_table_team_qualified = models.IntegerField(default=5, help_text="Points for predicting team qualified from special ranking table (Default 5)")
-    qualifying_table_exact_rank = models.IntegerField(default=0, help_text="Points for exact rank in special ranking table (Default 0)")
-    qualifying_table_points = models.IntegerField(default=0, help_text="Points for correct points in special ranking table (Default 0)")
-    qualifying_table_goals_scored = models.IntegerField(default=0, help_text="Points for correct GF in special ranking table (Default 0)")
-    qualifying_table_goals_conceded = models.IntegerField(default=0, help_text="Points for correct GA in special ranking table (Default 0)")
-    qualifying_table_goal_diff = models.IntegerField(default=0, help_text="Points for correct GD in special ranking table (Default 0)")
+    qualifying_table_exact_rank = models.IntegerField(default=0, help_text="Points for exact rank in special ranking table")
+    qualifying_table_points = models.IntegerField(default=0, help_text="Points for correct points in special ranking table")
+    qualifying_table_goals_scored = models.IntegerField(default=0, help_text="Points for correct GF in special ranking table")
+    qualifying_table_goals_conceded = models.IntegerField(default=0, help_text="Points for correct GA in special ranking table")
+    qualifying_table_goal_diff = models.IntegerField(default=0, help_text="Points for correct GD in special ranking table")
     
     # Knockout Stage Scoring
     knockout_qualified_third = models.IntegerField(default=2)
-    knockout_round_of_16 = models.IntegerField(default=3)
-    knockout_quarterfinal = models.IntegerField(default=4)
-    knockout_semifinal = models.IntegerField(default=5)
-    knockout_bronze_match = models.IntegerField(default=0)
-    knockout_final = models.IntegerField(default=8)
+    knockout_round_of_32 = models.IntegerField(default=2)
+    knockout_round_of_16 = models.IntegerField(default=4)
+    knockout_quarterfinal = models.IntegerField(default=6)
+    knockout_semifinal = models.IntegerField(default=8)
+    knockout_bronze_match = models.IntegerField(default=10)
+    knockout_final = models.IntegerField(default=10)
 
     def __str__(self):
         return f"Point System for {self.tournament.name}"
@@ -337,13 +338,13 @@ class LeaguePointSystem(models.Model):
     league = models.OneToOneField(League, on_delete=models.CASCADE, related_name='custom_point_system')
     
     # Match Scoring
-    match_correct_goals_per_team = models.IntegerField(default=3)
-    match_correct_total_goals = models.IntegerField(default=1)
-    match_correct_1x2 = models.IntegerField(default=3)
+    match_correct_goals_per_team = models.IntegerField(default=2)
+    match_correct_total_goals = models.IntegerField(default=2)
+    match_correct_1x2 = models.IntegerField(default=4)
     
     # Regular Group Tables Scoring
-    group_correct_placement = models.IntegerField(default=2)
-    group_correct_points = models.IntegerField(default=1)
+    group_correct_placement = models.IntegerField(default=3)
+    group_correct_points = models.IntegerField(default=2)
     group_correct_goals_scored = models.IntegerField(default=1)
     group_correct_goals_conceded = models.IntegerField(default=1)
     group_correct_goal_diff = models.IntegerField(default=1)
@@ -358,10 +359,12 @@ class LeaguePointSystem(models.Model):
     qualifying_table_goal_diff = models.IntegerField(default=0)
     
     # Knockout Stage Scoring
-    knockout_round_of_16 = models.IntegerField(default=3)
-    knockout_quarterfinal = models.IntegerField(default=4)
-    knockout_semifinal = models.IntegerField(default=5)
-    knockout_final = models.IntegerField(default=8)
+    knockout_round_of_32 = models.IntegerField(default=2)
+    knockout_round_of_16 = models.IntegerField(default=4)
+    knockout_quarterfinal = models.IntegerField(default=6)
+    knockout_semifinal = models.IntegerField(default=8)
+    knockout_bronze_match = models.IntegerField(default=10)
+    knockout_final = models.IntegerField(default=10)
 
     def __str__(self):
         return f"Custom Point System for Pool: {self.league.name}"
@@ -941,7 +944,7 @@ class Sidebet(models.Model):
 
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='sidebets')
     question = models.CharField(max_length=255, verbose_name="Fråga")
-    points = models.PositiveIntegerField(default=5, verbose_name="Poäng för rätt svar")
+    points = models.PositiveIntegerField(default=25, verbose_name="Poäng för rätt svar")
     question_type = models.CharField(max_length=10, choices=QUESTION_TYPES, default='TEXT', verbose_name="Frågetyp")
     correct_answers = models.TextField(blank=True, null=True, verbose_name="Rätt svar", help_text="Anges av admin. Separera flera giltiga/oavgjorda svar med kommatecken (t.ex. Mbappé, Isak, Haaland)")
 

@@ -997,20 +997,22 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
 
         # 3. Point System
         pts_defaults = {
-            'match_correct_goals_per_team': 3,
-            'match_correct_total_goals': 1,
-            'match_correct_1x2': 3,
-            'group_correct_placement': 2,
-            'group_correct_points': 1,
+            'match_correct_goals_per_team': 2,
+            'match_correct_total_goals': 2,
+            'match_correct_1x2': 4,
+            'group_correct_placement': 3,
+            'group_correct_points': 2,
             'group_correct_goals_scored': 1,
             'group_correct_goals_conceded': 1,
             'group_correct_goal_diff': 1,
             'group_team_qualified': 0,
-            'knockout_round_of_16': 3,
-            'knockout_quarterfinal': 4,
-            'knockout_semifinal': 5,
-            'knockout_bronze_match': 5,
-            'knockout_final': 8,
+            'qualifying_table_team_qualified': 5,
+            'knockout_round_of_32': 2,
+            'knockout_round_of_16': 4,
+            'knockout_quarterfinal': 6,
+            'knockout_semifinal': 8,
+            'knockout_bronze_match': 10,
+            'knockout_final': 10,
         }
         if custom_point_system and isinstance(custom_point_system, dict):
             pts_defaults.update(custom_point_system)

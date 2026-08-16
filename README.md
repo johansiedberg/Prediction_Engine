@@ -42,6 +42,13 @@ The application features three interaction roles across two dedicated developmen
 
 ### 1. Engine Admin (System Master — Port 2029)
 Access URL: `http://127.0.0.1:2029`
+
+> [!IMPORTANT]
+> **Strict Engine Admin Isolation & Global Scope:**
+> The **Engine Admin** (Port 2029) is strictly a system maintenance and platform infrastructure function dedicated to the Prediction Engine itself. It operates in a global capacity, allowing the platform to act as a commercial or multi-tenant tipping engine.
+> * **Zero Member / Pool Connection:** Engine Admin cannot and shall not have any connection to members of Herrklubben, Pool Administrators, or Prediction Players.
+> * **Complete Decoupling:** The Engine Admin does not belong to any tipping pool, does not manage individual pools, and cannot submit predictions or participate as a player.
+
 * **Master Tournament Creation & AI Scout:** Create tournaments manually or import scanned tournament structures via AI scouting prompts.
 * **Pool Request Management:** Review, approve, or reject pool creation requests (`PoolAdminRequest`) submitted by users.
 * **Result Reporting & Settlement:** Enter official match results and verify tournament state transitions.

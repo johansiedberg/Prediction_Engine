@@ -106,15 +106,15 @@
                                 <!-- Right Action Buttons -->
                                 <div class="d-flex flex-wrap align-items-center gap-2">
                                     <!-- POÄNG & SIDEBETS BUTTON -->
-                                    <button type="button" class="btn btn-outline-warning btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5"
+                                    <button type="button" class="btn btn-outline-light btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5"
                                             id="tour-points-btn-{{ item.tournament.id }}"
                                             onclick="openPointsSidebetsModal({{ item.tournament.id }})"
                                             title="Konfigurera poängsystem och bonusfrågor">
-                                        <i class="fa-solid fa-sliders text-warning"></i><span>Poäng & Sidebets</span>
+                                        <i class="fa-solid fa-sliders"></i><span>Poäng & Sidebets</span>
                                     </button>
 
                                     <!-- EDIT BRANDING & NAME BUTTON -->
-                                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5"
+                                    <button type="button" class="btn btn-outline-light btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5"
                                             id="tour-edit-btn-{{ item.tournament.id }}"
                                             onclick="openEditTournamentModal({{ item.tournament.id }})"
                                             title="Byt namn eller ladda upp bakgrund/logotyp">
@@ -128,7 +128,7 @@
                                     </button>
                                     
                                     <!-- CHECKLIST BUTTON -->
-                                    <button class="btn btn-outline-info btn-sm rounded-pill fw-bold px-3 py-1.5 position-relative d-inline-flex align-items-center gap-1.5" onclick="validateTournament({{ item.tournament.id }})" title="{{ item.checklist_status.title }}">
+                                    <button class="btn btn-outline-light btn-sm rounded-pill fw-bold px-3 py-1.5 position-relative d-inline-flex align-items-center gap-1.5" onclick="validateTournament({{ item.tournament.id }})" title="{{ item.checklist_status.title }}">
                                         <i class="fa-solid fa-clipboard-check"></i><span>Checklist</span>
                                         <span id="chk-indicator-{{ item.tournament.id }}" class="ms-1" style="font-size: 0.95rem; line-height: 1;">
                                             {{ item.checklist_status.emoji }}
@@ -136,7 +136,7 @@
                                     </button>
                                     
                                     <!-- KÖR SIMULATOR BUTTON -->
-                                    <button class="btn btn-outline-warning btn-sm rounded-pill fw-bold px-3 py-1.5 position-relative d-inline-flex align-items-center gap-1.5" onclick="simulateTournament({{ item.tournament.id }})">
+                                    <button class="btn btn-outline-light btn-sm rounded-pill fw-bold px-3 py-1.5 position-relative d-inline-flex align-items-center gap-1.5" onclick="simulateTournament({{ item.tournament.id }})">
                                         <i class="fa-solid fa-gamepad"></i><span>Simulator</span>
                                         <span id="sim-emoji-{{ item.tournament.id }}" class="ms-1 {% if item.scored_matches_count == 0 %}d-none{% endif %}" style="font-size: 0.95rem; line-height: 1;">
                                             ✅
@@ -144,31 +144,31 @@
                                     </button>
                                     
                                     <!-- ÅTERSTÄLL BUTTON -->
-                                    <button class="btn btn-outline-secondary btn-sm rounded-pill fw-semibold px-2.5 py-1.5 d-inline-flex align-items-center" onclick="resetSimulation({{ item.tournament.id }})" title="Nollställ alla simulerade resultat">
-                                        <i class="fa-solid fa-rotate-left"></i>
+                                    <button class="btn btn-outline-light btn-sm rounded-pill fw-bold px-2.5 py-1.5 d-inline-flex align-items-center gap-1.5" onclick="resetSimulation({{ item.tournament.id }})" title="Nollställ alla simulerade resultat">
+                                        <i class="fa-solid fa-rotate-left"></i><span>Nollställ</span>
                                     </button>
 
                                     <!-- Activation / Deactivation Toggle Button -->
                                     {% if item.total_status.code == 'BLOCKED' %}
-                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3.5 py-1.5 shadow-sm fw-bold opacity-50" 
+                                    <button class="btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold opacity-50 d-inline-flex align-items-center gap-1.5" 
                                             id="pub-btn-{{ item.tournament.id }}" 
                                             disabled 
                                             title="🚨 Kan ej aktiveras: Åtgärda Checklist först!">
-                                        <i class="fa-solid fa-ban me-1" id="pub-btn-icon-{{ item.tournament.id }}"></i>
+                                        <i class="fa-solid fa-ban" id="pub-btn-icon-{{ item.tournament.id }}"></i>
                                         <span id="pub-btn-text-{{ item.tournament.id }}">Aktivera</span>
                                     </button>
                                     {% elif item.total_status.code == 'ACTIVE' %}
-                                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3.5 py-1.5 shadow-sm fw-bold" 
+                                    <button class="btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold d-inline-flex align-items-center gap-1.5" 
                                             id="pub-btn-{{ item.tournament.id }}" 
                                             onclick="togglePublish({{ item.tournament.id }})">
-                                        <i class="fa-solid fa-power-off me-1" id="pub-btn-icon-{{ item.tournament.id }}"></i>
+                                        <i class="fa-solid fa-power-off" id="pub-btn-icon-{{ item.tournament.id }}"></i>
                                         <span id="pub-btn-text-{{ item.tournament.id }}">Avaktivera</span>
                                     </button>
                                     {% else %}
-                                    <button class="btn btn-outline-success btn-sm rounded-pill px-3.5 py-1.5 shadow-sm fw-bold" 
+                                    <button class="btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold d-inline-flex align-items-center gap-1.5" 
                                             id="pub-btn-{{ item.tournament.id }}" 
                                             onclick="togglePublish({{ item.tournament.id }})">
-                                        <i class="fa-solid fa-power-off me-1" id="pub-btn-icon-{{ item.tournament.id }}"></i>
+                                        <i class="fa-solid fa-power-off" id="pub-btn-icon-{{ item.tournament.id }}"></i>
                                         <span id="pub-btn-text-{{ item.tournament.id }}">Publicera</span>
                                     </button>
                                     {% endif %}
@@ -273,12 +273,17 @@
             <ul class="nav nav-tabs border-bottom border-secondary border-opacity-25 mb-4" id="monitorSubTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active bg-transparent text-white fw-bold px-3 py-2 border-bottom border-warning border-3" id="pools-sub-tab" data-bs-toggle="tab" data-bs-target="#pools-sub-pane" type="button" role="tab">
-                        <i class="fa-solid fa-users-rectangle me-1.5 text-emerald"></i> Tipsgrupper (Pools) Table
+                        <i class="fa-solid fa-users-rectangle me-1.5 text-emerald"></i> 1. Tipsgrupper (Pools)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link bg-transparent text-secondary fw-bold px-3 py-2" id="tournaments-sub-tab" data-bs-toggle="tab" data-bs-target="#tournaments-sub-pane" type="button" role="tab">
+                        <i class="fa-solid fa-trophy me-1.5 text-warning"></i> 2. Turneringar med Pools
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link bg-transparent text-secondary fw-bold px-3 py-2" id="users-sub-tab" data-bs-toggle="tab" data-bs-target="#users-sub-pane" type="button" role="tab">
-                        <i class="fa-solid fa-user-clock me-1.5 text-info"></i> User Activity Log
+                        <i class="fa-solid fa-users me-1.5 text-info"></i> 3. Spelare
                     </button>
                 </li>
             </ul>
@@ -292,32 +297,25 @@
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                             <div>
                                 <h4 class="fw-extrabold text-white mb-1"><i class="fa-solid fa-users-rectangle text-emerald me-2"></i>Alla Registrerade Tipsgrupper (Pools)</h4>
-                                <p class="text-secondary small mb-0">Deltagarantal, pool-admins, inskickade tips och kontaktinformation.</p>
+                                <p class="text-secondary small mb-0">Deltagarantal, pool-admins, turneringar och senast aktiva tips. Använd Excel-filtren <i class="fa-solid fa-filter text-info mx-0.5"></i> i rubrikerna.</p>
                             </div>
                             <div>
-                                <button class="btn btn-emerald text-dark fw-bold btn-sm rounded-pill px-3 shadow-sm" onclick="copyAdminEmails()">
-                                    <i class="fa-solid fa-copy me-1.5"></i> Kopiera Alla Admin-E-postadresser
+                                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 fw-bold fs-8 shadow-sm" onclick="resetExcelTableFilters('poolsMonitorTable')">
+                                    <i class="fa-solid fa-rotate-left me-1"></i> Återställ Filter
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Admin Emails Quick Copy Box -->
-                        <div class="p-3 rounded-3 border border-secondary border-opacity-25 bg-transparent mb-4">
-                            <div class="text-uppercase font-monospace text-warning fs-7 fw-bold mb-1">
-                                <i class="fa-solid fa-envelope me-1"></i> Pool Admin E-postlista ({{ admin_emails_list|length }} st)
-                            </div>
-                            <input type="text" readonly id="adminEmailsInput" class="form-control form-control-sm bg-transparent text-light border-secondary font-monospace" value="{{ admin_emails_str }}">
-                        </div>
-
                         <!-- Leagues Monitor Table -->
                         <div class="table-responsive">
-                            <table class="table table-dark table-hover align-middle mb-0 bg-transparent">
+                            <table class="table table-dark table-hover align-middle mb-0 bg-transparent" id="poolsMonitorTable">
                                 <thead>
                                     <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30">
-                                        <th>Tipsgrupp (Pool)</th>
+                                        <th data-excel-filter="true">Tipsgrupp (Pool)</th>
+                                        <th data-excel-filter="true">Turnering</th>
                                         <th>Kod</th>
-                                        <th>Pool Admin</th>
-                                        <th>Admin E-post</th>
+                                        <th data-excel-filter="true">Pool Admin</th>
+                                        <th data-excel-filter="true">Admin E-post</th>
                                         <th>Medlemmar</th>
                                         <th>Verifierade</th>
                                         <th>Tips Totalt</th>
@@ -326,7 +324,7 @@
                                 </thead>
                                 <tbody>
                                     {% for row in leagues_data %}
-                                    <tr class="border-bottom border-secondary border-opacity-10">
+                                    <tr class="border-bottom border-secondary border-opacity-10 pool-row">
                                         <td class="fw-bold text-white">
                                             <div class="d-flex align-items-center gap-2">
                                                 {% if row.league.logo %}
@@ -340,12 +338,17 @@
                                             </div>
                                         </td>
                                         <td>
+                                            <span class="badge bg-transparent text-info border border-info border-opacity-30 small">
+                                                <i class="fa-solid fa-trophy me-1"></i>{{ row.tournament_name }}
+                                            </span>
+                                        </td>
+                                        <td>
                                             <span class="badge bg-transparent text-warning border border-warning border-opacity-30 font-monospace px-2 py-1">
                                                 {{ row.league.invite_code }}
                                             </span>
                                         </td>
                                         <td class="text-light fw-semibold">
-                                            <i class="fa-solid fa-user-tie text-secondary me-1"></i>{{ row.admin.get_full_name|default:row.admin.email }}
+                                            <i class="fa-solid fa-user-tie text-secondary me-1"></i>{{ row.admin_name }}
                                         </td>
                                         <td>
                                             {% if row.admin_email != '-' %}
@@ -379,7 +382,7 @@
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="8" class="text-center text-secondary py-4">Inga tipsgrupper registrerade.</td>
+                                        <td colspan="9" class="text-center text-secondary py-4">Inga tipsgrupper registrerade.</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -389,71 +392,179 @@
                     </div>
                 </div>
 
-                <!-- Sub-Pane 2: User Activity Log -->
-                <div class="tab-pane fade" id="users-sub-pane" role="tabpanel">
+                <!-- Sub-Pane 2: Tournaments Table -->
+                <div class="tab-pane fade" id="tournaments-sub-pane" role="tabpanel">
                     <div class="p-4 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm">
-                        <div class="mb-4">
-                            <h4 class="fw-extrabold text-white mb-1"><i class="fa-solid fa-users text-info me-2"></i>Användaraktivitetslogg</h4>
-                            <p class="text-secondary small mb-0">Inspektera registreringsdatum, senast inloggad samt tippnings- och poolaktivitet per användare.</p>
+                        
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                            <div>
+                                <h4 class="fw-extrabold text-white mb-1"><i class="fa-solid fa-trophy text-warning me-2"></i>Turneringar & Kopplade Pools</h4>
+                                <p class="text-secondary small mb-0">Översikt över registrerade turneringar, antal aktivt kopplade pools samt totalt deltagande spelare och inskickade tips.</p>
+                            </div>
+                            <div>
+                                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 fw-bold fs-8 shadow-sm" onclick="resetExcelTableFilters('tournamentsMonitorTable')">
+                                    <i class="fa-solid fa-rotate-left me-1"></i> Återställ Filter
+                                </button>
+                            </div>
                         </div>
 
                         <div class="table-responsive">
-                            <table class="table table-dark table-hover align-middle mb-0 bg-transparent">
+                            <table class="table table-dark table-hover align-middle mb-0 bg-transparent" id="tournamentsMonitorTable">
                                 <thead>
                                     <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30">
-                                        <th>Användare</th>
-                                        <th>E-post</th>
-                                        <th>Roll</th>
-                                        <th>Registrerad</th>
-                                        <th>Senast Inloggad</th>
+                                        <th data-excel-filter="true">Turnering</th>
+                                        <th data-excel-filter="true">Status</th>
+                                        <th data-excel-filter="true">Kopplade Pools (Antal)</th>
+                                        <th data-excel-filter="true">Pool-namn</th>
+                                        <th>Deltagande Spelare</th>
                                         <th>Inskickade Tips</th>
-                                        <th>Aktiva Tipsgrupper</th>
+                                        <th>Matcher (Spelade / Totalt)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for u in users_list %}
-                                    <tr class="border-bottom border-secondary border-opacity-10">
+                                    {% for item in tournaments_data %}
+                                    <tr class="border-bottom border-secondary border-opacity-10 tournament-row">
                                         <td class="fw-bold text-white">
-                                            <i class="fa-solid fa-user-circle me-1.5 text-secondary"></i>{{ u.get_full_name|default:u.email }}
+                                            <i class="fa-solid fa-trophy text-warning me-1.5"></i>{{ item.tournament.name }}
                                         </td>
                                         <td>
-                                            {% if u.email %}
-                                            <span class="text-info small"><i class="fa-solid fa-envelope me-1"></i>{{ u.email }}</span>
+                                            <span class="badge bg-transparent border border-secondary text-light px-2.5 py-1 fs-8" style="{{ item.total_status.style }}">
+                                                {{ item.total_status.label }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-transparent text-emerald border border-emerald border-opacity-30 font-monospace px-2.5 py-1 fs-7">
+                                                {{ item.pools_count }} st
+                                            </span>
+                                        </td>
+                                        <td class="text-light small">
+                                            {{ item.pool_names_str }}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-transparent text-info border border-info border-opacity-30 font-monospace px-2.5 py-1 fs-7">
+                                                {{ item.tour_players_count }} st
+                                            </span>
+                                        </td>
+                                        <td class="fw-bold text-warning font-monospace">
+                                            {{ item.tour_preds_count }}
+                                        </td>
+                                        <td class="text-secondary small font-monospace">
+                                            {{ item.scored_matches_count }} / {{ item.matches_count }}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center text-secondary py-4">Inga turneringar registrerade.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Sub-Pane 3: Players Table -->
+                <div class="tab-pane fade" id="users-sub-pane" role="tabpanel">
+                    <div class="p-4 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm">
+                        
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                            <div>
+                                <h4 class="fw-extrabold text-white mb-1"><i class="fa-solid fa-users text-info me-2"></i>Spelare per Turnering & Pool</h4>
+                                <p class="text-secondary small mb-0">Spelare i flera pooler visas på en rad per pool. Använd Excel-filtren <i class="fa-solid fa-filter text-info mx-0.5"></i> i rubrikerna för att sortera och filtrera.</p>
+                            </div>
+                            <div>
+                                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 fw-bold fs-8 shadow-sm" onclick="resetExcelTableFilters('playersMonitorTable')">
+                                    <i class="fa-solid fa-rotate-left me-1"></i> Återställ Filter
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover align-middle mb-0 bg-transparent" id="playersMonitorTable">
+                                <thead>
+                                    <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30">
+                                        <th data-excel-filter="true">Spelare</th>
+                                        <th data-excel-filter="true">E-post</th>
+                                        <th data-excel-filter="true">Roll</th>
+                                        <th data-excel-filter="true">Tipsgrupp (Pool)</th>
+                                        <th data-excel-filter="true">Pool Admin</th>
+                                        <th data-excel-filter="true">Turnering</th>
+                                        <th data-excel-filter="true">Verifierad</th>
+                                        <th>Tips</th>
+                                        <th>Senast Inloggad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in player_rows %}
+                                    <tr class="border-bottom border-secondary border-opacity-10 player-row">
+                                        <td class="fw-bold text-white">
+                                            <i class="fa-solid fa-user-circle me-1.5 text-secondary"></i>{{ row.player_name }}
+                                        </td>
+                                        <td>
+                                            {% if row.player_email %}
+                                            <span class="text-info small"><i class="fa-solid fa-envelope me-1"></i>{{ row.player_email }}</span>
                                             {% else %}
                                             <span class="text-secondary small">-</span>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if u.is_superuser %}
+                                            {% if row.player.is_superuser %}
                                             <span class="badge bg-transparent text-danger border border-danger font-monospace px-2 py-0.5">SUPERUSER</span>
-                                            {% elif u.is_staff %}
+                                            {% elif row.player.is_staff %}
                                             <span class="badge bg-transparent text-warning border border-warning font-monospace px-2 py-0.5">STAFF</span>
                                             {% else %}
                                             <span class="badge bg-transparent text-secondary border border-secondary font-monospace px-2 py-0.5">SPELARE</span>
                                             {% endif %}
                                         </td>
-                                        <td class="text-secondary small">
-                                            {{ u.date_joined|date:"Y-m-d H:i" }}
+                                        <td>
+                                            {% if row.league %}
+                                            <span class="fw-semibold text-emerald"><i class="fa-solid fa-users-rectangle me-1"></i>{{ row.league_name }}</span>
+                                            {% else %}
+                                            <span class="text-muted small">-</span>
+                                            {% endif %}
                                         </td>
                                         <td class="text-light small">
-                                            {% if u.last_login %}
-                                            <span class="text-emerald"><i class="fa-solid fa-clock me-1"></i>{{ u.last_login|date:"Y-m-d H:i" }}</span>
+                                            {% if row.admin %}
+                                            <i class="fa-solid fa-user-tie me-1 text-secondary"></i>{{ row.admin_name }}
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if row.tournament_name != '-' %}
+                                            <span class="badge bg-transparent text-info border border-info border-opacity-30 small">
+                                                <i class="fa-solid fa-trophy me-1"></i>{{ row.tournament_name }}
+                                            </span>
+                                            {% else %}
+                                            <span class="text-muted small">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if row.league %}
+                                                {% if row.is_verified %}
+                                                <span class="badge bg-transparent text-success border border-success px-2 py-0.5 font-monospace fs-8">✅ JA</span>
+                                                {% else %}
+                                                <span class="badge bg-transparent text-secondary border border-secondary px-2 py-0.5 font-monospace fs-8">NEJ</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted small">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="fw-bold text-warning font-monospace">
+                                            {{ row.predictions_count }}
+                                        </td>
+                                        <td class="text-light small">
+                                            {% if row.last_login %}
+                                            <span class="text-emerald"><i class="fa-solid fa-clock me-1"></i>{{ row.last_login|date:"Y-m-d H:i" }}</span>
                                             {% else %}
                                             <span class="text-muted">Aldrig</span>
                                             {% endif %}
                                         </td>
-                                        <td class="fw-bold text-warning font-monospace">
-                                            {{ u.preds_count }}
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-transparent text-info border border-info border-opacity-30 font-monospace px-2.5 py-1">
-                                                {{ u.pools_count }} st
-                                            </span>
-                                        </td>
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="7" class="text-center text-secondary py-4">Inga användare hittades.</td>
+                                        <td colspan="9" class="text-center text-secondary py-4">Inga spelare hittades.</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -1144,22 +1255,22 @@
                                     <div class="mb-3">
                                         <label class="form-label text-light small fw-semibold mb-1">Rätt tecken (1X2):</label>
                                         <div class="input-group input-group-sm">
-                                            <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_match_correct_1x2" name="match_correct_1x2" value="3">
+                                            <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_match_correct_1x2" name="match_correct_1x2" value="4">
                                             <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">poäng</span>
                                         </div>
-                                        <div class="form-text text-secondary fs-8">Standard: 3p för rätt vinnare eller oavgjort.</div>
+                                        <div class="form-text text-secondary fs-8">Standard: 4p för rätt vinnare eller oavgjort.</div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label text-light small fw-semibold mb-1">Rätt antal mål per lag (Exakt resultat-del):</label>
                                         <div class="input-group input-group-sm">
-                                            <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_match_correct_goals_per_team" name="match_correct_goals_per_team" value="3">
+                                            <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_match_correct_goals_per_team" name="match_correct_goals_per_team" value="2">
                                             <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">poäng</span>
                                         </div>
                                     </div>
                                     <div class="mb-0">
-                                        <label class="form-label text-light small fw-semibold mb-1">Rätt totalt antal mål i matchen:</label>
+                                        <label class="form-label text-light small fw-semibold mb-1">Målskillnad i matchen (Goal Difference):</label>
                                         <div class="input-group input-group-sm">
-                                            <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_match_correct_total_goals" name="match_correct_total_goals" value="1">
+                                            <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_match_correct_total_goals" name="match_correct_total_goals" value="2">
                                             <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">poäng</span>
                                         </div>
                                     </div>
@@ -1177,14 +1288,14 @@
                                         <div class="col-6 mb-2">
                                             <label class="form-label text-light small fw-semibold mb-1">Exakt placering (Rank):</label>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_group_correct_placement" name="group_correct_placement" value="2">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_group_correct_placement" name="group_correct_placement" value="3">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
                                             </div>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <label class="form-label text-light small fw-semibold mb-1">Rätt grupp-poäng:</label>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_group_correct_points" name="group_correct_points" value="1">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_group_correct_points" name="group_correct_points" value="2">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
                                             </div>
                                         </div>
@@ -1224,33 +1335,33 @@
                             <div class="col-12 col-lg-6">
                                 <div class="p-3.5 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-50 h-100">
                                     <h6 class="fw-extrabold text-emerald text-uppercase font-monospace mb-3 pb-2 border-bottom border-secondary border-opacity-20 d-flex align-items-center justify-content-between">
-                                        <span><i class="fa-solid fa-ranking-star me-2"></i>3. Extratabeller (Bästa 3:or m.m.)</span>
+                                        <span><i class="fa-solid fa-ranking-star me-2"></i>3. Extratabeller (Kvalificeringstabell)</span>
                                         <span class="badge bg-secondary bg-opacity-30 text-light font-monospace fs-8">Kvalranking</span>
                                     </h6>
                                     <div class="row g-2">
                                         <div class="col-6 mb-2">
-                                            <label class="form-label text-light small fw-semibold mb-1">Kvalificerat lag (Bästa 3:a):</label>
+                                            <label class="form-label text-light small fw-semibold mb-1">Kvalificering (Valfri rank):</label>
                                             <div class="input-group input-group-sm">
                                                 <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_qualifying_table_team_qualified" name="qualifying_table_team_qualified" value="5">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
                                             </div>
                                         </div>
                                         <div class="col-6 mb-2">
-                                            <label class="form-label text-light small fw-semibold mb-1">Exakt rank i 3:e-tabell:</label>
+                                            <label class="form-label text-light small fw-semibold mb-1">Exakt rank i tabell:</label>
                                             <div class="input-group input-group-sm">
                                                 <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_qualifying_table_exact_rank" name="qualifying_table_exact_rank" value="0">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
                                             </div>
                                         </div>
                                         <div class="col-6 mb-1">
-                                            <label class="form-label text-light small fw-semibold mb-1">Poäng i 3:e-tabell:</label>
+                                            <label class="form-label text-light small fw-semibold mb-1">Poäng i tabell:</label>
                                             <div class="input-group input-group-sm">
                                                 <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_qualifying_table_points" name="qualifying_table_points" value="0">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
                                             </div>
                                         </div>
                                         <div class="col-6 mb-1">
-                                            <label class="form-label text-light small fw-semibold mb-1">Målskillnad i 3:e-tabell:</label>
+                                            <label class="form-label text-light small fw-semibold mb-1">Målskillnad i tabell:</label>
                                             <div class="input-group input-group-sm">
                                                 <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_qualifying_table_goal_diff" name="qualifying_table_goal_diff" value="0">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
@@ -1269,37 +1380,44 @@
                                     </h6>
                                     <div class="row g-2">
                                         <div class="col-6 mb-2">
-                                            <label class="form-label text-light small fw-semibold mb-1">Åttondelsfinal (R16 / Playoff):</label>
+                                            <label class="form-label text-light small fw-semibold mb-1">Sextondelsfinal (R32):</label>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_round_of_16" name="knockout_round_of_16" value="3">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_round_of_32" name="knockout_round_of_32" value="2">
+                                                <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <label class="form-label text-light small fw-semibold mb-1">Åttondelsfinal (R16):</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_round_of_16" name="knockout_round_of_16" value="4">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
                                             </div>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <label class="form-label text-light small fw-semibold mb-1">Kvartsfinal (QF):</label>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_quarterfinal" name="knockout_quarterfinal" value="4">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_quarterfinal" name="knockout_quarterfinal" value="6">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
                                             </div>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <label class="form-label text-light small fw-semibold mb-1">Semifinal (SF):</label>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_semifinal" name="knockout_semifinal" value="5">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_semifinal" name="knockout_semifinal" value="8">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
                                             </div>
                                         </div>
                                         <div class="col-6 mb-2">
                                             <label class="form-label text-light small fw-semibold mb-1">Bronsmatch:</label>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_bronze_match" name="knockout_bronze_match" value="0">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_bronze_match" name="knockout_bronze_match" value="10">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
                                             </div>
                                         </div>
-                                        <div class="col-12 mb-1">
+                                        <div class="col-6 mb-1">
                                             <label class="form-label text-light small fw-semibold mb-1">Final & Mästare (Guld):</label>
                                             <div class="input-group input-group-sm">
-                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_final" name="knockout_final" value="8">
+                                                <input type="number" min="0" max="50" class="form-control bg-dark text-white border-secondary" id="f_knockout_final" name="knockout_final" value="10">
                                                 <span class="input-group-text bg-secondary bg-opacity-20 text-secondary border-secondary">p</span>
                                             </div>
                                         </div>
@@ -1380,6 +1498,219 @@
 {% block extra_js %}
 <!-- CSRF & Interactivity Script -->
 <script>
+    // --- EXCEL-STYLE COLUMN HEADER FILTER ENGINE ---
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    function escapeAttr(str) {
+        if (!str) return '';
+        return String(str).replace(/"/g, '&quot;');
+    }
+
+    const excelFiltersRegistry = {};
+
+    function initExcelTableFilter(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        const tbody = table.querySelector('tbody');
+        const headers = table.querySelectorAll('thead th');
+        const rows = Array.from(tbody.querySelectorAll('tr.pool-row, tr.player-row'));
+        if (rows.length === 0) return;
+
+        const colFilters = {};
+        const colAllValues = {};
+
+        headers.forEach((th, colIdx) => {
+            if (!th.hasAttribute('data-excel-filter')) return;
+
+            const uniqueSet = new Set();
+            rows.forEach(row => {
+                const cell = row.children[colIdx];
+                if (cell) {
+                    let txt = cell.textContent.trim().replace(/\s+/g, ' ');
+                    if (!txt || txt === '-') txt = '(Tomt / -)';
+                    uniqueSet.add(txt);
+                }
+            });
+
+            const sortedVals = Array.from(uniqueSet).sort((a, b) => a.localeCompare(b, 'sv', { sensitivity: 'base' }));
+            colAllValues[colIdx] = sortedVals;
+            colFilters[colIdx] = new Set(sortedVals);
+
+            const origTitle = th.innerText.trim();
+            th.style.position = 'relative';
+            th.style.whiteSpace = 'nowrap';
+            th.innerHTML = '';
+
+            const container = document.createElement('div');
+            container.className = 'd-inline-flex align-items-center gap-1.5 justify-content-between w-100';
+
+            const label = document.createElement('span');
+            label.innerText = origTitle;
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'dropdown d-inline-block position-relative';
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-link text-secondary p-0 ms-1 text-decoration-none excel-filter-icon';
+            btn.setAttribute('data-bs-toggle', 'dropdown');
+            btn.setAttribute('data-bs-auto-close', 'outside');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.setAttribute('title', 'Filtrera ' + origTitle);
+            btn.innerHTML = '<i class="fa-solid fa-filter" style="font-size: 0.75rem;"></i>';
+
+            const menu = document.createElement('div');
+            menu.className = 'dropdown-menu dropdown-menu-dark p-2.5 shadow-lg border-secondary font-sans text-normal';
+            menu.style.minWidth = '220px';
+            menu.style.maxWidth = '280px';
+            menu.style.fontSize = '0.8rem';
+
+            let menuHtml = `
+                <div class="mb-2">
+                    <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary fs-8 col-search" placeholder="Sök i lista...">
+                </div>
+                <div class="d-flex justify-content-between align-items-center pb-1.5 mb-2 border-bottom border-secondary border-opacity-30">
+                    <button type="button" class="btn btn-link text-info p-0 fs-8 text-decoration-none btn-select-all">Markera alla</button>
+                    <button type="button" class="btn btn-link text-warning p-0 fs-8 text-decoration-none btn-clear-all">Rensa</button>
+                </div>
+                <div class="opts-list" style="max-height: 180px; overflow-y: auto;">
+            `;
+
+            sortedVals.forEach((val, valIdx) => {
+                const inputId = `ef_${tableId}_c${colIdx}_v${valIdx}`;
+                menuHtml += `
+                    <div class="form-check my-1 opt-item">
+                        <input class="form-check-input opt-cb" type="checkbox" value="${escapeAttr(val)}" id="${inputId}" checked>
+                        <label class="form-check-label text-light text-truncate d-block" for="${inputId}" title="${escapeAttr(val)}">
+                            ${escapeHtml(val)}
+                        </label>
+                    </div>
+                `;
+            });
+
+            menuHtml += `</div>`;
+            menu.innerHTML = menuHtml;
+
+            dropdown.appendChild(btn);
+            dropdown.appendChild(menu);
+            container.appendChild(label);
+            container.appendChild(dropdown);
+            th.appendChild(container);
+
+            const searchInput = menu.querySelector('.col-search');
+            const optItems = menu.querySelectorAll('.opt-item');
+            const checkboxes = menu.querySelectorAll('.opt-cb');
+            const selectAllBtn = menu.querySelector('.btn-select-all');
+            const clearAllBtn = menu.querySelector('.btn-clear-all');
+
+            searchInput.addEventListener('keyup', () => {
+                const q = searchInput.value.toLowerCase().trim();
+                optItems.forEach(item => {
+                    const labelTxt = item.textContent.toLowerCase();
+                    item.style.display = (!q || labelTxt.includes(q)) ? '' : 'none';
+                });
+            });
+
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (cb.checked) {
+                        colFilters[colIdx].add(cb.value);
+                    } else {
+                        colFilters[colIdx].delete(cb.value);
+                    }
+                    applyExcelFilters(tableId, headers, rows, colFilters, colAllValues);
+                });
+            });
+
+            selectAllBtn.addEventListener('click', () => {
+                checkboxes.forEach(cb => {
+                    cb.checked = true;
+                    colFilters[colIdx].add(cb.value);
+                });
+                applyExcelFilters(tableId, headers, rows, colFilters, colAllValues);
+            });
+
+            clearAllBtn.addEventListener('click', () => {
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                });
+                colFilters[colIdx].clear();
+                applyExcelFilters(tableId, headers, rows, colFilters, colAllValues);
+            });
+        });
+
+        excelFiltersRegistry[tableId] = { headers, rows, colFilters, colAllValues };
+    }
+
+    function applyExcelFilters(tableId, headers, rows, colFilters, colAllValues) {
+        Object.keys(colFilters).forEach(colIdx => {
+            const th = headers[colIdx];
+            const btnIcon = th.querySelector('.excel-filter-icon');
+            if (!btnIcon) return;
+
+            const selSize = colFilters[colIdx].size;
+            const totalSize = colAllValues[colIdx].length;
+
+            if (selSize < totalSize) {
+                btnIcon.className = 'btn btn-link text-warning p-0 ms-1 text-decoration-none excel-filter-icon fw-bold';
+                btnIcon.innerHTML = '<i class="fa-solid fa-filter" style="font-size: 0.8rem;"></i>';
+            } else {
+                btnIcon.className = 'btn btn-link text-secondary p-0 ms-1 text-decoration-none excel-filter-icon';
+                btnIcon.innerHTML = '<i class="fa-solid fa-filter" style="font-size: 0.75rem;"></i>';
+            }
+        });
+
+        rows.forEach(row => {
+            let show = true;
+            for (const colIdx in colFilters) {
+                const cell = row.children[colIdx];
+                if (!cell) continue;
+                let txt = cell.textContent.trim().replace(/\s+/g, ' ');
+                if (!txt || txt === '-') txt = '(Tomt / -)';
+
+                if (!colFilters[colIdx].has(txt)) {
+                    show = false;
+                    break;
+                }
+            }
+            row.style.display = show ? '' : 'none';
+        });
+    }
+
+    function resetExcelTableFilters(tableId) {
+        const reg = excelFiltersRegistry[tableId];
+        if (!reg) return;
+
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        Object.keys(reg.colFilters).forEach(colIdx => {
+            reg.colFilters[colIdx] = new Set(reg.colAllValues[colIdx]);
+        });
+
+        table.querySelectorAll('.opt-cb').forEach(cb => {
+            cb.checked = true;
+        });
+        table.querySelectorAll('.col-search').forEach(inp => {
+            inp.value = '';
+        });
+        table.querySelectorAll('.opt-item').forEach(item => {
+            item.style.display = '';
+        });
+
+        applyExcelFilters(tableId, reg.headers, reg.rows, reg.colFilters, reg.colAllValues);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initExcelTableFilter('poolsMonitorTable');
+        initExcelTableFilter('tournamentsMonitorTable');
+        initExcelTableFilter('playersMonitorTable');
+    });
+
     function showModalSafe(modalId) {
         const modalEl = document.getElementById(modalId);
         if (!modalEl) {
@@ -1722,12 +2053,12 @@
                     if (el) el.value = val;
                 };
 
-                setVal('f_match_correct_1x2', pts.match_correct_1x2 ?? 3);
-                setVal('f_match_correct_goals_per_team', pts.match_correct_goals_per_team ?? 3);
-                setVal('f_match_correct_total_goals', pts.match_correct_total_goals ?? 1);
+                setVal('f_match_correct_1x2', pts.match_correct_1x2 ?? 4);
+                setVal('f_match_correct_goals_per_team', pts.match_correct_goals_per_team ?? 2);
+                setVal('f_match_correct_total_goals', pts.match_correct_total_goals ?? 2);
 
-                setVal('f_group_correct_placement', pts.group_correct_placement ?? 2);
-                setVal('f_group_correct_points', pts.group_correct_points ?? 1);
+                setVal('f_group_correct_placement', pts.group_correct_placement ?? 3);
+                setVal('f_group_correct_points', pts.group_correct_points ?? 2);
                 setVal('f_group_correct_goals_scored', pts.group_correct_goals_scored ?? 1);
                 setVal('f_group_correct_goals_conceded', pts.group_correct_goals_conceded ?? 1);
                 setVal('f_group_correct_goal_diff', pts.group_correct_goal_diff ?? 1);
@@ -1738,11 +2069,12 @@
                 setVal('f_qualifying_table_points', pts.qualifying_table_points ?? 0);
                 setVal('f_qualifying_table_goal_diff', pts.qualifying_table_goal_diff ?? 0);
 
-                setVal('f_knockout_round_of_16', pts.knockout_round_of_16 ?? 3);
-                setVal('f_knockout_quarterfinal', pts.knockout_quarterfinal ?? 4);
-                setVal('f_knockout_semifinal', pts.knockout_semifinal ?? 5);
-                setVal('f_knockout_bronze_match', pts.knockout_bronze_match ?? 0);
-                setVal('f_knockout_final', pts.knockout_final ?? 8);
+                setVal('f_knockout_round_of_32', pts.knockout_round_of_32 ?? 2);
+                setVal('f_knockout_round_of_16', pts.knockout_round_of_16 ?? 4);
+                setVal('f_knockout_quarterfinal', pts.knockout_quarterfinal ?? 6);
+                setVal('f_knockout_semifinal', pts.knockout_semifinal ?? 8);
+                setVal('f_knockout_bronze_match', pts.knockout_bronze_match ?? 10);
+                setVal('f_knockout_final', pts.knockout_final ?? 10);
 
                 // Render Sidebets
                 currentSidebetsData = data.sidebets || [];
@@ -1762,12 +2094,12 @@
 
     function applyPointsPreset(preset) {
         if (preset === 'standard') {
-            // Standard Football/Handball
-            document.getElementById('f_match_correct_1x2').value = 3;
-            document.getElementById('f_match_correct_goals_per_team').value = 3;
-            document.getElementById('f_match_correct_total_goals').value = 1;
-            document.getElementById('f_group_correct_placement').value = 2;
-            document.getElementById('f_group_correct_points').value = 1;
+            // Standard Football/Handball Proposal
+            document.getElementById('f_match_correct_1x2').value = 4;
+            document.getElementById('f_match_correct_goals_per_team').value = 2;
+            document.getElementById('f_match_correct_total_goals').value = 2;
+            document.getElementById('f_group_correct_placement').value = 3;
+            document.getElementById('f_group_correct_points').value = 2;
             document.getElementById('f_group_correct_goals_scored').value = 1;
             document.getElementById('f_group_correct_goals_conceded').value = 1;
             document.getElementById('f_group_correct_goal_diff').value = 1;
@@ -1776,11 +2108,12 @@
             document.getElementById('f_qualifying_table_exact_rank').value = 0;
             document.getElementById('f_qualifying_table_points').value = 0;
             document.getElementById('f_qualifying_table_goal_diff').value = 0;
-            document.getElementById('f_knockout_round_of_16').value = 3;
-            document.getElementById('f_knockout_quarterfinal').value = 4;
-            document.getElementById('f_knockout_semifinal').value = 5;
-            document.getElementById('f_knockout_bronze_match').value = 0;
-            document.getElementById('f_knockout_final').value = 8;
+            if (document.getElementById('f_knockout_round_of_32')) document.getElementById('f_knockout_round_of_32').value = 2;
+            document.getElementById('f_knockout_round_of_16').value = 4;
+            document.getElementById('f_knockout_quarterfinal').value = 6;
+            document.getElementById('f_knockout_semifinal').value = 8;
+            document.getElementById('f_knockout_bronze_match').value = 10;
+            document.getElementById('f_knockout_final').value = 10;
         } else if (preset === 'hockey') {
             // Ice hockey / high goals
             document.getElementById('f_match_correct_1x2').value = 3;
@@ -2256,20 +2589,20 @@
                 }
 
                 if (data.total_status.code === 'ACTIVE') {
-                    btn.className = 'btn btn-outline-danger btn-sm rounded-pill px-3.5 shadow-sm fw-bold';
+                    btn.className = 'btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold d-inline-flex align-items-center gap-1.5';
                     btn.disabled = false;
-                    if (btnIcon) btnIcon.className = 'fa-solid fa-power-off me-1.5';
+                    if (btnIcon) btnIcon.className = 'fa-solid fa-power-off';
                     if (btnText) btnText.innerText = 'Avaktivera';
                 } else if (data.total_status.code === 'BLOCKED') {
-                    btn.className = 'btn btn-outline-secondary btn-sm rounded-pill px-3.5 shadow-sm fw-bold opacity-50';
+                    btn.className = 'btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold opacity-50 d-inline-flex align-items-center gap-1.5';
                     btn.disabled = true;
-                    if (btnIcon) btnIcon.className = 'fa-solid fa-ban me-1.5';
-                    if (btnText) btnText.innerText = 'Publicera & Aktivera';
+                    if (btnIcon) btnIcon.className = 'fa-solid fa-ban';
+                    if (btnText) btnText.innerText = 'Aktivera';
                 } else {
-                    btn.className = 'btn btn-outline-success btn-sm rounded-pill px-3.5 shadow-sm fw-bold';
+                    btn.className = 'btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold d-inline-flex align-items-center gap-1.5';
                     btn.disabled = false;
-                    if (btnIcon) btnIcon.className = 'fa-solid fa-power-off me-1.5';
-                    if (btnText) btnText.innerText = 'Publicera & Aktivera';
+                    if (btnIcon) btnIcon.className = 'fa-solid fa-power-off';
+                    if (btnText) btnText.innerText = 'Publicera';
                 }
             }
             alert(data.message);

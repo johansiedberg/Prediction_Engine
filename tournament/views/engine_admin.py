@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 
 from tournament.models import (
-    Tournament, League, MatchPrediction, PoolAdminRequest, ScannedTournament,
+    Tournament, League, LeagueMember, MatchPrediction, PoolAdminRequest, ScannedTournament,
     PointSystem, Sidebet
 )
 from django.contrib.auth.models import User
@@ -56,66 +56,11 @@ def engine_admin_logout_view(request):
 
 
 def create_admin_user_view(request):
-    """Create a new staff/superuser account from Port 2029.
-    Accessible without being logged in (for initial bootstrap), but only from Port 2029.
-    Subsequent accounts require an existing superuser to be logged in.
+    """Admin creation via HTTP endpoint is disabled.
+    Engine Admin credentials are managed strictly in the Python codebase (seed_members management command).
     """
-    # Only accessible from Port 2029
-    if str(request.get_port()) != '2029':
-        from django.http import Http404
-        raise Http404
-
-    if request.method != 'POST':
-        return redirect('/')
-
-    first_name = request.POST.get('first_name', '').strip()
-    last_name = request.POST.get('last_name', '').strip()
-    email = request.POST.get('email', '').strip().lower()
-    password1 = request.POST.get('password1', '')
-    password2 = request.POST.get('password2', '')
-    role = request.POST.get('role', 'staff')
-
-    # Check if any superuser already exists — if yes, require authentication
-    existing_superusers = User.objects.filter(is_superuser=True).exists()
-    if existing_superusers and not (request.user.is_authenticated and request.user.is_superuser):
-        messages.error(request, "Åtkomst nekad: Du måste vara inloggad som Superuser för att skapa fler Admin-konton.")
-        return redirect('/')
-
-    # Validate inputs
-    errors = []
-    if not first_name or not last_name:
-        errors.append("Förnamn och efternamn är obligatoriska.")
-    if not email or '@' not in email:
-        errors.append("Ange en giltig e-postadress.")
-    elif User.objects.filter(email__iexact=email).exists():
-        errors.append(f"Det finns redan ett konto med e-postadressen {email}.")
-    if len(password1) < 8:
-        errors.append("Lösenordet måste vara minst 8 tecken.")
-    if password1 != password2:
-        errors.append("Lösenorden matchar inte.")
-
-    if errors:
-        for err in errors:
-            messages.error(request, err)
-        return redirect('/')
-
-    # Create the user with email as unique username/identifier
-    username = email.lower()
-
-    is_superuser = (role == 'superuser')
-    new_user = User.objects.create_user(
-        username=username,
-        email=email,
-        password=password1,
-        first_name=first_name,
-        last_name=last_name,
-        is_staff=True,
-        is_superuser=is_superuser,
-    )
-
-    role_label = "Superuser" if is_superuser else "Staff Admin"
-    messages.success(request, f"Admin-konto skapat för {first_name} {last_name} ({role_label}). E-post: {email}")
-    return redirect('/')
+    from django.http import HttpResponseForbidden
+    return HttpResponseForbidden("Admin account creation via HTTP is disabled. Admin accounts are managed strictly via Python codebase.")
 
 
 @superuser_or_staff_required
@@ -155,7 +100,9 @@ def engine_admin_dashboard_view(request):
         leagues_data.append({
             'league': leg,
             'admin': leg.admin,
+            'admin_name': (leg.admin.get_full_name() or leg.admin.email) if leg.admin else '-',
             'admin_email': leg.admin.email if leg.admin else '-',
+            'tournament_name': leg.master_event.name if leg.master_event else '-',
             'member_count': leg.member_count,
             'verified_count': leg.verified_count,
             'predictions_count': league_predictions_count,
@@ -165,11 +112,53 @@ def engine_admin_dashboard_view(request):
     admin_emails_list = sorted(list(admin_emails_set))
     admin_emails_str = ", ".join(admin_emails_list)
 
-    # 3. User Directory & Activity Logger
-    users_query = User.objects.annotate(
-        preds_count=Count('match_predictions', distinct=True),
-        pools_count=Count('league_memberships', distinct=True)
-    ).order_by('-last_login', '-date_joined')[:100]
+    # 3. Player Directory & Activity Logger (Connecting Pool to Player, multiple rows per pool membership)
+    player_rows = []
+    memberships = LeagueMember.objects.select_related('league', 'player', 'league__admin', 'league__master_event').order_by('-player__last_login', '-joined_at')
+    
+    users_with_pools = set()
+    for m in memberships:
+        users_with_pools.add(m.player_id)
+        tour_id = m.league.master_event_id if m.league and m.league.master_event else None
+        if tour_id:
+            preds_cnt = MatchPrediction.objects.filter(player=m.player, match__tournament_id=tour_id).count()
+        else:
+            preds_cnt = MatchPrediction.objects.filter(player=m.player).count()
+
+        player_rows.append({
+            'player': m.player,
+            'player_name': m.player.get_full_name() or m.player.email,
+            'player_email': m.player.email,
+            'league': m.league,
+            'league_name': m.league.name if m.league else '-',
+            'admin': m.league.admin if m.league else None,
+            'admin_name': (m.league.admin.get_full_name() or m.league.admin.email) if (m.league and m.league.admin) else '-',
+            'admin_email': m.league.admin.email if (m.league and m.league.admin) else '-',
+            'tournament_name': m.league.master_event.name if (m.league and m.league.master_event) else '-',
+            'is_verified': m.is_verified,
+            'joined_at': m.joined_at,
+            'last_login': m.player.last_login,
+            'predictions_count': preds_cnt,
+        })
+
+    standalone_users = User.objects.exclude(id__in=users_with_pools).order_by('-last_login', '-date_joined')
+    for u in standalone_users:
+        preds_cnt = MatchPrediction.objects.filter(player=u).count()
+        player_rows.append({
+            'player': u,
+            'player_name': u.get_full_name() or u.email,
+            'player_email': u.email,
+            'league': None,
+            'league_name': '-',
+            'admin': None,
+            'admin_name': '-',
+            'admin_email': '-',
+            'tournament_name': '-',
+            'is_verified': False,
+            'joined_at': u.date_joined,
+            'last_login': u.last_login,
+            'predictions_count': preds_cnt,
+        })
 
     # 4. Tournaments for Lifecycle Management
     tournaments_list = Tournament.objects.select_related('admin').prefetch_related(
@@ -188,6 +177,12 @@ def engine_admin_dashboard_view(request):
         chk_status = get_tournament_checklist_status(tour)
         tot_status = get_tournament_total_status(tour, chk_status)
 
+        pools_for_tour = League.objects.filter(master_event=tour)
+        pools_cnt = pools_for_tour.count()
+        pool_names_str = ", ".join([p.name for p in pools_for_tour]) if pools_cnt > 0 else '-'
+        tour_players_cnt = LeagueMember.objects.filter(league__master_event=tour).values('player_id').distinct().count()
+        tour_preds_cnt = MatchPrediction.objects.filter(match__tournament=tour).count()
+
         tournaments_data.append({
             'tournament': tour,
             'has_point_system': has_ps,
@@ -199,6 +194,10 @@ def engine_admin_dashboard_view(request):
             'checklist_status': chk_status,
             'total_status': tot_status,
             'status': tot_status['label'],
+            'pools_count': pools_cnt,
+            'pool_names_str': pool_names_str,
+            'tour_players_count': tour_players_cnt,
+            'tour_preds_count': tour_preds_cnt,
         })
 
     # 5. AI Tournament Scout Prospects (Sorted nearest in time first)
@@ -326,7 +325,7 @@ def engine_admin_dashboard_view(request):
         'leagues_data': leagues_data,
         'admin_emails_list': admin_emails_list,
         'admin_emails_str': admin_emails_str,
-        'users_list': users_query,
+        'player_rows': player_rows,
         'tournaments_data': tournaments_data,
         'scanned_tournaments': scanned_data,
         'scout_counts': scout_counts,
@@ -956,6 +955,7 @@ def tournament_points_sidebets_get_view(request, tournament_id):
         'qualifying_table_goal_diff': ps.qualifying_table_goal_diff,
         # Knockout scoring
         'knockout_qualified_third': ps.knockout_qualified_third,
+        'knockout_round_of_32': ps.knockout_round_of_32,
         'knockout_round_of_16': ps.knockout_round_of_16,
         'knockout_quarterfinal': ps.knockout_quarterfinal,
         'knockout_semifinal': ps.knockout_semifinal,
@@ -996,6 +996,7 @@ def tournament_points_save_view(request, tournament_id):
         'qualifying_table_goals_conceded',
         'qualifying_table_goal_diff',
         'knockout_qualified_third',
+        'knockout_round_of_32',
         'knockout_round_of_16',
         'knockout_quarterfinal',
         'knockout_semifinal',
@@ -1026,7 +1027,7 @@ def tournament_sidebet_save_view(request, tournament_id):
     sidebet_id = request.POST.get('sidebet_id')
     question = request.POST.get('question', '').strip()
     question_type = request.POST.get('question_type', 'TEXT').strip()
-    points_raw = request.POST.get('points', 5)
+    points_raw = request.POST.get('points', 25)
     correct_answers = request.POST.get('correct_answers', '').strip()
 
     if not question:
@@ -1035,7 +1036,7 @@ def tournament_sidebet_save_view(request, tournament_id):
     try:
         points = max(1, int(points_raw))
     except (ValueError, TypeError):
-        points = 5
+        points = 25
 
     if question_type not in ['TEAM', 'TEXT']:
         question_type = 'TEXT'

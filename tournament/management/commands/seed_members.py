@@ -9,22 +9,23 @@ class Command(BaseCommand):
         self.stdout.write("Seeding Prediction Engine users...")
 
         members = [
-            {"username": "johan.siedberg", "first_name": "Johan", "last_name": "Siedberg", "email": "johan@siedberg.se"},
-            {"username": "mikael.dahl", "first_name": "Mikael", "last_name": "Dahl", "email": "mikael@dahl.se"},
-            {"username": "andreas.larsson", "first_name": "Andreas", "last_name": "Larsson", "email": "andreas@larsson.se"},
-            {"username": "johan.svensson", "first_name": "Johan", "last_name": "Svensson", "email": "johan@svensson.se"},
-            {"username": "johan.meldo", "first_name": "Johan", "last_name": "Meldo", "email": "johan@meldo.se"},
-            {"username": "erik.svensson", "first_name": "Erik", "last_name": "Svensson", "email": "erik@svensson.se"},
-            {"username": "christoffer.ericsson", "first_name": "Christoffer", "last_name": "Ericsson", "email": "christoffer@ericsson.se"},
-            {"username": "martin.gustafsson", "first_name": "Martin", "last_name": "Gustafsson", "email": "martin@gustafsson.se"},
-            {"username": "tommy.lycen", "first_name": "Tommy", "last_name": "Lycen", "email": "tommy@lycen.se"},
-            {"username": "tommy.kallberg", "first_name": "Tommy", "last_name": "Källberg", "email": "tommy@kallberg.se"},
-            {"username": "martin.krantz", "first_name": "Martin", "last_name": "Krantz", "email": "martin@krantz.se"},
+            {"username": "johan.siedberg", "first_name": "Johan", "last_name": "Siedberg", "email": "johan.siedberg@gmail.com"},
+            {"username": "mikael.dahl", "first_name": "Mikael", "last_name": "Dahl", "email": "mikaeld81@gmail.com"},
+            {"username": "andreas.larsson", "first_name": "Andreas", "last_name": "Larsson", "email": "anymaztic@hotmail.com"},
+            {"username": "johan.svensson", "first_name": "Johan", "last_name": "Svensson", "email": "svenjohansvensson@gmail.com"},
+            {"username": "johan.meldo", "first_name": "Johan", "last_name": "Meldo", "email": "jmeldo@gmail.com"},
+            {"username": "erik.svensson", "first_name": "Erik", "last_name": "Svensson", "email": "erik.sve@hotmail.com"},
+            {"username": "christoffer.ericsson", "first_name": "Christoffer", "last_name": "Ericsson", "email": "coff_erics@yahoo.se"},
+            {"username": "martin.gustafsson", "first_name": "Martin", "last_name": "Gustafsson", "email": "martin.gustafson1@gmail.com"},
+            {"username": "tommy.lycen", "first_name": "Tommy", "last_name": "Lycen", "email": "t.lycen@gmail.com"},
+            {"username": "tommy.kallberg", "first_name": "Tommy", "last_name": "Källberg", "email": "senasa@gmail.com"},
+            {"username": "martin.krantz", "first_name": "Martin", "last_name": "Krantz", "email": "martin@meritel.se"},
         ]
 
         # 1. Create or update the 11 core members
         created_count = 0
         updated_count = 0
+        herrklubb_users = []
 
         for m in members:
             last_clean = m['last_name'].lower().replace('ä', 'a').replace('å', 'a').replace('ö', 'o').replace(' ', '')
@@ -52,48 +53,55 @@ class Command(BaseCommand):
             user.set_password(password)
             user.save()
 
-            profile, _ = UserProfile.objects.get_or_create(user=user)
-            profile.is_herrklubb_member = True
-            profile.save()
+            UserProfile.objects.get_or_create(user=user)
+            herrklubb_users.append(user)
 
             if created:
                 created_count += 1
             else:
                 updated_count += 1
 
-        # 2. Ensure superuser johansiedberg exists
-        admin_email = 'johan@siedberg.se'
-        admin_user = User.objects.filter(email__iexact=admin_email).first()
+        # 2. Ensure standalone, isolated Engine Admin 'johansiedberg' exists
+        admin_user = User.objects.filter(username='johansiedberg').first()
         if not admin_user:
             admin_user = User.objects.create(
-                username=admin_email,
-                email=admin_email,
-                first_name='Johan',
-                last_name='Siedberg',
+                username='johansiedberg',
+                email='engineadmin@predictionengine.local',
+                first_name='Engine',
+                last_name='Admin',
                 is_staff=True,
                 is_superuser=True,
                 is_active=True,
             )
-            admin_user.set_password('admin2026')
-            admin_user.save()
-            self.stdout.write(self.style.SUCCESS(f"Created superuser '{admin_email}' with password 'admin2026'."))
         else:
-            admin_user.username = admin_email
+            admin_user.username = 'johansiedberg'
+            admin_user.email = 'engineadmin@predictionengine.local'
             admin_user.is_staff = True
             admin_user.is_superuser = True
-            admin_user.save()
+            admin_user.is_active = True
 
-        # 3. Create default league 'Toarps Herrklubb' and add members
+        admin_user.set_password('saftochbullar')
+        admin_user.save()
+
+        # Remove superuser/staff status from all other users to ensure strictly ONE global Engine Admin
+        User.objects.exclude(pk=admin_user.pk).update(is_staff=False, is_superuser=False)
+        self.stdout.write(self.style.SUCCESS("Enforced isolated Engine Admin 'johansiedberg'."))
+
+        # 3. Create default league 'Toarps Herrklubb' with player Johan Siedberg as Pool Admin
+        pool_admin_user = User.objects.filter(email='johan.siedberg@gmail.com').first()
         league, l_created = League.objects.get_or_create(
             name="Toarps Herrklubb",
             defaults={
-                "admin": admin_user,
+                "admin": pool_admin_user,
                 "invite_code": "HERRKLUBB2028",
                 "is_active": True,
             }
         )
+        if not l_created and league.admin != pool_admin_user:
+            league.admin = pool_admin_user
+            league.save()
 
-        for u in User.objects.filter(userprofile__is_herrklubb_member=True):
+        for u in herrklubb_users:
             LeagueMember.objects.get_or_create(league=league, player=u)
 
         self.stdout.write(self.style.SUCCESS(

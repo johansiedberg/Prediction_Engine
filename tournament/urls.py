@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib.auth.views import LogoutView
 from .views import (
-    CustomLoginView, dashboard_view, predictions_view, upload_avatar_view,
+    CustomLoginView, register_view, dashboard_view, predictions_view, upload_avatar_view,
     hub_view, join_league_view, switch_league_view, sso_login_view,
     # Engine Admin (Port 2029)
     create_admin_user_view,
@@ -28,6 +28,7 @@ from .views import (
 
 urlpatterns = [
     path('', CustomLoginView.as_view(), name='login'),
+    path('register/', register_view, name='register'),
     path('sso/login/', sso_login_view, name='sso_login'),
     path('hub/', hub_view, name='hub'),
     path('dashboard/', dashboard_view, name='dashboard'),
