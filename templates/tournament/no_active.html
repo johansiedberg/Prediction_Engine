@@ -1,24 +1,40 @@
 {% extends 'tournament/base.html' %}
 {% load static %}
 
-{% block title %}Inga aktiva mästerskap - Mästerskapstips{% endblock %}
+{% block title %}Inga aktiva mästerskap — Mästerskapstips{% endblock %}
+
+{% block header_style %}background: #0B0F19; border-bottom: 1px solid rgba(148, 163, 184, 0.12);{% endblock %}
+{% block backdrop_style %}background: #0B0F19;{% endblock %}
 
 {% block content %}
 <div class="container py-5 text-center">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
-            <div class="p-5 rounded-4 shadow-lg text-white" style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(16px);">
-                <div class="d-inline-flex p-3 rounded-circle mb-3" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3);">
+            <div class="p-5 rounded-4 shadow-lg text-white" style="background: linear-gradient(145deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%); border: 1px solid rgba(148, 163, 184, 0.2); backdrop-filter: blur(16px);">
+                <div class="d-inline-flex p-3.5 rounded-circle mb-3" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3);">
                     <i class="fa-solid fa-trophy fa-3x" style="color: #F59E0B;"></i>
                 </div>
                 
                 <h2 class="fw-bold text-white mb-2">Inga aktiva mästerskap</h2>
-                <p class="text-secondary mb-4" style="font-size: 1.05rem;">
-                    Det finns för närvarande inga aktiva mästerskap i vald vängrupp. Kontakta en administratör eller välj en annan vängrupp.
+                <p class="text-secondary mb-4" style="font-size: 1.05rem; line-height: 1.6;">
+                    Det finns för närvarande inga aktiva mästerskap aktiverade i poolen {% if active_league %}<strong>{{ active_league.name }}</strong>{% else %}din vängrupp{% endif %}.
                 </p>
 
+                {% if user_leagues and user_leagues|length > 1 %}
+                <div class="mb-4 text-start p-3 rounded-3" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.15);">
+                    <div class="small fw-bold text-white-50 mb-2 text-uppercase" style="font-size: 0.72rem;">Välj en annan vängrupp:</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for l in user_leagues %}
+                        <a href="{% url 'switch_league' l.id %}" class="btn btn-sm {% if active_league and active_league.id == l.id %}btn-warning{% else %}btn-outline-secondary text-white{% endif %}" style="border-radius: 8px;">
+                            {{ l.name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="d-flex flex-wrap align-items-center justify-content-center gap-3">
-                    <a href="http://127.0.0.1:1981/hub/" class="btn btn-emerald rounded-pill px-4 fw-semibold">
+                    <a href="{% url 'hub' %}" class="btn btn-emerald rounded-pill px-4 py-2 fw-semibold" style="background: #10b981; color: #ffffff;">
                         <i class="fa-solid fa-house me-2"></i>Tillbaka till Startsidan
                     </a>
                 </div>

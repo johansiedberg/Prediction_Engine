@@ -35,19 +35,17 @@ def dashboard_view(request):
     if not active_league:
         active_league = League.objects.filter(is_active=True).first()
 
-    # Scope active tournaments to the individual pool if configured
-    if active_league and active_league.tournaments.filter(is_active=True).exists():
+    # Scope active tournaments strictly to the active pool
+    if active_league:
         active_tournaments = list(active_league.tournaments.filter(is_active=True))
-    elif active_league and active_league.tournaments.exists():
-        active_tournaments = list(active_league.tournaments.all())
     else:
         active_tournaments = list(Tournament.objects.filter(is_active=True))
 
-    if not active_tournaments and Tournament.objects.exists():
-        active_tournaments = list(Tournament.objects.all())
-
     if not active_tournaments:
-        return render(request, 'tournament/no_active.html')
+        return render(request, 'tournament/no_active.html', {
+            'active_league': active_league,
+            'user_leagues': user_leagues,
+        })
 
     # Resolve selected tournament (from GET parameter, session, or user profile)
     selected_t_id = request.GET.get('tournament_id')
