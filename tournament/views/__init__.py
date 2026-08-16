@@ -48,6 +48,7 @@ from tournament.views.pool_admin import (
     pool_admin_reset_password_view,
     toggle_tournament_player_view,
     toggle_pool_tournament_view,
+    update_pool_admin_email_view,
 )
 
 __all__ = [
