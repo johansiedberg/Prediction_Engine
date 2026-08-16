@@ -39,7 +39,7 @@ class CustomLoginView(LoginView):
             if league:
                 LeagueMember.objects.get_or_create(league=league, player=user)
                 self.request.session['active_league_id'] = league.id
-                messages.success(self.request, f"Välkommen till vängruppen {league.name}!")
+                messages.success(self.request, f"Välkommen till tipsgruppen {league.name}!")
             else:
                 messages.warning(self.request, f"Koden '{invite_code}' hittades inte, men du loggades in.")
         return response
@@ -1274,11 +1274,11 @@ def join_league_view(request):
             if league:
                 member, created = LeagueMember.objects.get_or_create(league=league, player=request.user)
                 request.session['active_league_id'] = league.id
-                messages.success(request, f"Du gick med i vängruppen {league.name}!")
+                messages.success(request, f"Du gick med i tipsgruppen {league.name}!")
             else:
                 messages.error(request, f"Koden '{invite_code}' är ogiltig eller avslutad.")
         else:
-            messages.error(request, "Vänligen fyll i en vängruppskod.")
+            messages.error(request, "Vänligen fyll i en tipsgruppskod.")
     return redirect(request.META.get('HTTP_REFERER', '/dashboard/?tab=predictions'))
 
 
@@ -1287,9 +1287,9 @@ def switch_league_view(request, league_id):
     league = get_object_or_404(League, id=league_id, is_active=True)
     if LeagueMember.objects.filter(league=league, player=request.user).exists() or request.user.is_superuser:
         request.session['active_league_id'] = league.id
-        messages.info(request, f"Växlade till vängruppen {league.name}")
+        messages.info(request, f"Växlade till tipsgruppen {league.name}")
     else:
-        messages.error(request, "Du är inte medlem i den vängruppen.")
+        messages.error(request, "Du är inte medlem i den tipsgruppen.")
     return redirect(request.META.get('HTTP_REFERER', '/dashboard/?tab=predictions'))
 
 

@@ -37,35 +37,8 @@
             <h1 class="fw-extrabold text-white mb-0 display-6 brand-title text-center">{{ active_league.name|default:"Mästerskapstips" }}</h1>
 
             {% if request.user.is_authenticated %}
-            <!-- Pool Selection & User Badge in Top Banner -->
+            <!-- Row 1: Logged in as User & Logout Button -->
             <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mt-1">
-                {% if user_leagues %}
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-dark border border-secondary border-opacity-30 dropdown-toggle px-3 py-1 text-white small fw-bold shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: rgba(15, 23, 42, 0.85); border-radius: 20px;">
-                        <i class="fa-solid fa-users text-warning me-1.5"></i>
-                        <span>Vängrupp: <strong class="text-warning">{{ active_league.name|default:"Välj pool" }}</strong></span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 p-2" style="min-width: 220px; border-radius: 12px;">
-                        <li class="dropdown-header text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem;">Mina Vängrupper / Pooler</li>
-                        {% for l in user_leagues %}
-                        <li>
-                            <a class="dropdown-item rounded-2 py-1.5 d-flex align-items-center justify-content-between {% if active_league and active_league.id == l.id %}active bg-success{% endif %}" href="{% url 'switch_league' l.id %}">
-                                <span class="fw-semibold">{{ l.name }}</span>
-                                <span class="badge bg-dark text-warning font-monospace small" style="font-size: 0.68rem;">{{ l.invite_code }}</span>
-                            </a>
-                        </li>
-                        {% endfor %}
-                        <li><hr class="dropdown-divider border-secondary border-opacity-20 my-1"></li>
-                        <li>
-                            <a class="dropdown-item rounded-2 py-1.5 small text-white-50 d-flex align-items-center gap-2" href="#" data-bs-toggle="modal" data-bs-target="#joinLeagueModal">
-                                <i class="fa-solid fa-plus text-emerald"></i>
-                                <span>Gå med i en ny vängrupp</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                {% endif %}
-
                 <div class="header-badge">
                     <i class="fa-solid fa-user-check me-1"></i>
                     <span>Inloggad som: <strong>{% if request.user.get_full_name %}{{ request.user.get_full_name }}{% elif request.user.first_name %}{{ request.user.first_name }} {{ request.user.last_name }}{% else %}{{ request.user.email }}{% endif %}</strong></span>
@@ -78,6 +51,36 @@
                     </button>
                 </form>
             </div>
+
+            <!-- Row 2: Tipsgrupp Selection Centered on Own Row -->
+            {% if user_leagues %}
+            <div class="d-flex align-items-center justify-content-center mt-2">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-dark border border-secondary border-opacity-30 dropdown-toggle px-3.5 py-1 text-white small fw-bold shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: rgba(15, 23, 42, 0.88); border-radius: 20px;">
+                        <i class="fa-solid fa-users text-warning me-1.5"></i>
+                        <span>Tipsgrupp: <strong class="text-warning">{{ active_league.name|default:"Välj tipsgrupp" }}</strong></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 p-2" style="min-width: 230px; border-radius: 12px;">
+                        <li class="dropdown-header text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem;">Mina Tipsgrupper</li>
+                        {% for l in user_leagues %}
+                        <li>
+                            <a class="dropdown-item rounded-2 py-1.5 d-flex align-items-center justify-content-between {% if active_league and active_league.id == l.id %}active bg-success{% endif %}" href="{% url 'switch_league' l.id %}">
+                                <span class="fw-semibold">{{ l.name }}</span>
+                                <span class="badge bg-dark text-warning font-monospace small" style="font-size: 0.68rem;">{{ l.invite_code }}</span>
+                            </a>
+                        </li>
+                        {% endfor %}
+                        <li><hr class="dropdown-divider border-secondary border-opacity-20 my-1"></li>
+                        <li>
+                            <a class="dropdown-item rounded-2 py-1.5 small text-white-50 d-flex align-items-center gap-2" href="#" data-bs-toggle="modal" data-bs-target="#joinLeagueModal">
+                                <i class="fa-solid fa-plus text-emerald"></i>
+                                <span>Gå med i en ny tipsgrupp</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
             {% endif %}
 
         </div>
@@ -104,13 +107,13 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white border border-secondary border-opacity-30">
                 <div class="modal-header border-bottom border-secondary border-opacity-25">
-                    <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-ticket me-2"></i>Gå med i en ny Vängrupp</h5>
+                    <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-ticket me-2"></i>Gå med i en ny Tipsgrupp</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form action="{% url 'join_league' %}" method="post">
                     {% csrf_token %}
                     <div class="modal-body py-4">
-                        <label for="modal_invite_code" class="form-label text-secondary small fw-semibold">Ange 6-siffrig vängruppskod:</label>
+                        <label for="modal_invite_code" class="form-label text-secondary small fw-semibold">Ange 6-siffrig tipsgruppskod:</label>
                         <input type="text" name="invite_code" id="modal_invite_code" class="form-control text-uppercase shadow-sm" placeholder="t.ex. ENGINE8" style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(245, 158, 11, 0.4); color: #FBBF24; font-weight: 700; letter-spacing: 2px;" required>
                     </div>
                     <div class="modal-footer border-top border-secondary border-opacity-25">

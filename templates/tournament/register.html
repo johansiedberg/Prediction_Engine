@@ -89,13 +89,13 @@
                     <!-- Invite Code -->
                     <div class="mb-4">
                         <label class="form-label fw-semibold small" style="color: #f59e0b;">
-                            <i class="fa-solid fa-ticket me-1"></i>Vängruppskod <span class="text-secondary fw-normal">(valfri)</span>
+                            <i class="fa-solid fa-ticket me-1"></i>Tipsgruppskod <span class="text-secondary fw-normal">(valfri)</span>
                         </label>
                         <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; overflow: hidden;">
                             {{ form.invite_code }}
                         </div>
                         <div class="form-text text-secondary mt-1" style="font-size: 0.72rem;">
-                            Fyll i din 6-siffriga vängruppskod för att gå med direkt vid registrering.
+                            Fyll i din 6-siffriga tipsgruppskod för att gå med direkt vid registrering.
                         </div>
                         {% if form.invite_code.errors %}
                         <div class="text-danger mt-1" style="font-size: 0.75rem;">{{ form.invite_code.errors.0 }}</div>

@@ -76,7 +76,7 @@ class UserRegistrationForm(forms.Form):
         })
     )
     invite_code = forms.CharField(
-        label="Vängruppskod (Pool Code)",
+        label="Tipsgruppskod (Pool Code)",
         required=False,
         max_length=20,
         widget=forms.TextInput(attrs={

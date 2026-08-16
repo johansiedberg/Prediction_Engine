@@ -15,7 +15,7 @@
                     <span class="text-secondary small"><i class="fa-solid fa-shield-halved text-success me-1"></i>Behörighet: Superuser</span>
                 </div>
                 <h2 class="fw-extrabold mb-0 text-white display-6">Engine Control Panel</h2>
-                <p class="text-secondary mb-0 small">Hantera turneringar, validera logik, simulera matcher samt övervaka användare och vängrupper.</p>
+                <p class="text-secondary mb-0 small">Hantera turneringar, validera logik, simulera matcher samt övervaka användare och tipsgrupper.</p>
             </div>
         </div>
     </div>
@@ -216,7 +216,7 @@
                     <div class="p-3.5 bg-transparent border border-secondary border-opacity-30 rounded-4 shadow-sm">
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
-                                <div class="text-secondary text-uppercase fs-7 fw-bold font-monospace">Vängrupper (Pools)</div>
+                                <div class="text-secondary text-uppercase fs-7 fw-bold font-monospace">Tipsgrupper (Pools)</div>
                                 <div class="fs-2 fw-extrabold text-white mt-1">{{ total_leagues }}</div>
                             </div>
                             <div class="p-3 text-emerald">
@@ -273,7 +273,7 @@
             <ul class="nav nav-tabs border-bottom border-secondary border-opacity-25 mb-4" id="monitorSubTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active bg-transparent text-white fw-bold px-3 py-2 border-bottom border-warning border-3" id="pools-sub-tab" data-bs-toggle="tab" data-bs-target="#pools-sub-pane" type="button" role="tab">
-                        <i class="fa-solid fa-users-rectangle me-1.5 text-emerald"></i> Vängrupper (Pools) Table
+                        <i class="fa-solid fa-users-rectangle me-1.5 text-emerald"></i> Tipsgrupper (Pools) Table
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -291,7 +291,7 @@
                         
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
                             <div>
-                                <h4 class="fw-extrabold text-white mb-1"><i class="fa-solid fa-users-rectangle text-emerald me-2"></i>Alla Registrerade Vängrupper (Pools)</h4>
+                                <h4 class="fw-extrabold text-white mb-1"><i class="fa-solid fa-users-rectangle text-emerald me-2"></i>Alla Registrerade Tipsgrupper (Pools)</h4>
                                 <p class="text-secondary small mb-0">Deltagarantal, pool-admins, inskickade tips och kontaktinformation.</p>
                             </div>
                             <div>
@@ -314,7 +314,7 @@
                             <table class="table table-dark table-hover align-middle mb-0 bg-transparent">
                                 <thead>
                                     <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30">
-                                        <th>Vängrupp (Pool)</th>
+                                        <th>Tipsgrupp (Pool)</th>
                                         <th>Kod</th>
                                         <th>Pool Admin</th>
                                         <th>Admin E-post</th>
@@ -379,7 +379,7 @@
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="8" class="text-center text-secondary py-4">Inga vängrupper registrerade.</td>
+                                        <td colspan="8" class="text-center text-secondary py-4">Inga tipsgrupper registrerade.</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -407,7 +407,7 @@
                                         <th>Registrerad</th>
                                         <th>Senast Inloggad</th>
                                         <th>Inskickade Tips</th>
-                                        <th>Aktiva Vängrupper</th>
+                                        <th>Aktiva Tipsgrupper</th>
                                     </tr>
                                 </thead>
                                 <tbody>

@@ -38,7 +38,7 @@ class CustomLoginView(LoginView):
             if league:
                 LeagueMember.objects.get_or_create(league=league, player=user)
                 self.request.session['active_league_id'] = league.id
-                messages.success(self.request, f"Välkommen till vängruppen {league.name}!")
+                messages.success(self.request, f"Välkommen till tipsgruppen {league.name}!")
             else:
                 messages.warning(self.request, f"Koden '{invite_code}' hittades inte, men du loggades in.")
         return response
@@ -92,7 +92,7 @@ def register_view(request):
                 if league:
                     LeagueMember.objects.get_or_create(league=league, player=user)
                     request.session['active_league_id'] = league.id
-                    messages.success(request, f"Välkommen till vängruppen {league.name}!")
+                    messages.success(request, f"Välkommen till tipsgruppen {league.name}!")
                 else:
                     messages.warning(request, f"Koden '{invite_code}' hittades inte, men ditt konto skapades.")
 
