@@ -25,17 +25,47 @@
         style="{% block header_style %}background: linear-gradient(180deg, rgba(15, 23, 42, 0.88) 0%, rgba(11, 15, 25, 0.96) 100%), url('{% if 'pool_admin' in request.resolver_match.url_name or 'request_pool_admin' in request.resolver_match.url_name %}{% static "tournament/img/engine_backdrop.svg" %}{% elif active_league and active_league.banner %}{{ active_league.banner.url }}{% else %}{% static "tournament/img/engine_backdrop.svg" %}{% endif %}'); background-size: cover; background-position: center;{% endblock %}">
         <div class="container d-flex flex-column align-items-center justify-content-center text-center gap-2">
 
-            <!-- Centered Club / Pool Logo -->
+            <!-- Centered Club / Pool Logo (Clickable Link to Startsida) -->
             <div class="d-flex align-items-center justify-content-center mb-1">
-                <img src="{% if active_league and active_league.logo %}{{ active_league.logo.url }}{% else %}{% static 'tournament/img/main_logo.webp' %}{% endif %}" alt="{{ active_league.name|default:'Mästerskapstips' }} Logo"
-                    style="height: 80px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));">
+                <a href="{% url 'hub' %}" title="Till Startsidan" class="d-inline-block text-decoration-none" style="transition: transform 0.2s ease;">
+                    <img src="{% if active_league and active_league.logo %}{{ active_league.logo.url }}{% else %}{% static 'tournament/img/main_logo.webp' %}{% endif %}" alt="{{ active_league.name|default:'Mästerskapstips' }} Logo"
+                        style="height: 80px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));" class="brand-logo-img">
+                </a>
             </div>
 
             <!-- Centered Header Text -->
             <h1 class="fw-extrabold text-white mb-0 display-6 brand-title text-center">{{ active_league.name|default:"Mästerskapstips" }}</h1>
 
             {% if request.user.is_authenticated %}
+            <!-- Pool Selection & User Badge in Top Banner -->
             <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mt-1">
+                {% if user_leagues %}
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-dark border border-secondary border-opacity-30 dropdown-toggle px-3 py-1 text-white small fw-bold shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: rgba(15, 23, 42, 0.85); border-radius: 20px;">
+                        <i class="fa-solid fa-users text-warning me-1.5"></i>
+                        <span>Vängrupp: <strong class="text-warning">{{ active_league.name|default:"Välj pool" }}</strong></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 p-2" style="min-width: 220px; border-radius: 12px;">
+                        <li class="dropdown-header text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem;">Mina Vängrupper / Pooler</li>
+                        {% for l in user_leagues %}
+                        <li>
+                            <a class="dropdown-item rounded-2 py-1.5 d-flex align-items-center justify-content-between {% if active_league and active_league.id == l.id %}active bg-success{% endif %}" href="{% url 'switch_league' l.id %}">
+                                <span class="fw-semibold">{{ l.name }}</span>
+                                <span class="badge bg-dark text-warning font-monospace small" style="font-size: 0.68rem;">{{ l.invite_code }}</span>
+                            </a>
+                        </li>
+                        {% endfor %}
+                        <li><hr class="dropdown-divider border-secondary border-opacity-20 my-1"></li>
+                        <li>
+                            <a class="dropdown-item rounded-2 py-1.5 small text-white-50 d-flex align-items-center gap-2" href="#" data-bs-toggle="modal" data-bs-target="#joinLeagueModal">
+                                <i class="fa-solid fa-plus text-emerald"></i>
+                                <span>Gå med i en ny vängrupp</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
+
                 <div class="header-badge">
                     <i class="fa-solid fa-user-check me-1"></i>
                     <span>Inloggad som: <strong>{% if request.user.get_full_name %}{{ request.user.get_full_name }}{% elif request.user.first_name %}{{ request.user.first_name }} {{ request.user.last_name }}{% else %}{{ request.user.email }}{% endif %}</strong></span>
@@ -48,15 +78,6 @@
                     </button>
                 </form>
             </div>
-
-
-            {% if request.user.is_authenticated and request.resolver_match.url_name != 'hub' %}
-            <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
-                <a href="{% url 'hub' %}" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold">
-                    <i class="fa-solid fa-house me-1"></i> Startsida
-                </a>
-            </div>
-            {% endif %}
             {% endif %}
 
         </div>
