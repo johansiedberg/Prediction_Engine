@@ -625,7 +625,7 @@ class OfficialRegulationsVerifierTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data['status'], 'success')
-        self.assertIn('uppdaterats', data['message'])
+        self.assertIn('sparats', data['message'])
 
         prospect.refresh_from_db()
         self.assertEqual(prospect.official_source_url, 'https://documents.uefa.com/r/Regulations-of-the-UEFA-European-Football-Championship-2026-28-Online')
