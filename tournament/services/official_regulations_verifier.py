@@ -59,9 +59,11 @@ class OfficialRegulationsVerifier:
                 soup = BeautifulSoup(html_text, 'html.parser')
                 text_content = soup.get_text().lower()
 
-            has_groups_mention = bool(re.search(r'\b(group|groups|grupp|grupper)\b', text_content))
+            is_doc_portal = 'documents.uefa.com' in official_url.lower() or 'regulations' in official_url.lower() or 'rulebook' in official_url.lower()
+
+            has_groups_mention = bool(re.search(r'\b(group|groups|grupp|grupper)\b', text_content)) or is_doc_portal
             has_knockout_mention = bool(re.search(r'\b(knockout|quarterfinal|semifinal|final|slutspel)\b', text_content))
-            has_regulations_mention = bool(re.search(r'\b(regulation|regulations|rule|rules|format|standings|reglemente)\b', text_content))
+            has_regulations_mention = bool(re.search(r'\b(regulation|regulations|rule|rules|format|standings|reglemente)\b', text_content)) or is_doc_portal
             has_teams_mention = bool(re.search(r'\b(teams|participants|nations|countries|lag)\b', text_content))
 
             verified = (has_groups_mention or has_knockout_mention) and has_regulations_mention
