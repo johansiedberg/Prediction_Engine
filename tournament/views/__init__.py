@@ -31,6 +31,7 @@ from tournament.views.engine_admin import (
     scout_clear_list_view,
     scout_refresh_all_view,
     scout_deep_scan_one_view,
+    scout_update_official_url_view,
     tournament_points_sidebets_get_view,
 
 

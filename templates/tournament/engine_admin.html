@@ -731,6 +731,13 @@
                                                         &bull; <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size: 0.72rem;">
                                                             <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiell sida
                                                         </a>
+                                                        <button class="btn btn-link text-secondary p-0 ms-0.5 text-decoration-none" style="font-size: 0.75rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '{{ item.official_source_url|escapejs }}')" title="Ändra officiell länk">
+                                                            <i class="fa-solid fa-pen-to-square"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        &bull; <button class="btn btn-outline-info btn-xs rounded-pill font-monospace py-0.5 px-2 text-decoration-none" style="font-size: 0.72rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '')" title="Lägg till manuell webbadress till officiell sida/reglemente">
+                                                            <i class="fa-solid fa-link me-1"></i>+ Officiell länk
+                                                        </button>
                                                     {% endif %}
                                                     {% if item.prospect.payload.master_event.wikipedia_url %}
                                                         &bull; <a href="{{ item.prospect.payload.master_event.wikipedia_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-warning border-opacity-40 text-warning text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size: 0.72rem;">
@@ -3531,6 +3538,39 @@ Search and extract upcoming sports tournaments matching:
         } catch (e) {
             console.error('deepScanProspect error:', e);
             if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+        }
+    }
+
+    async function updateOfficialUrl(prospectId, currentUrl) {
+        const newUrl = prompt('Ange webbadress till officiell turneringssida eller reglements-PDF:\n(t.ex. https://documents.uefa.com/r/... eller https://www.fifa.com/...)', currentUrl || '');
+        if (newUrl === null) return;
+        
+        try {
+            const formData = new FormData();
+            formData.append('official_url', newUrl.trim());
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+            
+            const res = await fetch(`/engine-admin/scout/official-url/${prospectId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: formData,
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                if (typeof showToast === 'function') {
+                    showToast(data.message || 'Officiell länk sparades!', 'success');
+                }
+                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                setTimeout(() => location.reload(), 800);
+            } else {
+                alert(data.message || 'Kunde inte spara officiell länk.');
+            }
+        } catch (e) {
+            console.error('updateOfficialUrl error:', e);
+            alert('Nätverksfel vid sparande av officiell länk.');
         }
     }
 

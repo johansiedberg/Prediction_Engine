@@ -15,7 +15,7 @@ from .views import (
     tournament_sidebet_save_view, tournament_sidebet_delete_view,
     scout_import_json_view, scout_import_wikipedia_view, scout_convert_view, scout_update_status_view,
     scout_delete_view, scout_prospect_json_view, scout_scrape_web_view,
-    scout_clear_list_view, scout_refresh_all_view, scout_deep_scan_one_view,
+    scout_clear_list_view, scout_refresh_all_view, scout_deep_scan_one_view, scout_update_official_url_view,
 
 
     # Pool Admin (Port 2028)
@@ -86,6 +86,7 @@ urlpatterns = [
     path('engine-admin/scout/refresh-all/', scout_refresh_all_view, name='scout_refresh_all'),
     path('engine-admin/scout/clear-list/', scout_clear_list_view, name='scout_clear_list'),
     path('engine-admin/scout/deep-scan/<int:prospect_id>/', scout_deep_scan_one_view, name='scout_deep_scan_one'),
+    path('engine-admin/scout/official-url/<int:prospect_id>/', scout_update_official_url_view, name='scout_update_official_url'),
     path('engine-admin/scout/convert/<int:prospect_id>/', scout_convert_view, name='scout_convert'),
     path('engine-admin/scout/status/<int:prospect_id>/', scout_update_status_view, name='scout_update_status'),
     path('engine-admin/scout/delete/<int:prospect_id>/', scout_delete_view, name='scout_delete'),

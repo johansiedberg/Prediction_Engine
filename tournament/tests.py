@@ -596,6 +596,41 @@ class OfficialRegulationsVerifierTestCase(TestCase):
         prospect.refresh_from_db()
         self.assertEqual(prospect.payload['scouting_audit']['scouting_stage'], 'DEEP')
 
+    @patch('tournament.services.official_regulations_verifier.requests.get')
+    def test_scout_update_official_url_view(self, mock_get):
+        from tournament.models import ScannedTournament
+        admin = User.objects.create_superuser('url_admin', 'url@admin.test', 'urlpass123')
+        self.client.force_login(admin)
+
+        prospect = ScannedTournament.objects.create(
+            name="2026 UEFA Test",
+            master_event_code="2026-uefa-test",
+            completeness_grade="GRADE_B",
+            payload={}
+        )
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.headers = {'Content-Type': 'text/html'}
+        mock_resp.text = "Official competition regulations for group and knockout matches"
+        mock_get.return_value = mock_resp
+
+        response = self.client.post(
+            f'/engine-admin/scout/official-url/{prospect.id}/',
+            {'official_url': 'https://documents.uefa.com/r/Regulations-of-the-UEFA-European-Football-Championship-2026-28-Online'},
+            HTTP_HOST='localhost:2029',
+            HTTP_X_FORWARDED_PROTO='https',
+            secure=True
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('uppdaterats', data['message'])
+
+        prospect.refresh_from_db()
+        self.assertEqual(prospect.official_source_url, 'https://documents.uefa.com/r/Regulations-of-the-UEFA-European-Football-Championship-2026-28-Online')
+        self.assertTrue(prospect.payload['scouting_audit']['official_site_audit']['verified'])
+
 
 
 

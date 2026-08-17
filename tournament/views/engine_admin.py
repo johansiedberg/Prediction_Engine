@@ -1213,6 +1213,42 @@ def scout_deep_scan_one_view(request, prospect_id):
         }, status=500)
 
 
+@superuser_or_staff_required
+@require_POST
+def scout_update_official_url_view(request, prospect_id):
+    """
+    Manually sets or updates the official source URL for a scanned prospect card.
+    Re-runs OfficialRegulationsVerifier on the URL and updates prospect payload in-place.
+    """
+    from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+    
+    prospect = get_object_or_404(ScannedTournament, id=prospect_id)
+    official_url = request.POST.get('official_url', '').strip()
+    
+    off_verifier = OfficialRegulationsVerifier()
+    official_audit = off_verifier.verify_official_regulations(official_url, prospect.name) if official_url else None
+    
+    prospect.official_source_url = official_url
+    
+    payload = prospect.payload or {}
+    scouting_audit = payload.setdefault('scouting_audit', {})
+    scouting_audit['official_source_url'] = official_url
+    if official_audit:
+        scouting_audit['official_site_audit'] = official_audit
+        
+    master_event = payload.setdefault('master_event', {})
+    master_event['official_source_url'] = official_url
+    
+    prospect.payload = payload
+    prospect.save()
+    
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Officiell webbadress för "{prospect.name}" har sparats och verifierats!',
+        'official_url': official_url,
+        'official_site_audit': official_audit,
+    })
+
 
 @superuser_or_staff_required
 @require_POST
