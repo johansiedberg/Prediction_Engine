@@ -1,5 +1,7 @@
+from unittest.mock import patch, MagicMock
 from django.test import TestCase
 from django.contrib.auth.models import User
+
 from tournament.models import (
     Tournament, Match, MatchPrediction, TournamentSubmission,
     DailyGazette, RoundLeaderboardSnapshot, PointSystem, League, LeagueMember
@@ -249,7 +251,354 @@ class WANHTTPSAccessTestCase(TestCase):
             HTTP_X_FORWARDED_PROTO='https',
             secure=True
         )
+class ScoutServiceTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser('scout_admin', 'scout@admin.test', 'scoutpass123')
+
+    @patch('tournament.services.allsportdb_client.requests.get')
+    def test_scrape_web_for_tournaments(self, mock_get):
+        # Mock Sports response and Calendar response
+        mock_sports_resp = MagicMock()
+        mock_sports_resp.status_code = 200
+        mock_sports_resp.json.return_value = [{'id': 1, 'name': 'Innebandy (Floorball)'}]
+
+        mock_cal_resp = MagicMock()
+        mock_cal_resp.status_code = 200
+        mock_cal_resp.json.return_value = [{
+            'id': 901,
+            'title': 'Innebandy-VM Herrar 2026 Championship',
+            'sportId': 1,
+            'sportName': 'Floorball',
+            'startDate': '2026-12-04',
+            'endDate': '2026-12-13',
+            'officialWebsite': 'https://www.floorball.sport'
+        }]
+
+        mock_get.side_effect = [mock_sports_resp, mock_cal_resp]
+
+        from tournament.services.scout_service import scrape_web_for_tournaments
+        created_cnt, updated_cnt, prospects = scrape_web_for_tournaments()
+        self.assertGreater(len(prospects), 0)
+        self.assertEqual(created_cnt + updated_cnt, len(prospects))
+
+    @patch('tournament.services.allsportdb_client.requests.get')
+    def test_scrape_web_with_query_filter(self, mock_get):
+        mock_sports_resp = MagicMock()
+        mock_sports_resp.status_code = 200
+        mock_sports_resp.json.return_value = [{'id': 1, 'name': 'Floorball'}]
+
+        mock_cal_resp = MagicMock()
+        mock_cal_resp.status_code = 200
+        mock_cal_resp.json.return_value = [{
+            'id': 902,
+            'title': 'Innebandy World Championship 2026',
+            'sportId': 1,
+            'sportName': 'Floorball',
+            'startDate': '2026-12-04'
+        }]
+
+        mock_get.side_effect = [mock_sports_resp, mock_cal_resp]
+
+        from tournament.services.scout_service import scrape_web_for_tournaments
+        _, _, prospects = scrape_web_for_tournaments(custom_query='Innebandy')
+        self.assertGreater(len(prospects), 0)
+        self.assertTrue(any('Innebandy' in p.name for p in prospects))
+
+
+    def test_convert_scanned_to_live_tournament_preserves_record(self):
+        from tournament.services.scout_service import parse_and_save_scouted_json, convert_scanned_to_live_tournament
+        from tournament.models import ScannedTournament
+
+        sample = {
+            "scouting_audit": {"completeness_grade": "GRADE_A"},
+            "master_event": {"name": "Test Cup 2026", "code": "test-cup-2026", "sport": "Football"},
+            "tournament_config": {"name": "Test Cup 2026", "total_teams": 4, "knockout_stages": ["Final"]},
+            "groups": [{"name": "Grupp A", "teams": [{"name": "Lag 1"}, {"name": "Lag 2"}]}],
+        }
+        scanned, _, _ = parse_and_save_scouted_json(sample)
+        self.assertEqual(scanned.status, 'NEW')
+
+        tour, err = convert_scanned_to_live_tournament(scanned.id, self.admin)
+        self.assertIsNone(err)
+        self.assertIsNotNone(tour)
+
+        scanned.refresh_from_db()
+        self.assertEqual(scanned.status, 'CONVERTED')
+        self.assertEqual(scanned.converted_tournament, tour)
+
+    def test_delete_tournament_view(self):
+        from tournament.models import Tournament
+        tour = Tournament.objects.create(name='Tournament to Delete', admin=self.admin)
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            f'/engine-admin/delete-tournament/{tour.id}/',
+            HTTP_HOST='localhost:2029'
+        )
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'success')
+        self.assertFalse(Tournament.objects.filter(id=tour.id).exists())
+
+    @patch('tournament.services.allsportdb_client.requests.get')
+
+    def test_scout_scrape_web_view(self, mock_get):
+        mock_sports_resp = MagicMock()
+        mock_sports_resp.status_code = 200
+        mock_sports_resp.json.return_value = [{'id': 1, 'name': 'Floorball'}]
+
+        mock_cal_resp = MagicMock()
+        mock_cal_resp.status_code = 200
+        mock_cal_resp.json.return_value = [{
+            'id': 999,
+            'title': 'World Floorball Championship 2026',
+            'sportId': 1,
+            'sportName': 'Floorball',
+            'startDate': '2026-12-04'
+        }]
+
+        mock_get.side_effect = [mock_sports_resp, mock_cal_resp]
+
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            '/engine-admin/scout/scrape-now/',
+            HTTP_HOST='localhost:2029'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'success')
+        self.assertIn('Webbscanning slutförd', response.json()['message'])
+
+
+
+
+
+class AllSportDBPipelineTestCase(TestCase):
+    def test_h2h_sport_filtering(self):
+        from tournament.services.tournament_filter import is_h2h_team_sport
+
+        self.assertTrue(is_h2h_team_sport('Football'))
+        self.assertTrue(is_h2h_team_sport('Ice Hockey'))
+        self.assertTrue(is_h2h_team_sport('Floorball'))
+        self.assertTrue(is_h2h_team_sport('Basketball'))
+        self.assertTrue(is_h2h_team_sport('Handball'))
+        self.assertTrue(is_h2h_team_sport("Women's Volleyball"))
+
+        self.assertFalse(is_h2h_team_sport('Athletics'))
+        self.assertFalse(is_h2h_team_sport('Swimming'))
+        self.assertFalse(is_h2h_team_sport('Formula 1'))
+        self.assertFalse(is_h2h_team_sport('Chess'))
+        self.assertFalse(is_h2h_team_sport('Darts'))
+
+    def test_championship_format_filtering(self):
+        from tournament.services.tournament_filter import is_championship_or_cup_format
+
+        # Whitelisted Cup / Championship titles
+        valid1, _ = is_championship_or_cup_format('World Cup 2026')
+        self.assertTrue(valid1)
+
+        valid2, _ = is_championship_or_cup_format('EHF European Handball Championship')
+        self.assertTrue(valid2)
+
+        # Exception pattern: Champions League / Europa League
+        valid3, _ = is_championship_or_cup_format('UEFA Champions League 2026/27')
+        self.assertTrue(valid3)
+
+        # Blacklisted regular round-robin league
+        invalid1, _ = is_championship_or_cup_format('Premier League Regular Season')
+        self.assertFalse(invalid1)
+
+        invalid2, _ = is_championship_or_cup_format('NHL Division Games')
+        self.assertFalse(invalid2)
+
+    def test_event_grading_logic(self):
+        from tournament.services.tournament_filter import evaluate_event_grade
+
+        # Grade A: H2H sport + official site + complete teams & fixtures
+        ev_grade_a = {
+            'official_website': 'https://www.fifa.com/worldcup',
+            'teams': [{'name': 'Sweden'}, {'name': 'Brazil'}],
+            'fixtures': [{'match': 1}],
+            'start_date': '2027-06-11'
+        }
+
+        grade_a, _ = evaluate_event_grade(ev_grade_a, is_h2h_sport_compatible=True)
+        self.assertEqual(grade_a, 'GRADE_A')
+
+        # Grade B: H2H sport + official site, but pending full fixtures/teams
+        ev_grade_b = {
+            'official_website': 'https://www.euro2028.com',
+            'teams': [],
+            'start_date': '2028-06-01'
+        }
+        grade_b, _ = evaluate_event_grade(ev_grade_b, is_h2h_sport_compatible=True)
+        self.assertEqual(grade_b, 'GRADE_B')
+
+        # Grade C: Non-H2H sport
+        ev_grade_c = {
+            'official_website': 'https://www.iaaf.org',
+            'teams': [{'name': 'Runner A'}],
+            'start_date': '2026-07-01'
+        }
+        grade_c, _ = evaluate_event_grade(ev_grade_c, is_h2h_sport_compatible=False)
+        self.assertEqual(grade_c, 'GRADE_C')
+
+    def test_models_creation(self):
+        from tournament.models import Sport, TournamentEvent
+
+        sport = Sport.objects.create(external_id=1, name='Ice Hockey', is_h2h_team_sport=True)
+        self.assertEqual(str(sport), 'Ice Hockey (ID: 1) [H2H Compatible]')
+
+        event = TournamentEvent.objects.create(
+            external_id=101,
+            sport=sport,
+            title='IIHF World Championship 2026',
+            start_date='2026-05-08',
+            end_date='2026-05-24',
+            country='Switzerland',
+            city='Zurich',
+            official_website='https://www.iihf.com',
+            completeness_grade='GRADE_A'
+        )
+        self.assertEqual(event.sport, sport)
+        self.assertEqual(event.completeness_grade, 'GRADE_A')
+
+    def test_fallback_regulations_agent_hook(self):
+        from tournament.services.allsportdb_client import AllSportDBClient
+
+        client = AllSportDBClient()
+        url = client.fetch_official_regulations_url('Floorball World Championship 2026')
+        self.assertIn('google.com/search', url)
+        self.assertIn('Floorball+World+Championship+2026', url)
+        self.assertIn('official+tournament+regulations', url)
+
+
+class WikipediaScoutTestCase(TestCase):
+    def test_get_article_title_from_url(self):
+        from tournament.services.wikipedia_scout import WikipediaScout
+        ws = WikipediaScout()
+        url = "https://en.wikipedia.org/wiki/2026_FIBA_Women's_Basketball_World_Cup"
+        title = ws.get_article_title_from_url(url)
+        self.assertEqual(title, "2026_FIBA_Women's_Basketball_World_Cup")
+
+    @patch('tournament.services.wikipedia_scout.requests.get')
+    def test_audit_tournament_page(self, mock_get):
+        from tournament.services.wikipedia_scout import WikipediaScout
+        ws = WikipediaScout()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            'parse': {
+                'sections': [
+                    {'line': 'Qualified teams'},
+                    {'line': 'Group A'},
+                    {'line': 'Group B'},
+                    {'line': 'Knockout stage'}
+                ],
+                'text': {'*': '<table class="infobox"><tr><th>Teams</th><td>16</td></tr></table><h3>Group A</h3><table class="wikitable"><tr><th>Team</th></tr><tr><td>Sweden</td></tr><tr><td>Finland</td></tr></table><h3>Group B</h3><table class="wikitable"><tr><th>Team</th></tr><tr><td>Czech Republic</td></tr><tr><td>Canada</td></tr></table>'}
+            }
+        }
+
+        mock_get.return_value = mock_resp
+
+        audit = ws.audit_tournament_page('2026_FIBA_Women_World_Cup')
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit['teams_count'], 4)
+        self.assertTrue(audit['draw_completed'])
+        self.assertEqual(len(audit['groups']), 2)
+
+
+
+class OfficialRegulationsVerifierTestCase(TestCase):
+    @patch('tournament.services.official_regulations_verifier.requests.get')
+    def test_verify_official_regulations(self, mock_get):
+        from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+        verifier = OfficialRegulationsVerifier()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = "Official Rules and Regulations. Group stage standings and knockout matches format."
+        mock_get.return_value = mock_resp
+
+        res = verifier.verify_official_regulations('https://www.example.org', 'Test World Cup')
+        self.assertTrue(res['verified'])
+        self.assertEqual(res['status'], 'VERIFIED')
+
+    @patch('tournament.services.wikipedia_scout.requests.get')
+    def test_scout_import_wikipedia_view(self, mock_get):
+        admin = User.objects.create_superuser('wiki_admin', 'wiki@admin.test', 'wikipass123')
+        self.client.force_login(admin)
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            'parse': {
+                'text': {'*': '<table class="infobox"><tr><th>Teams</th><td>12</td></tr><tr><th>Host</th><td>Spain</td></tr></table>'}
+            }
+        }
+        mock_get.return_value = mock_resp
+
+        response = self.client.post(
+            '/engine-admin/scout/import-wikipedia/',
+            {'wikipedia_url': "https://en.wikipedia.org/wiki/2026_FIBA_Women's_Basketball_World_Cup"},
+            HTTP_HOST='localhost:2029',
+            HTTP_X_FORWARDED_PROTO='https',
+            secure=True
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('importerades', data['message'])
+
+    @patch('tournament.services.wikipedia_scout.requests.get')
+    def test_scout_deep_scan_one_view(self, mock_get):
+        from tournament.models import ScannedTournament
+        admin = User.objects.create_superuser('deep_admin', 'deep@admin.test', 'deeppass123')
+        self.client.force_login(admin)
+
+        prospect = ScannedTournament.objects.create(
+            name="2026 Test Tournament",
+            master_event_code="2026-test-tournament",
+            completeness_grade="GRADE_C",
+            payload={
+                "scouting_audit": {
+                    "scouting_stage": "SHALLOW",
+                    "wikipedia_url": "https://en.wikipedia.org/wiki/2026_Test_Tournament",
+                    "wikipedia_title": "2026 Test Tournament"
+                }
+            }
+        )
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            'parse': {
+                'sections': [
+                    {'line': 'Group A'},
+                    {'line': 'Group B'},
+                    {'line': 'Fixtures'}
+                ],
+                'text': {'*': '<table class="infobox"><tr><th>Teams</th><td>8</td></tr></table>'}
+            }
+        }
+        mock_get.return_value = mock_resp
+
+        response = self.client.post(
+            f'/engine-admin/scout/deep-scan/{prospect.id}/',
+            HTTP_HOST='localhost:2029',
+            HTTP_X_FORWARDED_PROTO='https',
+            secure=True
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('Djupscanning slutförd', data['message'])
+
+        prospect.refresh_from_db()
+        self.assertEqual(prospect.payload['scouting_audit']['scouting_stage'], 'DEEP')
+
+
+
+
 
 
 

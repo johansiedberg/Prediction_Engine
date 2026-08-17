@@ -36,5 +36,18 @@ When colouring banners, badges, and status notification containers, ensure reada
     - **Border**: Mid-dark tone (`#15803D` / Green-700/800)
     - **Text & Icon**: Pale tint (`#DCFCE7` / Green-100, ~85–90% lightness)
 
+## Tab State Persistence Standard
+- In Engine Admin (`engine_admin.html`), all tab navigation (`1. Tournaments`, `2. Monitor`, `3. Pool-Admin-ansökningar`, `4. AI Tournament Scout`) MUST preserve active state in `localStorage` (`engineAdminActiveTab`) and URL hash (`#scout-pane`).
+- Executing any action (scout scan, tournament delete, status update, point rule save) MUST restore the exact same active tab section on reload without resetting to section 1.
+
+## Section 4: AI Tournament Scout UI & Filtering Rules
+- **AllSportDB Ingestion**: AllSportDB (v3) API is the single authoritative source of scanned tournament prospects.
+- **H2H Team Sport Filter**: Exclude non-H2H individual sports (Chess, Tennis, Archery, Sailing, Wrestling, etc.) by setting grade to `GRADE_C`.
+- **Grade A/B/C Rating Monochromatic Badges**:
+  - **Grade A (100% Ready)**: Green-950 surface (`#052E16`), Green-700 border (`#15803D`), Green-100 text (`#DCFCE7`) + Checkmark Shield icon.
+  - **Grade B (Pending Draw/Fixtures)**: Amber-950 surface (`#451A03`), Amber-700 border (`#B45309`), Amber-100 text (`#FEF3C7`) + Clock icon.
+  - **Grade C (Filtered/Watched)**: Slate-900 surface (`#0F172A`), Slate-600 border (`#475569`), Slate-200 text (`#E2E8F0`) + Info icon.
+
+
 
 

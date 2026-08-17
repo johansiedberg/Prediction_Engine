@@ -9,11 +9,15 @@ from .views import (
     engine_admin_simulate_tournament, engine_admin_reset_simulation,
     engine_admin_toggle_publish, engine_admin_preview_tournament,
     engine_admin_pool_requests_view, engine_admin_approve_pool_request_view,
-    engine_admin_reject_pool_request_view, engine_admin_update_tournament,
+    engine_admin_reject_pool_request_view, engine_admin_update_tournament, engine_admin_delete_tournament_view,
     tournament_points_sidebets_get_view, tournament_points_save_view,
+
     tournament_sidebet_save_view, tournament_sidebet_delete_view,
-    scout_import_json_view, scout_convert_view, scout_update_status_view,
+    scout_import_json_view, scout_import_wikipedia_view, scout_convert_view, scout_update_status_view,
     scout_delete_view, scout_prospect_json_view, scout_scrape_web_view,
+    scout_clear_list_view, scout_refresh_all_view, scout_deep_scan_one_view,
+
+
     # Pool Admin (Port 2028)
     pool_admin_hub_view, create_pool_direct_view,
     request_pool_admin_view, pool_admin_dashboard_view,
@@ -63,7 +67,9 @@ urlpatterns = [
     path('engine-admin/simulate/<int:tournament_id>/', engine_admin_simulate_tournament, name='engine_admin_simulate'),
     path('engine-admin/reset-simulation/<int:tournament_id>/', engine_admin_reset_simulation, name='engine_admin_reset_simulation'),
     path('engine-admin/update-tournament/<int:tournament_id>/', engine_admin_update_tournament, name='engine_admin_update_tournament'),
+    path('engine-admin/delete-tournament/<int:tournament_id>/', engine_admin_delete_tournament_view, name='engine_admin_delete_tournament'),
     path('engine-admin/toggle-publish/<int:tournament_id>/', engine_admin_toggle_publish, name='engine_admin_toggle_publish'),
+
     path('engine-admin/preview/<int:tournament_id>/', engine_admin_preview_tournament, name='engine_admin_preview'),
     path('engine-admin/pool-requests/', engine_admin_pool_requests_view, name='engine_admin_pool_requests'),
     path('engine-admin/pool-requests/approve/<int:request_id>/', engine_admin_approve_pool_request_view, name='engine_admin_approve_pool_request'),
@@ -75,9 +81,15 @@ urlpatterns = [
     path('engine-admin/tournament/<int:tournament_id>/delete-sidebet/<int:sidebet_id>/', tournament_sidebet_delete_view, name='engine_admin_tournament_delete_sidebet'),
     # AI Tournament Scout Routes
     path('engine-admin/scout/import-json/', scout_import_json_view, name='scout_import_json'),
+    path('engine-admin/scout/import-wikipedia/', scout_import_wikipedia_view, name='scout_import_wikipedia'),
     path('engine-admin/scout/scrape-now/', scout_scrape_web_view, name='scout_scrape_web'),
+    path('engine-admin/scout/refresh-all/', scout_refresh_all_view, name='scout_refresh_all'),
+    path('engine-admin/scout/clear-list/', scout_clear_list_view, name='scout_clear_list'),
+    path('engine-admin/scout/deep-scan/<int:prospect_id>/', scout_deep_scan_one_view, name='scout_deep_scan_one'),
     path('engine-admin/scout/convert/<int:prospect_id>/', scout_convert_view, name='scout_convert'),
     path('engine-admin/scout/status/<int:prospect_id>/', scout_update_status_view, name='scout_update_status'),
     path('engine-admin/scout/delete/<int:prospect_id>/', scout_delete_view, name='scout_delete'),
     path('engine-admin/scout/prospect/<int:prospect_id>/json/', scout_prospect_json_view, name='scout_prospect_json'),
 ]
+
+

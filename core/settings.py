@@ -171,3 +171,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 LOGIN_URL = '/'
 LOGIN_REDIRECT_URL = '/hub/'
 LOGOUT_REDIRECT_URL = '/'
+
+# AllSportDB (v3) API Settings (Engine Admin Pipeline)
+ALLSPORTDB_API_KEY = os.getenv('ALLSPORTDB_API_KEY', '8e1624b6-9e05-44c1-af91-9bc3b2b74f3d')
+ALLSPORTDB_API_BASE_URL = os.getenv('ALLSPORTDB_API_BASE_URL', 'https://api.allsportdb.com/v3')

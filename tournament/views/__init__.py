@@ -27,11 +27,19 @@ from tournament.views.engine_admin import (
     scout_delete_view,
     scout_prospect_json_view,
     scout_scrape_web_view,
+    scout_import_wikipedia_view,
+    scout_clear_list_view,
+    scout_refresh_all_view,
+    scout_deep_scan_one_view,
     tournament_points_sidebets_get_view,
+
+
     tournament_points_save_view,
     tournament_sidebet_save_view,
     tournament_sidebet_delete_view,
+    engine_admin_delete_tournament_view,
 )
+
 from tournament.views.pool_admin import (
     pool_admin_hub_view,
     create_pool_direct_view,

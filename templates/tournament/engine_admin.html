@@ -172,7 +172,16 @@
                                         <span id="pub-btn-text-{{ item.tournament.id }}">Publicera</span>
                                     </button>
                                     {% endif %}
-                                </div>
+
+                                     <!-- RADERA TURNERING BUTTON -->
+                                     <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold d-inline-flex align-items-center gap-1.5" 
+                                             onclick="deleteTournament({{ item.tournament.id }}, '{{ item.tournament.name|escapejs }}')"
+                                             title="Radera denna turnering permanent">
+                                         <i class="fa-solid fa-trash-can"></i>
+                                         <span>Radera</span>
+                                     </button>
+                                 </div>
+
                             </div>
 
                             <!-- Expandable Drawer for Checklist & Simulation Output -->
@@ -580,6 +589,7 @@
 
         <!-- SECTION 4: AI TOURNAMENT SCOUT -->
         <div class="tab-pane fade" id="scout-pane" role="tabpanel">
+            {% csrf_token %}
             
             <!-- Scout Header Banner & Actions Toolbar -->
             <div class="card bg-transparent text-white border border-secondary border-opacity-30 rounded-4 p-4 mb-4 shadow-sm border-start border-4 border-info">
@@ -594,18 +604,53 @@
                         <h3 class="fw-extrabold mb-1 text-white">Scannade Turneringar & Prospekt</h3>
                         <p class="text-secondary mb-0 small">Automatiskt scannade och granskade turneringar. Verifiera lottning, spelschema och konvertera godkända turneringar med ett klick.</p>
                     </div>
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <button class="btn btn-info rounded-pill px-3.5 py-2 fw-bold shadow-sm text-dark" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
-                            <i class="fa-solid fa-satellite-dish me-1.5"></i>Scanna webben nu
-                        </button>
-                        <button class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#importScoutJsonModal">
-                            <i class="fa-solid fa-file-import me-1.5"></i>Importera Scout-JSON
-                        </button>
-                        <button class="btn btn-outline-light rounded-pill px-3.5 py-2 fw-bold shadow-sm" onclick="copyGeminiPromptToClipboard()">
-                            <i class="fa-solid fa-copy me-1.5"></i>Kopiera Gemini-Prompt
-                        </button>
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <!-- Group 1: Scan for new / Import from Wikipedia -->
+                        <div class="d-flex align-items-center gap-2 p-1.5 rounded-4 bg-dark bg-opacity-60 border border-secondary border-opacity-30">
+                            <button class="btn btn-info rounded-pill px-3.5 py-2 fw-bold shadow-sm text-dark d-inline-flex align-items-center" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
+                                <i class="fa-solid fa-satellite-dish me-1.5"></i>Scanna webben nu
+                            </button>
+                            <button class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center" data-bs-toggle="modal" data-bs-target="#importWikipediaModal">
+                                <i class="fa-brands fa-wikipedia-w me-1.5"></i>Importera via Wikipedia
+                            </button>
+                        </div>
+
+                        <!-- Group 2: Refresh all in list -->
+                        <div class="d-flex align-items-center p-1.5 rounded-4 bg-dark bg-opacity-60 border border-secondary border-opacity-30">
+                            <button class="btn btn-outline-info rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center" onclick="refreshAllScoutProspects()">
+                                <i class="fa-solid fa-rotate me-1.5"></i>Uppdatera alla i listan
+                            </button>
+                        </div>
+
+                        <!-- Group 3: Clear list -->
+                        <div class="d-flex align-items-center p-1.5 rounded-4 bg-dark bg-opacity-60 border border-secondary border-opacity-30">
+                            <button class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center" onclick="clearScoutProspectsList()">
+                                <i class="fa-solid fa-broom me-1.5"></i>Rensa listan
+                            </button>
+                        </div>
+
+                        <!-- Dropdown: Secondary Import Tools -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-ellipsis-vertical me-1"></i>Mer
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 rounded-3">
+                                <li>
+                                    <a class="dropdown-item py-2 small" href="#" data-bs-toggle="modal" data-bs-target="#importScoutJsonModal">
+                                        <i class="fa-solid fa-file-import me-2 text-warning"></i>Importera Scout-JSON
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2 small" href="#" onclick="copyGeminiPromptToClipboard()">
+                                        <i class="fa-solid fa-copy me-2 text-info"></i>Kopiera Gemini-Prompt
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
+
+
 
                 <!-- Filter Pills Row -->
                 <div class="d-flex flex-wrap align-items-center gap-2 mt-4 pt-3 border-top border-secondary border-opacity-20">
@@ -621,6 +666,9 @@
                     </button>
                     <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_C" onclick="filterScoutProspects('GRADE_C', this)" style="background: rgba(6,182,212,0.12); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3);">
                         🟠 Grade C (Bevakning) (<span id="count-scout-grade-c">{{ scout_counts.grade_c }}</span>)
+                    </button>
+                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="CONVERTED" onclick="filterScoutProspects('CONVERTED', this)" style="background: rgba(16,185,129,0.12); color: #2eca8b; border: 1px solid rgba(16,185,129,0.3);">
+                        ✅ Konverterade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
                     </button>
                 </div>
             </div>
@@ -652,6 +700,13 @@
                                                     <span class="badge {{ item.status_meta.badge_class }} rounded-pill px-2.5 py-1 font-monospace small">
                                                         {{ item.status_meta.label }}
                                                     </span>
+                                                    {% if item.scouting_stage == 'SHALLOW' %}
+                                                    <span class="badge rounded-pill px-2.5 py-1 font-monospace small fw-semibold"
+                                                          style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;"
+                                                          title="Klicka Djupscanna för fullständig Wikipedia-analys">
+                                                        <i class="fa-solid fa-hourglass-half me-1"></i>Inväntar djupscanning
+                                                    </span>
+                                                    {% endif %}
                                                     {% if item.days_to_start is not None %}
                                                         {% if item.days_to_start > 0 %}
                                                             <span class="badge bg-dark border border-info border-opacity-40 text-info font-monospace rounded-pill px-2.5 py-1 small">
@@ -677,7 +732,13 @@
                                                             <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiell sida
                                                         </a>
                                                     {% endif %}
+                                                    {% if item.prospect.payload.master_event.wikipedia_url %}
+                                                        &bull; <a href="{{ item.prospect.payload.master_event.wikipedia_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-warning border-opacity-40 text-warning text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size: 0.72rem;">
+                                                            <i class="fa-brands fa-wikipedia-w me-1"></i>Wikipedia-Reglemente
+                                                        </a>
+                                                    {% endif %}
                                                 </div>
+
                                             </div>
                                         </div>
                                         
@@ -697,6 +758,21 @@
                                             </button>
                                             {% endif %}
 
+                                            <!-- DEEP SCOUT BUTTON -->
+                                            <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5"
+                                                    id="deepScanBtn-{{ item.prospect.id }}"
+                                                    onclick="deepScanProspect({{ item.prospect.id }})"
+                                                    {% if item.scouting_stage == 'SHALLOW' %}
+                                                    style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;"
+                                                    title="Kör fullständig Wikipedia-djupscanning för denna turnering"
+                                                    {% else %}
+                                                    style="background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;"
+                                                    title="Om-kör djupscanning från Wikipedia"
+                                                    {% endif %}>
+                                                <i class="fa-solid fa-microscope"></i>
+                                                <span>{% if item.scouting_stage == 'SHALLOW' %}Djupscanna{% else %}Rescan{% endif %}</span>
+                                            </button>
+
                                             <!-- DIRECT CREATE BUTTON -->
                                             <button class="btn btn-success btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="convertDirect({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}')">
                                                 <i class="fa-solid fa-bolt"></i><span>Skapa nu</span>
@@ -704,7 +780,7 @@
 
                                             <!-- REVIEW & CONVERT MODAL BUTTON -->
                                             <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="openReviewConvertModal({{ item.prospect.id }})">
-                                                <i class="fa-solid fa-wand-magic-sparkles"></i><span>Granska & Skapa</span>
+                                                <i class="fa-solid fa-wand-magic-sparkles"></i><span>Granska &amp; Skapa</span>
                                             </button>
 
                                             <button class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1.5 ms-1" onclick="deleteProspect({{ item.prospect.id }})" title="Radera från Scout">
@@ -757,6 +833,16 @@
                                                 </div>
                                                 
                                                 <!-- Status Checklist Bullets -->
+                                                {% if item.scouting_stage == 'SHALLOW' %}
+                                                <div class="d-flex align-items-start gap-2.5 mb-2.5 pb-2 border-bottom border-secondary border-opacity-20 small p-2 rounded-2"
+                                                     style="background:rgba(69,26,3,0.35);border:1px solid #B45309 !important;">
+                                                    <span class="flex-shrink-0 mt-0.5" style="color:#FEF3C7;"><i class="fa-solid fa-hourglass-half"></i></span>
+                                                    <div style="color:#FEF3C7;">
+                                                        <strong>Djupscanning ej utförd</strong>
+                                                        <div class="mt-0.5" style="color:#FDE68A;font-size:0.8rem;">Wikipedia-länk hittad. Klicka <strong>Djupscanna</strong> för fullständig lottnings-, spelschema- och reglementesanalys.</div>
+                                                    </div>
+                                                </div>
+                                                {% else %}
                                                 <div class="d-flex flex-column gap-1.5 mb-2.5 pb-2 border-bottom border-secondary border-opacity-20 small">
                                                     <div class="d-flex align-items-center gap-2">
                                                         {% if item.draw_done %}
@@ -770,13 +856,31 @@
                                                     <div class="d-flex align-items-center gap-2">
                                                         {% if item.fixtures_done %}
                                                             <span class="text-success flex-shrink-0"><i class="fa-solid fa-circle-check"></i></span>
-                                                            <span class="text-light">Spelschema: <strong class="text-white">Fastställt</strong> ({{ item.matches_count }} matcher)</span>
+                                                            {% if item.fixtures_have_placeholders %}
+                                                                <span class="text-light">Spelschema: <strong class="text-white">Fastställt med platshållare</strong>
+                                                                    ({{ item.matches_count }} matcher
+                                                                    {% if item.scheduled_matchdays %}&amp; {{ item.scheduled_matchdays }} matchdagar{% endif %})
+                                                                    <span class="badge bg-secondary text-white ms-1 fw-normal" title="Lag ännu ej lottade – bracket/platshållare finns">
+                                                                        <i class="fa-solid fa-code-branch me-1"></i>Platshållare
+                                                                    </span>
+                                                                </span>
+                                                            {% elif item.scheduled_matchdays and not item.matches_count %}
+                                                                <span class="text-light">Spelschema: <strong class="text-white">Matchdagar fastställda</strong>
+                                                                    ({{ item.scheduled_matchdays }} matchdagar)
+                                                                    <span class="badge bg-info text-dark ms-1 fw-normal" title="Individuella matcher ej listade än">
+                                                                        <i class="fa-solid fa-calendar-days me-1"></i>Schema
+                                                                    </span>
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="text-light">Spelschema: <strong class="text-white">Fastställt</strong> ({{ item.matches_count }} matcher)</span>
+                                                            {% endif %}
                                                         {% else %}
                                                             <span class="text-warning flex-shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></span>
-                                                            <span class="text-warning">Spelschema: <strong>Exakta klockslag/datum saknas</strong></span>
+                                                            <span class="text-warning">Spelschema: <strong>Inväntar lottning och spelschema</strong></span>
                                                         {% endif %}
                                                     </div>
                                                 </div>
+                                                {% endif %}
 
                                                 <!-- Missing Items Bullet Points -->
                                                 {% if item.missing_items %}
@@ -804,6 +908,25 @@
                                                     </div>
                                                 </div>
                                                 {% endif %}
+
+                                                <!-- Watchlist & Rescan Info -->
+                                                {% if item.prospect.payload.scouting_audit.next_rescan_date or item.prospect.payload.scouting_audit.draw_date %}
+                                                <div class="mt-2.5 pt-2 border-top border-secondary border-opacity-20 small">
+                                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                                        {% if item.prospect.payload.scouting_audit.draw_date %}
+                                                        <span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-40">
+                                                            <i class="fa-solid fa-ticket me-1"></i>Lottningsdatum: {{ item.prospect.payload.scouting_audit.draw_date }}
+                                                        </span>
+                                                        {% endif %}
+                                                        {% if item.prospect.payload.scouting_audit.next_rescan_date %}
+                                                        <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-40">
+                                                            <i class="fa-solid fa-clock-rotate-left me-1"></i>Planerad om-scanning: {{ item.prospect.payload.scouting_audit.next_rescan_date|slice:":10" }}
+                                                        </span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                {% endif %}
+
                                             </div>
                                         </div>
 
@@ -954,8 +1077,49 @@
 
 </div>
 
+<!-- MODAL 0: IMPORT WIKIPEDIA MODAL -->
+<div class="modal fade" id="importWikipediaModal" tabindex="-1" aria-labelledby="importWikipediaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border border-warning border-opacity-40 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 text-warning">
+                        <i class="fa-brands fa-wikipedia-w fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-extrabold text-white mb-0" id="importWikipediaModalLabel">Importera via Wikipedia</h5>
+                        <span class="text-secondary small">Direktimportera om turneringen saknas i AllSportDB</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <p class="text-secondary small mb-3">Klistra in en Wikipedia-länk eller turneringsnamn. Systemet läser in lag, grupper, spelschema och föreskrifter direkt från Wikipedia.</p>
+                
+                <div class="mb-3">
+                    <label for="wikipediaUrlInput" class="form-label text-warning small font-monospace fw-bold text-uppercase mb-1">Wikipedia URL / Turneringsnamn</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary border-opacity-40 rounded-3 p-2.5 font-monospace small" id="wikipediaUrlInput" placeholder="https://en.wikipedia.org/wiki/2026_FIBA_Women's_Basketball_World_Cup">
+                </div>
+
+                <div class="p-3 rounded-3 bg-dark bg-opacity-60 border border-warning border-opacity-20 text-warning small">
+                    <i class="fa-solid fa-lightbulb me-1.5"></i>Exempel: <code>https://en.wikipedia.org/wiki/2026_Men's_World_Floorball_Championships</code>
+                </div>
+            </div>
+            
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 justify-content-between">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Avbryt</button>
+                <button type="button" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" id="confirmWikipediaImportBtn" onclick="importFromWikipediaUrl()">
+                    <i class="fa-solid fa-cloud-arrow-down me-1.5"></i>Importera Prospekt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- MODAL 1: IMPORT SCOUT JSON MODAL -->
 <div class="modal fade" id="importScoutJsonModal" tabindex="-1" aria-labelledby="importScoutJsonModalLabel" aria-hidden="true">
+
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
             <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
@@ -2612,6 +2776,47 @@
         });
     }
 
+    function deleteTournament(tournamentId, tournamentName) {
+        if (!confirm(`🚨 Är du säker på att du vill radera turneringen "${tournamentName}" (#${tournamentId}) permanent?\n\nAlla tillhörande grupper, matcher, resultat och gissningar kommer att raderas!`)) {
+            return;
+        }
+
+        const csrfToken = getCSRFToken();
+        fetch(`/engine-admin/delete-tournament/${tournamentId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(async r => {
+            if (!r.ok) {
+                const text = await r.text();
+                throw new Error(`HTTP ${r.status}: ${text.substring(0, 150)}`);
+            }
+            return r.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                alert('🗑️ ' + data.message);
+                const card = document.getElementById(`tournament-card-${tournamentId}`);
+                if (card) {
+                    const col = card.closest('.col-12');
+                    if (col) col.remove();
+                    else card.remove();
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert('Fel vid radering av turnering: ' + data.message);
+            }
+        })
+        .catch(err => {
+            alert('Nätverksfel vid radering av turnering: ' + err.message);
+        });
+    }
+
+
     // --- POOL ADMIN REQUESTS SECTION ---
     function loadPoolRequests() {
         fetch('/engine-admin/pool-requests/')
@@ -2883,6 +3088,52 @@
         });
     }
 
+    function importFromWikipediaUrl() {
+        const input = document.getElementById('wikipediaUrlInput');
+        const wikiUrl = input ? input.value.trim() : '';
+        if (!wikiUrl) {
+            alert('Vänligen ange en giltig Wikipedia URL eller sökterm.');
+            return;
+        }
+
+        const btn = document.getElementById('confirmWikipediaImportBtn');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Importerar från Wikipedia...';
+
+        const csrfToken = getCSRFToken();
+        const formData = new FormData();
+        formData.append('wikipedia_url', wikiUrl);
+
+        fetch('/engine-admin/scout/import-wikipedia/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData,
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                hideModalSafe('importWikipediaModal');
+                alert('🚀 ' + data.message);
+                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                location.reload();
+            } else {
+                alert('Fel vid Wikipedia-import: ' + data.message);
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        })
+        .catch(err => {
+            alert('Nätverksfel vid Wikipedia-import: ' + err.message);
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
+    }
+
+
     function openReviewConvertModal(prospectId) {
         currentReviewProspectId = prospectId;
 
@@ -3060,8 +3311,10 @@
         .then(data => {
             if (data.status === 'success') {
                 alert('🎉 ' + data.message);
+                localStorage.setItem('engineAdminActiveTab', 'tournaments-tab');
                 location.reload();
             } else {
+
                 alert('Fel vid skapande: ' + data.message);
             }
         })
@@ -3098,6 +3351,7 @@
             if (data.status === 'success') {
                 hideModalSafe('reviewConvertModal');
                 alert('🎉 ' + data.message);
+                localStorage.setItem('engineAdminActiveTab', 'tournaments-tab');
                 location.reload();
             } else {
                 alert('Fel: ' + data.message);
@@ -3132,11 +3386,13 @@
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
+                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
                 location.reload();
             } else {
                 alert('Fel: ' + data.message);
             }
         })
+
         .catch(err => alert('Nätverksfel: ' + err.message));
     }
 
@@ -3154,21 +3410,15 @@
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
-                const card = document.getElementById(`prospect-card-${prospectId}`);
-                if (card) {
-                    card.style.transition = 'all 0.3s ease';
-                    card.style.opacity = '0';
-                    card.style.transform = 'scale(0.95)';
-                    setTimeout(() => card.remove(), 300);
-                } else {
-                    location.reload();
-                }
+                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                location.reload();
             } else {
                 alert('Fel vid radering: ' + data.message);
             }
         })
         .catch(err => alert('Nätverksfel: ' + err.message));
     }
+
 
     function viewRawJsonProspect(prospectId) {
         fetch(`/engine-admin/scout/prospect/${prospectId}/json/`)
@@ -3198,21 +3448,124 @@ Search and extract upcoming sports tournaments matching:
         });
     }
 
+    function refreshAllScoutProspects() {
+        if (!confirm('Vill du uppdatera och om-scanna alla turneringar i listan mot Wikipedia?')) return;
+        const csrfToken = getCSRFToken();
+
+        fetch('/engine-admin/scout/refresh-all/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('🔄 ' + data.message);
+                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                location.reload();
+            } else {
+                alert('Fel vid uppdatering: ' + data.message);
+            }
+        })
+        .catch(err => alert('Nätverksfel vid uppdatering: ' + err.message));
+    }
+
+    function clearScoutProspectsList() {
+        if (!confirm('⚠️ Är du säker på att du vill rensa alla ej konverterade prospekt från scout-listan?')) return;
+        const csrfToken = getCSRFToken();
+
+        fetch('/engine-admin/scout/clear-list/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('🧹 ' + data.message);
+                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                location.reload();
+            } else {
+                alert('Fel vid rensning: ' + data.message);
+            }
+        })
+        .catch(err => alert('Nätverksfel: ' + err.message));
+    }
+
+    async function deepScanProspect(prospectId) {
+        const btn = document.getElementById(`deepScanBtn-${prospectId}`);
+        const originalHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i><span>Skannar…</span>';
+        }
+        try {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                || getCookie('csrftoken');
+            const res = await fetch(`/engine-admin/scout/deep-scan/${prospectId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                if (typeof showToast === 'function') {
+                    showToast(data.message || 'Djupscanning slutförd!', 'success');
+                }
+                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                setTimeout(() => location.reload(), 800);
+            } else {
+                if (typeof showToast === 'function') {
+                    showToast(data.message || 'Djupscanning misslyckades.', 'error');
+                } else {
+                    alert(data.message || 'Djupscanning misslyckades.');
+                }
+                if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+            }
+        } catch (e) {
+            console.error('deepScanProspect error:', e);
+            if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+        }
+    }
+
     function triggerWebScrapeNow() {
+        const query = prompt('AllSportDB Turneringsscanning:\nAnge sökfilter (t.ex. "Football", "Floorball", "EHF", "VM") eller lämna tomt för att scanna alla kommande turneringar:', '');
+        if (query === null) return;
+
+
         const btn = document.getElementById('scrapeWebNowBtn');
         const originalHtml = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-satellite-dish fa-spin me-1.5"></i>Scannar webben...';
 
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+        const formData = new FormData();
+        if (query.trim()) {
+            formData.append('query', query.trim());
+        }
+
         fetch('/engine-admin/scout/scrape-now/', {
             method: 'POST',
             headers: {'X-CSRFToken': csrfToken},
+            body: formData,
         })
-        .then(r => r.json())
+        .then(async r => {
+            if (!r.ok) {
+                const text = await r.text();
+                throw new Error(`HTTP ${r.status}: ${text.substring(0, 150)}`);
+            }
+            return r.json();
+        })
         .then(data => {
             if (data.status === 'success') {
                 alert('🚀 ' + data.message);
+                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
                 location.reload();
             } else {
                 alert('Fel vid webbscanning: ' + data.message);
@@ -3227,8 +3580,41 @@ Search and extract upcoming sports tournaments matching:
         });
     }
 
+    // --- TAB PERSISTENCE SYSTEM ---
+    function initTabPersistence() {
+        const STORAGE_KEY = 'engineAdminActiveTab';
+
+        // 1. Restore saved tab on load
+        const savedTabId = localStorage.getItem(STORAGE_KEY) || (location.hash ? location.hash.replace('#', '') : null);
+        if (savedTabId) {
+            const btn = document.getElementById(savedTabId) || document.querySelector(`[data-bs-target="#${savedTabId}"]`);
+            if (btn) {
+                try {
+                    const bsTab = bootstrap.Tab.getOrCreateInstance(btn);
+                    bsTab.show();
+                } catch(e) {
+                    console.warn('Could not restore active tab:', e);
+                }
+            }
+        }
+
+        // 2. Save active tab on user selection
+        document.querySelectorAll('#adminMainSections button[data-bs-toggle="pill"]').forEach(tabBtn => {
+            tabBtn.addEventListener('shown.bs.tab', function(e) {
+                const targetId = e.target.id;
+                localStorage.setItem(STORAGE_KEY, targetId);
+                if (history.replaceState) {
+                    history.replaceState(null, null, '#' + targetId);
+                }
+            });
+        });
+    }
+
     // Pre-load requests list and attach global dismiss handlers
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tab persistence
+        initTabPersistence();
+
         // Move all modals directly to document.body to prevent stacking context or z-index trapping
         document.querySelectorAll('.modal').forEach(modal => {
             if (modal.parentElement !== document.body) {
@@ -3254,3 +3640,4 @@ Search and extract upcoming sports tournaments matching:
     });
 </script>
 {% endblock %}
+

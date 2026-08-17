@@ -1313,3 +1313,71 @@ class ScannedTournament(models.Model):
     def __str__(self):
         return f"[{self.completeness_grade}] {self.name} ({self.status})"
 
+
+# --- AllSportDB Pipeline Models ---
+
+class Sport(models.Model):
+    """
+    Represents a sport discipline fetched from AllSportDB API.
+    Identifies whether the sport is compatible with H2H team tournament predictions.
+    """
+    external_id = models.IntegerField(unique=True, help_text="AllSportDB Sport ID")
+    name = models.CharField(max_length=100)
+    is_h2h_team_sport = models.BooleanField(
+        default=False, 
+        help_text="True if this is a Head-to-Head team sport suitable for group stages and playoff tree predictions"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = "Sport Discipline"
+        verbose_name_plural = "Sport Disciplines"
+
+    def __str__(self):
+        status = "H2H Compatible" if self.is_h2h_team_sport else "Non-H2H / Individual"
+        return f"{self.name} (ID: {self.external_id}) [{status}]"
+
+
+class TournamentEvent(models.Model):
+    """
+    Represents an upcoming championship/cup tournament event fetched from AllSportDB API.
+    """
+    external_id = models.IntegerField(unique=True, help_text="AllSportDB Event ID")
+    sport = models.ForeignKey(Sport, on_delete=models.CASCADE, related_name='tournament_events')
+    title = models.CharField(max_length=255, help_text="Tournament official title")
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    organizer = models.CharField(max_length=100, blank=True)
+    official_website = models.URLField(max_length=500, blank=True, help_text="Official tournament or federation website")
+    official_regulations_url = models.URLField(
+        max_length=500, 
+        blank=True, 
+        help_text="Direct link or search fallback link for tournament rulebook/format regulations"
+    )
+    format_category = models.CharField(max_length=50, default='Championship/Cup')
+    completeness_grade = models.CharField(max_length=20, default='GRADE_B')
+    grade_reason = models.TextField(blank=True)
+    scanned_prospect = models.ForeignKey(
+        ScannedTournament, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='allsport_events'
+    )
+    payload = models.JSONField(default=dict, help_text="Raw payload from AllSportDB API")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['start_date', 'title']
+        verbose_name = "Tournament Event"
+        verbose_name_plural = "Tournament Events"
+
+    def __str__(self):
+        return f"{self.title} ({self.sport.name}) [{self.start_date or 'TBD'}]"
+
+
