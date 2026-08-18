@@ -939,7 +939,7 @@
 
                                 <!-- Card Body Content -->
                                 <div class="row g-3 mt-1">
-                                    <!-- Left Column: Metrics Capsules & Scanning CTA Frame -->
+                                    <!-- Left Column: Metrics Capsules -->
                                     <div class="col-12 col-lg-5 d-flex flex-column gap-3">
                                         <!-- Metrics Capsules (3 Proportional Columns: Lag, Grupper, Matcher) -->
                                         <div class="row g-2">
@@ -968,22 +968,22 @@
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
 
+                                    <!-- Right Column: Frame for deepscan (if SHALLOW) OR Expansion headers (Else) -->
+                                    <div class="col-12 col-lg-7">
                                         {% if item.scouting_stage == 'SHALLOW' %}
                                         <!-- Big Shallow Scanning CTA Frame -->
-                                        <div class="p-4 rounded-3 text-center d-flex flex-column align-items-center justify-content-center flex-grow-1" style="background:rgba(245,158,11,0.06);border:1px dashed rgba(245,158,11,0.3);">
+                                        <div class="p-4 rounded-3 text-center d-flex flex-column align-items-center justify-content-center h-100" style="background:rgba(245,158,11,0.06);border:1px dashed rgba(245,158,11,0.3);">
                                             <i class="fa-solid fa-microscope text-warning fs-2 mb-2"></i>
                                             <div class="fw-bold text-white fs-6 mb-1">Djupscanning krävs</div>
-                                            <div class="text-secondary small mb-3 font-monospace" style="font-size:0.85rem;">Klicka på Djupscanna för att grupper, spelschema och föreskrifter ska hämtas automatiskt via Wikipedia.</div>
+                                            <div class="text-secondary small mb-3 font-monospace" style="max-width:340px;font-size:0.85rem;">Klicka på Djupscanna för att grupper, spelschema och föreskrifter ska hämtas automatiskt via Wikipedia.</div>
                                             <button class="btn btn-warning btn-sm rounded-pill px-4 py-2 fw-bold shadow-sm text-dark" onclick="deepScanProspect({{ item.prospect.id }})">
                                                 <i class="fa-solid fa-microscope me-1.5"></i>Starta djupscanning
                                             </button>
                                         </div>
-                                        {% endif %}
-                                    </div>
-
-                                    <!-- Right Column: Accordion Expansion Headers with Conditional Icons (7px Gap) -->
-                                    <div class="col-12 col-lg-7">
+                                        {% else %}
+                                        <!-- Accordion Expansion Headers -->
                                         <div class="accordion scout-accordion" id="prospectAccordion-{{ item.prospect.id }}">
 
                                             <!-- Groups -->
@@ -1116,6 +1116,7 @@
                                             </div>
 
                                         </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
