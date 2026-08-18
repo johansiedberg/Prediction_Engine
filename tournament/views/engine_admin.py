@@ -1062,156 +1062,188 @@ def scout_scrape_web_view(request):
         }, status=500)
 
 
+def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
+    """
+    Shared Stage 2–4 deep-scan engine.
+
+    Runs the full audit_tournament_page() analysis, OfficialRegulationsVerifier
+    cross-audit, Multi-Level Grade A/B/C classification, and updates
+    scouting_stage to 'DEEP' on *prospect* in-place.
+
+    Returns a dict with keys:
+        ok (bool), error (str|None), grade, grade_reason,
+        fixtures_count, groups_count, teams_count,
+        draw_completed, draw_date, scheduled_matchdays
+
+    The caller is responsible for calling prospect.save().
+    """
+    import datetime
+
+    payload        = prospect.payload or {}
+    scouting_audit = payload.get('scouting_audit', {})
+
+    # Resolve Wikipedia page title
+    wiki_url   = scouting_audit.get('wikipedia_url') or prospect.official_source_url or ''
+    page_title = wiki_scout.get_article_title_from_url(wiki_url)
+    if not page_title:
+        page_title = scouting_audit.get('wikipedia_title') or ''
+    if not page_title:
+        page_title = wiki_scout.search_wikipedia_article(prospect.name)
+
+    if not page_title:
+        return {
+            'ok': False,
+            'error': f'Kunde inte hitta Wikipedia-artikel för "{prospect.name}". Kontrollera Wikipedia-länken.',
+        }
+
+    # Full Stage 2 deep audit
+    audit = wiki_scout.audit_tournament_page(page_title)
+    if not audit:
+        return {
+            'ok': False,
+            'error': f'Kunde inte läsa Wikipedia-sidan för "{page_title}".',
+        }
+
+    # Stage 3 – Official Regulations cross-audit
+    official_website = (
+        payload.get('master_event', {}).get('official_source_url')
+        or scouting_audit.get('official_source_url')
+        or ''
+    )
+    official_audit = off_verifier.verify_official_regulations(official_website, prospect.name)
+
+    # Stage 4 – Multi-Level Grade A/B/C Classification
+    draw_ok     = bool(audit.get('draw_completed') and audit.get('groups_count', 0) >= 2)
+    fixtures_ok = bool(audit.get('fixtures_completed') and
+                       (audit.get('fixtures_count', 0) >= 4 or audit.get('scheduled_matchdays', 0) >= 4))
+
+    if draw_ok and fixtures_ok:
+        final_grade  = 'GRADE_A'
+        final_reason = (f"Grad A (100% Redo): Djupskannad från Wikipedia: '{page_title}' "
+                        f"({audit.get('fixtures_count', 0)} matcher, "
+                        f"{audit.get('teams_count', 0)} lag i {audit.get('groups_count', 0)} grupper verifierade).")
+    elif draw_ok or fixtures_ok:
+        final_grade  = 'GRADE_B'
+        final_reason = (f"Grad B (Nästan redo): Djupskannad från Wikipedia: '{page_title}' "
+                        f"({audit.get('teams_count', 0)} lag i {audit.get('groups_count', 0)} grupper"
+                        f"{', spelschema ej slutfört' if not fixtures_ok else ', lottning ej genomförd'}).")
+    else:
+        final_grade  = 'GRADE_C'
+        final_reason = f"Grad C: Bevakningslista ('{page_title}'). Lottning och spelschema ej slutförda."
+
+    # Rescan date calculation
+    today_date       = datetime.date.today()
+    next_rescan_date = today_date + datetime.timedelta(days=7)
+    draw_date_str    = audit.get('draw_date') or ''
+    if draw_date_str:
+        m_eng     = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', draw_date_str)
+        month_map = {
+            'january':1,'february':2,'march':3,'april':4,'may':5,'june':6,
+            'july':7,'august':8,'september':9,'october':10,'november':11,'december':12
+        }
+        if m_eng and m_eng.group(2).lower() in month_map:
+            try:
+                d_obj = datetime.date(int(m_eng.group(3)), month_map[m_eng.group(2).lower()], int(m_eng.group(1)))
+                if d_obj >= today_date:
+                    next_rescan_date = d_obj + datetime.timedelta(days=7)
+            except Exception:
+                pass
+
+    # Extract & normalise fixtures
+    extracted_fixtures = []
+    for i, fix in enumerate(audit.get('fixtures', []), 1):
+        dt_str = f"{fix.get('date', '')} {fix.get('time', '')}".strip()
+        extracted_fixtures.append({
+            'match_number':   i,
+            'stage_or_group': fix.get('stage_or_group', 'Gruppspel'),
+            'date_time':      dt_str,
+            'home_team':      fix.get('home_team', ''),
+            'away_team':      fix.get('away_team', ''),
+            'venue':          fix.get('venue', ''),
+            'is_placeholder': fix.get('is_placeholder', False),
+        })
+
+    # Persist back into payload
+    payload.setdefault('scouting_audit', {}).update({
+        'scouting_stage':      'DEEP',
+        'scan_timestamp':      datetime.datetime.now().isoformat(),
+        'completeness_grade':  final_grade,
+        'grade_reason':        final_reason,
+        'wikipedia_url':       audit.get('wiki_url', wiki_url),
+        'wikipedia_title':     audit.get('page_title', page_title),
+        'draw_date':           draw_date_str,
+        'next_rescan_date':    next_rescan_date.isoformat(),
+        'advancement_rules':   audit.get('advancement_rules', ''),
+        'official_site_audit': official_audit,
+        'wikipedia_audit':     audit,
+    })
+    if audit.get('groups'):
+        payload['groups'] = audit['groups']
+    payload['fixtures_sample'] = extracted_fixtures
+    if audit.get('knockout_stages'):
+        payload.setdefault('tournament_config', {})['knockout_stages'] = audit['knockout_stages']
+    if audit.get('teams_count'):
+        payload.setdefault('tournament_config', {})['total_teams'] = audit['teams_count']
+    if audit.get('host_country') and not payload.get('master_event', {}).get('host_country'):
+        payload.setdefault('master_event', {})['host_country'] = audit['host_country']
+
+    prospect.payload            = payload
+    prospect.completeness_grade = final_grade
+    prospect.grade_reason       = final_reason
+
+    return {
+        'ok':                True,
+        'error':             None,
+        'grade':             final_grade,
+        'grade_reason':      final_reason,
+        'fixtures_count':    audit.get('fixtures_count', 0),
+        'groups_count':      audit.get('groups_count', 0),
+        'teams_count':       audit.get('teams_count', 0),
+        'draw_completed':    audit.get('draw_completed', False),
+        'draw_date':         draw_date_str,
+        'scheduled_matchdays': audit.get('scheduled_matchdays', 0),
+    }
+
+
 @superuser_or_staff_required
 @require_POST
 def scout_deep_scan_one_view(request, prospect_id):
     """
-    Stage 2 Deep Wikipedia Scout for a single prospect.
-    Runs the full audit_tournament_page() analysis, OfficialRegulationsVerifier cross-audit,
-    Multi-Level Grade A/B/C classification, and updates scouting_stage to 'DEEP'.
-    Called by the per-card 'Djupscanna' button in the Engine Admin Scout UI.
+    Stage 2–4 Deep Scout for a single prospect.
+    Delegates to _run_deep_scan_on_prospect() and returns a JSON response.
+    Called by the per-card '🔬 Djupscanna' button in the Engine Admin Scout UI.
     """
     from tournament.services.wikipedia_scout import WikipediaScout
     from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
-    import datetime
 
     prospect = get_object_or_404(ScannedTournament, id=prospect_id)
 
     try:
-        wiki_scout   = WikipediaScout()
-        off_verifier = OfficialRegulationsVerifier()
-
-        payload      = prospect.payload or {}
-        scouting_audit = payload.get('scouting_audit', {})
-
-        # Resolve Wikipedia page title
-        wiki_url   = scouting_audit.get('wikipedia_url') or prospect.official_source_url or ''
-        page_title = wiki_scout.get_article_title_from_url(wiki_url)
-        if not page_title:
-            page_title = scouting_audit.get('wikipedia_title') or ''
-        if not page_title:
-            page_title = wiki_scout.search_wikipedia_article(prospect.name)
-
-        if not page_title:
-            return JsonResponse({
-                'status':  'error',
-                'message': f'Kunde inte hitta Wikipedia-artikel för "{prospect.name}". Kontrollera Wikipedia-länken.'
-            }, status=404)
-
-        # Full Stage 2 deep audit
-        audit = wiki_scout.audit_tournament_page(page_title)
-        if not audit:
-            return JsonResponse({
-                'status':  'error',
-                'message': f'Kunde inte läsa Wikipedia-sidan för "{page_title}".'
-            }, status=400)
-
-        official_website = (
-            payload.get('master_event', {}).get('official_source_url')
-            or scouting_audit.get('official_source_url')
-            or ''
+        result = _run_deep_scan_on_prospect(
+            prospect,
+            WikipediaScout(),
+            OfficialRegulationsVerifier(),
         )
-        official_audit = off_verifier.verify_official_regulations(official_website, prospect.name)
+        if not result['ok']:
+            return JsonResponse({'status': 'error', 'message': result['error']}, status=400)
 
-        # Multi-Level Grade A/B/C Classification
-        draw_ok     = bool(audit.get('draw_completed') and audit.get('groups_count', 0) >= 2)
-        fixtures_ok = bool(audit.get('fixtures_completed') and
-                           (audit.get('fixtures_count', 0) >= 4 or audit.get('scheduled_matchdays', 0) >= 4))
-
-        if draw_ok and fixtures_ok:
-            final_grade  = 'GRADE_A'
-            final_reason = (f"Grad A (100% Redo): Djupskannad från Wikipedia: '{page_title}' "
-                            f"({audit.get('fixtures_count', 0)} matcher, "
-                            f"{audit.get('teams_count', 0)} lag i {audit.get('groups_count', 0)} grupper verifierade).")
-        elif draw_ok or fixtures_ok:
-            final_grade  = 'GRADE_B'
-            final_reason = (f"Grad B (Nästan redo): Djupskannad från Wikipedia: '{page_title}' "
-                            f"({audit.get('teams_count', 0)} lag i {audit.get('groups_count', 0)} grupper"
-                            f"{', spelschema ej slutfört' if not fixtures_ok else ', lottning ej genomförd'}).")
-        else:
-            final_grade  = 'GRADE_C'
-            final_reason = f"Grad C: Bevakningslista ('{page_title}'). Lottning och spelschema ej slutförda."
-
-        # Rescan date
-        today_date       = datetime.date.today()
-        next_rescan_date = today_date + datetime.timedelta(days=7)
-        draw_date_str    = audit.get('draw_date') or ''
-        if draw_date_str:
-            m_eng     = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', draw_date_str)
-            month_map = {
-                'january':1,'february':2,'march':3,'april':4,'may':5,'june':6,
-                'july':7,'august':8,'september':9,'october':10,'november':11,'december':12
-            }
-            if m_eng and m_eng.group(2).lower() in month_map:
-                try:
-                    d_obj = datetime.date(int(m_eng.group(3)), month_map[m_eng.group(2).lower()], int(m_eng.group(1)))
-                    if d_obj >= today_date:
-                        next_rescan_date = d_obj + datetime.timedelta(days=7)
-                except Exception:
-                    pass
-
-        # Extract fixtures
-        extracted_fixtures = []
-        for i, fix in enumerate(audit.get('fixtures', []), 1):
-            dt_str = f"{fix.get('date', '')} {fix.get('time', '')}".strip()
-            extracted_fixtures.append({
-                'match_number':   i,
-                'stage_or_group': fix.get('stage_or_group', 'Gruppspel'),
-                'date_time':      dt_str,
-                'home_team':      fix.get('home_team', ''),
-                'away_team':      fix.get('away_team', ''),
-                'venue':          fix.get('venue', ''),
-                'is_placeholder': fix.get('is_placeholder', False),
-            })
-
-        # Update payload in-place
-        payload['scouting_audit'].update({
-            'scouting_stage':    'DEEP',
-            'scan_timestamp':    datetime.datetime.now().isoformat(),
-            'completeness_grade': final_grade,
-            'grade_reason':      final_reason,
-            'wikipedia_url':     audit.get('wiki_url', wiki_url),
-            'wikipedia_title':   audit.get('page_title', page_title),
-            'draw_date':         draw_date_str,
-            'next_rescan_date':  next_rescan_date.isoformat(),
-            'advancement_rules': audit.get('advancement_rules', ''),
-            'official_site_audit': official_audit,
-            'wikipedia_audit':   audit,
-        })
-        if audit.get('groups'):
-            payload['groups'] = audit['groups']
-        payload['fixtures_sample'] = extracted_fixtures
-        if audit.get('knockout_stages'):
-            payload.setdefault('tournament_config', {})['knockout_stages'] = audit['knockout_stages']
-        if audit.get('teams_count'):
-            payload.setdefault('tournament_config', {})['total_teams'] = audit['teams_count']
-        if audit.get('host_country') and not payload.get('master_event', {}).get('host_country'):
-            payload.setdefault('master_event', {})['host_country'] = audit['host_country']
-
-        prospect.payload             = payload
-        prospect.completeness_grade  = final_grade
-        prospect.grade_reason        = final_reason
         prospect.save()
-
         return JsonResponse({
-            'status':          'success',
-            'message':         f'Djupscanning slutförd! "{prospect.name}" → {final_grade}',
-            'grade':           final_grade,
-            'grade_reason':    final_reason,
-            'fixtures_count':  audit.get('fixtures_count', 0),
-            'groups_count':    audit.get('groups_count', 0),
-            'teams_count':     audit.get('teams_count', 0),
-            'draw_completed':  audit.get('draw_completed', False),
-            'draw_date':       draw_date_str,
-            'scheduled_matchdays': audit.get('scheduled_matchdays', 0),
+            'status':              'success',
+            'message':             f'Djupscanning slutförd! "{prospect.name}" → {result["grade"]}',
+            'grade':               result['grade'],
+            'grade_reason':        result['grade_reason'],
+            'fixtures_count':      result['fixtures_count'],
+            'groups_count':        result['groups_count'],
+            'teams_count':         result['teams_count'],
+            'draw_completed':      result['draw_completed'],
+            'draw_date':           result['draw_date'],
+            'scheduled_matchdays': result['scheduled_matchdays'],
         })
 
     except Exception as e:
         logger.error(f"Error in scout_deep_scan_one_view (prospect #{prospect_id}): {e}", exc_info=True)
-        return JsonResponse({
-            'status':  'error',
-            'message': f'Fel under djupscanning: {str(e)}'
-        }, status=500)
+        return JsonResponse({'status': 'error', 'message': f'Fel under djupscanning: {str(e)}'}, status=500)
 
 
 @superuser_or_staff_required
@@ -1265,62 +1297,56 @@ def scout_clear_list_view(request):
 @superuser_or_staff_required
 @require_POST
 def scout_refresh_all_view(request):
-    """Re-evaluates and rescans all active prospects in the list via Wikipedia Scout."""
+    """
+    Bulk Stage 2–4 Deep Scout for ALL non-converted prospects.
+    Delegates each prospect to _run_deep_scan_on_prospect() — the same full
+    pipeline as the per-card '🔬 Djupscanna' button — so that grades,
+    fixtures, groups, official-site audits, scouting_stage, and rescan dates
+    are all updated identically.
+    """
     from tournament.services.wikipedia_scout import WikipediaScout
-    
-    wiki_scout = WikipediaScout()
-    prospects = ScannedTournament.objects.exclude(status='CONVERTED')
+    from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+
+    wiki_scout   = WikipediaScout()
+    off_verifier = OfficialRegulationsVerifier()
+    prospects    = ScannedTournament.objects.exclude(status='CONVERTED')
+
     refreshed_count = 0
+    skipped_count   = 0
+    results         = []
 
     for prospect in prospects:
-        wiki_url = prospect.payload.get('scouting_audit', {}).get('wikipedia_url') or prospect.official_source_url
-        page_title = wiki_scout.get_article_title_from_url(wiki_url)
-        if not page_title:
-            page_title = wiki_scout.search_wikipedia_article(prospect.name)
-        
-        if page_title:
-            audit = wiki_scout.audit_tournament_page(page_title)
-            if audit:
-                payload = prospect.payload
-                payload['scouting_audit']['wikipedia_audit'] = audit
-                payload['scouting_audit']['wikipedia_title'] = audit.get('page_title', '')
-                if audit.get('groups'):
-                    payload['groups'] = audit['groups']
-                if audit.get('fixtures'):
-                    extracted_fixtures = []
-                    for i, fix in enumerate(audit['fixtures'], 1):
-                        dt_str = f"{fix.get('date')} {fix.get('time')}".strip()
-                        extracted_fixtures.append({
-                            "match_number": i,
-                            "stage_or_group": fix.get('stage_or_group', 'Gruppspel'),
-                            "date_time": dt_str,
-                            "home_team": fix.get('home_team'),
-                            "away_team": fix.get('away_team'),
-                            "venue": fix.get('venue', '')
-                        })
-                    payload['fixtures_sample'] = extracted_fixtures
-
-                draw_ok = bool(audit.get('draw_completed') and audit.get('groups_count', 0) >= 2)
-                fixtures_ok = bool((audit.get('fixtures_completed') and audit.get('fixtures_count', 0) >= 4) or audit.get('scheduled_matchdays', 0) >= 4)
-
-                if draw_ok and fixtures_ok:
-                    prospect.completeness_grade = 'GRADE_A'
-                    prospect.grade_reason = f"Grad A (100% Redo): Om-skannad från Wikipedia: '{page_title}' ({len(audit.get('fixtures', []))} matcher, {audit.get('teams_count', 0)} lag)"
-                elif draw_ok or fixtures_ok:
-                    prospect.completeness_grade = 'GRADE_B'
-                    prospect.grade_reason = f"Grad B (Nästan redo): Om-skannad från Wikipedia: '{page_title}' ({audit.get('teams_count', 0)} lag i {audit.get('groups_count', 0)} grupper, spelschema/lottning ej slutfört)"
-                else:
-                    prospect.completeness_grade = 'GRADE_C'
-                    prospect.grade_reason = f"Grad C: Bevakningslista ('{page_title}'). Lottning och spelschema ej slutförda."
-                
-                prospect.payload = payload
+        try:
+            result = _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier)
+            if result['ok']:
                 prospect.save()
                 refreshed_count += 1
-
+                results.append({
+                    'id':    prospect.id,
+                    'name':  prospect.name,
+                    'grade': result['grade'],
+                    'ok':    True,
+                })
+            else:
+                skipped_count += 1
+                results.append({
+                    'id':    prospect.id,
+                    'name':  prospect.name,
+                    'ok':    False,
+                    'error': result['error'],
+                })
+                logger.warning(f"scout_refresh_all: skipped prospect #{prospect.id} '{prospect.name}': {result['error']}")
+        except Exception as e:
+            skipped_count += 1
+            results.append({'id': prospect.id, 'name': prospect.name, 'ok': False, 'error': str(e)})
+            logger.error(f"scout_refresh_all: error on prospect #{prospect.id}: {e}", exc_info=True)
 
     return JsonResponse({
-        'status': 'success',
-        'message': f'Uppdaterade {refreshed_count} turneringar från Wikipedia.'
+        'status':          'success',
+        'message':         f'Djupskannade {refreshed_count} turneringar ({skipped_count} hoppades över).',
+        'refreshed_count': refreshed_count,
+        'skipped_count':   skipped_count,
+        'results':         results,
     })
 
 
