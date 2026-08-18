@@ -655,22 +655,27 @@
                 <!-- Filter Pills Row -->
                 <div class="d-flex flex-wrap align-items-center gap-2 mt-4 pt-3 border-top border-secondary border-opacity-20">
                     <span class="text-secondary small me-2 font-monospace text-uppercase">Filter:</span>
-                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3);">
-                        Alla (<span id="count-scout-all">{{ scout_counts.total }}</span>)
+                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background:rgba(255,255,255,0.12);color:#e2e8f0;border:1px solid rgba(255,255,255,0.25);">
+                        <i class="fa-solid fa-layer-group me-1"></i>Alla (<span id="count-scout-all">{{ scout_counts.total }}</span>)
                     </button>
-                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_A" onclick="filterScoutProspects('GRADE_A', this)" style="background: rgba(16,185,129,0.12); color: #2eca8b; border: 1px solid rgba(16,185,129,0.3);">
-                        🟢 Grade A (Redo) (<span id="count-scout-grade-a">{{ scout_counts.grade_a }}</span>)
+                    <!-- Grade A — Green tonal (AGENTS.md) -->
+                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_A" onclick="filterScoutProspects('GRADE_A', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
+                        <i class="fa-solid fa-shield-check me-1"></i>Grade A (Redo) (<span id="count-scout-grade-a">{{ scout_counts.grade_a }}</span>)
                     </button>
-                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_B" onclick="filterScoutProspects('GRADE_B', this)" style="background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3);">
-                        🟡 Grade B (Nästan redo) (<span id="count-scout-grade-b">{{ scout_counts.grade_b }}</span>)
+                    <!-- Grade B — Amber tonal (AGENTS.md) -->
+                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_B" onclick="filterScoutProspects('GRADE_B', this)" style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;">
+                        <i class="fa-solid fa-clock me-1"></i>Grade B (Nästan redo) (<span id="count-scout-grade-b">{{ scout_counts.grade_b }}</span>)
                     </button>
-                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_C" onclick="filterScoutProspects('GRADE_C', this)" style="background: rgba(6,182,212,0.12); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3);">
-                        🟠 Grade C (Bevakning) (<span id="count-scout-grade-c">{{ scout_counts.grade_c }}</span>)
+                    <!-- Grade C — Slate tonal (AGENTS.md) -->
+                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_C" onclick="filterScoutProspects('GRADE_C', this)" style="background:#0F172A;border:1px solid #475569;color:#E2E8F0;">
+                        <i class="fa-solid fa-circle-info me-1"></i>Grade C (Bevakning) (<span id="count-scout-grade-c">{{ scout_counts.grade_c }}</span>)
                     </button>
-                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="CONVERTED" onclick="filterScoutProspects('CONVERTED', this)" style="background: rgba(16,185,129,0.12); color: #2eca8b; border: 1px solid rgba(16,185,129,0.3);">
-                        ✅ Konverterade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
+                    <!-- Converted — Green tonal -->
+                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="CONVERTED" onclick="filterScoutProspects('CONVERTED', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
+                        <i class="fa-solid fa-circle-check me-1"></i>Konverterade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
                     </button>
                 </div>
+
             </div>
 
             <!-- Prospects Card Grid (Full-Width Rows, Sorted Nearest in Time First) -->
@@ -694,8 +699,9 @@
                                             </div>
                                             <div>
                                                 <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                                    <span class="badge {{ item.grade_meta.badge_class }} rounded-pill px-2.5 py-1 font-monospace fw-bold small">
-                                                        {{ item.grade_meta.emoji }} {{ item.grade_meta.label }}
+                                                    <span class="badge rounded-pill px-2.5 py-1 font-monospace fw-bold small"
+                                                          style="{{ item.grade_meta.style }}">
+                                                        <i class="fa-solid {{ item.grade_meta.icon }} me-1"></i>{{ item.grade_meta.label }}
                                                     </span>
                                                     <span class="badge {{ item.status_meta.badge_class }} rounded-pill px-2.5 py-1 font-monospace small">
                                                         {{ item.status_meta.label }}
@@ -709,11 +715,13 @@
                                                     {% endif %}
                                                     {% if item.days_to_start is not None %}
                                                         {% if item.days_to_start > 0 %}
-                                                            <span class="badge bg-dark border border-info border-opacity-40 text-info font-monospace rounded-pill px-2.5 py-1 small">
+                                                            <span class="badge rounded-pill px-2.5 py-1 font-monospace small"
+                                                                  style="background:#0c1a2e;border:1px solid #1e40af;color:#bfdbfe;">
                                                                 <i class="fa-regular fa-clock me-1"></i>Om {{ item.days_to_start }} dagar
                                                             </span>
                                                         {% elif item.days_to_start == 0 %}
-                                                            <span class="badge bg-danger text-white font-monospace rounded-pill px-2.5 py-1 small animate-pulse">
+                                                            <span class="badge rounded-pill px-2.5 py-1 font-monospace small animate-pulse"
+                                                                  style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;">
                                                                 <i class="fa-solid fa-bolt me-1"></i>Startar idag!
                                                             </span>
                                                         {% endif %}
@@ -833,8 +841,9 @@
                                             <!-- Audit & Grade Issue Bulletpoints Box -->
                                             <div class="p-3 rounded-3 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.85);">
                                                 <div class="d-flex align-items-center justify-content-between mb-2">
-                                                    <span class="text-uppercase font-monospace fw-bold fs-7 {{ item.grade_meta.badge_class }} px-2 py-0.5 rounded-1">
-                                                        <i class="fa-solid fa-clipboard-check me-1"></i>Graderingsanalys & Krav
+                                                    <span class="text-uppercase font-monospace fw-bold fs-7 rounded-1 px-2 py-0.5"
+                                                          style="{{ item.grade_meta.style }}">
+                                                        <i class="fa-solid fa-clipboard-check me-1"></i>Graderingsanalys &amp; Krav
                                                     </span>
                                                     <span class="text-secondary small font-monospace">{{ item.grade_meta.label }}</span>
                                                 </div>

@@ -1,5 +1,5 @@
 from unittest.mock import patch, MagicMock
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.contrib.auth.models import User
 
 from tournament.models import (
@@ -632,8 +632,106 @@ class OfficialRegulationsVerifierTestCase(TestCase):
         self.assertTrue(prospect.payload['scouting_audit']['official_site_audit']['verified'])
 
 
+class LLMWikipediaScoutTestCase(TestCase):
+    """Tests for LLMWikipediaScout — uses mocks so no real API key is required."""
 
+    @patch('requests.get')
+    def test_fetch_wikipedia_plaintext_success(self, mock_get):
+        """fetch_wikipedia_plaintext returns cleaned text from Wikipedia REST API."""
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            'lead': {'sections': [{'text': '<p>2026 FIFA World Cup article.</p>'}]},
+            'remaining': {'sections': [{'line': 'Group A', 'text': '<p>Germany, USA, Mexico, Japan</p>'}]},
+        }
+        mock_get.return_value = mock_resp
 
+        scout = LLMWikipediaScout()
+        result = scout._fetch_plaintext('2026 FIFA World Cup')
+        self.assertIsNotNone(result)
+        self.assertIn('2026 FIFA World Cup', result)
+        self.assertIn('Group A', result)
+
+    @patch('requests.get')
+    def test_fetch_wikipedia_plaintext_404(self, mock_get):
+        """fetch_wikipedia_plaintext returns None on non-200 response."""
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+        mock_resp = MagicMock()
+        mock_resp.status_code = 404
+        mock_get.return_value = mock_resp
+
+        scout = LLMWikipediaScout()
+        result = scout._fetch_plaintext('NonExistentTournamentXYZ')
+        self.assertIsNone(result)
+
+    @patch('requests.get')
+    @patch('tournament.services.wikipedia_scout.WikipediaScout.audit_tournament_page')
+    @override_settings(GEMINI_API_KEY='')
+    def test_audit_with_llm_falls_back_when_no_api_key(self, mock_audit, mock_get):
+        """audit_with_llm falls back to HTML heuristic when GEMINI_API_KEY is not set."""
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            'lead': {'sections': [{'text': '<p>Test article.</p>'}]},
+            'remaining': {'sections': []},
+        }
+        mock_get.return_value = mock_resp
+
+        mock_audit.return_value = {
+            'page_title': '2026 FIFA World Cup',
+            'wiki_url': 'https://en.wikipedia.org/wiki/2026_FIFA_World_Cup',
+            'groups': [], 'fixtures': [], 'fixtures_count': 0, 'groups_count': 0,
+            'teams_count': 48, 'scheduled_matchdays': 0,
+            'fixtures_have_placeholders': False, 'draw_completed': True,
+            'draw_date': '', 'advancement_rules': '', 'fixtures_completed': False,
+            'knockout_stages': ['Quarterfinals', 'Semifinals', 'Final'],
+            'host_country': 'USA', 'sections': [],
+        }
+
+        scout = LLMWikipediaScout()
+        result = scout.audit_with_llm('2026 FIFA World Cup')
+        # Fallback must have been called
+        mock_audit.assert_called_once_with('2026 FIFA World Cup')
+        self.assertIsNotNone(result)
+        self.assertEqual(result['teams_count'], 48)
+
+    def test_normalise_produces_correct_schema(self):
+        """_normalise converts a raw Gemini dict to the canonical audit schema."""
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+        raw = {
+            'teams_count': 24,
+            'host_country': 'Poland',
+            'groups': [
+                {'name': 'Group A', 'teams': [{'name': 'USA'}, {'name': 'Germany'}]},
+            ],
+            'fixtures': [
+                {
+                    'home_team': 'USA', 'away_team': 'Germany',
+                    'date': '12 June 2026', 'time': '18:00',
+                    'venue': 'Warsaw', 'stage_or_group': 'Group A',
+                    'is_placeholder': False,
+                }
+            ],
+            'scheduled_matchdays': 0,
+            'draw_completed': True,
+            'draw_date': '6 March 2026',
+            'advancement_rules': 'Top 2 from each group advance.',
+            'knockout_stages': ['Round of 16', 'Quarterfinals', 'Semifinals', 'Final'],
+            'fixtures_count': 1,
+            'groups_count': 1,
+            'fixtures_completed': True,
+        }
+        result = LLMWikipediaScout._normalise(raw, '2026 FIFA U-20 Womens World Cup', 'https://en.wikipedia.org/wiki/test')
+        self.assertEqual(result['teams_count'], 24)
+        self.assertEqual(result['host_country'], 'Poland')
+        self.assertEqual(len(result['groups']), 1)
+        self.assertEqual(len(result['fixtures']), 1)
+        self.assertEqual(result['fixtures'][0]['strategy'], 'LLM_Gemini_Flash')
+        self.assertTrue(result['draw_completed'])
+        self.assertEqual(result['draw_date'], '6 March 2026')
+        self.assertIn('Round of 16', result['knockout_stages'])
 
 
 

@@ -256,12 +256,35 @@ def engine_admin_dashboard_view(request):
         if p.start_date:
             days_to_start = (p.start_date - today).days
 
+        # AGENTS.md Monochromatic Tonal Contrast — Grade Badges
+        # Surface: 950 deep, Border: 700 mid-dark, Text: 100 pale tint, Icon: fa-solid
         grade_meta = {
-            'GRADE_A': {'label': 'Grade A (100% Redo)', 'badge_class': 'bg-success text-white', 'emoji': '🟢'},
-            'GRADE_B': {'label': 'Grade B (Nästan redo)', 'badge_class': 'bg-warning text-dark', 'emoji': '🟡'},
-            'GRADE_C': {'label': 'Grade C (Bevakningslista)', 'badge_class': 'bg-info text-dark', 'emoji': '🟠'},
-            'GRADE_D': {'label': 'Grade D (Ej kompatibel)', 'badge_class': 'bg-danger text-white', 'emoji': '🔴'},
-        }.get(p.completeness_grade, {'label': p.completeness_grade, 'badge_class': 'bg-secondary text-white', 'emoji': '⚪'})
+            'GRADE_A': {
+                'label': 'Grade A (100% Redo)',
+                'icon':  'fa-shield-check',
+                'style': 'background:#052E16;border:1px solid #15803D;color:#DCFCE7;',
+            },
+            'GRADE_B': {
+                'label': 'Grade B (Nästan redo)',
+                'icon':  'fa-clock',
+                'style': 'background:#451A03;border:1px solid #B45309;color:#FEF3C7;',
+            },
+            'GRADE_C': {
+                'label': 'Grade C (Bevakningslista)',
+                'icon':  'fa-circle-info',
+                'style': 'background:#0F172A;border:1px solid #475569;color:#E2E8F0;',
+            },
+            'GRADE_D': {
+                'label': 'Grade D (Ej kompatibel)',
+                'icon':  'fa-circle-xmark',
+                'style': 'background:#1c0404;border:1px solid #7f1d1d;color:#fecaca;',
+            },
+        }.get(p.completeness_grade, {
+            'label': p.completeness_grade,
+            'icon':  'fa-circle-question',
+            'style': 'background:#1e293b;border:1px solid #475569;color:#cbd5e1;',
+        })
+
 
         status_meta = {
             'NEW': {'label': 'Nytt Prospekt', 'badge_class': 'bg-primary text-white'},
@@ -1066,9 +1089,13 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     """
     Shared Stage 2–4 deep-scan engine.
 
-    Runs the full audit_tournament_page() analysis, OfficialRegulationsVerifier
-    cross-audit, Multi-Level Grade A/B/C classification, and updates
-    scouting_stage to 'DEEP' on *prospect* in-place.
+    Fetches Wikipedia article plaintext and uses Google Gemini Flash (LLM) to
+    semantically extract groups, fixtures, draw dates, and advancement rules
+    without any structure assumptions.  Falls back transparently to the HTML
+    heuristic WikipediaScout if GEMINI_API_KEY is not set or the LLM call fails.
+
+    Also runs OfficialRegulationsVerifier cross-audit (Stage 3) and Multi-Level
+    Grade A/B/C classification (Stage 4).
 
     Returns a dict with keys:
         ok (bool), error (str|None), grade, grade_reason,
@@ -1078,11 +1105,12 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     The caller is responsible for calling prospect.save().
     """
     import datetime
+    from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
 
     payload        = prospect.payload or {}
     scouting_audit = payload.get('scouting_audit', {})
 
-    # Resolve Wikipedia page title
+    # Resolve Wikipedia page title (wiki_scout used only for title resolution)
     wiki_url   = scouting_audit.get('wikipedia_url') or prospect.official_source_url or ''
     page_title = wiki_scout.get_article_title_from_url(wiki_url)
     if not page_title:
@@ -1096,8 +1124,8 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
             'error': f'Kunde inte hitta Wikipedia-artikel för "{prospect.name}". Kontrollera Wikipedia-länken.',
         }
 
-    # Full Stage 2 deep audit
-    audit = wiki_scout.audit_tournament_page(page_title)
+    # Stage 2 – LLM deep audit (falls back to HTML heuristics automatically)
+    audit = LLMWikipediaScout().audit_with_llm(page_title)
     if not audit:
         return {
             'ok': False,
