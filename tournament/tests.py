@@ -446,6 +446,51 @@ class ScoutServiceTestCase(TestCase):
         self.assertEqual(len(prospects), 1)
         self.assertEqual(prospects[0].name, '2026 World Junior Ice Hockey Championships')
 
+    def test_wikipedia_duplicate_tournament_merging(self):
+        from tournament.models import ScannedTournament
+        from tournament.services.scout_service import merge_duplicate_scanned_tournaments_by_wikipedia
+
+        # Create prospect 1 (shallow)
+        p1 = ScannedTournament.objects.create(
+            name="World Floorball Championship 2026",
+            master_event_code="wfc-2026-allsportdb",
+            sport="Floorball",
+            status="NEW",
+            completeness_grade="GRADE_C",
+            payload={
+                "scouting_audit": {
+                    "scouting_stage": "SHALLOW",
+                    "wikipedia_url": "https://en.wikipedia.org/wiki/2026_Men's_World_Floorball_Championships"
+                }
+            }
+        )
+
+        # Create prospect 2 (deep scanned from Wikipedia import)
+        p2 = ScannedTournament.objects.create(
+            name="2026 Men's World Floorball Championships",
+            master_event_code="2026-mens-world-floorball-championships",
+            sport="Floorball",
+            status="NEW",
+            completeness_grade="GRADE_A",
+            payload={
+                "scouting_audit": {
+                    "scouting_stage": "DEEP",
+                    "wikipedia_url": "https://en.wikipedia.org/wiki/2026_Men's_World_Floorball_Championships"
+                },
+                "groups": [{"name": "Group A", "teams": ["Sweden", "Finland"]}]
+            }
+        )
+
+        merged_cnt, retained = merge_duplicate_scanned_tournaments_by_wikipedia()
+        self.assertEqual(merged_cnt, 1)
+        self.assertEqual(len(retained), 1)
+
+        # Primary retained should be p2 (since DEEP & GRADE_A)
+        primary = retained[0]
+        self.assertEqual(primary.id, p2.id)
+        self.assertEqual(ScannedTournament.objects.filter(id=p1.id).count(), 0)
+        self.assertEqual(len(primary.payload.get('groups', [])), 1)
+
 
 
 

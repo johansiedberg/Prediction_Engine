@@ -1302,6 +1302,11 @@ def scout_deep_scan_one_view(request, prospect_id):
             return JsonResponse({'status': 'error', 'message': result['error']}, status=400)
 
         prospect.save()
+        
+        # Merge duplicate prospects sharing the exact same Wikipedia link
+        from tournament.services.scout_service import merge_duplicate_scanned_tournaments_by_wikipedia
+        merge_duplicate_scanned_tournaments_by_wikipedia()
+
         return JsonResponse({
             'status':              'success',
             'message':             f'Djupscanning slutförd! "{prospect.name}" → {result["grade"]}',

@@ -509,11 +509,118 @@ def fetch_and_ingest_wikipedia_year_events(years=None, sync_scout=True):
     return created_cnt, updated_cnt, prospects_list
 
 
+def extract_wikipedia_url(scanned_obj):
+    """
+    Helper to extract and normalize the Wikipedia URL or page title key from a ScannedTournament instance.
+    """
+    if not scanned_obj:
+        return ""
+    
+    payload = scanned_obj.payload or {}
+    scouting_audit = payload.get('scouting_audit', {})
+    master_event = payload.get('master_event', {})
+    raw_wiki = payload.get('raw_wikipedia', {})
+    
+    wiki_url = (
+        scouting_audit.get('wikipedia_url') or
+        scouting_audit.get('wikipedia_title') or
+        master_event.get('wikipedia_url') or
+        raw_wiki.get('wiki_page') or
+        ''
+    )
+    if not wiki_url and scanned_obj.official_source_url and 'wikipedia.org/wiki/' in scanned_obj.official_source_url:
+        wiki_url = scanned_obj.official_source_url
+        
+    if wiki_url:
+        wiki_url = wiki_url.strip()
+        if 'wikipedia.org/wiki/' in wiki_url:
+            wiki_url = wiki_url.split('wikipedia.org/wiki/')[-1].split('#')[0].strip('/')
+        wiki_url = wiki_url.replace('./', '').replace('/wiki/', '').strip('/')
+    
+    return wiki_url.lower()
+
+
+def merge_duplicate_scanned_tournaments_by_wikipedia():
+    """
+    Scans all ScannedTournament records and merges any duplicate records that share the exact same
+    Wikipedia page URL or article identifier.
+    
+    The highest quality / deepest scanned instance is retained as primary, copying any missing groups,
+    fixtures, rules, or links from duplicates before removing the duplicate prospects.
+    Returns (merged_count, list_of_retained_prospects).
+    """
+    scanned_list = list(ScannedTournament.objects.exclude(status='ARCHIVED'))
+    wiki_map = {}
+    
+    for s in scanned_list:
+        wiki_key = extract_wikipedia_url(s)
+        if wiki_key:
+            wiki_map.setdefault(wiki_key, []).append(s)
+
+    merged_count = 0
+    retained_prospects = []
+
+    for wiki_key, prospects in wiki_map.items():
+        if len(prospects) <= 1:
+            if prospects:
+                retained_prospects.append(prospects[0])
+            continue
+
+        # Sort prospects: DEEP > SHALLOW, GRADE_A > GRADE_B > GRADE_C > GRADE_D, more groups/fixtures, oldest ID
+        def sort_key(p):
+            p_payload = p.payload or {}
+            stage_score = 2 if p_payload.get('scouting_audit', {}).get('scouting_stage') == 'DEEP' else 1
+            grade_score = {'GRADE_A': 4, 'GRADE_B': 3, 'GRADE_C': 2, 'GRADE_D': 1}.get(p.completeness_grade, 0)
+            rules_score = 1 if p.official_rules else 0
+            groups_count = len(p_payload.get('groups', []))
+            fixtures_count = len(p_payload.get('fixtures_sample', []))
+            return (stage_score, grade_score, rules_score, groups_count + fixtures_count, -p.id)
+
+        prospects.sort(key=sort_key, reverse=True)
+        primary = prospects[0]
+        duplicates = prospects[1:]
+
+        primary_payload = primary.payload or {}
+        primary_groups = primary_payload.get('groups', [])
+        primary_fixtures = primary_payload.get('fixtures_sample', [])
+
+        for dup in duplicates:
+            dup_payload = dup.payload or {}
+            dup_groups = dup_payload.get('groups', [])
+            dup_fixtures = dup_payload.get('fixtures_sample', [])
+
+            # Merge groups & fixtures if primary lacks them
+            if not primary_groups and dup_groups:
+                primary_payload['groups'] = dup_groups
+            if not primary_fixtures and dup_fixtures:
+                primary_payload['fixtures_sample'] = dup_fixtures
+
+            # Merge rules / links if primary lacks them
+            if not primary.official_rules and dup.official_rules:
+                primary.official_rules = dup.official_rules
+            if not primary.official_source_url and dup.official_source_url:
+                primary.official_source_url = dup.official_source_url
+
+            # Transfer any linked TournamentEvent objects
+            TournamentEvent.objects.filter(scanned_prospect=dup).update(scanned_prospect=primary)
+
+            # Delete duplicate prospect
+            dup.delete()
+            merged_count += 1
+
+        primary.payload = primary_payload
+        primary.save()
+        retained_prospects.append(primary)
+
+    return merged_count, retained_prospects
+
+
 def scrape_web_for_tournaments(custom_query=None):
     """
     Triggers both AllSportDB API (v3) and Wikipedia Annual Sports Event Crawler (e.g. 2026 in sports),
     applies multi-step H2H team sport and format filtering, evaluates Grade A/B/C ratings,
     and ingests unique prospects into ScannedTournament for Engine Admin.
+    After ingestion, automatically merges duplicate prospects sharing the exact same Wikipedia page.
     Returns (created_count, updated_count, list_of_prospects).
     """
     # 1. Authoritative AllSportDB Ingestion
@@ -529,9 +636,15 @@ def scrape_web_for_tournaments(custom_query=None):
         sync_scout=True
     )
 
+    # 3. Automatic Deduplication / Merge by Wikipedia Page
+    merged_cnt, _ = merge_duplicate_scanned_tournaments_by_wikipedia()
+    if merged_cnt > 0:
+        logger.info(f"Merged {merged_cnt} duplicate prospects sharing the same Wikipedia page.")
+
+    # Re-fetch active non-archived prospects
+    all_prospects = list(ScannedTournament.objects.exclude(status='ARCHIVED'))
     total_created = c1 + c2
     total_updated = u1 + u2
-    all_prospects = p1 + p2
 
     if custom_query and all_prospects:
         q_lower = custom_query.lower().strip()
