@@ -339,6 +339,71 @@ class ScoutServiceTestCase(TestCase):
         self.assertEqual(response.json()['status'], 'success')
         self.assertFalse(Tournament.objects.filter(id=tour.id).exists())
 
+    def test_ignored_status_preservation_on_rescan(self):
+        from tournament.services.scout_service import parse_and_save_scouted_json
+        from tournament.models import ScannedTournament
+
+        sample = {
+            "scouting_audit": {"completeness_grade": "GRADE_B", "official_rules": "Regler V1"},
+            "master_event": {"name": "Ignored Cup 2026", "code": "ignored-cup-2026", "sport": "Football"},
+            "tournament_config": {"name": "Ignored Cup 2026", "total_teams": 4},
+        }
+        scanned, _, _ = parse_and_save_scouted_json(sample)
+        scanned.status = 'ARCHIVED'
+        scanned.save()
+
+        # Rescan / update same tournament
+        sample_v2 = {
+            "scouting_audit": {"completeness_grade": "GRADE_A", "official_rules": "Regler V2"},
+            "master_event": {"name": "Ignored Cup 2026", "code": "ignored-cup-2026", "sport": "Football"},
+            "tournament_config": {"name": "Ignored Cup 2026", "total_teams": 4},
+        }
+        scanned_updated, created, _ = parse_and_save_scouted_json(sample_v2)
+        self.assertFalse(created)
+        self.assertEqual(scanned_updated.status, 'ARCHIVED')
+        self.assertEqual(scanned_updated.official_rules, "Regler V2")
+
+    def test_official_rules_copied_on_conversion(self):
+        from tournament.services.scout_service import parse_and_save_scouted_json, convert_scanned_to_live_tournament
+
+        sample = {
+            "scouting_audit": {"completeness_grade": "GRADE_A", "official_rules": "Gruppspel: 3p vinst. Slutspel: Forlangning 2x5min."},
+            "master_event": {"name": "Official Rules Cup 2026", "code": "rules-cup-2026", "sport": "Floorball", "official_source_url": "https://official.rules.sport"},
+            "tournament_config": {"name": "Official Rules Cup 2026", "total_teams": 4, "knockout_stages": ["Final"]},
+        }
+        scanned, _, _ = parse_and_save_scouted_json(sample)
+        scanned.official_rules = "Gruppspel: 3p vinst. Slutspel: Forlangning 2x5min."
+        scanned.official_source_url = "https://official.rules.sport"
+        scanned.save()
+
+        tour, err = convert_scanned_to_live_tournament(scanned.id, self.admin)
+        self.assertIsNone(err)
+        self.assertEqual(tour.official_rules, "Gruppspel: 3p vinst. Slutspel: Forlangning 2x5min.")
+        self.assertEqual(tour.official_regulations_url, "https://official.rules.sport")
+
+    def test_scout_update_official_rules_view(self):
+        from tournament.models import ScannedTournament
+        scanned = ScannedTournament.objects.create(
+            name="Rules Endpoint Cup",
+            master_event_code="rules-endpoint-cup",
+            status="NEW"
+        )
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            f'/engine-admin/scout/official-rules/{scanned.id}/',
+            {
+                'official_rules': 'Uppdaterade officiella regler',
+                'official_url': 'https://regulations.test.com'
+            },
+            HTTP_HOST='localhost:2029'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'success')
+
+        scanned.refresh_from_db()
+        self.assertEqual(scanned.official_rules, 'Uppdaterade officiella regler')
+        self.assertEqual(scanned.official_source_url, 'https://regulations.test.com')
+
     @patch('tournament.services.allsportdb_client.requests.get')
 
     def test_scout_scrape_web_view(self, mock_get):
@@ -366,6 +431,20 @@ class ScoutServiceTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()['status'], 'success')
         self.assertIn('Webbscanning slutförd', response.json()['message'])
+
+    @patch('tournament.services.scout_service.requests.get')
+    def test_wikipedia_year_events_crawling(self, mock_requests_get):
+        from tournament.services.scout_service import fetch_and_ingest_wikipedia_year_events
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.content = b'<html><body><a href="./2026_World_Junior_Ice_Hockey_Championships" title="2026 World Junior Ice Hockey Championships">2026 World Junior Ice Hockey Championships</a></body></html>'
+        mock_requests_get.return_value = mock_resp
+
+        c, u, prospects = fetch_and_ingest_wikipedia_year_events(years=[2026])
+        self.assertGreaterEqual(c, 1)
+        self.assertEqual(len(prospects), 1)
+        self.assertEqual(prospects[0].name, '2026 World Junior Ice Hockey Championships')
 
 
 

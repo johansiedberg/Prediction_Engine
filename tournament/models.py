@@ -71,9 +71,11 @@ class Tournament(models.Model):
     has_host_ranking_table = models.BooleanField(default=False, help_text="Builds Co-Host ranking safety net table (e.g. Euro 2028 Qualifiers)")
     has_best_thirds_table = models.BooleanField(default=False, help_text="Builds Best 3rd-placed teams ranking table (e.g. Euro 2028 Finals)")
     
-    # New branding fields
+    # New branding & regulations fields
     icon = models.ImageField(upload_to='tournament/icons/', blank=True, null=True, help_text="Tournament emblem/favicon")
     backdrop = models.ImageField(upload_to='tournament/backdrops/', blank=True, null=True, help_text="Header backdrop background")
+    official_rules = models.TextField(blank=True, default="", help_text="Official tournament format regulations, tiebreakers, and advancement rules")
+    official_regulations_url = models.URLField(max_length=500, blank=True, help_text="Direct URL to official federation regulations document or page")
 
     def __str__(self):
         return self.name
@@ -1299,6 +1301,7 @@ class ScannedTournament(models.Model):
     completeness_grade = models.CharField(max_length=20, choices=GRADE_CHOICES, default='GRADE_A')
     grade_reason = models.TextField(blank=True, help_text="Detailed audit explanation of why this grade was assigned and what details are missing")
     official_source_url = models.URLField(max_length=500, blank=True, help_text="Direct URL to official federation/tournament website")
+    official_rules = models.TextField(blank=True, default="", help_text="Extracted official format regulations and tiebreakers from LLM scan")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
     payload = models.JSONField(default=dict, help_text="Complete JSON payload from Gemini Tournament Scout")
     converted_tournament = models.ForeignKey(Tournament, on_delete=models.SET_NULL, null=True, blank=True, related_name='scouted_sources')

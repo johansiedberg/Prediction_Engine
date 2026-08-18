@@ -107,6 +107,30 @@
     <!-- CONFIGURATION SECTIONS -->
     <div class="d-flex flex-column gap-4">
 
+        <!-- OFFICIAL TOURNAMENT REGULATIONS CARD -->
+        {% if tournament.official_rules or tournament.official_regulations_url %}
+        <div class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(14, 165, 233, 0.3) !important; border-radius: 16px;">
+            <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-scroll me-2 text-info"></i>Officiella Turneringsföreskrifter &amp; Reglemente</h5>
+                    <p class="text-secondary mb-0 mt-0.5 small">Fastställda regler för turneringsformat, gruppspels-tiebreakers och avancemang för {{ tournament.name }}.</p>
+                </div>
+                {% if tournament.official_regulations_url %}
+                <a href="{{ tournament.official_regulations_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info btn-sm rounded-pill font-monospace fw-bold">
+                    <i class="fa-solid fa-external-link me-1.5"></i>Officiell Regelbok
+                </a>
+                {% endif %}
+            </div>
+            {% if tournament.official_rules %}
+            <div class="card-body p-4">
+                <div class="p-3 rounded-3 font-monospace text-light small" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); white-space: pre-wrap; font-size: 0.85rem; max-height: 220px; overflow-y: auto;">
+                    {{ tournament.official_rules }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <!-- SECTION 1: SET POINTS (POÄNGREGLER) -->
         <div id="sec-set-points" class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15) !important; border-radius: 16px;">
                         <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4">

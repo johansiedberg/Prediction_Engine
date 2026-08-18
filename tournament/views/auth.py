@@ -51,6 +51,9 @@ def superuser_or_staff_required(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated or not (request.user.is_superuser or request.user.is_staff):
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', ''):
+                from django.http import JsonResponse
+                return JsonResponse({'status': 'error', 'message': 'Sessionen har gått ut. Vänligen logga in på nytt.'}, status=401)
             if str(request.get_port()) == '2029':
                 from tournament.views.engine_admin import engine_admin_root_view
                 return engine_admin_root_view(request)

@@ -1,7 +1,9 @@
 import datetime
 import logging
 import re
-from django.db import transaction
+import requests
+from bs4 import BeautifulSoup
+from django.db import transaction, models
 
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -82,6 +84,12 @@ def parse_and_save_scouted_json(payload):
         payload.get('official_source_url') or ''
     )
 
+    official_rules = (
+        scouting_audit.get('official_rules') or
+        scouting_audit.get('advancement_rules') or
+        payload.get('official_rules') or ''
+    )
+
     # Check if existing prospect with same code or name
     scanned_obj = ScannedTournament.objects.filter(master_event_code=master_code).first()
     if not scanned_obj:
@@ -100,7 +108,10 @@ def parse_and_save_scouted_json(payload):
         scanned_obj.grade_reason = grade_reason
         if official_source_url:
             scanned_obj.official_source_url = official_source_url
+        if official_rules:
+            scanned_obj.official_rules = official_rules
         scanned_obj.payload = payload
+        # Preserve status if existing (e.g. ARCHIVED or WATCHLIST stays preserved on rescans)
         scanned_obj.save()
     else:
         scanned_obj = ScannedTournament.objects.create(
@@ -114,6 +125,7 @@ def parse_and_save_scouted_json(payload):
             completeness_grade=grade,
             grade_reason=grade_reason,
             official_source_url=official_source_url,
+            official_rules=official_rules,
             status='NEW',
             payload=payload
         )
@@ -352,22 +364,179 @@ def fetch_and_ingest_allsportdb_tournaments(months_ahead=12, dry_run=False, sync
     return created_count, updated_count, prospects_list
 
 
+def fetch_and_ingest_wikipedia_year_events(years=None, sync_scout=True):
+    """
+    Crawls Wikipedia's annual sports overview pages (e.g. https://en.wikipedia.org/wiki/2026_in_sports)
+    for target years matching the scan time horizon.
+    
+    Filters for H2H team sports & championship/cup formats, evaluates initial shallow metadata,
+    and ingests new unique prospects into ScannedTournament.
+    """
+    if not years:
+        today_year = datetime.date.today().year
+        years = [today_year, today_year + 1]
+
+    created_cnt = 0
+    updated_cnt = 0
+    prospects_list = []
+    
+    wiki_scout = WikipediaScout()
+    headers = {'User-Agent': 'PredictionEngineScout/1.0 (https://predictionengine.app; info@predictionengine.app)'}
+
+    for year in years:
+        url = f"https://en.wikipedia.org/api/rest_v1/page/html/{year}_in_sports"
+        try:
+            res = requests.get(url, headers=headers, timeout=12)
+            if res.status_code != 200:
+                continue
+            soup = BeautifulSoup(res.content, 'html.parser')
+        except Exception as e:
+            logger.warning(f"Wikipedia {year}_in_sports fetch error: {e}")
+            continue
+
+        seen_pages = set()
+        for a in soup.find_all('a'):
+            href = a.get('href', '')
+            title = (a.get('title') or a.get_text(strip=True)).strip()
+            if not href.startswith('./') and not href.startswith('/wiki/'):
+                continue
+            
+            wiki_page = href.replace('./', '').replace('/wiki/', '')
+            if wiki_page in seen_pages or not title:
+                continue
+
+            if any(wiki_page.startswith(p) for p in ['File:', 'Help:', 'Special:', 'Wikipedia:', 'Portal:', 'Category:', 'Template:']):
+                continue
+
+            is_champ, fmt_reason = is_championship_or_cup_format(title)
+            if not is_champ:
+                continue
+
+            is_h2h = is_h2h_team_sport(title)
+            if not is_h2h:
+                continue
+
+            seen_pages.add(wiki_page)
+
+            # Check if prospect already exists by master_event_code or name
+            master_code = title.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
+
+            existing = ScannedTournament.objects.filter(
+                models.Q(master_event_code=master_code) |
+                models.Q(name__iexact=title)
+            ).first()
+
+            if existing:
+                continue
+
+            wiki_url = f"https://en.wikipedia.org/wiki/{wiki_page}"
+
+            # Shallow infobox audit for dates & host country
+            infobox = wiki_scout.audit_infobox_only(wiki_page)
+            
+            start_date_str = ""
+            end_date_str = ""
+            host_country = (infobox.get('host_country') if infobox else "") or ""
+            
+            # Start/End date parsing
+            start_date_val = None
+            if infobox and infobox.get('start_date'):
+                try:
+                    start_date_val = datetime.date.fromisoformat(str(infobox['start_date'])[:10])
+                    start_date_str = str(start_date_val)
+                except Exception:
+                    pass
+
+            # Skip past events
+            today = datetime.date.today()
+            if start_date_val and start_date_val <= today:
+                continue
+
+            sport_name = (infobox.get('sport') if infobox and infobox.get('sport') else "") or "Sports"
+            teams_count = (infobox.get('teams_count') if infobox and infobox.get('teams_count') else 16)
+
+            next_rescan = today + datetime.timedelta(days=7)
+
+            scout_payload = {
+                "scouting_audit": {
+                    "scan_timestamp": datetime.datetime.now().isoformat(),
+                    "scouting_stage": "SHALLOW",
+                    "completeness_grade": "GRADE_C",
+                    "grade_reason": f"Grad C (Inväntar djupscanning): Hittad via Wikipedia {year} in sports events.",
+                    "official_source_url": "",
+                    "wikipedia_url": wiki_url,
+                    "wikipedia_title": wiki_page,
+                    "is_compatible_sport": True,
+                    "draw_date": "",
+                    "next_rescan_date": next_rescan.isoformat(),
+                    "advancement_rules": "",
+                    "official_site_audit": None,
+                    "wikipedia_audit": None,
+                },
+                "master_event": {
+                    "name": title,
+                    "code": master_code,
+                    "sport": sport_name,
+                    "organizer": "Wikipedia",
+                    "host_country": host_country,
+                    "official_source_url": "",
+                    "wikipedia_url": wiki_url,
+                    "start_date": start_date_str,
+                    "end_date": end_date_str,
+                },
+                "tournament_config": {
+                    "name": title,
+                    "total_teams": teams_count,
+                    "knockout_stages": ["Quarterfinals", "Semifinals", "Final"],
+                },
+                "groups": [],
+                "fixtures_sample": [],
+                "raw_wikipedia": {
+                    "year": year,
+                    "wiki_page": wiki_page,
+                    "title": title
+                }
+            }
+
+            scanned_obj, s_created, _ = parse_and_save_scouted_json(scout_payload)
+            if scanned_obj:
+                if s_created:
+                    created_cnt += 1
+                else:
+                    updated_cnt += 1
+                prospects_list.append(scanned_obj)
+
+    return created_cnt, updated_cnt, prospects_list
+
+
 def scrape_web_for_tournaments(custom_query=None):
     """
-    Triggers the AllSportDB API (v3) pipeline to fetch upcoming sports events,
-    apply multi-step H2H team sport and format filtering, evaluate Grade A/B/C ratings,
-    and save/sync them directly into ScannedTournament prospects for Engine Admin.
+    Triggers both AllSportDB API (v3) and Wikipedia Annual Sports Event Crawler (e.g. 2026 in sports),
+    applies multi-step H2H team sport and format filtering, evaluates Grade A/B/C ratings,
+    and ingests unique prospects into ScannedTournament for Engine Admin.
     Returns (created_count, updated_count, list_of_prospects).
     """
-    created_cnt, updated_cnt, prospects = fetch_and_ingest_allsportdb_tournaments(
+    # 1. Authoritative AllSportDB Ingestion
+    c1, u1, p1 = fetch_and_ingest_allsportdb_tournaments(
         months_ahead=12,
         sync_scout=True
     )
 
-    if custom_query and prospects:
+    # 2. Wikipedia Annual Sports Events Ingestion (Current year + Next year)
+    today_year = datetime.date.today().year
+    c2, u2, p2 = fetch_and_ingest_wikipedia_year_events(
+        years=[today_year, today_year + 1],
+        sync_scout=True
+    )
+
+    total_created = c1 + c2
+    total_updated = u1 + u2
+    all_prospects = p1 + p2
+
+    if custom_query and all_prospects:
         q_lower = custom_query.lower().strip()
         filtered_prospects = [
-            p for p in prospects
+            p for p in all_prospects
             if q_lower in p.name.lower() 
             or q_lower in (p.sport or '').lower()
             or q_lower in (p.organizer or '').lower()
@@ -375,9 +544,9 @@ def scrape_web_for_tournaments(custom_query=None):
             or q_lower in (p.master_event_code or '').lower()
         ]
         if filtered_prospects:
-            prospects = filtered_prospects
+            all_prospects = filtered_prospects
 
-    return created_cnt, updated_cnt, prospects
+    return total_created, total_updated, all_prospects
 
 
 
@@ -416,6 +585,8 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
         has_best_thirds = tournament_config.get('has_best_thirds_table', False)
         has_runners_up = tournament_config.get('has_runners_up_table', False)
         has_host_ranking = tournament_config.get('has_host_ranking_table', False)
+        off_rules = scanned.official_rules or payload.get('scouting_audit', {}).get('official_rules') or payload.get('scouting_audit', {}).get('advancement_rules') or ''
+        off_url = scanned.official_source_url or payload.get('master_event', {}).get('official_source_url') or ''
 
         tournament, _ = Tournament.objects.update_or_create(
             name=scanned.name,
@@ -426,6 +597,8 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                 'has_best_thirds_table': has_best_thirds,
                 'has_runners_up_table': has_runners_up,
                 'has_host_ranking_table': has_host_ranking,
+                'official_rules': off_rules,
+                'official_regulations_url': off_url,
             }
         )
 

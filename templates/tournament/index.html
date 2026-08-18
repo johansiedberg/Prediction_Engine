@@ -2513,38 +2513,47 @@
                 <div class="d-flex flex-column gap-4">
                     <!-- 1. Officiella Turneringsregler -->
                     <section>
-                        <h6 class="fw-bold text-white border-bottom border-secondary border-opacity-20 pb-2 mb-3">
-                            1. Officiella Turneringsregler och Slutspelsstadgar
+                        <h6 class="fw-bold text-white border-bottom border-secondary border-opacity-20 pb-2 mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <span>1. Officiella Turneringsregler och Slutspelsstadgar — {{ active_tournament.name }}</span>
+                            {% if active_tournament.official_regulations_url %}
+                            <a href="{{ active_tournament.official_regulations_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info btn-xs rounded-pill font-monospace fw-bold" style="font-size:0.75rem;">
+                                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiell Regelbok
+                            </a>
+                            {% endif %}
                         </h6>
-                        
+
+                        {% if active_tournament.official_rules %}
+                        <div class="p-3 rounded-3 mb-3 font-monospace text-slate-200 small" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); white-space: pre-wrap; font-size: 0.85rem; max-height: 250px; overflow-y: auto;">
+                            {{ active_tournament.official_rules }}
+                        </div>
+                        {% else %}
                         <div class="mb-3">
                             <h6 class="fw-semibold text-slate-200 mb-1" style="font-size: 0.85rem;">1.1 Gruppspel och Poängfördelning</h6>
                             <ul class="mb-0 text-slate-300 ps-3">
-                                <li>Varje match i gruppspelet spelas över 90 minuter ordinarie tid plus tilläggstid.</li>
+                                <li>Varje match i gruppspelet spelas över ordinarie matchtid plus tilläggstid.</li>
                                 <li>Vinst tilldelar laget 3 poäng, oavgjort resultat 1 poäng, förlust 0 poäng.</li>
                             </ul>
                         </div>
 
                         <div class="mb-3">
-                            <h6 class="fw-semibold text-slate-200 mb-1" style="font-size: 0.85rem;">1.2 Särskiljning i Gruppspel (UEFA Tiebreakers)</h6>
+                            <h6 class="fw-semibold text-slate-200 mb-1" style="font-size: 0.85rem;">1.2 Särskiljning i Gruppspel (Tiebreakers)</h6>
                             <ol class="mb-0 text-slate-300 ps-3 small">
                                 <li>Flest inbördes poäng</li>
                                 <li>Bäst inbördes målskillnad</li>
                                 <li>Flest inbördes gjorda mål</li>
                                 <li>Total målskillnad</li>
                                 <li>Flest antal gjorda mål</li>
-                                <li>Lägst disciplinära poäng (Fair Play)</li>
-                                <li>Högst kvalifikationsranking</li>
                             </ol>
                         </div>
 
                         <div>
                             <h6 class="fw-semibold text-slate-200 mb-1" style="font-size: 0.85rem;">1.3 Slutspelsmatcher</h6>
                             <ul class="mb-0 text-slate-300 ps-3">
-                                <li>Vid oavgjort efter 90 min spelas 2 x 15 min förlängning.</li>
+                                <li>Vid oavgjort efter ordinarie tid spelas förlängning (om tillämpligt).</li>
                                 <li>Står det fortfarande oavgjort avgörs matchen genom straffläggning.</li>
                             </ul>
                         </div>
+                        {% endif %}
                     </section>
 
                     <!-- 2. Poängsystem för Tippningen -->

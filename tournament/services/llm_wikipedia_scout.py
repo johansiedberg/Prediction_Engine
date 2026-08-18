@@ -51,6 +51,8 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no prose)
   "draw_completed": <true|false>,
   "draw_date": "<e.g. 6 December 2026 or empty string>",
   "advancement_rules": "<plain text or empty string>",
+  "official_rules": "<detailed official regulations text summary including format, tiebreakers, extra-time rules, or qualification criteria>",
+  "official_regulations_url": "<direct URL to official regulation document or website if mentioned>",
   "knockout_stages": ["Round of 16", "Quarterfinals", "Semifinals", "Final"],
   "fixtures_count": <integer>,
   "groups_count": <integer>,
@@ -59,14 +61,22 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no prose)
 """
 
 _SYSTEM_PROMPT = (
-    "You are an expert sports data analyst. You will be given the plaintext content of a "
-    "Wikipedia article about a sports tournament. Extract the structured tournament information. "
-    "Use placeholder codes exactly as written (TBD, W37, 1A, etc). "
+    "You are an expert sports tournament auditor. You will be given the plaintext content of a "
+    "Wikipedia article about a sports tournament. Extract structured tournament information.\n"
+    "CRITICAL REQUIREMENT FOR 'official_rules': Strive to extract a complete, comprehensive tournament rulebook summary "
+    "covering:\n"
+    "  1. Tournament format & competition structure (e.g. number of teams, groups, match format, 48 teams in 12 groups of 4).\n"
+    "  2. Group stage standings & tiebreaker rules (points for win/draw, head-to-head, goal difference, goals scored, fair play points).\n"
+    "  3. Advancement & qualification criteria (e.g. top 2 per group + 8 best 3rd-placed teams advance to Round of 32).\n"
+    "  4. Knockout stage rules (extra time format, 30 mins ET, penalty shootout, substitution rules).\n"
+    "  5. Official regulation links or source references if mentioned.\n"
+    "Structure 'official_rules' into clean, well-formatted bullet points or numbered sections for maximum legibility.\n"
+    "Use placeholder codes exactly as written (TBD, W37, 1A, etc).\n"
     "For qualifying or league-format tournaments with matchday schedules but no individual "
     "fixtures yet, set scheduled_matchdays to the number of matchday rounds and leave "
-    "fixtures as an empty list. "
+    "fixtures as an empty list.\n"
     "If a draw has been announced for a future date but not yet held, set draw_completed=false "
-    "and record the draw_date. "
+    "and record the draw_date.\n"
     + _RESPONSE_SCHEMA_DESC
 )
 
@@ -277,6 +287,8 @@ class LLMWikipediaScout:
             "draw_completed":             bool(raw.get("draw_completed",   False)),
             "draw_date":                  str(raw.get("draw_date")         or ""),
             "advancement_rules":          str(raw.get("advancement_rules") or ""),
+            "official_rules":             str(raw.get("official_rules") or raw.get("advancement_rules") or ""),
+            "official_regulations_url":   str(raw.get("official_regulations_url") or ""),
             "fixtures_completed":         bool(raw.get("fixtures_completed", False)),
             "knockout_stages":            knockout_stages,
             "host_country":               str(raw.get("host_country")      or ""),

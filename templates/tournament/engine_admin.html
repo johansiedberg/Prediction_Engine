@@ -3,48 +3,58 @@
 
 {% block title %}Engine Admin | Tournaments & Monitor{% endblock %}
 
+{% block header_nav_pills %}
+<style>
+#adminMainSections .nav-link {
+    color: #94a3b8 !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    font-size: 0.85rem !important;
+    padding: 0.35rem 1rem !important;
+    letter-spacing: 0.3px;
+    transition: all 0.15s ease-in-out;
+}
+#adminMainSections .nav-link:hover {
+    color: #f8fafc !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+#adminMainSections .nav-link.active {
+    color: #f0f9ff !important;
+    background: #0369a1 !important;
+    border-color: #38bdf8 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+}
+</style>
+<ul class="nav nav-pills gap-2 align-items-center border-0 mb-0" id="adminMainSections" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold rounded-pill text-nowrap" id="tournaments-tab" data-bs-toggle="pill" data-bs-target="#tournaments-pane" type="button" role="tab">
+            1. Tournaments
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold rounded-pill text-nowrap" id="monitor-tab" data-bs-toggle="pill" data-bs-target="#monitor-pane" type="button" role="tab">
+            2. Monitor
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold rounded-pill text-nowrap" id="pool-requests-tab" data-bs-toggle="pill" data-bs-target="#pool-requests-pane" type="button" role="tab" onclick="loadPoolRequests()">
+            3. Pool-Admin-ansökningar
+            <span id="pool-requests-badge" class="badge bg-warning text-dark ms-1" style="display:none;font-size:0.72rem;"></span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold rounded-pill text-nowrap" id="scout-tab" data-bs-toggle="pill" data-bs-target="#scout-pane" type="button" role="tab">
+            4. AI Tournament Scout
+            <span id="scout-badge" class="badge bg-warning text-dark ms-1" style="font-size:0.72rem;">{{ scout_counts.total }}</span>
+        </button>
+    </li>
+</ul>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-3">
-
-    <!-- Header Banner (Transparent Outlined Card) -->
-    <div class="card bg-transparent text-white border border-secondary border-opacity-30 rounded-4 p-4 mb-4 shadow-sm border-start border-4 border-warning">
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-            <div>
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="badge bg-warning text-dark font-monospace text-uppercase px-2.5 py-1 fw-bold">Engine Admin Center</span>
-                    <span class="text-secondary small"><i class="fa-solid fa-shield-halved text-success me-1"></i>Behörighet: Superuser</span>
-                </div>
-                <h2 class="fw-extrabold mb-0 text-white display-6">Engine Control Panel</h2>
-                <p class="text-secondary mb-0 small">Hantera turneringar, validera logik, simulera matcher samt övervaka användare och tipsgrupper.</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3 Main Section Navigation Pills -->
-    <ul class="nav nav-pills mb-4 gap-2 border-bottom border-secondary border-opacity-25 pb-3" id="adminMainSections" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active fw-bold px-4 py-2.5 rounded-pill shadow-sm" id="tournaments-tab" data-bs-toggle="pill" data-bs-target="#tournaments-pane" type="button" role="tab">
-                <i class="fa-solid fa-trophy me-2"></i>1. Tournaments
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold px-4 py-2.5 rounded-pill shadow-sm text-white" id="monitor-tab" data-bs-toggle="pill" data-bs-target="#monitor-pane" type="button" role="tab">
-                <i class="fa-solid fa-chart-line me-2"></i>2. Monitor
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold px-4 py-2.5 rounded-pill shadow-sm text-white" id="pool-requests-tab" data-bs-toggle="pill" data-bs-target="#pool-requests-pane" type="button" role="tab" onclick="loadPoolRequests()">
-                <i class="fa-solid fa-shield-halved me-2"></i>3. Pool-Admin-ansökningar
-                <span id="pool-requests-badge" class="badge bg-warning text-dark ms-1" style="display:none;"></span>
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold px-4 py-2.5 rounded-pill shadow-sm text-white" id="scout-tab" data-bs-toggle="pill" data-bs-target="#scout-pane" type="button" role="tab">
-                <i class="fa-solid fa-wand-magic-sparkles me-2 text-warning"></i>4. AI Tournament Scout
-                <span id="scout-badge" class="badge bg-warning text-dark ms-1">{{ scout_counts.total }}</span>
-            </button>
-        </li>
-    </ul>
+<div class="container-fluid pt-0 pb-3">
 
     <!-- Main Section Contents -->
     <div class="tab-content" id="adminMainSectionsContent">
@@ -599,18 +609,20 @@
                     contain-intrinsic-size: 0 380px;
                 }
                 .scout-prospect-card {
-                    background: rgba(12,17,30,0.94) !important;
-                    border: 1px solid rgba(255,255,255,0.08);
-                    transition: border-color 0.18s, box-shadow 0.18s;
+                    background: linear-gradient(180deg, rgba(21, 29, 44, 0.95) 0%, rgba(15, 22, 35, 0.95) 100%) !important;
+                    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+                    transition: all 0.2s ease-in-out;
                 }
                 .scout-prospect-card:hover {
-                    border-color: rgba(255,255,255,0.2) !important;
-                    box-shadow: 0 4px 24px rgba(0,0,0,0.45) !important;
+                    background: linear-gradient(180deg, rgba(30, 41, 59, 0.98) 0%, rgba(20, 29, 46, 0.98) 100%) !important;
+                    border-color: rgba(56, 189, 248, 0.4) !important;
+                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
                 }
-                .scout-grade-strip { width: 4px; flex-shrink: 0; border-radius: 4px 0 0 4px; }
+                .scout-grade-strip { width: 8px; flex-shrink: 0; border-radius: 4px 0 0 4px; }
                 .strip-a { background: #15803D; }
-                .strip-b { background: #B45309; }
-                .strip-c { background: #475569; }
+                .strip-b { background: #0284C7; }
+                .strip-c { background: #D97706; }
                 .strip-d { background: #7f1d1d; }
                 .scout-shallow-cta {
                     background: rgba(69,26,3,0.4);
@@ -668,81 +680,90 @@
             <!-- Toast container -->
             <div id="scoutToastContainer"></div>
 
-            <!-- Scout Header Banner -->
-            <div class="card text-white rounded-4 mb-3 shadow-sm" style="background:rgba(12,17,30,0.94);border:1px solid rgba(255,255,255,0.09);border-left:4px solid #0ea5e9;">
+            <!-- Unified Scout Header & Filter Frame (Flush with top header navbar) -->
+            <div class="card text-white mb-4 shadow-sm" style="background: linear-gradient(135deg, #0f172a 0%, #000000 100%) !important; margin: 0 -0.75rem 1.5rem -0.75rem; border: none; border-bottom: 2px solid #334155 !important; border-radius: 0 0 16px 16px;">
                 <div class="card-body p-4">
-                    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+                    <!-- Top Row: Section Title & Action Buttons -->
+                    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 pb-3 mb-3 border-bottom border-secondary border-opacity-20">
                         <div>
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <span class="badge font-monospace text-uppercase px-2.5 py-1 fw-bold" style="background:#0c1a2e;border:1px solid #1e40af;color:#bfdbfe;">
-                                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i>AI Tournament Scout
+                                    AI Tournament Scout
                                 </span>
-                                <span class="text-secondary small">LLM Wikipedia Pipeline · Gemini Flash</span>
                             </div>
-                            <h3 class="fw-extrabold mb-1 text-white">Scannade Turneringar & Prospekt</h3>
+                            <h3 class="fw-extrabold mb-1 text-white">Scannade Turneringar &amp; Prospekt</h3>
                             <p class="text-secondary mb-0 small">Automatiskt scannade och granskade turneringar. Verifiera lottning, spelschema och konvertera godkända turneringar med ett klick.</p>
                         </div>
                         <div class="d-flex flex-wrap align-items-center gap-2">
-                            <button class="btn btn-info btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark d-inline-flex align-items-center gap-1.5" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
-                                <i class="fa-solid fa-satellite-dish"></i>Scanna webben nu
+                            <button class="btn btn-info btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
+                                Scanna webben nu
                             </button>
-                            <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#importWikipediaModal">
-                                <i class="fa-brands fa-wikipedia-w"></i>Importera via Wikipedia
+                            <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#importWikipediaModal">
+                                Importera via Wikipedia
                             </button>
-                            <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" onclick="refreshAllScoutProspects()">
-                                <i class="fa-solid fa-rotate"></i>Uppdatera alla
+                            <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold" onclick="refreshAllScoutProspects()">
+                                Uppdatera alla
                             </button>
-                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" onclick="clearScoutProspectsList()">
-                                <i class="fa-solid fa-broom"></i>Rensa
+                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-bold" onclick="clearScoutProspectsList()">
+                                Rensa
                             </button>
                             <div class="dropdown">
                                 <button class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5 dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="fa-solid fa-ellipsis-vertical"></i>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 rounded-3">
                                     <li>
                                         <a class="dropdown-item py-2 small" href="#" data-bs-toggle="modal" data-bs-target="#importScoutJsonModal">
-                                            <i class="fa-solid fa-file-import me-2 text-warning"></i>Importera Scout-JSON
+                                            Importera Scout-JSON
                                         </a>
                                     </li>
                                     <li>
                                         <a class="dropdown-item py-2 small" href="#" onclick="copyGeminiPromptToClipboard()">
-                                            <i class="fa-solid fa-copy me-2 text-info"></i>Kopiera Gemini-Prompt
+                                            Kopiera Gemini-Prompt
                                         </a>
                                     </li>
                                 </ul>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Sticky Filter Bar -->
-            <div class="scout-filter-bar-sticky rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    <span class="text-secondary small me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Filter:</span>
-                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background:rgba(255,255,255,0.12);color:#e2e8f0;border:1px solid rgba(255,255,255,0.25);">
-                        <i class="fa-solid fa-layer-group me-1"></i>Alla (<span id="count-scout-all">{{ scout_counts.total }}</span>)
-                    </button>
-                    <!-- Grade A (100% Redo) -->
-                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_A" onclick="filterScoutProspects('GRADE_A', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
-                        <i class="fa-solid fa-shield-check me-1"></i>Grade A (100% Redo) (<span id="count-scout-grade-a">{{ scout_counts.grade_a }}</span>)
-                    </button>
-                    <!-- Grade B (Nästan redo) -->
-                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_B" onclick="filterScoutProspects('GRADE_B', this)" style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;">
-                        <i class="fa-solid fa-clock me-1"></i>Grade B (Nästan redo) (<span id="count-scout-grade-b">{{ scout_counts.grade_b }}</span>)
-                    </button>
-                    <!-- Grade C (Bevakning) -->
-                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_C" onclick="filterScoutProspects('GRADE_C', this)" style="background:#0F172A;border:1px solid #475569;color:#E2E8F0;">
-                        <i class="fa-solid fa-circle-info me-1"></i>Grade C (Bevakning) (<span id="count-scout-grade-c">{{ scout_counts.grade_c }}</span>)
-                    </button>
-                    <!-- Converted -->
-                    <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="CONVERTED" onclick="filterScoutProspects('CONVERTED', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
-                        <i class="fa-solid fa-circle-check me-1"></i>Konverterade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
-                    </button>
-                </div>
-                <div class="text-secondary small font-monospace" style="font-size:0.75rem;">
-                    <span id="scoutVisibleCount">{{ scout_counts.total }}</span> prospekt visas
+                    <!-- Bottom Row: Integrated Filter Controls & Visible Counter -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span class="text-secondary small me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Status:</span>
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background:rgba(255,255,255,0.12);color:#e2e8f0;border:1px solid rgba(255,255,255,0.25);">
+                                Alla (<span id="count-scout-all">{{ scout_counts.total }}</span>)
+                            </button>
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="NEW" onclick="filterScoutProspects('NEW', this)" style="background:#1e293b;border:1px solid #475569;color:#cbd5e1;">
+                                Nya (<span id="count-scout-new">{{ scout_counts.new }}</span>)
+                            </button>
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="DEEP" onclick="filterScoutProspects('DEEP', this)" style="background:#451a03;border:1px solid #d97706;color:#fef3c7;">
+                                Scannade (<span id="count-scout-deep">{{ scout_counts.deep|default:0 }}</span>)
+                            </button>
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="WATCHLIST" onclick="filterScoutProspects('WATCHLIST', this)" style="background:#082f49;border:1px solid #0284c7;color:#bae6fd;">
+                                Bevakade (<span id="count-scout-watchlist">{{ scout_counts.watchlist }}</span>)
+                            </button>
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="CONVERTED" onclick="filterScoutProspects('CONVERTED', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
+                                Aktiverade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
+                            </button>
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="ARCHIVED" onclick="filterScoutProspects('ARCHIVED', this)" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;">
+                                Ignorerade (<span id="count-scout-archived">{{ scout_counts.archived }}</span>)
+                            </button>
+
+                            <span class="text-secondary small ms-2 me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Betyg:</span>
+                            <button class="btn btn-sm rounded-pill fw-bold px-2.5 scout-filter-btn" data-filter="GRADE_A" onclick="filterScoutProspects('GRADE_A', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
+                                <i class="fa-solid fa-shield-check me-1"></i>Redo (<span id="count-scout-grade-a">{{ scout_counts.grade_a }}</span>)
+                            </button>
+                            <button class="btn btn-sm rounded-pill fw-bold px-2.5 scout-filter-btn" data-filter="GRADE_B" onclick="filterScoutProspects('GRADE_B', this)" style="background:#082F49;border:1px solid #0284C7;color:#BAE6FD;">
+                                <i class="fa-solid fa-eye me-1"></i>Bevakas (<span id="count-scout-grade-b">{{ scout_counts.grade_b }}</span>)
+                            </button>
+                            <button class="btn btn-sm rounded-pill fw-bold px-2.5 scout-filter-btn" data-filter="GRADE_C" onclick="filterScoutProspects('GRADE_C', this)" style="background:#451A03;border:1px solid #D97706;color:#FEF3C7;">
+                                <i class="fa-solid fa-circle-info me-1"></i>Inte redo (<span id="count-scout-grade-c">{{ scout_counts.grade_c }}</span>)
+                            </button>
+                        </div>
+                        <div class="text-secondary small font-monospace">
+                            <span id="scoutVisibleCount">{{ scout_counts.total }}</span> prospekt visas
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -753,6 +774,7 @@
                     <div class="scout-card-wrap scout-prospect-item"
                          data-grade="{{ item.prospect.completeness_grade }}"
                          data-status="{{ item.prospect.status }}"
+                         data-stage="{{ item.scouting_stage }}"
                          id="prospect-card-{{ item.prospect.id }}">
                         <div class="card scout-prospect-card text-white rounded-4 overflow-hidden shadow-sm d-flex flex-row align-items-stretch">
                             <!-- Monochromatic Grade Strip -->
@@ -760,232 +782,239 @@
 
                             <div class="card-body p-3.5 flex-grow-1">
                                 <!-- Card Header: Icon, Meta, Title, Actions -->
-                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="d-flex align-items-center justify-content-center rounded-3 fs-4 flex-shrink-0" style="width:46px;height:46px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
+                                <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+                                    <!-- Left Info Block: Sport Icon (+100%) + Title & Status -->
+                                    <div class="d-flex align-items-start gap-3">
+                                        <div class="d-flex align-items-center justify-content-center rounded-3 flex-shrink-0" style="width:84px;height:84px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);font-size:2.2rem;">
                                             {{ item.sport_icon }}
                                         </div>
-                                        <div>
-                                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                                <!-- Monochromatic Grade Badge -->
-                                                <span class="badge rounded-pill px-2.5 py-1 font-monospace fw-bold small" style="{{ item.grade_meta.style }}">
-                                                    <i class="fa-solid {{ item.grade_meta.icon }} me-1"></i>{{ item.grade_meta.label }}
-                                                </span>
-                                                <!-- Status Badge -->
-                                                <span class="badge {{ item.status_meta.badge_class }} rounded-pill px-2.5 py-1 font-monospace small">
-                                                    {{ item.status_meta.label }}
-                                                </span>
-                                                {% if item.scouting_stage == 'SHALLOW' %}
-                                                <span class="badge rounded-pill px-2.5 py-1 font-monospace small fw-semibold" style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;" title="Klicka Djupscanna för fullständig Wikipedia-analys">
-                                                    <i class="fa-solid fa-hourglass-half me-1"></i>Inväntar djupscanning
-                                                </span>
+                                        <div class="d-flex flex-column justify-content-center" style="gap:10px !important;">
+                                            <!-- ROW 1: Status Badge, Rescan/Days, Prospect ID -->
+                                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                                <!-- Explicit Status Badge -->
+                                                {% if item.prospect.status == 'CONVERTED' %}
+                                                    <!-- Added (Aktiverad) = Green -->
+                                                    <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;font-size:14px;">
+                                                        Aktiverad
+                                                    </span>
+                                                {% elif item.prospect.status == 'WATCHLIST' %}
+                                                    <!-- Under Survey (Bevakad, [Datum för nästa scanning]) = Blue -->
+                                                    <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#082f49;border:1px solid #0284c7;color:#bae6fd;font-size:14px;">
+                                                        Bevakad, {% if item.prospect.rescan_date %}{{ item.prospect.rescan_date|date:"Y-m-d" }}{% elif item.prospect.payload.scouting_audit.next_rescan_date %}{{ item.prospect.payload.scouting_audit.next_rescan_date|slice:":10" }}{% else %}2026-08-25{% endif %}
+                                                    </span>
+                                                {% elif item.prospect.status == 'ARCHIVED' %}
+                                                    <!-- Ignored (Ignorerad) = Red -->
+                                                    <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;font-size:14px;">
+                                                        Ignorerad
+                                                    </span>
+                                                {% elif item.scouting_stage == 'DEEP' %}
+                                                    <!-- Scanned (Scannad) = Yellow -->
+                                                    <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#451a03;border:1px solid #d97706;color:#fef3c7;font-size:14px;">
+                                                        Scannad
+                                                    </span>
+                                                {% else %}
+                                                    <!-- New (Ny) = Grey -->
+                                                    <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#1e293b;border:1px solid #475569;color:#cbd5e1;font-size:14px;">
+                                                        Ny
+                                                    </span>
                                                 {% endif %}
+
                                                 {% if item.days_to_start is not None %}
                                                     {% if item.days_to_start > 0 %}
-                                                    <span class="badge rounded-pill px-2.5 py-1 font-monospace small" style="background:#0c1a2e;border:1px solid #1e40af;color:#bfdbfe;">
+                                                    <span class="badge rounded-pill px-2.5 py-1 font-monospace" style="background:#0c1a2e;border:1px solid #1e40af;color:#bfdbfe;font-size:14px;">
                                                         <i class="fa-regular fa-clock me-1"></i>Om {{ item.days_to_start }} dagar
                                                     </span>
                                                     {% elif item.days_to_start == 0 %}
-                                                    <span class="badge rounded-pill px-2.5 py-1 font-monospace small animate-pulse" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;">
+                                                    <span class="badge rounded-pill px-2.5 py-1 font-monospace animate-pulse" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;font-size:14px;">
                                                         <i class="fa-solid fa-bolt me-1"></i>Startar idag!
                                                     </span>
                                                     {% endif %}
                                                 {% endif %}
-                                                <span class="text-secondary small font-monospace">#{{ item.prospect.id }}</span>
+                                                <span class="text-secondary font-monospace ms-1" style="font-size:14px;">#{{ item.prospect.id }}</span>
                                             </div>
-                                            <h5 class="fw-extrabold mb-0 text-white font-monospace">
+
+                                            <!-- ROW 2: Tournament Name -->
+                                            <h4 class="fw-extrabold text-white font-monospace m-0" style="font-size: 1.25rem; line-height: 1.3;">
                                                 {{ item.prospect.name }}
-                                            </h5>
-                                            <div class="text-secondary small mt-0.5 d-flex flex-wrap align-items-center gap-2">
-                                                {% if item.prospect.host_country %}
-                                                    <span><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ item.prospect.host_country }}</span>
+                                            </h4>
+
+                                            <!-- ROW 3: Country, Dates, Officiell & Wiki Links -->
+                                            <div class="text-secondary small d-flex flex-wrap align-items-center gap-2">
+                                                {% if item.prospect.host_country and item.prospect.host_country|lower != 'world' and item.prospect.host_country|lower != 'global' %}
+                                                    <span class="text-white fw-bold"><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ item.prospect.host_country }}</span>
+                                                    <span class="text-secondary opacity-40">&bull;</span>
                                                 {% endif %}
-                                                &bull; <span><i class="fa-regular fa-calendar text-info me-1"></i>{{ item.prospect.start_date|date:"Y-m-d"|default:"TBD" }} &ndash; {{ item.prospect.end_date|date:"Y-m-d"|default:"TBD" }}</span>
-                                                {% if item.prospect.organizer %}&bull; <span class="badge bg-secondary bg-opacity-30 text-light">{{ item.prospect.organizer }}</span>{% endif %}
+
+                                                <span class="text-white fw-bold"><i class="fa-regular fa-calendar text-info me-1"></i>{{ item.prospect.start_date|date:"Y-m-d"|default:"TBD" }} &ndash; {{ item.prospect.end_date|date:"Y-m-d"|default:"TBD" }}</span>
+
+                                                {% if item.prospect.organizer and item.prospect.organizer|lower != 'world' and item.prospect.organizer|lower != 'global' %}
+                                                    <span class="text-secondary opacity-40">&bull;</span>
+                                                    <span class="badge bg-secondary bg-opacity-30 text-light font-monospace">{{ item.prospect.organizer }}</span>
+                                                {% endif %}
+
                                                 {% if item.official_source_url %}
-                                                    &bull; <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.72rem;">
-                                                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiell
+                                                    <span class="text-secondary opacity-40">&bull;</span>
+                                                    <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.75rem;">
+                                                        Officiell
                                                     </a>
-                                                    <button class="btn btn-link text-secondary p-0 ms-0.5 text-decoration-none" style="font-size:0.75rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '{{ item.official_source_url|escapejs }}')" title="Ändra officiell länk">
+                                                    <button class="btn btn-link text-secondary p-0 text-decoration-none" style="font-size:0.75rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '{{ item.official_source_url|escapejs }}')" title="Ändra officiell länk">
                                                         <i class="fa-solid fa-pen-to-square"></i>
                                                     </button>
                                                 {% else %}
-                                                    &bull; <button class="btn btn-outline-info btn-xs rounded-pill font-monospace py-0.5 px-2 text-decoration-none" style="font-size:0.72rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '')" title="Lägg till manuell webbadress till officiell sida/reglemente">
-                                                        <i class="fa-solid fa-link me-1"></i>+ Officiell
+                                                    <span class="text-secondary opacity-40">&bull;</span>
+                                                    <button class="btn btn-outline-info btn-xs rounded-pill font-monospace py-0.5 px-2 text-decoration-none" style="font-size:0.72rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '')" title="Lägg till manuell webbadress">
+                                                        + Officiell
                                                     </button>
                                                 {% endif %}
+
                                                 {% if item.prospect.payload.master_event.wikipedia_url %}
-                                                    &bull; <a href="{{ item.prospect.payload.master_event.wikipedia_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-warning border-opacity-40 text-warning text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.72rem;">
-                                                        <i class="fa-brands fa-wikipedia-w me-1"></i>Wiki
+                                                    <span class="text-secondary opacity-40">&bull;</span>
+                                                    <a href="{{ item.prospect.payload.master_event.wikipedia_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-warning border-opacity-40 text-warning text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.75rem;">
+                                                        Wiki
                                                     </a>
                                                 {% endif %}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Action Buttons Right -->
-                                    <div class="d-flex flex-wrap align-items-center gap-2">
-                                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5" onclick="viewRawJsonProspect({{ item.prospect.id }})" title="Visa rå JSON">
-                                            <i class="fa-solid fa-code me-1"></i>JSON
-                                        </button>
-
-                                        {% if item.prospect.status != 'WATCHLIST' %}
-                                        <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5" onclick="updateProspectStatus({{ item.prospect.id }}, 'WATCHLIST')">
-                                            <i class="fa-solid fa-eye me-1"></i>Bevaka
-                                        </button>
+                                    <!-- Function Action Buttons (Aligned to Top Right Corner) -->
+                                    <div class="d-flex flex-wrap align-items-center gap-1.5 ms-auto align-self-start">
+                                        <!-- 1. SKAPA (Send to Section 1) -->
+                                        {% if item.prospect.status == 'CONVERTED' %}
+                                        <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30 px-3 py-1.5 rounded-pill font-monospace fw-bold">
+                                            Skapad i Sektion 1
+                                        </span>
                                         {% else %}
-                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5" onclick="updateProspectStatus({{ item.prospect.id }}, 'NEW')">
-                                            <i class="fa-solid fa-arrow-rotate-left me-1"></i>Tillbaka till Ny
+                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm" style="background:#15803D;border:1px solid #166534;color:#FFFFFF;" onclick="convertDirect({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}')" title="Skapa och skicka till 1. Turneringar">
+                                            Skapa
                                         </button>
                                         {% endif %}
 
-                                        <!-- DEEP SCOUT BUTTON -->
-                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5"
+                                        <!-- 2. BEVAKA (Survey watchlist with weekly LLM rescan) -->
+                                        {% if item.prospect.status != 'WATCHLIST' %}
+                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm" style="background:#0284C7;border:1px solid #0369A1;color:#FFFFFF;" onclick="updateProspectStatus({{ item.prospect.id }}, 'WATCHLIST')" title="Sätt på bevakningslista för automatisk veckorescan">
+                                            Bevaka
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold" style="background:rgba(2,132,199,0.2);border:1px solid #0284C7;color:#BAE6FD;" onclick="updateProspectStatus({{ item.prospect.id }}, 'NEW')" title="Ta bort från bevakning">
+                                            Sluta bevaka
+                                        </button>
+                                        {% endif %}
+
+                                        <!-- 3. IGNORERA (Mark as Ignored) -->
+                                        {% if item.prospect.status != 'ARCHIVED' %}
+                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 font-monospace fw-semibold" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);color:#F1F5F9;" onclick="updateProspectStatus({{ item.prospect.id }}, 'ARCHIVED')" title="Markera som ej intressant">
+                                            Ignorera
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 font-monospace fw-bold" style="background:#B45309;border:1px solid #D97706;color:#FFFFFF;" onclick="updateProspectStatus({{ item.prospect.id }}, 'NEW')" title="Återaktivera">
+                                            Återaktivera
+                                        </button>
+                                        {% endif %}
+
+                                        <!-- 4. RADERA (Delete permanently) -->
+                                        <button class="btn btn-sm rounded-pill px-2.5 py-1.5" style="background:rgba(239,68,68,0.12);border:1px solid #EF4444;color:#FCA5A5;" onclick="deleteProspect({{ item.prospect.id }})" title="Radera permanent">
+                                            Radera
+                                        </button>
+
+                                        <!-- UTILITY: DEEP SCOUT & JSON -->
+                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-bold ms-1"
                                                 id="deepScanBtn-{{ item.prospect.id }}"
                                                 onclick="deepScanProspect({{ item.prospect.id }})"
                                                 {% if item.scouting_stage == 'SHALLOW' %}
-                                                style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;"
-                                                title="Kör fullständig Wikipedia-djupscanning för denna turnering"
+                                                style="background:#B45309;border:1px solid #D97706;color:#FFFFFF;"
+                                                title="Kör fullständig Wikipedia-djupscanning"
                                                 {% else %}
-                                                style="background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;"
-                                                title="Om-kör djupscanning från Wikipedia"
+                                                style="background:rgba(6,182,212,0.15);border:1px solid #06B6D4;color:#A5F3FC;"
+                                                title="Om-kör djupscanning"
                                                 {% endif %}>
-                                            <i class="fa-solid fa-microscope"></i>
-                                            <span>{% if item.scouting_stage == 'SHALLOW' %}Djupscanna{% else %}Rescan{% endif %}</span>
+                                            {% if item.scouting_stage == 'SHALLOW' %}Djupscanna{% else %}Rescan{% endif %}
                                         </button>
 
-                                        <!-- DIRECT CREATE BUTTON -->
-                                        <button class="btn btn-success btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="convertDirect({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}')">
-                                            <i class="fa-solid fa-bolt"></i><span>Skapa nu</span>
-                                        </button>
-
-                                        <!-- REVIEW & CONVERT MODAL BUTTON -->
-                                        <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="openReviewConvertModal({{ item.prospect.id }})">
-                                            <i class="fa-solid fa-wand-magic-sparkles"></i><span>Granska &amp; Skapa</span>
-                                        </button>
-
-                                        <button class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1.5 ms-1" onclick="deleteProspect({{ item.prospect.id }})" title="Radera från Scout">
-                                            <i class="fa-solid fa-trash"></i>
+                                        <button class="btn btn-sm rounded-pill px-2.5 py-1.5" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);color:#CBD5E1;" onclick="viewRawJsonProspect({{ item.prospect.id }})" title="Visa rå JSON">
+                                            JSON
                                         </button>
                                     </div>
                                 </div>
 
                                 <!-- Card Body Content -->
-                                <div class="row g-3">
+                                <div class="row g-3 mt-1">
                                     <!-- Left Column: Metrics & Readiness -->
-                                    <div class="col-12 col-lg-5">
-                                        <!-- Metrics Capsules -->
-                                        <div class="row g-2 text-center mb-2">
-                                            <div class="col-3">
-                                                <div class="p-2 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
-                                                    <div class="fw-extrabold fs-5 text-warning font-monospace">{{ item.teams_count }}</div>
-                                                    <div class="text-secondary font-monospace" style="font-size:0.68rem;text-transform:uppercase;">Lag</div>
+                                    <div class="col-12 col-lg-5 d-flex flex-column gap-3">
+                                        <!-- Metrics Capsules (3 Proportional Columns: Lag, Grupper, Matcher) -->
+                                        <div class="row g-2">
+                                            <div class="col-4">
+                                                <div class="p-3 rounded-3 d-flex flex-column align-items-center justify-content-center text-center h-100" style="background:rgba(245, 158, 11, 0.08);border:1px solid rgba(245, 158, 11, 0.25);">
+                                                    <div class="fw-extrabold text-warning font-monospace mb-1" style="font-size:2.3rem;line-height:1;">{{ item.teams_count }}</div>
+                                                    <div class="fw-bold font-monospace text-uppercase" style="font-size:1.05rem;color:#FDE68A;letter-spacing:0.5px;">
+                                                        <i class="fa-solid fa-users me-1"></i>Lag
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="col-3">
-                                                <div class="p-2 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
-                                                    <div class="fw-extrabold fs-5 text-info font-monospace">{{ item.groups_count }}</div>
-                                                    <div class="text-secondary font-monospace" style="font-size:0.68rem;text-transform:uppercase;">Grupper</div>
+                                            <div class="col-4">
+                                                <div class="p-3 rounded-3 d-flex flex-column align-items-center justify-content-center text-center h-100" style="background:rgba(14, 165, 233, 0.08);border:1px solid rgba(14, 165, 233, 0.25);">
+                                                    <div class="fw-extrabold text-info font-monospace mb-1" style="font-size:2.3rem;line-height:1;">{{ item.groups_count }}</div>
+                                                    <div class="fw-bold font-monospace text-uppercase" style="font-size:1.05rem;color:#BAE6FD;letter-spacing:0.5px;">
+                                                        <i class="fa-solid fa-layer-group me-1"></i>Grupper
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="col-3">
-                                                <div class="p-2 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
-                                                    <div class="fw-extrabold fs-5 text-light font-monospace">{{ item.matches_count }}</div>
-                                                    <div class="text-secondary font-monospace" style="font-size:0.68rem;text-transform:uppercase;">Matcher</div>
+                                            <div class="col-4">
+                                                <div class="p-3 rounded-3 d-flex flex-column align-items-center justify-content-center text-center h-100" style="background:rgba(241, 245, 249, 0.06);border:1px solid rgba(241, 245, 249, 0.2);">
+                                                    <div class="fw-extrabold text-white font-monospace mb-1" style="font-size:2.3rem;line-height:1;">{{ item.matches_count }}</div>
+                                                    <div class="fw-bold font-monospace text-uppercase" style="font-size:1.05rem;color:#E2E8F0;letter-spacing:0.5px;">
+                                                        <i class="fa-regular fa-futbol me-1"></i>Matcher
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="col-3">
-                                                <div class="p-2 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
-                                                    <div class="fw-extrabold fs-5 text-primary font-monospace">{{ item.sidebets_count }}</div>
-                                                    <div class="text-secondary font-monospace" style="font-size:0.68rem;text-transform:uppercase;">Sidebets</div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Audit Analysis Box -->
-                                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
-                                            <div class="d-flex align-items-center justify-content-between mb-1.5">
-                                                <span class="font-monospace fw-bold text-uppercase" style="font-size:0.72rem;color:#cbd5e1;">
-                                                    Graderingsanalys &bull; {{ item.grade_meta.label }}
-                                                </span>
-                                            </div>
-
-                                            {% if item.scouting_stage == 'SHALLOW' %}
-                                            <div class="scout-shallow-cta p-2 d-flex align-items-center justify-content-between gap-2 mt-1">
-                                                <span class="small text-warning" style="font-size:0.78rem;">
-                                                    <i class="fa-solid fa-hourglass-half me-1"></i>Ingen djupscanning utförd ännu.
-                                                </span>
-                                                <button class="btn btn-warning btn-xs rounded-pill px-2.5 py-1 fw-bold flex-shrink-0" style="font-size:0.75rem;" onclick="deepScanProspect({{ item.prospect.id }})">
-                                                    Djupscanna
-                                                </button>
-                                            </div>
-                                            {% else %}
-                                            <div class="row g-1.5 small" style="font-size:0.8rem;">
-                                                <div class="col-12 col-md-6">
-                                                    {% if item.readiness.draw_completed %}
-                                                    <span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>Lottning genomförd</span>
-                                                    {% else %}
-                                                    <span class="text-secondary"><i class="fa-solid fa-circle-xmark text-warning me-1"></i>Lottning: Ej genomförd</span>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="col-12 col-md-6">
-                                                    {% if item.readiness.schedule_ready %}
-                                                    <span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>Spelschema fastställt</span>
-                                                    {% else %}
-                                                    <span class="text-secondary"><i class="fa-solid fa-circle-xmark text-warning me-1"></i>Spelschema: Inväntar lottning</span>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-
-                                            {% if item.audit_reasons %}
-                                            <div class="mt-2 pt-1.5 border-top border-secondary border-opacity-20" style="font-size:0.75rem;">
-                                                {% for reason in item.audit_reasons %}
-                                                <div class="text-secondary d-flex align-items-center gap-1">
-                                                    <i class="fa-solid fa-triangle-exclamation text-warning" style="font-size:10px;"></i>
-                                                    <span>{{ reason }}</span>
-                                                </div>
-                                                {% endfor %}
-                                            </div>
-                                            {% endif %}
-
-                                            <div class="d-flex flex-wrap align-items-center gap-3 mt-2 font-monospace text-secondary" style="font-size:0.72rem;">
-                                                {% if item.prospect.payload.scouting_audit.draw_date %}
-                                                <span>Lottning: {{ item.prospect.payload.scouting_audit.draw_date }}</span>
-                                                {% endif %}
-                                                {% if item.prospect.next_rescan_at %}
-                                                <span>Rescan: {{ item.prospect.next_rescan_at|slice:":10" }}</span>
-                                                {% endif %}
-                                            </div>
-                                            {% endif %}
                                         </div>
                                     </div>
 
-                                    <!-- Right Column: Accordion (Lazy Loaded) -->
-                                    <div class="col-12 col-lg-7">
+                                    <!-- Right Column: Accordion Expansion Headers with Conditional Icons (7px Gap) -->
+                                    <div class="col-12 col-lg-8">
                                         {% if item.scouting_stage != 'SHALLOW' %}
-                                        <div class="accordion scout-accordion" id="prospectAccordion-{{ item.prospect.id }}"
-                                             data-prospect-id="{{ item.prospect.id }}"
-                                             data-loaded="false">
+                                        <div class="accordion scout-accordion" id="prospectAccordion-{{ item.prospect.id }}">
 
                                             <!-- Groups -->
                                             <div class="accordion-item">
                                                 <h2 class="accordion-header">
                                                     <button class="accordion-button collapsed" type="button"
                                                             data-bs-toggle="collapse"
-                                                            data-bs-target="#collapseGroups-{{ item.prospect.id }}"
-                                                            onclick="lazyLoadAccordion({{ item.prospect.id }})">
-                                                        <i class="fa-solid fa-users me-2 text-warning" style="font-size:0.85rem;"></i>
-                                                        <strong style="font-size:0.85rem;">Gruppindelning &amp; Lag</strong>
-                                                        <span class="badge ms-2 font-monospace" style="font-size:0.68rem;background:rgba(255,255,255,0.07);color:#94a3b8;">{{ item.groups_count }} gr · {{ item.teams_count }} lag</span>
+                                                            data-bs-target="#collapseGroups-{{ item.prospect.id }}">
+                                                        <i class="fa-solid fa-users me-2 text-warning" style="font-size:16px;"></i>
+                                                        <strong style="font-size:16px;">Gruppindelning &amp; Lag</strong>
+                                                        <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag</span>
+                                                        {% if item.groups_count > 0 and item.teams_count > 0 %}
+                                                            <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Grupper & Lag genomförda"></i>
+                                                        {% else %}
+                                                            <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Saknar grupper/lag"></i>
+                                                        {% endif %}
                                                     </button>
                                                 </h2>
                                                 <div id="collapseGroups-{{ item.prospect.id }}" class="accordion-collapse collapse">
-                                                    <div class="accordion-body px-0 py-2" id="groupsBody-{{ item.prospect.id }}">
-                                                        <div class="accordion-skeleton px-2">
-                                                            <div class="skeleton-line" style="width:60%;"></div>
-                                                            <div class="skeleton-line" style="width:80%;"></div>
-                                                            <div class="skeleton-line" style="width:50%;"></div>
+                                                    <div class="accordion-body px-3 py-2.5">
+                                                        {% if item.groups %}
+                                                        <div class="row g-2">
+                                                            {% for g in item.groups %}
+                                                            <div class="col-12 col-md-6">
+                                                                <div class="p-2.5 rounded-3" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+                                                                    <div class="fw-bold text-warning small mb-1 font-monospace" style="font-size:0.85rem;">
+                                                                        <i class="fa-solid fa-users me-1.5"></i>{{ g.name|default:g }}
+                                                                    </div>
+                                                                    <ul class="list-unstyled mb-0 text-light ps-1 font-monospace" style="font-size:0.82rem;">
+                                                                        {% for t in g.teams %}
+                                                                        <li class="py-0.5">&bull; {{ t.name|default:t }}</li>
+                                                                        {% empty %}
+                                                                        <li class="text-secondary italic">Inga lag angivna</li>
+                                                                        {% endfor %}
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                            {% endfor %}
                                                         </div>
+                                                        {% else %}
+                                                        <div class="text-secondary small p-2 font-monospace"><i class="fa-solid fa-circle-info me-1.5"></i>Inga grupper extraherade ännu. Djupscanna för att hämta gruppindelning.</div>
+                                                        {% endif %}
                                                     </div>
                                                 </div>
                                             </div>
@@ -995,41 +1024,81 @@
                                                 <h2 class="accordion-header">
                                                     <button class="accordion-button collapsed" type="button"
                                                             data-bs-toggle="collapse"
-                                                            data-bs-target="#collapseFixtures-{{ item.prospect.id }}"
-                                                            onclick="lazyLoadAccordion({{ item.prospect.id }})">
-                                                        <i class="fa-solid fa-calendar-days me-2 text-info" style="font-size:0.85rem;"></i>
-                                                        <strong style="font-size:0.85rem;">Spelschema &amp; Slutspel</strong>
-                                                        <span class="badge ms-2 font-monospace" style="font-size:0.68rem;background:rgba(255,255,255,0.07);color:#94a3b8;">{{ item.matches_count }} matcher</span>
+                                                            data-bs-target="#collapseFixtures-{{ item.prospect.id }}">
+                                                        <i class="fa-solid fa-calendar-days me-2 text-info" style="font-size:16px;"></i>
+                                                        <strong style="font-size:16px;">Spelschema &amp; Slutspel</strong>
+                                                        <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher</span>
+                                                        {% if item.matches_count > 0 and item.fixtures_done %}
+                                                            <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställt"></i>
+                                                        {% else %}
+                                                            <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema ej slutfört"></i>
+                                                        {% endif %}
                                                     </button>
                                                 </h2>
                                                 <div id="collapseFixtures-{{ item.prospect.id }}" class="accordion-collapse collapse">
-                                                    <div class="accordion-body px-0 py-2" id="fixturesBody-{{ item.prospect.id }}">
-                                                        <div class="accordion-skeleton px-2">
-                                                            <div class="skeleton-line" style="width:90%;"></div>
-                                                            <div class="skeleton-line" style="width:75%;"></div>
-                                                            <div class="skeleton-line" style="width:85%;"></div>
+                                                    <div class="accordion-body px-3 py-2.5">
+                                                        {% if item.fixtures %}
+                                                        <div class="d-flex flex-column gap-1.5" style="max-height: 240px; overflow-y: auto;">
+                                                            {% for f in item.fixtures %}
+                                                            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 font-monospace" style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);font-size:0.82rem;">
+                                                                <div class="d-flex align-items-center gap-2" style="min-width:130px;">
+                                                                    <span class="text-secondary fw-bold">#{{ f.match_number|default:forloop.counter }}</span>
+                                                                    <span class="badge rounded-pill bg-dark border border-warning border-opacity-40 text-warning px-2 py-0.5" style="font-size:0.75rem;">
+                                                                        {{ f.stage_or_group|default:"Gruppspel" }}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="d-flex align-items-center justify-content-center gap-2 flex-grow-1 mx-2">
+                                                                    <span class="fw-bold text-white text-end flex-fill">{{ f.home_team }}</span>
+                                                                    <span class="text-info px-1">vs</span>
+                                                                    <span class="fw-bold text-white text-start flex-fill">{{ f.away_team }}</span>
+                                                                </div>
+                                                                <span class="text-secondary small ms-2 font-monospace" style="font-size:0.78rem;">
+                                                                    <i class="fa-regular fa-clock me-1"></i>{{ f.date_time|default:"TBD" }}
+                                                                </span>
+                                                            </div>
+                                                            {% endfor %}
                                                         </div>
+                                                        {% else %}
+                                                        <div class="text-secondary small p-2 font-monospace"><i class="fa-solid fa-circle-info me-1.5"></i>Inga matcher extraherade ännu.</div>
+                                                        {% endif %}
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <!-- Sidebets -->
+                                            <!-- Officiella Föreskrifter & Reglemente -->
                                             <div class="accordion-item">
                                                 <h2 class="accordion-header">
                                                     <button class="accordion-button collapsed" type="button"
                                                             data-bs-toggle="collapse"
-                                                            data-bs-target="#collapseSidebets-{{ item.prospect.id }}"
-                                                            onclick="lazyLoadAccordion({{ item.prospect.id }})">
-                                                        <i class="fa-solid fa-trophy me-2 text-primary" style="font-size:0.85rem;"></i>
-                                                        <strong style="font-size:0.85rem;">Föreslagna Sidebets</strong>
-                                                        <span class="badge ms-2 font-monospace" style="font-size:0.68rem;background:rgba(255,255,255,0.07);color:#94a3b8;">{{ item.sidebets_count }} st</span>
+                                                            data-bs-target="#collapseRules-{{ item.prospect.id }}">
+                                                        <i class="fa-solid fa-scroll me-2 text-info" style="font-size:16px;"></i>
+                                                        <strong style="font-size:16px;">Officiella Föreskrifter &amp; Reglemente</strong>
+                                                        {% if item.official_rules or item.official_source_url %}
+                                                            <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Föreskrifter verifierade"></i>
+                                                        {% else %}
+                                                            <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Saknar reglemente"></i>
+                                                        {% endif %}
                                                     </button>
                                                 </h2>
-                                                <div id="collapseSidebets-{{ item.prospect.id }}" class="accordion-collapse collapse">
-                                                    <div class="accordion-body px-0 py-2" id="sidebetsBody-{{ item.prospect.id }}">
-                                                        <div class="accordion-skeleton px-2">
-                                                            <div class="skeleton-line" style="width:70%;"></div>
-                                                            <div class="skeleton-line" style="width:55%;"></div>
+                                                <div id="collapseRules-{{ item.prospect.id }}" class="accordion-collapse collapse">
+                                                    <div class="accordion-body p-3">
+                                                        {% if item.official_rules %}
+                                                        <div class="p-3 rounded-3 mb-2 font-monospace text-light" style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.08);white-space:pre-wrap;font-size:0.85rem;line-height:1.5;max-height:200px;overflow-y:auto;">
+                                                            {{ item.official_rules }}
+                                                        </div>
+                                                        {% else %}
+                                                        <p class="text-secondary small mb-2 font-monospace"><i class="fa-solid fa-circle-info me-1.5"></i>Inga exakta föreskrifter har extraherats från Wikipedia ännu. Klicka "Djupscanna" eller skriv in manuellt nedan.</p>
+                                                        {% endif %}
+
+                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2">
+                                                            {% if item.official_source_url %}
+                                                            <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1.5 px-3 rounded-pill font-monospace" style="font-size:0.78rem;">
+                                                                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiellt Reglemente (Länk)
+                                                            </a>
+                                                            {% endif %}
+                                                            <button class="btn btn-outline-info btn-xs rounded-pill px-3 py-1.5 font-monospace ms-auto" style="font-size:0.78rem;" onclick="openEditRulesModal({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}', '{{ item.official_rules|escapejs }}', '{{ item.official_source_url|escapejs }}')">
+                                                                <i class="fa-solid fa-pen-to-square me-1"></i>Redigera föreskrifter
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1037,12 +1106,12 @@
 
                                         </div>
                                         {% else %}
-                                        <!-- Shallow CTA box instead of empty accordion -->
-                                        <div class="p-3.5 rounded-3 text-center d-flex flex-column align-items-center justify-content-center h-100" style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08);">
-                                            <i class="fa-solid fa-microscope text-warning fs-3 mb-2"></i>
-                                            <div class="fw-bold text-white small mb-1">Djupscanning krävs</div>
-                                            <div class="text-secondary small mb-3" style="max-width:280px;">Klicka på Djupscanna för att grupper, spelschema och föreskrifter ska hämtas automatiskt via Wikipedia.</div>
-                                            <button class="btn btn-warning btn-sm rounded-pill px-4 py-1.5 fw-bold shadow-sm" onclick="deepScanProspect({{ item.prospect.id }})">
+                                        <!-- Shallow CTA box -->
+                                        <div class="p-4 rounded-3 text-center d-flex flex-column align-items-center justify-content-center h-100" style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.1);">
+                                            <i class="fa-solid fa-microscope text-warning fs-2 mb-2"></i>
+                                            <div class="fw-bold text-white fs-6 mb-1">Djupscanning krävs</div>
+                                            <div class="text-secondary small mb-3 font-monospace" style="max-width:320px;font-size:0.85rem;">Klicka på Djupscanna för att grupper, spelschema och föreskrifter ska hämtas automatiskt via Wikipedia.</div>
+                                            <button class="btn btn-warning btn-sm rounded-pill px-4 py-2 fw-bold shadow-sm text-dark" onclick="deepScanProspect({{ item.prospect.id }})">
                                                 <i class="fa-solid fa-microscope me-1.5"></i>Starta djupscanning
                                             </button>
                                         </div>
@@ -1057,13 +1126,7 @@
                 {% else %}
                 <!-- Empty state -->
                 <div class="text-center py-5" style="border:1px dashed rgba(255,255,255,0.1);border-radius:16px;">
-                    <i class="fa-solid fa-satellite-dish fa-3x mb-3" style="color:#334155;"></i>
-                    <h5 class="text-white mb-1">Inga scannade turneringar</h5>
-                    <p class="text-secondary small mb-3">Klicka på "Scanna" för att hämta turneringar från AllSportDB.</p>
-                    <button class="btn btn-sm fw-bold rounded-pill px-4 py-2" onclick="triggerWebScrapeNow()"
-                            style="background:#0c1a2e;border:1px solid #0ea5e9;color:#7dd3fc;">
-                        <i class="fa-solid fa-satellite-dish me-1.5"></i>Scanna webben nu
-                    </button>
+                    <h5 class="text-white mb-0">Inga scannade turneringar</h5>
                 </div>
                 {% endif %}
             </div>
@@ -1108,6 +1171,51 @@
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Avbryt</button>
                 <button type="button" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" id="confirmWikipediaImportBtn" onclick="importFromWikipediaUrl()">
                     <i class="fa-solid fa-cloud-arrow-down me-1.5"></i>Importera Prospekt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: EDIT OFFICIAL RULES & REGULATIONS -->
+<div class="modal fade" id="editOfficialRulesModal" tabindex="-1" aria-labelledby="editOfficialRulesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border border-info border-opacity-40 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-info bg-opacity-10 border border-info border-opacity-25 text-info">
+                        <i class="fa-solid fa-scroll fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-extrabold text-white mb-0" id="editOfficialRulesModalLabel">Officiella Föreskrifter &amp; Reglemente</h5>
+                        <span class="text-secondary small" id="editOfficialRulesProspectName">Turnering</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <input type="hidden" id="editRulesProspectId">
+                <div class="mb-3">
+                    <label for="editRulesTextInput" class="form-label text-info small font-monospace fw-bold text-uppercase mb-1">
+                        Officiella Regler, Tiebreakers &amp; Formatbeskrivning
+                    </label>
+                    <textarea class="form-control bg-dark text-white border-secondary border-opacity-40 rounded-3 p-3 font-monospace small" id="editRulesTextInput" rows="8" placeholder="Exempel:&#10;- Gruppspel avgörs genom poäng (3 för vinst, 1 för oavgjort).&#10;- Vid lika poäng gäller: 1) Inbördes möten, 2) Målskillnad, 3) Gjorda mål.&#10;- Slutspel avgörs med förlängning (2x5 min) och straffar vid oavgjort resultat."></textarea>
+                    <div class="form-text text-secondary small">Dessa föreskrifter visas för både Pool Admins och Spelare i turneringsguiden.</div>
+                </div>
+
+                <div class="mb-2">
+                    <label for="editRulesUrlInput" class="form-label text-info small font-monospace fw-bold text-uppercase mb-1">
+                        Officiell Webbadress / PDF-Länk
+                    </label>
+                    <input type="url" class="form-control bg-dark text-white border-secondary border-opacity-40 rounded-3 p-2.5 font-monospace small" id="editRulesUrlInput" placeholder="https://www.uefa.com/euro2028/regulations/">
+                </div>
+            </div>
+            
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 justify-content-between">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Avbryt</button>
+                <button type="button" class="btn btn-info rounded-pill px-4 fw-bold shadow-sm text-dark" onclick="saveOfficialRulesFromModal()">
+                    <i class="fa-solid fa-floppy-disk me-1.5"></i>Spara föreskrifter
                 </button>
             </div>
         </div>
@@ -2925,7 +3033,62 @@
     let currentReviewProspectId = null;
     let currentReviewPayload = null;
 
+    function lazyLoadAccordion(prospectId) {
+        // Pre-rendered in HTML; fallback function to avoid reference errors
+        return true;
+    }
+
+    function updateScoutCountsFromDOM() {
+        const items = document.querySelectorAll('.scout-prospect-item');
+        let counts = {
+            total: items.length,
+            new: 0,
+            deep: 0,
+            watchlist: 0,
+            converted: 0,
+            archived: 0,
+            grade_a: 0,
+            grade_b: 0,
+            grade_c: 0
+        };
+
+        items.forEach(item => {
+            const status = item.getAttribute('data-status');
+            const grade = item.getAttribute('data-grade');
+            const stage = item.getAttribute('data-stage');
+
+            if (grade === 'GRADE_A') counts.grade_a++;
+            else if (grade === 'GRADE_B') counts.grade_b++;
+            else if (grade === 'GRADE_C') counts.grade_c++;
+
+            if (status === 'CONVERTED') counts.converted++;
+            else if (status === 'WATCHLIST') counts.watchlist++;
+            else if (status === 'ARCHIVED') counts.archived++;
+            else if (stage === 'SHALLOW') counts.new++;
+            else counts.deep++;
+        });
+
+        const setCnt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+
+        setCnt('count-scout-all', counts.total);
+        setCnt('count-scout-new', counts.new);
+        setCnt('count-scout-deep', counts.deep);
+        setCnt('count-scout-watchlist', counts.watchlist);
+        setCnt('count-scout-converted', counts.converted);
+        setCnt('count-scout-archived', counts.archived);
+        setCnt('count-scout-grade-a', counts.grade_a);
+        setCnt('count-scout-grade-b', counts.grade_b);
+        setCnt('count-scout-grade-c', counts.grade_c);
+
+        const scoutBadge = document.getElementById('scout-badge');
+        if (scoutBadge) scoutBadge.textContent = counts.total;
+    }
+
     function filterScoutProspects(filterKey, btn) {
+        updateScoutCountsFromDOM();
         document.querySelectorAll('.scout-filter-btn').forEach(b => {
             b.classList.remove('active');
             b.style.opacity = '0.7';
@@ -2936,18 +3099,33 @@
         }
 
         const items = document.querySelectorAll('.scout-prospect-item');
+        let visibleCount = 0;
         items.forEach(item => {
             const grade = item.getAttribute('data-grade');
             const status = item.getAttribute('data-status');
+            const stage = item.getAttribute('data-stage');
 
+            let match = false;
             if (filterKey === 'all') {
+                match = true;
+            } else if (filterKey === 'DEEP') {
+                match = (stage === 'DEEP');
+            } else if (['NEW', 'WATCHLIST', 'ARCHIVED', 'CONVERTED'].includes(filterKey)) {
+                match = (status === filterKey);
+            } else if (['GRADE_A', 'GRADE_B', 'GRADE_C', 'GRADE_D'].includes(filterKey)) {
+                match = (grade === filterKey);
+            }
+
+            if (match) {
                 item.style.display = '';
-            } else if (filterKey === 'CONVERTED') {
-                item.style.display = (status === 'CONVERTED') ? '' : 'none';
+                visibleCount++;
             } else {
-                item.style.display = (grade === filterKey) ? '' : 'none';
+                item.style.display = 'none';
             }
         });
+
+        const cntEl = document.getElementById('scoutVisibleCount');
+        if (cntEl) cntEl.textContent = visibleCount;
     }
 
     function loadSampleScoutJson() {
@@ -3290,8 +3468,6 @@
     }
 
     function convertDirect(prospectId, prospectName) {
-        if (!confirm(`Vill du skapa och importera turneringen "${prospectName}" till Engine Admin?`)) return;
-
         const csrfToken = getCSRFToken();
         const formData = new FormData();
         formData.append('is_active', 'true');
@@ -3307,16 +3483,14 @@
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('🎉 ' + data.message);
                 localStorage.setItem('engineAdminActiveTab', 'tournaments-tab');
                 location.reload();
             } else {
-
-                alert('Fel vid skapande: ' + data.message);
+                console.error('Fel vid skapande:', data.message);
             }
         })
         .catch(err => {
-            alert('Nätverksfel vid skapande: ' + err.message);
+            console.error('Nätverksfel vid skapande:', err);
         });
     }
 
@@ -3347,11 +3521,9 @@
         .then(data => {
             if (data.status === 'success') {
                 hideModalSafe('reviewConvertModal');
-                alert('🎉 ' + data.message);
                 localStorage.setItem('engineAdminActiveTab', 'tournaments-tab');
                 location.reload();
             } else {
-                alert('Fel: ' + data.message);
                 if (btn) {
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fa-solid fa-circle-check me-1.5"></i>Skapa Turnering i Engine Admin';
@@ -3359,7 +3531,7 @@
             }
         })
         .catch(err => {
-            alert('Nätverksfel: ' + err.message);
+            console.error('Nätverksfel:', err);
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-circle-check me-1.5"></i>Skapa Turnering i Engine Admin';
@@ -3385,16 +3557,12 @@
             if (data.status === 'success') {
                 localStorage.setItem('engineAdminActiveTab', 'scout-tab');
                 location.reload();
-            } else {
-                alert('Fel: ' + data.message);
             }
         })
-
-        .catch(err => alert('Nätverksfel: ' + err.message));
+        .catch(err => console.error('Nätverksfel:', err));
     }
 
     function deleteProspect(prospectId) {
-        if (!confirm('Är du säker på att du vill radera detta prospekt från Scout?')) return;
         const csrfToken = getCSRFToken();
 
         fetch(`/engine-admin/scout/delete/${prospectId}/`, {
@@ -3408,9 +3576,50 @@
         .then(data => {
             if (data.status === 'success') {
                 localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                location.hash = '#scout-pane';
+                location.reload();
+            }
+        })
+        .catch(err => console.error('Nätverksfel:', err));
+    }
+
+
+    function openEditRulesModal(prospectId, name, currentRules, currentUrl) {
+        document.getElementById('editRulesProspectId').value = prospectId;
+        document.getElementById('editOfficialRulesProspectName').textContent = name || 'Turnering';
+        document.getElementById('editRulesTextInput').value = currentRules || '';
+        document.getElementById('editRulesUrlInput').value = currentUrl || '';
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('editOfficialRulesModal'));
+        modal.show();
+    }
+
+    function saveOfficialRulesFromModal() {
+        const prospectId = document.getElementById('editRulesProspectId').value;
+        const officialRules = document.getElementById('editRulesTextInput').value.trim();
+        const officialUrl = document.getElementById('editRulesUrlInput').value.trim();
+        const csrfToken = getCSRFToken();
+
+        fetch(`/engine-admin/scout/official-rules/${prospectId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: new URLSearchParams({
+                'official_rules': officialRules,
+                'official_url': officialUrl
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editOfficialRulesModal'));
+                if (modal) modal.hide();
+                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
                 location.reload();
             } else {
-                alert('Fel vid radering: ' + data.message);
+                alert('Fel vid sparning: ' + data.message);
             }
         })
         .catch(err => alert('Nätverksfel: ' + err.message));
@@ -3470,7 +3679,6 @@ Search and extract upcoming sports tournaments matching:
     }
 
     function clearScoutProspectsList() {
-        if (!confirm('⚠️ Är du säker på att du vill rensa alla ej konverterade prospekt från scout-listan?')) return;
         const csrfToken = getCSRFToken();
 
         fetch('/engine-admin/scout/clear-list/', {
@@ -3483,14 +3691,12 @@ Search and extract upcoming sports tournaments matching:
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
-                alert('🧹 ' + data.message);
                 localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                location.hash = '#scout-pane';
                 location.reload();
-            } else {
-                alert('Fel vid rensning: ' + data.message);
             }
         })
-        .catch(err => alert('Nätverksfel: ' + err.message));
+        .catch(err => console.error('Nätverksfel vid rensning:', err));
     }
 
     async function deepScanProspect(prospectId) {
@@ -3512,17 +3718,9 @@ Search and extract upcoming sports tournaments matching:
             });
             const data = await res.json();
             if (data.status === 'success') {
-                if (typeof showToast === 'function') {
-                    showToast(data.message || 'Djupscanning slutförd!', 'success');
-                }
                 localStorage.setItem('engineAdminActiveTab', 'scout-tab');
-                setTimeout(() => location.reload(), 800);
+                setTimeout(() => location.reload(), 400);
             } else {
-                if (typeof showToast === 'function') {
-                    showToast(data.message || 'Djupscanning misslyckades.', 'error');
-                } else {
-                    alert(data.message || 'Djupscanning misslyckades.');
-                }
                 if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
             }
         } catch (e) {
@@ -3531,54 +3729,16 @@ Search and extract upcoming sports tournaments matching:
         }
     }
 
-    async function updateOfficialUrl(prospectId, currentUrl) {
-        const newUrl = prompt('Ange webbadress till officiell turneringssida eller reglements-PDF:\n(t.ex. https://documents.uefa.com/r/... eller https://www.fifa.com/...)', currentUrl || '');
-        if (newUrl === null) return;
-        
-        try {
-            const formData = new FormData();
-            formData.append('official_url', newUrl.trim());
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
-            
-            const res = await fetch(`/engine-admin/scout/official-url/${prospectId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: formData,
-            });
-            const data = await res.json();
-            if (data.status === 'success') {
-                if (typeof showToast === 'function') {
-                    showToast(data.message || 'Officiell länk sparades!', 'success');
-                }
-                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
-                setTimeout(() => location.reload(), 800);
-            } else {
-                alert(data.message || 'Kunde inte spara officiell länk.');
-            }
-        } catch (e) {
-            console.error('updateOfficialUrl error:', e);
-            alert('Nätverksfel vid sparande av officiell länk.');
-        }
-    }
-
     function triggerWebScrapeNow() {
-        const query = prompt('AllSportDB Turneringsscanning:\nAnge sökfilter (t.ex. "Football", "Floorball", "EHF", "VM") eller lämna tomt för att scanna alla kommande turneringar:', '');
-        if (query === null) return;
-
-
         const btn = document.getElementById('scrapeWebNowBtn');
-        const originalHtml = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-satellite-dish fa-spin me-1.5"></i>Scannar webben...';
+        const originalHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-satellite-dish fa-spin me-1.5"></i>Scannar webben...';
+        }
 
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
         const formData = new FormData();
-        if (query.trim()) {
-            formData.append('query', query.trim());
-        }
 
         fetch('/engine-admin/scout/scrape-now/', {
             method: 'POST',
@@ -3594,19 +3754,21 @@ Search and extract upcoming sports tournaments matching:
         })
         .then(data => {
             if (data.status === 'success') {
-                alert('🚀 ' + data.message);
                 localStorage.setItem('engineAdminActiveTab', 'scout-tab');
                 location.reload();
             } else {
-                alert('Fel vid webbscanning: ' + data.message);
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
             }
         })
         .catch(err => {
-            alert('Nätverksfel vid webbscanning: ' + err.message);
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
+            console.error('Nätverksfel vid webbscanning:', err);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
         });
     }
 

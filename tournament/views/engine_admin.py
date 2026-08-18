@@ -2,8 +2,12 @@ import re
 import random
 import json
 
+import logging
+from django.db import transaction, models
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
+
+logger = logging.getLogger(__name__)
 
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login, logout
@@ -208,13 +212,15 @@ def engine_admin_dashboard_view(request):
     )
     scanned_data = []
     scout_counts = {
-        'total': scanned_list.count(),
-        'grade_a': scanned_list.filter(completeness_grade='GRADE_A').count(),
-        'grade_b': scanned_list.filter(completeness_grade='GRADE_B').count(),
-        'grade_c': scanned_list.filter(completeness_grade='GRADE_C').count(),
-        'converted': scanned_list.filter(status='CONVERTED').count(),
-        'watchlist': scanned_list.filter(status='WATCHLIST').count(),
-        'new': scanned_list.filter(status='NEW').count(),
+        'total': 0,
+        'grade_a': 0,
+        'grade_b': 0,
+        'grade_c': 0,
+        'converted': 0,
+        'watchlist': 0,
+        'archived': 0,
+        'new': 0,
+        'deep': 0,
     }
 
     SPORT_ICONS = {
@@ -238,6 +244,27 @@ def engine_admin_dashboard_view(request):
 
     for p in scanned_list:
         payload = p.payload or {}
+        audit = payload.get('scouting_audit', {})
+        scouting_stage = audit.get('scouting_stage', 'DEEP')  # Legacy prospects treated as DEEP
+
+        scout_counts['total'] += 1
+        if p.completeness_grade == 'GRADE_A':
+            scout_counts['grade_a'] += 1
+        elif p.completeness_grade == 'GRADE_B':
+            scout_counts['grade_b'] += 1
+        elif p.completeness_grade == 'GRADE_C':
+            scout_counts['grade_c'] += 1
+
+        if p.status == 'CONVERTED':
+            scout_counts['converted'] += 1
+        elif p.status == 'WATCHLIST':
+            scout_counts['watchlist'] += 1
+        elif p.status == 'ARCHIVED':
+            scout_counts['archived'] += 1
+        elif scouting_stage == 'SHALLOW':
+            scout_counts['new'] += 1
+        else:
+            scout_counts['deep'] += 1
         groups = payload.get('groups', [])
         fixtures = payload.get('fixtures_sample', [])
         knockouts = payload.get('knockout_mapping_sample', [])
@@ -260,22 +287,22 @@ def engine_admin_dashboard_view(request):
         # Surface: 950 deep, Border: 700 mid-dark, Text: 100 pale tint, Icon: fa-solid
         grade_meta = {
             'GRADE_A': {
-                'label': 'Grade A (100% Redo)',
+                'label': 'Redo',
                 'icon':  'fa-shield-check',
                 'style': 'background:#052E16;border:1px solid #15803D;color:#DCFCE7;',
             },
             'GRADE_B': {
-                'label': 'Grade B (Nästan redo)',
-                'icon':  'fa-clock',
-                'style': 'background:#451A03;border:1px solid #B45309;color:#FEF3C7;',
+                'label': 'Bevakas',
+                'icon':  'fa-eye',
+                'style': 'background:#082F49;border:1px solid #0284C7;color:#BAE6FD;',
             },
             'GRADE_C': {
-                'label': 'Grade C (Bevakningslista)',
+                'label': 'Inte redo',
                 'icon':  'fa-circle-info',
-                'style': 'background:#0F172A;border:1px solid #475569;color:#E2E8F0;',
+                'style': 'background:#451A03;border:1px solid #D97706;color:#FEF3C7;',
             },
             'GRADE_D': {
-                'label': 'Grade D (Ej kompatibel)',
+                'label': 'Ej kompatibel',
                 'icon':  'fa-circle-xmark',
                 'style': 'background:#1c0404;border:1px solid #7f1d1d;color:#fecaca;',
             },
@@ -287,11 +314,11 @@ def engine_admin_dashboard_view(request):
 
 
         status_meta = {
-            'NEW': {'label': 'Nytt Prospekt', 'badge_class': 'bg-primary text-white'},
-            'WATCHLIST': {'label': 'Bevakningslista', 'badge_class': 'bg-info text-dark'},
-            'CONVERTED': {'label': 'Konverterad till Turnering', 'badge_class': 'bg-success text-white'},
-            'ARCHIVED': {'label': 'Arkiverad', 'badge_class': 'bg-secondary text-white'},
-        }.get(p.status, {'label': p.status, 'badge_class': 'bg-secondary text-white'})
+            'NEW': {'label': 'Nytt Prospekt', 'badge_class': 'bg-primary text-white', 'icon': 'fa-sparkles'},
+            'WATCHLIST': {'label': 'Bevakas (Survey)', 'badge_class': 'bg-info text-dark', 'icon': 'fa-eye'},
+            'CONVERTED': {'label': 'Skapad / Live', 'badge_class': 'bg-success text-white', 'icon': 'fa-circle-check'},
+            'ARCHIVED': {'label': 'Ignorerad', 'badge_class': 'bg-secondary text-white', 'icon': 'fa-ban'},
+        }.get(p.status, {'label': p.status, 'badge_class': 'bg-secondary text-white', 'icon': 'fa-question'})
 
         audit = payload.get('scouting_audit', {})
         grade_reason = p.grade_reason or audit.get('grade_reason') or ''
@@ -316,15 +343,25 @@ def engine_admin_dashboard_view(request):
                     "Turneringen har redan passerat eller avbrutits"
                 ]
 
-        draw_done = bool(audit.get('draw_completed', False))
-        fixtures_done = bool(audit.get('fixtures_completed', False))
+        is_grade_a = (p.completeness_grade == 'GRADE_A')
+        draw_done = bool(audit.get('draw_completed', False) or is_grade_a or (groups_count > 0 and teams_count > 0))
+        fixtures_done = bool(audit.get('fixtures_completed', False) or is_grade_a or matches_count > 0)
         scheduled_matchdays = int(audit.get('scheduled_matchdays', 0))
         fixtures_have_placeholders = bool(audit.get('fixtures_have_placeholders', False))
         scouting_stage = audit.get('scouting_stage', 'DEEP')  # Legacy prospects treated as DEEP
 
-        # Override missing_items for SHALLOW prospects
+        readiness = {
+            'draw_completed': draw_done,
+            'schedule_ready': fixtures_done,
+        }
+
+        # Override missing_items for SHALLOW prospects or Grade A
         if scouting_stage == 'SHALLOW':
             missing_items = []  # No bullet points — card shows "Inväntar djupscanning" block instead
+        elif is_grade_a:
+            missing_items = []  # Grade A has 100% readiness, no missing items
+
+        official_rules_val = p.official_rules or audit.get('official_rules') or audit.get('advancement_rules') or ''
 
         scanned_data.append({
             'prospect': p,
@@ -340,8 +377,10 @@ def engine_admin_dashboard_view(request):
             'missing_items': missing_items,
             'action_needed': action_needed,
             'official_source_url': p.official_source_url or payload.get('master_event', {}).get('official_source_url') or '',
+            'official_rules': official_rules_val,
             'draw_done': draw_done,
             'fixtures_done': fixtures_done,
+            'readiness': readiness,
             'scheduled_matchdays': scheduled_matchdays,
             'fixtures_have_placeholders': fixtures_have_placeholders,
             'scouting_stage': scouting_stage,
@@ -1191,6 +1230,8 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
             'is_placeholder': fix.get('is_placeholder', False),
         })
 
+    official_rules_str = audit.get('official_rules') or audit.get('advancement_rules') or ''
+
     # Persist back into payload
     payload.setdefault('scouting_audit', {}).update({
         'scouting_stage':      'DEEP',
@@ -1202,6 +1243,7 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
         'draw_date':           draw_date_str,
         'next_rescan_date':    next_rescan_date.isoformat(),
         'advancement_rules':   audit.get('advancement_rules', ''),
+        'official_rules':      official_rules_str,
         'official_site_audit': official_audit,
         'wikipedia_audit':     audit,
     })
@@ -1218,6 +1260,10 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     prospect.payload            = payload
     prospect.completeness_grade = final_grade
     prospect.grade_reason       = final_reason
+    if official_rules_str:
+        prospect.official_rules = official_rules_str
+    if audit.get('official_regulations_url'):
+        prospect.official_source_url = audit['official_regulations_url']
 
     return {
         'ok':                True,
@@ -1313,13 +1359,63 @@ def scout_update_official_url_view(request, prospect_id):
 
 @superuser_or_staff_required
 @require_POST
-def scout_clear_list_view(request):
-    """Clears all un-converted scanned tournament prospects from the scout list."""
-    deleted_cnt, _ = ScannedTournament.objects.exclude(status='CONVERTED').delete()
+def scout_update_official_rules_view(request, prospect_id):
+    """
+    Updates official rules text and regulations URL for a scanned prospect card or live tournament.
+    """
+    prospect = get_object_or_404(ScannedTournament, id=prospect_id)
+    official_rules = request.POST.get('official_rules', '').strip()
+    official_url = request.POST.get('official_url', '').strip()
+
+    prospect.official_rules = official_rules
+    if official_url:
+        prospect.official_source_url = official_url
+
+    payload = prospect.payload or {}
+    scouting_audit = payload.setdefault('scouting_audit', {})
+    scouting_audit['official_rules'] = official_rules
+    if official_url:
+        scouting_audit['official_source_url'] = official_url
+    prospect.payload = payload
+    prospect.save()
+
+    # Also update converted tournament if already converted
+    if prospect.converted_tournament:
+        tour = prospect.converted_tournament
+        tour.official_rules = official_rules
+        if official_url:
+            tour.official_regulations_url = official_url
+        tour.save()
+
     return JsonResponse({
         'status': 'success',
-        'message': f'Rensade {deleted_cnt} ej konverterade prospekt från scout-listan.'
+        'message': f'Officiella föreskrifter & reglemente för "{prospect.name}" har sparats!',
+        'official_rules': prospect.official_rules,
+        'official_url': prospect.official_source_url,
     })
+
+
+@superuser_or_staff_required
+@require_POST
+def scout_clear_list_view(request):
+    """Clears scanned tournament prospects from the scout list."""
+    try:
+        clear_all = request.POST.get('clear_all') in ['1', 'true']
+        with transaction.atomic():
+            if clear_all:
+                deleted_cnt, _ = ScannedTournament.objects.all().delete()
+            else:
+                deleted_cnt, _ = ScannedTournament.objects.exclude(status='CONVERTED').delete()
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Rensade {deleted_cnt} prospekt från scout-listan.'
+        })
+    except Exception as e:
+        logger.error(f"Fel i scout_clear_list_view: {e}", exc_info=True)
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Kunde inte rensa listan: {str(e)}'
+        }, status=500)
 
 
 @superuser_or_staff_required
