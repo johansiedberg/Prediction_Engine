@@ -590,500 +590,481 @@
         <!-- SECTION 4: AI TOURNAMENT SCOUT -->
         <div class="tab-pane fade" id="scout-pane" role="tabpanel">
             {% csrf_token %}
-            
-            <!-- Scout Header Banner & Actions Toolbar -->
-            <div class="card bg-transparent text-white border border-secondary border-opacity-30 rounded-4 p-4 mb-4 shadow-sm border-start border-4 border-info">
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                    <div>
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="badge bg-info text-dark font-monospace text-uppercase px-2.5 py-1 fw-bold">
-                                <i class="fa-solid fa-wand-magic-sparkles me-1"></i>AI Tournament Scout
-                            </span>
-                            <span class="text-secondary small">Gemini Web-Scanning Pipeline</span>
-                        </div>
-                        <h3 class="fw-extrabold mb-1 text-white">Scannade Turneringar & Prospekt</h3>
-                        <p class="text-secondary mb-0 small">Automatiskt scannade och granskade turneringar. Verifiera lottning, spelschema och konvertera godkända turneringar med ett klick.</p>
-                    </div>
-                    <div class="d-flex flex-wrap align-items-center gap-3">
-                        <!-- Group 1: Scan for new / Import from Wikipedia -->
-                        <div class="d-flex align-items-center gap-2 p-1.5 rounded-4 bg-dark bg-opacity-60 border border-secondary border-opacity-30">
-                            <button class="btn btn-info rounded-pill px-3.5 py-2 fw-bold shadow-sm text-dark d-inline-flex align-items-center" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
-                                <i class="fa-solid fa-satellite-dish me-1.5"></i>Scanna webben nu
-                            </button>
-                            <button class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center" data-bs-toggle="modal" data-bs-target="#importWikipediaModal">
-                                <i class="fa-brands fa-wikipedia-w me-1.5"></i>Importera via Wikipedia
-                            </button>
-                        </div>
 
-                        <!-- Group 2: Refresh all in list -->
-                        <div class="d-flex align-items-center p-1.5 rounded-4 bg-dark bg-opacity-60 border border-secondary border-opacity-30">
-                            <button class="btn btn-outline-info rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center" onclick="refreshAllScoutProspects()">
-                                <i class="fa-solid fa-rotate me-1.5"></i>Uppdatera alla i listan
-                            </button>
-                        </div>
+            <!-- Performance: GPU compositing hint for scroll container -->
+            <style>
+                #scoutProspectsGrid { will-change: transform; }
+                .scout-card-wrap {
+                    content-visibility: auto;
+                    contain-intrinsic-size: 0 380px;
+                }
+                .scout-prospect-card {
+                    background: rgba(12,17,30,0.94) !important;
+                    border: 1px solid rgba(255,255,255,0.08);
+                    transition: border-color 0.18s, box-shadow 0.18s;
+                }
+                .scout-prospect-card:hover {
+                    border-color: rgba(255,255,255,0.2) !important;
+                    box-shadow: 0 4px 24px rgba(0,0,0,0.45) !important;
+                }
+                .scout-grade-strip { width: 4px; flex-shrink: 0; border-radius: 4px 0 0 4px; }
+                .strip-a { background: #15803D; }
+                .strip-b { background: #B45309; }
+                .strip-c { background: #475569; }
+                .strip-d { background: #7f1d1d; }
+                .scout-shallow-cta {
+                    background: rgba(69,26,3,0.4);
+                    border: 1px solid rgba(180,83,9,0.5);
+                    border-radius: 10px;
+                }
+                .scout-accordion .accordion-button {
+                    background: transparent !important;
+                    color: #e2e8f0 !important;
+                    box-shadow: none !important;
+                    padding: 10px 0;
+                    font-size: 0.85rem;
+                }
+                .scout-accordion .accordion-button:not(.collapsed) { color: #fff !important; }
+                .scout-accordion .accordion-button::after { filter: invert(1) brightness(0.6); }
+                .scout-accordion .accordion-item { background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
+                .scout-accordion .accordion-item:last-child { border-bottom: none; }
+                .scout-filter-bar-sticky {
+                    position: sticky;
+                    top: 0;
+                    z-index: 50;
+                    background: rgba(8,12,24,0.97);
+                    backdrop-filter: blur(8px);
+                    padding: 10px 16px;
+                    margin: 0 -4px 16px -4px;
+                    border-bottom: 1px solid rgba(255,255,255,0.08);
+                    border-radius: 0 0 10px 10px;
+                }
+                /* Toast notifications */
+                #scoutToastContainer {
+                    position: fixed;
+                    bottom: 24px; right: 24px;
+                    z-index: 9999;
+                    display: flex; flex-direction: column; gap: 10px;
+                }
+                .scout-toast {
+                    min-width: 280px; max-width: 380px;
+                    padding: 14px 18px;
+                    border-radius: 12px;
+                    font-size: 0.875rem;
+                    color: #fff;
+                    animation: toastIn 0.3s ease;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+                }
+                @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+                .scout-toast.success { background: #052E16; border: 1px solid #15803D; color: #DCFCE7; }
+                .scout-toast.error   { background: #1c0404; border: 1px solid #7f1d1d; color: #fecaca; }
+                .scout-toast.info    { background: #0c1a2e; border: 1px solid #1e40af; color: #bfdbfe; }
+                /* Loading skeleton for accordion */
+                .accordion-skeleton { animation: pulse 1.4s ease-in-out infinite; }
+                @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+                .skeleton-line { height: 14px; background: rgba(255,255,255,0.07); border-radius: 4px; margin-bottom: 8px; }
+            </style>
 
-                        <!-- Group 3: Clear list -->
-                        <div class="d-flex align-items-center p-1.5 rounded-4 bg-dark bg-opacity-60 border border-secondary border-opacity-30">
-                            <button class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center" onclick="clearScoutProspectsList()">
-                                <i class="fa-solid fa-broom me-1.5"></i>Rensa listan
-                            </button>
-                        </div>
+            <!-- Toast container -->
+            <div id="scoutToastContainer"></div>
 
-                        <!-- Dropdown: Secondary Import Tools -->
-                        <div class="dropdown">
-                            <button class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fa-solid fa-ellipsis-vertical me-1"></i>Mer
+            <!-- Scout Header Banner -->
+            <div class="card text-white rounded-4 mb-3 shadow-sm" style="background:rgba(12,17,30,0.94);border:1px solid rgba(255,255,255,0.09);border-left:4px solid #0ea5e9;">
+                <div class="card-body p-4">
+                    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge font-monospace text-uppercase px-2.5 py-1 fw-bold" style="background:#0c1a2e;border:1px solid #1e40af;color:#bfdbfe;">
+                                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i>AI Tournament Scout
+                                </span>
+                                <span class="text-secondary small">LLM Wikipedia Pipeline · Gemini Flash</span>
+                            </div>
+                            <h3 class="fw-extrabold mb-1 text-white">Scannade Turneringar & Prospekt</h3>
+                            <p class="text-secondary mb-0 small">Automatiskt scannade och granskade turneringar. Verifiera lottning, spelschema och konvertera godkända turneringar med ett klick.</p>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <button class="btn btn-info btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark d-inline-flex align-items-center gap-1.5" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
+                                <i class="fa-solid fa-satellite-dish"></i>Scanna webben nu
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 rounded-3">
-                                <li>
-                                    <a class="dropdown-item py-2 small" href="#" data-bs-toggle="modal" data-bs-target="#importScoutJsonModal">
-                                        <i class="fa-solid fa-file-import me-2 text-warning"></i>Importera Scout-JSON
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item py-2 small" href="#" onclick="copyGeminiPromptToClipboard()">
-                                        <i class="fa-solid fa-copy me-2 text-info"></i>Kopiera Gemini-Prompt
-                                    </a>
-                                </li>
-                            </ul>
+                            <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#importWikipediaModal">
+                                <i class="fa-brands fa-wikipedia-w"></i>Importera via Wikipedia
+                            </button>
+                            <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" onclick="refreshAllScoutProspects()">
+                                <i class="fa-solid fa-rotate"></i>Uppdatera alla
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" onclick="clearScoutProspectsList()">
+                                <i class="fa-solid fa-broom"></i>Rensa
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 rounded-3">
+                                    <li>
+                                        <a class="dropdown-item py-2 small" href="#" data-bs-toggle="modal" data-bs-target="#importScoutJsonModal">
+                                            <i class="fa-solid fa-file-import me-2 text-warning"></i>Importera Scout-JSON
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2 small" href="#" onclick="copyGeminiPromptToClipboard()">
+                                            <i class="fa-solid fa-copy me-2 text-info"></i>Kopiera Gemini-Prompt
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-
-
-                <!-- Filter Pills Row -->
-                <div class="d-flex flex-wrap align-items-center gap-2 mt-4 pt-3 border-top border-secondary border-opacity-20">
-                    <span class="text-secondary small me-2 font-monospace text-uppercase">Filter:</span>
+            <!-- Sticky Filter Bar -->
+            <div class="scout-filter-bar-sticky rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="text-secondary small me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Filter:</span>
                     <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background:rgba(255,255,255,0.12);color:#e2e8f0;border:1px solid rgba(255,255,255,0.25);">
                         <i class="fa-solid fa-layer-group me-1"></i>Alla (<span id="count-scout-all">{{ scout_counts.total }}</span>)
                     </button>
-                    <!-- Grade A — Green tonal (AGENTS.md) -->
+                    <!-- Grade A (100% Redo) -->
                     <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_A" onclick="filterScoutProspects('GRADE_A', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
-                        <i class="fa-solid fa-shield-check me-1"></i>Grade A (Redo) (<span id="count-scout-grade-a">{{ scout_counts.grade_a }}</span>)
+                        <i class="fa-solid fa-shield-check me-1"></i>Grade A (100% Redo) (<span id="count-scout-grade-a">{{ scout_counts.grade_a }}</span>)
                     </button>
-                    <!-- Grade B — Amber tonal (AGENTS.md) -->
+                    <!-- Grade B (Nästan redo) -->
                     <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_B" onclick="filterScoutProspects('GRADE_B', this)" style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;">
                         <i class="fa-solid fa-clock me-1"></i>Grade B (Nästan redo) (<span id="count-scout-grade-b">{{ scout_counts.grade_b }}</span>)
                     </button>
-                    <!-- Grade C — Slate tonal (AGENTS.md) -->
+                    <!-- Grade C (Bevakning) -->
                     <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="GRADE_C" onclick="filterScoutProspects('GRADE_C', this)" style="background:#0F172A;border:1px solid #475569;color:#E2E8F0;">
                         <i class="fa-solid fa-circle-info me-1"></i>Grade C (Bevakning) (<span id="count-scout-grade-c">{{ scout_counts.grade_c }}</span>)
                     </button>
-                    <!-- Converted — Green tonal -->
+                    <!-- Converted -->
                     <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="CONVERTED" onclick="filterScoutProspects('CONVERTED', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
                         <i class="fa-solid fa-circle-check me-1"></i>Konverterade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
                     </button>
                 </div>
-
+                <div class="text-secondary small font-monospace" style="font-size:0.75rem;">
+                    <span id="scoutVisibleCount">{{ scout_counts.total }}</span> prospekt visas
+                </div>
             </div>
 
-            <!-- Prospects Card Grid (Full-Width Rows, Sorted Nearest in Time First) -->
-            <div class="row g-3" id="scoutProspectsGrid">
+            <!-- Prospects Card Grid -->
+            <div class="d-flex flex-column gap-3" id="scoutProspectsGrid">
                 {% if scanned_tournaments %}
                     {% for item in scanned_tournaments %}
-                        <!-- Full Prospect Row for Selectable Tournaments -->
-                        <div class="col-12 scout-prospect-item" 
-                             data-grade="{{ item.prospect.completeness_grade }}" 
-                             data-status="{{ item.prospect.status }}"
-                             id="prospect-card-{{ item.prospect.id }}">
-                            <div class="card bg-transparent text-white border border-secondary border-opacity-30 rounded-4 shadow-sm overflow-hidden" 
-                                 style="background: rgba(15, 23, 42, 0.7) !important; backdrop-filter: blur(14px);">
-                                
-                                <!-- Row Card Header -->
-                                <div class="card-header bg-transparent p-3.5 border-bottom border-secondary border-opacity-25">
-                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                                        <div class="d-flex align-items-center gap-3">
-                                            <div class="d-flex align-items-center justify-content-center bg-dark border border-secondary border-opacity-40 rounded-3 text-warning fs-3 flex-shrink-0" style="width: 52px; height: 52px;">
-                                                {{ item.sport_icon }}
-                                            </div>
-                                            <div>
-                                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                                    <span class="badge rounded-pill px-2.5 py-1 font-monospace fw-bold small"
-                                                          style="{{ item.grade_meta.style }}">
-                                                        <i class="fa-solid {{ item.grade_meta.icon }} me-1"></i>{{ item.grade_meta.label }}
-                                                    </span>
-                                                    <span class="badge {{ item.status_meta.badge_class }} rounded-pill px-2.5 py-1 font-monospace small">
-                                                        {{ item.status_meta.label }}
-                                                    </span>
-                                                    {% if item.scouting_stage == 'SHALLOW' %}
-                                                    <span class="badge rounded-pill px-2.5 py-1 font-monospace small fw-semibold"
-                                                          style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;"
-                                                          title="Klicka Djupscanna för fullständig Wikipedia-analys">
-                                                        <i class="fa-solid fa-hourglass-half me-1"></i>Inväntar djupscanning
-                                                    </span>
-                                                    {% endif %}
-                                                    {% if item.days_to_start is not None %}
-                                                        {% if item.days_to_start > 0 %}
-                                                            <span class="badge rounded-pill px-2.5 py-1 font-monospace small"
-                                                                  style="background:#0c1a2e;border:1px solid #1e40af;color:#bfdbfe;">
-                                                                <i class="fa-regular fa-clock me-1"></i>Om {{ item.days_to_start }} dagar
-                                                            </span>
-                                                        {% elif item.days_to_start == 0 %}
-                                                            <span class="badge rounded-pill px-2.5 py-1 font-monospace small animate-pulse"
-                                                                  style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;">
-                                                                <i class="fa-solid fa-bolt me-1"></i>Startar idag!
-                                                            </span>
-                                                        {% endif %}
-                                                    {% endif %}
-                                                    <span class="text-secondary small font-monospace">#{{ item.prospect.id }}</span>
-                                                </div>
-                                                <h4 class="fw-extrabold mb-0 text-white d-flex align-items-center gap-2">
-                                                    {{ item.prospect.name }}
-                                                </h4>
-                                                <div class="text-secondary small mt-0.5 d-flex flex-wrap align-items-center gap-2">
-                                                    <span><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ item.prospect.host_country|default:"Värdnation ej angiven" }}</span>
-                                                    &bull; <span><i class="fa-regular fa-calendar text-info me-1"></i>{{ item.prospect.start_date|date:"Y-m-d"|default:"TBD" }} &ndash; {{ item.prospect.end_date|date:"Y-m-d"|default:"TBD" }}</span>
-                                                    {% if item.prospect.organizer %}&bull; <span class="badge bg-secondary bg-opacity-30 text-light">{{ item.prospect.organizer }}</span>{% endif %}
-                                                    {% if item.official_source_url %}
-                                                        &bull; <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size: 0.72rem;">
-                                                            <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiell sida
-                                                        </a>
-                                                        <button class="btn btn-link text-secondary p-0 ms-0.5 text-decoration-none" style="font-size: 0.75rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '{{ item.official_source_url|escapejs }}')" title="Ändra officiell länk">
-                                                            <i class="fa-solid fa-pen-to-square"></i>
-                                                        </button>
-                                                    {% else %}
-                                                        &bull; <button class="btn btn-outline-info btn-xs rounded-pill font-monospace py-0.5 px-2 text-decoration-none" style="font-size: 0.72rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '')" title="Lägg till manuell webbadress till officiell sida/reglemente">
-                                                            <i class="fa-solid fa-link me-1"></i>+ Officiell länk
-                                                        </button>
-                                                    {% endif %}
-                                                    {% if item.prospect.payload.master_event.wikipedia_url %}
-                                                        &bull; <a href="{{ item.prospect.payload.master_event.wikipedia_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-warning border-opacity-40 text-warning text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size: 0.72rem;">
-                                                            <i class="fa-brands fa-wikipedia-w me-1"></i>Wikipedia-Reglemente
-                                                        </a>
-                                                    {% endif %}
-                                                </div>
+                    <div class="scout-card-wrap scout-prospect-item"
+                         data-grade="{{ item.prospect.completeness_grade }}"
+                         data-status="{{ item.prospect.status }}"
+                         id="prospect-card-{{ item.prospect.id }}">
+                        <div class="card scout-prospect-card text-white rounded-4 overflow-hidden shadow-sm d-flex flex-row align-items-stretch">
+                            <!-- Monochromatic Grade Strip -->
+                            <div class="scout-grade-strip {% if item.prospect.completeness_grade == 'GRADE_A' %}strip-a{% elif item.prospect.completeness_grade == 'GRADE_B' %}strip-b{% elif item.prospect.completeness_grade == 'GRADE_C' %}strip-c{% else %}strip-d{% endif %}"></div>
 
+                            <div class="card-body p-3.5 flex-grow-1">
+                                <!-- Card Header: Icon, Meta, Title, Actions -->
+                                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="d-flex align-items-center justify-content-center rounded-3 fs-4 flex-shrink-0" style="width:46px;height:46px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
+                                            {{ item.sport_icon }}
+                                        </div>
+                                        <div>
+                                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                                <!-- Monochromatic Grade Badge -->
+                                                <span class="badge rounded-pill px-2.5 py-1 font-monospace fw-bold small" style="{{ item.grade_meta.style }}">
+                                                    <i class="fa-solid {{ item.grade_meta.icon }} me-1"></i>{{ item.grade_meta.label }}
+                                                </span>
+                                                <!-- Status Badge -->
+                                                <span class="badge {{ item.status_meta.badge_class }} rounded-pill px-2.5 py-1 font-monospace small">
+                                                    {{ item.status_meta.label }}
+                                                </span>
+                                                {% if item.scouting_stage == 'SHALLOW' %}
+                                                <span class="badge rounded-pill px-2.5 py-1 font-monospace small fw-semibold" style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;" title="Klicka Djupscanna för fullständig Wikipedia-analys">
+                                                    <i class="fa-solid fa-hourglass-half me-1"></i>Inväntar djupscanning
+                                                </span>
+                                                {% endif %}
+                                                {% if item.days_to_start is not None %}
+                                                    {% if item.days_to_start > 0 %}
+                                                    <span class="badge rounded-pill px-2.5 py-1 font-monospace small" style="background:#0c1a2e;border:1px solid #1e40af;color:#bfdbfe;">
+                                                        <i class="fa-regular fa-clock me-1"></i>Om {{ item.days_to_start }} dagar
+                                                    </span>
+                                                    {% elif item.days_to_start == 0 %}
+                                                    <span class="badge rounded-pill px-2.5 py-1 font-monospace small animate-pulse" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;">
+                                                        <i class="fa-solid fa-bolt me-1"></i>Startar idag!
+                                                    </span>
+                                                    {% endif %}
+                                                {% endif %}
+                                                <span class="text-secondary small font-monospace">#{{ item.prospect.id }}</span>
+                                            </div>
+                                            <h5 class="fw-extrabold mb-0 text-white font-monospace">
+                                                {{ item.prospect.name }}
+                                            </h5>
+                                            <div class="text-secondary small mt-0.5 d-flex flex-wrap align-items-center gap-2">
+                                                {% if item.prospect.host_country %}
+                                                    <span><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ item.prospect.host_country }}</span>
+                                                {% endif %}
+                                                &bull; <span><i class="fa-regular fa-calendar text-info me-1"></i>{{ item.prospect.start_date|date:"Y-m-d"|default:"TBD" }} &ndash; {{ item.prospect.end_date|date:"Y-m-d"|default:"TBD" }}</span>
+                                                {% if item.prospect.organizer %}&bull; <span class="badge bg-secondary bg-opacity-30 text-light">{{ item.prospect.organizer }}</span>{% endif %}
+                                                {% if item.official_source_url %}
+                                                    &bull; <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.72rem;">
+                                                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiell
+                                                    </a>
+                                                    <button class="btn btn-link text-secondary p-0 ms-0.5 text-decoration-none" style="font-size:0.75rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '{{ item.official_source_url|escapejs }}')" title="Ändra officiell länk">
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                    </button>
+                                                {% else %}
+                                                    &bull; <button class="btn btn-outline-info btn-xs rounded-pill font-monospace py-0.5 px-2 text-decoration-none" style="font-size:0.72rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '')" title="Lägg till manuell webbadress till officiell sida/reglemente">
+                                                        <i class="fa-solid fa-link me-1"></i>+ Officiell
+                                                    </button>
+                                                {% endif %}
+                                                {% if item.prospect.payload.master_event.wikipedia_url %}
+                                                    &bull; <a href="{{ item.prospect.payload.master_event.wikipedia_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-warning border-opacity-40 text-warning text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.72rem;">
+                                                        <i class="fa-brands fa-wikipedia-w me-1"></i>Wiki
+                                                    </a>
+                                                {% endif %}
                                             </div>
                                         </div>
-                                        
-                                        <!-- Right Action Buttons in Header -->
-                                        <div class="d-flex flex-wrap align-items-center gap-2">
-                                            <button class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5" onclick="viewRawJsonProspect({{ item.prospect.id }})" title="Visa rå JSON">
-                                                <i class="fa-solid fa-code me-1"></i>JSON
-                                            </button>
+                                    </div>
 
-                                            {% if item.prospect.status != 'WATCHLIST' %}
-                                            <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5" onclick="updateProspectStatus({{ item.prospect.id }}, 'WATCHLIST')">
-                                                <i class="fa-solid fa-eye me-1"></i>Bevaka
-                                            </button>
-                                            {% else %}
-                                            <button class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5" onclick="updateProspectStatus({{ item.prospect.id }}, 'NEW')">
-                                                <i class="fa-solid fa-arrow-rotate-left me-1"></i>Tillbaka till Ny
-                                            </button>
-                                            {% endif %}
+                                    <!-- Action Buttons Right -->
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5" onclick="viewRawJsonProspect({{ item.prospect.id }})" title="Visa rå JSON">
+                                            <i class="fa-solid fa-code me-1"></i>JSON
+                                        </button>
 
-                                            <!-- DEEP SCOUT BUTTON -->
-                                            <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5"
-                                                    id="deepScanBtn-{{ item.prospect.id }}"
-                                                    onclick="deepScanProspect({{ item.prospect.id }})"
-                                                    {% if item.scouting_stage == 'SHALLOW' %}
-                                                    style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;"
-                                                    title="Kör fullständig Wikipedia-djupscanning för denna turnering"
-                                                    {% else %}
-                                                    style="background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;"
-                                                    title="Om-kör djupscanning från Wikipedia"
-                                                    {% endif %}>
-                                                <i class="fa-solid fa-microscope"></i>
-                                                <span>{% if item.scouting_stage == 'SHALLOW' %}Djupscanna{% else %}Rescan{% endif %}</span>
-                                            </button>
+                                        {% if item.prospect.status != 'WATCHLIST' %}
+                                        <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5" onclick="updateProspectStatus({{ item.prospect.id }}, 'WATCHLIST')">
+                                            <i class="fa-solid fa-eye me-1"></i>Bevaka
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5" onclick="updateProspectStatus({{ item.prospect.id }}, 'NEW')">
+                                            <i class="fa-solid fa-arrow-rotate-left me-1"></i>Tillbaka till Ny
+                                        </button>
+                                        {% endif %}
 
-                                            <!-- DIRECT CREATE BUTTON -->
-                                            <button class="btn btn-success btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="convertDirect({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}')">
-                                                <i class="fa-solid fa-bolt"></i><span>Skapa nu</span>
-                                            </button>
+                                        <!-- DEEP SCOUT BUTTON -->
+                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5"
+                                                id="deepScanBtn-{{ item.prospect.id }}"
+                                                onclick="deepScanProspect({{ item.prospect.id }})"
+                                                {% if item.scouting_stage == 'SHALLOW' %}
+                                                style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;"
+                                                title="Kör fullständig Wikipedia-djupscanning för denna turnering"
+                                                {% else %}
+                                                style="background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.4);color:#67e8f9;"
+                                                title="Om-kör djupscanning från Wikipedia"
+                                                {% endif %}>
+                                            <i class="fa-solid fa-microscope"></i>
+                                            <span>{% if item.scouting_stage == 'SHALLOW' %}Djupscanna{% else %}Rescan{% endif %}</span>
+                                        </button>
 
-                                            <!-- REVIEW & CONVERT MODAL BUTTON -->
-                                            <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="openReviewConvertModal({{ item.prospect.id }})">
-                                                <i class="fa-solid fa-wand-magic-sparkles"></i><span>Granska &amp; Skapa</span>
-                                            </button>
+                                        <!-- DIRECT CREATE BUTTON -->
+                                        <button class="btn btn-success btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="convertDirect({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}')">
+                                            <i class="fa-solid fa-bolt"></i><span>Skapa nu</span>
+                                        </button>
 
-                                            <button class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1.5 ms-1" onclick="deleteProspect({{ item.prospect.id }})" title="Radera från Scout">
-                                                <i class="fa-solid fa-trash"></i>
-                                            </button>
-                                        </div>
+                                        <!-- REVIEW & CONVERT MODAL BUTTON -->
+                                        <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" onclick="openReviewConvertModal({{ item.prospect.id }})">
+                                            <i class="fa-solid fa-wand-magic-sparkles"></i><span>Granska &amp; Skapa</span>
+                                        </button>
+
+                                        <button class="btn btn-outline-danger btn-sm rounded-pill px-2.5 py-1.5 ms-1" onclick="deleteProspect({{ item.prospect.id }})" title="Radera från Scout">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div class="card-body p-4">
-                                    <div class="row g-4">
-                                        <!-- Left Column: Metrics & Grade Issue Bulletpoints -->
-                                        <div class="col-12 col-lg-5 col-xl-5">
-                                            
-                                            <!-- Metrics Capsules -->
-                                            <div class="row g-2 mb-3 text-center">
-                                                <div class="col-3">
-                                                    <div class="p-2 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-40">
-                                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Lag</div>
-                                                        <div class="fw-extrabold fs-5 text-warning">{{ item.teams_count }}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-3">
-                                                    <div class="p-2 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-40">
-                                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Grupper</div>
-                                                        <div class="fw-extrabold fs-5 text-info">{{ item.groups_count }}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-3">
-                                                    <div class="p-2 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-40">
-                                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Matcher</div>
-                                                        <div class="fw-extrabold fs-5 text-success">{{ item.matches_count }}</div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-3">
-                                                    <div class="p-2 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-40">
-                                                        <div class="text-secondary fs-7 text-uppercase font-monospace">Sidebets</div>
-                                                        <div class="fw-extrabold fs-5 text-primary">{{ item.sidebets_count }}</div>
-                                                    </div>
+                                <!-- Card Body Content -->
+                                <div class="row g-3">
+                                    <!-- Left Column: Metrics & Readiness -->
+                                    <div class="col-12 col-lg-5">
+                                        <!-- Metrics Capsules -->
+                                        <div class="row g-2 text-center mb-2">
+                                            <div class="col-3">
+                                                <div class="p-2 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+                                                    <div class="fw-extrabold fs-5 text-warning font-monospace">{{ item.teams_count }}</div>
+                                                    <div class="text-secondary font-monospace" style="font-size:0.68rem;text-transform:uppercase;">Lag</div>
                                                 </div>
                                             </div>
-
-                                            <!-- Audit & Grade Issue Bulletpoints Box -->
-                                            <div class="p-3 rounded-3 border border-secondary border-opacity-25" style="background: rgba(15, 23, 42, 0.85);">
-                                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                                    <span class="text-uppercase font-monospace fw-bold fs-7 rounded-1 px-2 py-0.5"
-                                                          style="{{ item.grade_meta.style }}">
-                                                        <i class="fa-solid fa-clipboard-check me-1"></i>Graderingsanalys &amp; Krav
-                                                    </span>
-                                                    <span class="text-secondary small font-monospace">{{ item.grade_meta.label }}</span>
+                                            <div class="col-3">
+                                                <div class="p-2 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+                                                    <div class="fw-extrabold fs-5 text-info font-monospace">{{ item.groups_count }}</div>
+                                                    <div class="text-secondary font-monospace" style="font-size:0.68rem;text-transform:uppercase;">Grupper</div>
                                                 </div>
-                                                
-                                                <!-- Status Checklist Bullets -->
-                                                {% if item.scouting_stage == 'SHALLOW' %}
-                                                <div class="d-flex align-items-start gap-2.5 mb-2.5 pb-2 border-bottom border-secondary border-opacity-20 small p-2 rounded-2"
-                                                     style="background:rgba(69,26,3,0.35);border:1px solid #B45309 !important;">
-                                                    <span class="flex-shrink-0 mt-0.5" style="color:#FEF3C7;"><i class="fa-solid fa-hourglass-half"></i></span>
-                                                    <div style="color:#FEF3C7;">
-                                                        <strong>Djupscanning ej utförd</strong>
-                                                        <div class="mt-0.5" style="color:#FDE68A;font-size:0.8rem;">Wikipedia-länk hittad. Klicka <strong>Djupscanna</strong> för fullständig lottnings-, spelschema- och reglementesanalys.</div>
-                                                    </div>
+                                            </div>
+                                            <div class="col-3">
+                                                <div class="p-2 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+                                                    <div class="fw-extrabold fs-5 text-light font-monospace">{{ item.matches_count }}</div>
+                                                    <div class="text-secondary font-monospace" style="font-size:0.68rem;text-transform:uppercase;">Matcher</div>
                                                 </div>
-                                                {% else %}
-                                                <div class="d-flex flex-column gap-1.5 mb-2.5 pb-2 border-bottom border-secondary border-opacity-20 small">
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        {% if item.draw_done %}
-                                                            <span class="text-success flex-shrink-0"><i class="fa-solid fa-circle-check"></i></span>
-                                                            <span class="text-light">Lottning: <strong class="text-white">Genomförd</strong> ({{ item.teams_count }} lag i {{ item.groups_count }} grupper)</span>
-                                                        {% else %}
-                                                            <span class="text-danger flex-shrink-0"><i class="fa-solid fa-circle-xmark"></i></span>
-                                                            <span class="text-danger">Lottning: <strong>Ej genomförd / Väntar på kval</strong></span>
-                                                        {% endif %}
-                                                    </div>
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        {% if item.fixtures_done %}
-                                                            <span class="text-success flex-shrink-0"><i class="fa-solid fa-circle-check"></i></span>
-                                                            {% if item.fixtures_have_placeholders %}
-                                                                <span class="text-light">Spelschema: <strong class="text-white">Fastställt med platshållare</strong>
-                                                                    ({{ item.matches_count }} matcher
-                                                                    {% if item.scheduled_matchdays %}&amp; {{ item.scheduled_matchdays }} matchdagar{% endif %})
-                                                                    <span class="badge bg-secondary text-white ms-1 fw-normal" title="Lag ännu ej lottade – bracket/platshållare finns">
-                                                                        <i class="fa-solid fa-code-branch me-1"></i>Platshållare
-                                                                    </span>
-                                                                </span>
-                                                            {% elif item.scheduled_matchdays and not item.matches_count %}
-                                                                <span class="text-light">Spelschema: <strong class="text-white">Matchdagar fastställda</strong>
-                                                                    ({{ item.scheduled_matchdays }} matchdagar)
-                                                                    <span class="badge bg-info text-dark ms-1 fw-normal" title="Individuella matcher ej listade än">
-                                                                        <i class="fa-solid fa-calendar-days me-1"></i>Schema
-                                                                    </span>
-                                                                </span>
-                                                            {% else %}
-                                                                <span class="text-light">Spelschema: <strong class="text-white">Fastställt</strong> ({{ item.matches_count }} matcher)</span>
-                                                            {% endif %}
-                                                        {% else %}
-                                                            <span class="text-warning flex-shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></span>
-                                                            <span class="text-warning">Spelschema: <strong>Inväntar lottning och spelschema</strong></span>
-                                                        {% endif %}
-                                                    </div>
+                                            </div>
+                                            <div class="col-3">
+                                                <div class="p-2 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+                                                    <div class="fw-extrabold fs-5 text-primary font-monospace">{{ item.sidebets_count }}</div>
+                                                    <div class="text-secondary font-monospace" style="font-size:0.68rem;text-transform:uppercase;">Sidebets</div>
                                                 </div>
-                                                {% endif %}
-
-                                                <!-- Missing Items Bullet Points -->
-                                                {% if item.missing_items %}
-                                                <div class="mb-2">
-                                                    <div class="text-warning small fw-bold mb-1.5 d-flex align-items-center gap-1.5">
-                                                        <i class="fa-solid fa-circle-exclamation text-warning"></i>Identifierade brister & saknade uppgifter:
-                                                    </div>
-                                                    <ul class="list-unstyled mb-0 d-flex flex-column gap-1.5 ps-1 small">
-                                                        {% for m in item.missing_items %}
-                                                        <li class="d-flex align-items-start gap-2 text-light">
-                                                            <span class="text-danger flex-shrink-0 mt-0.5"><i class="fa-solid fa-xmark"></i></span>
-                                                            <span>{{ m }}</span>
-                                                        </li>
-                                                        {% endfor %}
-                                                    </ul>
-                                                </div>
-                                                {% endif %}
-
-                                                <!-- Recommended Action Bullet -->
-                                                {% if item.action_needed %}
-                                                <div class="mt-2.5 pt-2 border-top border-secondary border-opacity-20 small">
-                                                    <div class="d-flex align-items-start gap-2 text-info">
-                                                        <span class="text-warning flex-shrink-0 mt-0.5"><i class="fa-solid fa-lightbulb"></i></span>
-                                                        <div><strong class="text-warning">Åtgärd:</strong> <span class="text-light">{{ item.action_needed }}</span></div>
-                                                    </div>
-                                                </div>
-                                                {% endif %}
-
-                                                <!-- Watchlist & Rescan Info -->
-                                                {% if item.prospect.payload.scouting_audit.next_rescan_date or item.prospect.payload.scouting_audit.draw_date %}
-                                                <div class="mt-2.5 pt-2 border-top border-secondary border-opacity-20 small">
-                                                    <div class="d-flex flex-wrap gap-2 align-items-center">
-                                                        {% if item.prospect.payload.scouting_audit.draw_date %}
-                                                        <span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-40">
-                                                            <i class="fa-solid fa-ticket me-1"></i>Lottningsdatum: {{ item.prospect.payload.scouting_audit.draw_date }}
-                                                        </span>
-                                                        {% endif %}
-                                                        {% if item.prospect.payload.scouting_audit.next_rescan_date %}
-                                                        <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-40">
-                                                            <i class="fa-solid fa-clock-rotate-left me-1"></i>Planerad om-scanning: {{ item.prospect.payload.scouting_audit.next_rescan_date|slice:":10" }}
-                                                        </span>
-                                                        {% endif %}
-                                                    </div>
-                                                </div>
-                                                {% endif %}
-
                                             </div>
                                         </div>
 
-                                        <!-- Right Column: Accordion Previews (Groups, Schedule, Sidebets) -->
-                                        <div class="col-12 col-lg-7 col-xl-7">
-                                            <div class="accordion accordion-flush" id="prospectAccordion-{{ item.prospect.id }}">
-                                            
-                                            <!-- 1. Grupper & Lag -->
-                                            <div class="accordion-item bg-transparent border-bottom border-secondary border-opacity-20">
-                                                <h2 class="accordion-header" id="headingGroups-{{ item.prospect.id }}">
-                                                    <button class="accordion-button collapsed bg-transparent text-white px-0 py-2.5 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGroups-{{ item.prospect.id }}">
-                                                        <i class="fa-solid fa-users me-2 text-warning"></i><strong>Gruppindelning & Lag</strong> ({{ item.groups_count }} grupper, {{ item.teams_count }} lag)
+                                        <!-- Audit Analysis Box -->
+                                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+                                            <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                                <span class="font-monospace fw-bold text-uppercase" style="font-size:0.72rem;color:#cbd5e1;">
+                                                    Graderingsanalys &bull; {{ item.grade_meta.label }}
+                                                </span>
+                                            </div>
+
+                                            {% if item.scouting_stage == 'SHALLOW' %}
+                                            <div class="scout-shallow-cta p-2 d-flex align-items-center justify-content-between gap-2 mt-1">
+                                                <span class="small text-warning" style="font-size:0.78rem;">
+                                                    <i class="fa-solid fa-hourglass-half me-1"></i>Ingen djupscanning utförd ännu.
+                                                </span>
+                                                <button class="btn btn-warning btn-xs rounded-pill px-2.5 py-1 fw-bold flex-shrink-0" style="font-size:0.75rem;" onclick="deepScanProspect({{ item.prospect.id }})">
+                                                    Djupscanna
+                                                </button>
+                                            </div>
+                                            {% else %}
+                                            <div class="row g-1.5 small" style="font-size:0.8rem;">
+                                                <div class="col-12 col-md-6">
+                                                    {% if item.readiness.draw_completed %}
+                                                    <span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>Lottning genomförd</span>
+                                                    {% else %}
+                                                    <span class="text-secondary"><i class="fa-solid fa-circle-xmark text-warning me-1"></i>Lottning: Ej genomförd</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="col-12 col-md-6">
+                                                    {% if item.readiness.schedule_ready %}
+                                                    <span class="text-success"><i class="fa-solid fa-circle-check me-1"></i>Spelschema fastställt</span>
+                                                    {% else %}
+                                                    <span class="text-secondary"><i class="fa-solid fa-circle-xmark text-warning me-1"></i>Spelschema: Inväntar lottning</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+
+                                            {% if item.audit_reasons %}
+                                            <div class="mt-2 pt-1.5 border-top border-secondary border-opacity-20" style="font-size:0.75rem;">
+                                                {% for reason in item.audit_reasons %}
+                                                <div class="text-secondary d-flex align-items-center gap-1">
+                                                    <i class="fa-solid fa-triangle-exclamation text-warning" style="font-size:10px;"></i>
+                                                    <span>{{ reason }}</span>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            {% endif %}
+
+                                            <div class="d-flex flex-wrap align-items-center gap-3 mt-2 font-monospace text-secondary" style="font-size:0.72rem;">
+                                                {% if item.prospect.payload.scouting_audit.draw_date %}
+                                                <span>Lottning: {{ item.prospect.payload.scouting_audit.draw_date }}</span>
+                                                {% endif %}
+                                                {% if item.prospect.next_rescan_at %}
+                                                <span>Rescan: {{ item.prospect.next_rescan_at|slice:":10" }}</span>
+                                                {% endif %}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Right Column: Accordion (Lazy Loaded) -->
+                                    <div class="col-12 col-lg-7">
+                                        {% if item.scouting_stage != 'SHALLOW' %}
+                                        <div class="accordion scout-accordion" id="prospectAccordion-{{ item.prospect.id }}"
+                                             data-prospect-id="{{ item.prospect.id }}"
+                                             data-loaded="false">
+
+                                            <!-- Groups -->
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed" type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapseGroups-{{ item.prospect.id }}"
+                                                            onclick="lazyLoadAccordion({{ item.prospect.id }})">
+                                                        <i class="fa-solid fa-users me-2 text-warning" style="font-size:0.85rem;"></i>
+                                                        <strong style="font-size:0.85rem;">Gruppindelning &amp; Lag</strong>
+                                                        <span class="badge ms-2 font-monospace" style="font-size:0.68rem;background:rgba(255,255,255,0.07);color:#94a3b8;">{{ item.groups_count }} gr · {{ item.teams_count }} lag</span>
                                                     </button>
                                                 </h2>
-                                                <div id="collapseGroups-{{ item.prospect.id }}" class="accordion-collapse collapse" data-bs-parent="#prospectAccordion-{{ item.prospect.id }}">
-                                                    <div class="accordion-body px-0 py-3">
-                                                        <div class="row g-2">
-                                                            {% for g in item.groups %}
-                                                            <div class="col-12 col-md-6 col-xl-3">
-                                                                <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-dark bg-opacity-60 h-100">
-                                                                    <div class="fw-bold text-warning small mb-2 border-bottom border-secondary border-opacity-20 pb-1">
-                                                                        {{ g.name }}
-                                                                    </div>
-                                                                    <div class="d-flex flex-column gap-1.5">
-                                                                        {% for t in g.teams %}
-                                                                        <div class="d-flex align-items-center gap-2 small">
-                                                                            {% if t.code %}
-                                                                                <img src="https://flagcdn.com/w40/{{ t.code|lower }}.png" alt="{{ t.name }}" style="width: 20px; height: 14px; object-fit: cover;" class="rounded-1 border border-secondary border-opacity-40">
-                                                                            {% else %}
-                                                                                <i class="fa-solid fa-shield text-secondary" style="font-size: 14px;"></i>
-                                                                            {% endif %}
-                                                                            <span class="text-white">{{ t.name|default:t }}</span>
-                                                                        </div>
-                                                                        {% endfor %}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            {% empty %}
-                                                            <div class="text-secondary small">Inga grupper lottade ännu.</div>
-                                                            {% endfor %}
+                                                <div id="collapseGroups-{{ item.prospect.id }}" class="accordion-collapse collapse">
+                                                    <div class="accordion-body px-0 py-2" id="groupsBody-{{ item.prospect.id }}">
+                                                        <div class="accordion-skeleton px-2">
+                                                            <div class="skeleton-line" style="width:60%;"></div>
+                                                            <div class="skeleton-line" style="width:80%;"></div>
+                                                            <div class="skeleton-line" style="width:50%;"></div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <!-- 2. Spelschema & Slutspel -->
-                                            <div class="accordion-item bg-transparent border-bottom border-secondary border-opacity-20">
-                                                <h2 class="accordion-header" id="headingFixtures-{{ item.prospect.id }}">
-                                                    <button class="accordion-button collapsed bg-transparent text-white px-0 py-2.5 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFixtures-{{ item.prospect.id }}">
-                                                        <i class="fa-solid fa-calendar-days me-2 text-info"></i><strong>Spelschema & Slutspelsstruktur</strong> ({{ item.matches_count }} matcher)
+                                            <!-- Fixtures -->
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed" type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapseFixtures-{{ item.prospect.id }}"
+                                                            onclick="lazyLoadAccordion({{ item.prospect.id }})">
+                                                        <i class="fa-solid fa-calendar-days me-2 text-info" style="font-size:0.85rem;"></i>
+                                                        <strong style="font-size:0.85rem;">Spelschema &amp; Slutspel</strong>
+                                                        <span class="badge ms-2 font-monospace" style="font-size:0.68rem;background:rgba(255,255,255,0.07);color:#94a3b8;">{{ item.matches_count }} matcher</span>
                                                     </button>
                                                 </h2>
-                                                <div id="collapseFixtures-{{ item.prospect.id }}" class="accordion-collapse collapse" data-bs-parent="#prospectAccordion-{{ item.prospect.id }}">
-                                                    <div class="accordion-body px-0 py-3">
-                                                        {% if item.fixtures %}
-                                                        <div class="table-responsive small mb-3" style="max-height: 220px; overflow-y: auto;">
-                                                            <table class="table table-dark table-sm table-borderless align-middle mb-0">
-                                                                <thead class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30 sticky-top bg-dark">
-                                                                    <tr>
-                                                                        <th style="width: 40px;">#</th>
-                                                                        <th>Steg/Grupp</th>
-                                                                        <th>Datum & Tid</th>
-                                                                        <th>Match</th>
-                                                                        <th>Arena</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {% for f in item.fixtures %}
-                                                                    <tr class="border-bottom border-secondary border-opacity-10">
-                                                                        <td class="font-monospace text-secondary">{{ f.match_number }}</td>
-                                                                        <td><span class="badge bg-secondary bg-opacity-30 text-light">{{ f.stage_or_group }}</span></td>
-                                                                        <td class="text-info font-monospace">{{ f.date_time|slice:":16"|default:"-" }}</td>
-                                                                        <td class="fw-bold text-white">{{ f.home_team }} &ndash; {{ f.away_team }}</td>
-                                                                        <td class="text-secondary small">{{ f.venue|default:"-" }}</td>
-                                                                    </tr>
-                                                                    {% endfor %}
-                                                                </tbody>
-                                                            </table>
+                                                <div id="collapseFixtures-{{ item.prospect.id }}" class="accordion-collapse collapse">
+                                                    <div class="accordion-body px-0 py-2" id="fixturesBody-{{ item.prospect.id }}">
+                                                        <div class="accordion-skeleton px-2">
+                                                            <div class="skeleton-line" style="width:90%;"></div>
+                                                            <div class="skeleton-line" style="width:75%;"></div>
+                                                            <div class="skeleton-line" style="width:85%;"></div>
                                                         </div>
-                                                        {% else %}
-                                                        <div class="text-secondary small mb-2">Inget fastställt spelschema tillgängligt i prospektet ännu.</div>
-                                                        {% endif %}
-
-                                                        {% if item.knockouts %}
-                                                        <div class="fw-bold text-info small mb-2"><i class="fa-solid fa-diagram-project me-1"></i>Slutspelskopplingar:</div>
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            {% for k in item.knockouts %}
-                                                            <div class="p-2 rounded-2 bg-dark bg-opacity-60 border border-secondary border-opacity-20 small">
-                                                                <span class="text-warning font-monospace">M{{ k.match_number }} ({{ k.stage }}):</span>
-                                                                <span class="text-white">{{ k.home_placeholder }}</span> vs <span class="text-white">{{ k.away_placeholder }}</span>
-                                                            </div>
-                                                            {% endfor %}
-                                                        </div>
-                                                        {% endif %}
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <!-- 3. Bonusfrågor (Sidebets) -->
-                                            <div class="accordion-item bg-transparent">
-                                                <h2 class="accordion-header" id="headingSidebets-{{ item.prospect.id }}">
-                                                    <button class="accordion-button collapsed bg-transparent text-white px-0 py-2.5 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSidebets-{{ item.prospect.id }}">
-                                                        <i class="fa-solid fa-trophy me-2 text-primary"></i><strong>Föreslagna Sidebets</strong> ({{ item.sidebets_count }} st)
+                                            <!-- Sidebets -->
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed" type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapseSidebets-{{ item.prospect.id }}"
+                                                            onclick="lazyLoadAccordion({{ item.prospect.id }})">
+                                                        <i class="fa-solid fa-trophy me-2 text-primary" style="font-size:0.85rem;"></i>
+                                                        <strong style="font-size:0.85rem;">Föreslagna Sidebets</strong>
+                                                        <span class="badge ms-2 font-monospace" style="font-size:0.68rem;background:rgba(255,255,255,0.07);color:#94a3b8;">{{ item.sidebets_count }} st</span>
                                                     </button>
                                                 </h2>
-                                                <div id="collapseSidebets-{{ item.prospect.id }}" class="accordion-collapse collapse" data-bs-parent="#prospectAccordion-{{ item.prospect.id }}">
-                                                    <div class="accordion-body px-0 py-3">
-                                                        <div class="d-flex flex-column gap-2">
-                                                            {% for sb in item.sidebets %}
-                                                            <div class="p-2.5 rounded-3 bg-dark bg-opacity-60 border border-secondary border-opacity-20 d-flex align-items-center justify-content-between small">
-                                                                <div>
-                                                                    <strong class="text-white">{{ sb.question }}</strong>
-                                                                    <div class="text-secondary mt-0.5">Typ: <span class="badge bg-secondary bg-opacity-40">{{ sb.question_type }}</span></div>
-                                                                </div>
-                                                                <span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-30 font-monospace fw-bold">{{ sb.points }}p</span>
-                                                            </div>
-                                                            {% empty %}
-                                                            <div class="text-secondary small">Inga sidebets specificerade i prospektet.</div>
-                                                            {% endfor %}
+                                                <div id="collapseSidebets-{{ item.prospect.id }}" class="accordion-collapse collapse">
+                                                    <div class="accordion-body px-0 py-2" id="sidebetsBody-{{ item.prospect.id }}">
+                                                        <div class="accordion-skeleton px-2">
+                                                            <div class="skeleton-line" style="width:70%;"></div>
+                                                            <div class="skeleton-line" style="width:55%;"></div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
                                         </div>
+                                        {% else %}
+                                        <!-- Shallow CTA box instead of empty accordion -->
+                                        <div class="p-3.5 rounded-3 text-center d-flex flex-column align-items-center justify-content-center h-100" style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.08);">
+                                            <i class="fa-solid fa-microscope text-warning fs-3 mb-2"></i>
+                                            <div class="fw-bold text-white small mb-1">Djupscanning krävs</div>
+                                            <div class="text-secondary small mb-3" style="max-width:280px;">Klicka på Djupscanna för att grupper, spelschema och föreskrifter ska hämtas automatiskt via Wikipedia.</div>
+                                            <button class="btn btn-warning btn-sm rounded-pill px-4 py-1.5 fw-bold shadow-sm" onclick="deepScanProspect({{ item.prospect.id }})">
+                                                <i class="fa-solid fa-microscope me-1.5"></i>Starta djupscanning
+                                            </button>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="col-12">
-                        <div class="text-center py-5 border border-secondary border-opacity-25 rounded-4 p-5 bg-dark bg-opacity-40">
-                            <i class="fa-solid fa-radar fa-3x text-secondary mb-3"></i>
-                            <h4 class="text-white">Inga scannade turneringar hittades</h4>
-                            <p class="text-secondary small">Klicka på "Scanna webben nu" eller "Importera Scout-JSON" för att lägga till prospekt.</p>
-                            <button class="btn btn-info rounded-pill px-4 py-2 fw-bold text-dark mt-2" onclick="triggerWebScrapeNow()">
-                                <i class="fa-solid fa-satellite-dish me-1.5"></i>Scanna webben nu
-                            </button>
-                        </div>
                     </div>
+                    {% endfor %}
+
+                {% else %}
+                <!-- Empty state -->
+                <div class="text-center py-5" style="border:1px dashed rgba(255,255,255,0.1);border-radius:16px;">
+                    <i class="fa-solid fa-satellite-dish fa-3x mb-3" style="color:#334155;"></i>
+                    <h5 class="text-white mb-1">Inga scannade turneringar</h5>
+                    <p class="text-secondary small mb-3">Klicka på "Scanna" för att hämta turneringar från AllSportDB.</p>
+                    <button class="btn btn-sm fw-bold rounded-pill px-4 py-2" onclick="triggerWebScrapeNow()"
+                            style="background:#0c1a2e;border:1px solid #0ea5e9;color:#7dd3fc;">
+                        <i class="fa-solid fa-satellite-dish me-1.5"></i>Scanna webben nu
+                    </button>
+                </div>
                 {% endif %}
             </div>
 
