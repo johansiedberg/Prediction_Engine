@@ -73,7 +73,7 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no prose)
 """
 
 _SYSTEM_PROMPT = (
-    "You are an expert sports tournament auditor. You will be given the plaintext content of a "
+    "You are an expert sports tournament auditor. You will be given the plaintext and infobox wikitext of a "
     "Wikipedia article about a sports tournament. Extract structured tournament information.\n"
     "CRITICAL REQUIREMENT FOR DISAMBIGUATION / SPLIT PAGES:\n"
     "If the article is a portal/disambiguation page listing separate Men's and Women's tournaments (e.g. 'consists of two sections: Men's tournament and Women's tournament'), set 'is_disambiguation': true and list the sub_tournaments.\n"
@@ -81,7 +81,8 @@ _SYSTEM_PROMPT = (
     "Inspect the match schedule tables. If match scores or results are listed (e.g. '21 – 20', '13 – 47', 'Paris Musketeers 21 – 20 Frankfurt Galaxy'), set 'is_ongoing_or_finished': true.\n"
     "CRITICAL REQUIREMENT FOR TOURNAMENT DATES:\n"
     "You MUST distinguish the MAIN TOURNAMENT / FINAL TOURNAMENT start and end dates from qualification dates, draw dates, bidding dates, or past/future edition dates.\n"
-    "Record official tournament start and end dates accurately, handling range formats such as '15 May – 29 August 2026', '19–29 August 2026', '3–20 December'.\n"
+    "Look specifically at the WIKIPEDIA INFOBOX TEMPLATE header and Infobox fields (e.g. '| dates = {{start and end dates|2027|08|25|2027|09|05}}' or 'Dates: 25 August – 5 September 2027').\n"
+    "Record official tournament start and end dates accurately, handling range formats such as '2027-08-25 – 2027-09-05', '25 August – 5 September 2027', '15 May – 29 August 2026', '19–29 August 2026', '3–20 December'.\n"
     "If the article does not mention the actual main tournament start date, return empty strings for these fields.\n"
     "CRITICAL REQUIREMENT FOR TEAM NAMES:\n"
     "Clean team names by stripping seed codes (A1, B2, D3) and host indicators like (H) or (C) so only clean country/team names remain (e.g. 'Romania' instead of 'B2 Romania (H)').\n"
@@ -113,10 +114,9 @@ class LLMWikipediaScout:
         # result has same schema as WikipediaScout.audit_tournament_page()
     """
 
-    WIKIPEDIA_REST = "https://en.wikipedia.org/api/rest_v1/page/mobile-sections/"
     HEADERS = {
         "User-Agent": "PredictionEngine-TournamentScout/2.0 (contact@predictionengine.app)",
-        "Accept": "application/json",
+        "Accept": "application/json, text/html",
     }
     # Max chars sent to LLM (80k chars ≈ ~20k tokens — well within Gemini Flash 1M window)
     MAX_CHARS = 80_000
@@ -129,7 +129,7 @@ class LLMWikipediaScout:
         but powered by LLM semantic understanding.
 
         Pipeline:
-          1. Fetch Wikipedia plaintext via REST API
+          1. Fetch Wikipedia plaintext & infobox wikitext via REST & Action APIs
           2. Call Gemini Flash for structured JSON extraction
           3. Normalise and return the result dict
           4. If step 1 or 2 fails → fall back to HTML heuristic parser silently
@@ -142,7 +142,7 @@ class LLMWikipediaScout:
             + urllib.parse.quote(page_title.replace(" ", "_"))
         )
 
-        # Step 1 – fetch plaintext
+        # Step 1 – fetch plaintext & infobox wikitext
         article_text = self._fetch_plaintext(page_title)
 
         # Step 2 – LLM extraction
@@ -174,42 +174,54 @@ class LLMWikipediaScout:
     # ── Internal helpers ──────────────────────────────────────────────────────
 
     def _fetch_plaintext(self, page_title: str) -> str | None:
-        """Fetches Wikipedia article as clean plaintext via the mobile-sections REST API."""
+        """Fetches Wikipedia article clean text & infobox wikitext using modern REST HTML & Action APIs."""
         encoded = urllib.parse.quote(page_title.replace(" ", "_"), safe="")
-        url = self.WIKIPEDIA_REST + encoded
+        parts = []
+
+        # 1. Fetch raw Wikitext via Action API to capture infobox templates (e.g. {{start and end dates|2027|08|25|2027|09|05}})
         try:
-            resp = requests.get(url, headers=self.HEADERS, timeout=15)
-            if resp.status_code != 200:
-                logger.warning(
-                    "LLMWikipediaScout: Wikipedia REST %d for '%s'",
-                    resp.status_code, page_title,
-                )
-                return None
-
-            data = resp.json()
-            parts = []
-
-            # Lead section
-            for para in data.get("lead", {}).get("sections", []):
-                text = para.get("text", "")
-                if text:
-                    parts.append(self._strip_html(text))
-
-            # Remaining sections
-            for section in data.get("remaining", {}).get("sections", []):
-                title = section.get("line", "")
-                text  = section.get("text", "")
-                if title:
-                    parts.append(f"\n== {self._strip_html(title)} ==\n")
-                if text:
-                    parts.append(self._strip_html(text))
-
-            full_text = "\n".join(parts)
-            return full_text[: self.MAX_CHARS] if full_text else None
-
+            action_url = f"https://en.wikipedia.org/w/api.php?action=parse&page={encoded}&prop=wikitext&format=json"
+            resp = requests.get(action_url, headers=self.HEADERS, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                wikitext = data.get("parse", {}).get("wikitext", {}).get("*", "")
+                if wikitext:
+                    infobox_match = re.search(r'(\{\{Infobox[\s\S]*?\n\}\}\n)', wikitext, re.IGNORECASE)
+                    if infobox_match:
+                        parts.append("=== WIKIPEDIA INFOBOX TEMPLATE ===\n" + infobox_match.group(1))
         except Exception as exc:
-            logger.error("LLMWikipediaScout: fetch failed for '%s': %s", page_title, exc)
-            return None
+            logger.warning("LLMWikipediaScout: Action API wikitext fetch error for '%s': %s", page_title, exc)
+
+        # 2. Fetch full REST HTML page
+        try:
+            rest_url = f"https://en.wikipedia.org/api/rest_v1/page/html/{encoded}"
+            resp = requests.get(rest_url, headers=self.HEADERS, timeout=12)
+            if resp.status_code == 200:
+                raw_html = getattr(resp, "text", "") or ""
+                if isinstance(raw_html, str) and ("<html" in raw_html.lower() or "<div" in raw_html.lower() or "<p" in raw_html.lower() or "body" in raw_html.lower()):
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(raw_html, "html.parser")
+                    for s in soup(["script", "style", "noscript", "meta"]):
+                        s.decompose()
+                    clean_text = re.sub(r"\s+", " ", soup.get_text())
+                    parts.append("=== ARTICLE CONTENT ===\n" + clean_text)
+                elif hasattr(resp, "json"):
+                    # Fallback for JSON dicts or test mocks
+                    try:
+                        data = resp.json()
+                        if isinstance(data, dict):
+                            lead_list = [p.get("text", "") for p in data.get("lead", {}).get("sections", []) if isinstance(p, dict)]
+                            rem_list = [f"\n== {s.get('line', '')} ==\n" + s.get("text", "") for s in data.get("remaining", {}).get("sections", []) if isinstance(s, dict)]
+                            clean = self._strip_html(" ".join(lead_list + rem_list))
+                            if clean:
+                                parts.append("=== ARTICLE CONTENT ===\n" + clean)
+                    except Exception:
+                        pass
+        except Exception as exc:
+            logger.warning("LLMWikipediaScout: REST HTML fetch error for '%s': %s", page_title, exc)
+
+        full_text = "\n\n".join(parts)
+        return full_text[: self.MAX_CHARS] if full_text else None
 
     @staticmethod
     def _strip_html(html: str) -> str:
@@ -315,6 +327,19 @@ class LLMWikipediaScout:
         m_yr = re.search(r'\b(202\d|203\d)\b', f"{page_title} {combined}")
         if m_yr:
             default_year = m_yr.group(1)
+
+        # Pattern 0a: Wikipedia template {{start and end dates|2027|08|25|2027|09|05...}}
+        m0a = re.search(r'start\s+and\s+end\s+dates\|(\d{4})\|(\d{1,2})\|(\d{1,2})\|(\d{4})\|(\d{1,2})\|(\d{1,2})', combined, re.IGNORECASE)
+        if m0a:
+            return (
+                f"{int(m0a.group(1)):04d}-{int(m0a.group(2)):02d}-{int(m0a.group(3)):02d}",
+                f"{int(m0a.group(4)):04d}-{int(m0a.group(5)):02d}-{int(m0a.group(6)):02d}"
+            )
+
+        # Pattern 0b: ISO range "2027-08-25 – 2027-09-05" or "2027-08-25 to 2027-09-05"
+        m0b = re.search(r'(\d{4}-\d{2}-\d{2})\s*[–\-—\s]+\s*(\d{4}-\d{2}-\d{2})', combined)
+        if m0b:
+            return m0b.group(1), m0b.group(2)
 
         month_map = {
             'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,

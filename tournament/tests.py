@@ -1100,6 +1100,16 @@ class LLMWikipediaScoutTestCase(TestCase):
         self.assertEqual(s4, "2026-12-03")
         self.assertEqual(e4, "2026-12-20")
 
+        # Example 5: Wikipedia Infobox Template (2027 Netball World Cup)
+        s5, e5 = LLMWikipediaScout._parse_date_range("{{start and end dates|2027|08|25|2027|09|05|df=y}}", "")
+        self.assertEqual(s5, "2027-08-25")
+        self.assertEqual(e5, "2027-09-05")
+
+        # Example 6: "25 August – 5 September 2027"
+        s6, e6 = LLMWikipediaScout._parse_date_range("25 August – 5 September 2027", "")
+        self.assertEqual(s6, "2027-08-25")
+        self.assertEqual(e6, "2027-09-05")
+
     def test_clean_team_name_seed_and_host_markers(self):
         """Tests cleaning of seed prefixes (A1, B2) and host markers (H)."""
         from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
