@@ -335,8 +335,9 @@ class WikipediaScout:
                 (1E, W37, TBD, A1). For fixtures with no discernible teams but a valid
                 date/time/venue, falls back to 'TBD' placeholder names.
                 """
-                clean_h = re.sub(r'\[.*?\]|\(\d+\)', '', home).strip()
-                clean_a = re.sub(r'\[.*?\]|\(\d+\)', '', away).strip()
+                from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                clean_h = LLMWikipediaScout._clean_team_name(home)
+                clean_a = LLMWikipediaScout._clean_team_name(away)
 
                 # Substitute TBD for empty placeholder slots that have scheduling data
                 if not clean_h and (date_str or time_str or match_num):

@@ -267,12 +267,18 @@ class LLMWikipediaScout:
 
     @staticmethod
     def _clean_team_name(name_str: str) -> str:
-        """Strips seed codes e.g. A1, B2 and host/champion indicators like (H), (C)."""
+        """Strips seed codes (A1, B2), footnote brackets [1], and host/champion indicators like (H), [H], (Host)."""
         if not name_str:
             return ""
         s = str(name_str).strip()
+        # Strip footnote brackets e.g. [1], [a]
+        s = re.sub(r'\[\w+\]', '', s)
+        # Strip seed prefixes e.g. A1, B2
         s = re.sub(r'^[A-Z]\d\s+', '', s)
-        s = re.sub(r'\s*\([HC]\)\s*$', '', s, flags=re.IGNORECASE)
+        # Strip (H), [H], (Host), (Hosts), (C), (Q), (A), (W) markers anywhere in the name
+        s = re.sub(r'\s*[\(\[]\s*(?:H|Host|Hosts|C|Q|A|W)\*?\s*[\)\]]', '', s, flags=re.IGNORECASE)
+        # Strip trailing parenthetical text e.g. (Antalya Sports), (Spodek)
+        s = re.sub(r'\s*\([^\)]*\)\s*$', '', s)
         return s.strip()
 
     @staticmethod
