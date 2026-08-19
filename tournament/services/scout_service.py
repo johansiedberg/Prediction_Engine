@@ -1236,3 +1236,39 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
         transfer_scouted_logo_to_tournament(scanned, tournament, master_event)
 
         return tournament, None
+
+
+def auto_rescan_due_watchlist_prospects():
+    """
+    Automated background worker function that queries all WATCHLIST (or GRADE_B) prospects
+    whose next_rescan_date is due (next_rescan_date <= today).
+    Executes a fresh deep scan on each due prospect and re-evaluates its status:
+      - If draw & fixtures are ready -> Upgrades status to READY (GRADE_A).
+      - If still waiting for draw/fixtures -> Updates next_rescan_date to draw_date or today + 7 days.
+      - If past or completed -> Purges/Deletes.
+    """
+    from tournament.models import ScannedTournament
+    from django.db import models
+    from django.utils import timezone
+    import datetime
+    import logging
+
+    logger = logging.getLogger(__name__)
+    today = timezone.localdate()
+    candidates = list(ScannedTournament.objects.filter(
+        models.Q(status='WATCHLIST') | models.Q(completeness_grade='GRADE_B')
+    ))
+
+    rescanned_count = 0
+    for prospect in candidates:
+        r_date = prospect.rescan_date
+        if r_date and r_date <= today:
+            try:
+                from tournament.views.engine_admin import scout_deep_scan_one_view
+                logger.info(f"Auto-rescanning due WATCHLIST prospect {prospect.id} ({prospect.name}) due on {r_date}")
+                scout_deep_scan_one_view(prospect.id)
+                rescanned_count += 1
+            except Exception as e:
+                logger.error(f"Auto-rescan failed for prospect {prospect.id} ({prospect.name}): {e}")
+
+    return rescanned_count

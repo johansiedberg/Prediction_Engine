@@ -206,6 +206,13 @@ def engine_admin_dashboard_view(request):
             'tour_preds_count': tour_preds_cnt,
         })
 
+    # Auto-rescan any WATCHLIST prospects whose next_rescan_date is due
+    try:
+        from tournament.services.scout_service import auto_rescan_due_watchlist_prospects
+        auto_rescan_due_watchlist_prospects()
+    except Exception as e:
+        pass
+
     # 5. AI Tournament Scout Prospects (Sorted nearest in time first)
     scanned_list = ScannedTournament.objects.select_related('converted_tournament').order_by(
         F('start_date').asc(nulls_last=True), '-created_at'
@@ -424,6 +431,9 @@ def engine_admin_dashboard_view(request):
             or f"https://en.wikipedia.org/wiki/{urllib.parse.quote((audit.get('wikipedia_title') or p.name).replace(' ', '_'))}"
         )
 
+        r_date_obj = p.rescan_date
+        rescan_date_str = r_date_obj.strftime('%Y-%m-%d') if r_date_obj else (today + datetime.timedelta(days=7)).strftime('%Y-%m-%d')
+
         scanned_data.append({
             'prospect': p,
             'unified_status': unified_status,
@@ -433,6 +443,7 @@ def engine_admin_dashboard_view(request):
             'matches_count': matches_count,
             'sidebets_count': sidebets_count,
             'sport_icon': icon,
+            'rescan_date_str': rescan_date_str,
             'days_to_start': days_to_start,
             'grade_meta': grade_meta,
             'status_meta': status_meta,

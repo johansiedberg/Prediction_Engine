@@ -1353,6 +1353,22 @@ class ScannedTournament(models.Model):
         verbose_name = "Scanned Tournament Prospect"
         verbose_name_plural = "Scanned Tournament Prospects"
 
+    @property
+    def rescan_date(self):
+        """Returns the next scheduled rescan date as a datetime.date object or None."""
+        audit = (self.payload or {}).get('scouting_audit', {})
+        d_str = audit.get('next_rescan_date') or audit.get('rescan_date')
+        if d_str:
+            try:
+                import datetime
+                return datetime.date.fromisoformat(str(d_str)[:10])
+            except Exception:
+                pass
+        if self.created_at:
+            import datetime
+            return self.created_at.date() + datetime.timedelta(days=7)
+        return None
+
     def __str__(self):
         return f"[{self.completeness_grade}] {self.name} ({self.status})"
 

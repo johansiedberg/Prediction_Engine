@@ -855,7 +855,7 @@
                                                     </span>
                                                 {% elif item.unified_status == 'WATCHLIST' %}
                                                     <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#082f49;border:1px solid #0284c7;color:#bae6fd;font-size:14px;">
-                                                        <i class="fa-solid fa-eye me-1 text-info"></i>Bevakad{% if item.prospect.rescan_date %}, {{ item.prospect.rescan_date|date:"Y-m-d" }}{% endif %}
+                                                        <i class="fa-solid fa-eye me-1 text-info"></i>Bevakad, {{ item.rescan_date_str }}
                                                     </span>
                                                 {% elif item.unified_status == 'ARCHIVED' %}
                                                     <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;font-size:14px;">
