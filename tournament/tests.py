@@ -984,6 +984,64 @@ class LLMWikipediaScoutTestCase(TestCase):
         self.assertIn('pågående eller avslutad', res['error'])
         self.assertFalse(ScannedTournament.objects.filter(id=prospect.id).exists())
 
+    def test_parse_date_range_benchmark_examples(self):
+        """Tests parsing of date ranges from real-world Wikipedia benchmarks."""
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+
+        # Example 1: 15 May – 29 August 2026
+        s1, e1 = LLMWikipediaScout._parse_date_range("15 May – 29 August 2026", "")
+        self.assertEqual(s1, "2026-05-15")
+        self.assertEqual(e1, "2026-08-29")
+
+        # Example 2: 19–29 August 2026
+        s2, e2 = LLMWikipediaScout._parse_date_range("19–29 August 2026", "")
+        self.assertEqual(s2, "2026-08-19")
+        self.assertEqual(e2, "2026-08-29")
+
+        # Example 4: 3–20 December with year inferred from page title
+        s4, e4 = LLMWikipediaScout._parse_date_range("3–20 December", "", "2026 European Women's Handball Championship")
+        self.assertEqual(s4, "2026-12-03")
+        self.assertEqual(e4, "2026-12-20")
+
+    def test_clean_team_name_seed_and_host_markers(self):
+        """Tests cleaning of seed prefixes (A1, B2) and host markers (H)."""
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+        self.assertEqual(LLMWikipediaScout._clean_team_name("A1 Hungary"), "Hungary")
+        self.assertEqual(LLMWikipediaScout._clean_team_name("Romania (H)"), "Romania")
+        self.assertEqual(LLMWikipediaScout._clean_team_name("B2 Poland (H)"), "Poland")
+
+    @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
+    def test_deep_scan_disambiguation_split_tournaments(self, mock_audit):
+        """Tests that deep scanning a disambiguation page creates sub-tournament prospects."""
+        from tournament.models import ScannedTournament
+        from tournament.views.engine_admin import _run_deep_scan_on_prospect
+        from tournament.services.wikipedia_scout import WikipediaScout
+        from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+
+        parent = ScannedTournament.objects.create(
+            name="2026 FIBA 3x3 U23 World Cup",
+            master_event_code="2026-fiba-3x3-u23-world-cup",
+            payload={}
+        )
+
+        mock_audit.return_value = {
+            'page_title': '2026 FIBA 3x3 U23 World Cup',
+            'is_disambiguation': True,
+            'sub_tournaments': [
+                {'name': "2026 FIBA 3x3 U23 World Cup – Men's tournament"},
+                {'name': "2026 FIBA 3x3 U23 World Cup – Women's tournament"}
+            ]
+        }
+
+        res = _run_deep_scan_on_prospect(parent, WikipediaScout(), OfficialRegulationsVerifier())
+        self.assertTrue(res['ok'])
+        self.assertEqual(res['grade'], 'GRADE_C')
+        self.assertIn('Uppdelad', parent.grade_reason)
+
+        # Check sub tournaments created
+        self.assertTrue(ScannedTournament.objects.filter(name="2026 FIBA 3x3 U23 World Cup – Men's tournament").exists())
+        self.assertTrue(ScannedTournament.objects.filter(name="2026 FIBA 3x3 U23 World Cup – Women's tournament").exists())
+
 
 
 

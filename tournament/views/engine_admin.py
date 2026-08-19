@@ -1171,6 +1171,68 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
             'error': f'Kunde inte läsa Wikipedia-sidan för "{page_title}".',
         }
 
+    # Disambiguation / Split Tournament Portal Handling (e.g. 2026 FIBA 3x3 U23 World Cup)
+    if audit.get('is_disambiguation') and audit.get('sub_tournaments'):
+        import urllib.parse
+        from tournament.services.scout_service import parse_and_save_scouted_json
+        created_names = []
+        for sub in audit.get('sub_tournaments'):
+            sub_name = sub.get('name') or sub.get('wiki_title')
+            if not sub_name:
+                continue
+            sub_url = sub.get('wiki_url') or f"https://en.wikipedia.org/wiki/{urllib.parse.quote(sub_name.replace(' ', '_'))}"
+            sub_code = sub_name.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
+
+            sub_payload = {
+                "scouting_audit": {
+                    "scan_timestamp": datetime.datetime.now().isoformat(),
+                    "scouting_stage": "SHALLOW",
+                    "completeness_grade": "GRADE_C",
+                    "grade_reason": f"Uppdelad från samlingssida '{prospect.name}'. Klicka 'Djupscanna' för fullständig analys.",
+                    "official_source_url": "",
+                    "wikipedia_url": sub_url,
+                    "wikipedia_title": sub_name,
+                    "is_compatible_sport": True,
+                },
+                "master_event": {
+                    "name": sub_name,
+                    "code": sub_code,
+                    "sport": prospect.sport or "Sports",
+                    "organizer": prospect.organizer or "Wikipedia",
+                    "host_country": prospect.host_country or "",
+                    "official_source_url": "",
+                    "wikipedia_url": sub_url,
+                    "start_date": "",
+                    "end_date": "",
+                },
+                "tournament_config": {
+                    "name": sub_name,
+                    "total_teams": 16,
+                    "knockout_stages": ["Quarterfinals", "Semifinals", "Final"],
+                },
+                "groups": [],
+                "fixtures_sample": [],
+            }
+            sub_obj, _, _ = parse_and_save_scouted_json(sub_payload)
+            if sub_obj:
+                created_names.append(sub_obj.name)
+
+        prospect.completeness_grade = 'GRADE_C'
+        prospect.grade_reason = f"Grad C (Uppdelad): Innehåller {len(created_names)} separata turneringar ({', '.join(created_names)}). Se respektive turneringskort i scout-listan."
+        prospect.save()
+
+        return {
+            'ok': True,
+            'grade': 'GRADE_C',
+            'grade_reason': prospect.grade_reason,
+            'fixtures_count': 0,
+            'groups_count': 0,
+            'teams_count': 0,
+            'draw_completed': False,
+            'draw_date': '',
+            'scheduled_matchdays': 0,
+        }
+
     today_date = datetime.date.today()
 
     # Extract start and end dates from audit or existing prospect

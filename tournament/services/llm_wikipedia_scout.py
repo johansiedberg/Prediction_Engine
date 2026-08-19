@@ -28,15 +28,23 @@ logger = logging.getLogger(__name__)
 _RESPONSE_SCHEMA_DESC = """
 Return ONLY valid JSON matching this exact schema (no markdown fences, no prose):
 {
-  "tournament_start_date": "<ISO date YYYY-MM-DD or readable start date of main tournament e.g. 11 June 2026, or empty string if not stated>",
-  "tournament_end_date": "<ISO date YYYY-MM-DD or readable end date of main tournament e.g. 19 July 2026, or empty string if not stated>",
+  "is_disambiguation": <true if this Wikipedia article is a split portal/disambiguation page pointing to separate tournaments (e.g. Men's and Women's tournaments), else false>,
+  "sub_tournaments": [
+    {
+      "name": "<e.g. 2026 FIBA 3x3 U23 World Cup – Men's tournament>",
+      "wiki_title": "<article title>",
+      "wiki_url": "<full Wikipedia URL if stated>"
+    }
+  ],
+  "tournament_start_date": "<ISO date YYYY-MM-DD or readable start date of main tournament e.g. 11 June 2026, 15 May 2026, 19 August 2026, 3 December 2026, or empty string>",
+  "tournament_end_date": "<ISO date YYYY-MM-DD or readable end date of main tournament e.g. 19 July 2026, 29 August 2026, 20 December 2026, or empty string>",
   "date_reasoning": "<brief explanation of why these start/end dates were identified as the main final tournament dates vs qualification or draw dates>",
   "teams_count": <integer>,
   "host_country": "<string>",
   "groups": [
     {
       "name": "<e.g. Group A>",
-      "teams": [{"name": "<team name>"}, ...]
+      "teams": [{"name": "<team name without seed codes e.g. Hungary, Romania, Sweden>"}, ...]
     }
   ],
   "fixtures": [
@@ -66,11 +74,14 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no prose)
 _SYSTEM_PROMPT = (
     "You are an expert sports tournament auditor. You will be given the plaintext content of a "
     "Wikipedia article about a sports tournament. Extract structured tournament information.\n"
+    "CRITICAL REQUIREMENT FOR DISAMBIGUATION / SPLIT PAGES:\n"
+    "If the article is a portal/disambiguation page listing separate Men's and Women's tournaments (e.g. 'consists of two sections: Men's tournament and Women's tournament'), set 'is_disambiguation': true and list the sub_tournaments.\n"
     "CRITICAL REQUIREMENT FOR TOURNAMENT DATES:\n"
     "You MUST distinguish the MAIN TOURNAMENT / FINAL TOURNAMENT start and end dates from qualification dates, draw dates, bidding dates, or past/future edition dates.\n"
-    "Qualification matches happen months or years before the main tournament; DO NOT use qualification start/end dates as 'tournament_start_date' or 'tournament_end_date'.\n"
-    "Record ONLY the official main tournament start date and end date in 'tournament_start_date' and 'tournament_end_date'.\n"
+    "Record official tournament start and end dates accurately, handling range formats such as '15 May – 29 August 2026', '19–29 August 2026', '3–20 December'.\n"
     "If the article does not mention the actual main tournament start date, return empty strings for these fields.\n"
+    "CRITICAL REQUIREMENT FOR TEAM NAMES:\n"
+    "Clean team names by stripping seed codes (A1, B2, D3) and host indicators like (H) or (C) so only clean country/team names remain (e.g. 'Romania' instead of 'B2 Romania (H)').\n"
     "CRITICAL REQUIREMENT FOR 'official_rules': Strive to extract a complete, comprehensive tournament rulebook summary "
     "covering:\n"
     "  1. Tournament format & competition structure (e.g. number of teams, groups, match format, 48 teams in 12 groups of 4).\n"
@@ -240,6 +251,16 @@ class LLMWikipediaScout:
             return None
 
     @staticmethod
+    def _clean_team_name(name_str: str) -> str:
+        """Strips seed codes e.g. A1, B2 and host/champion indicators like (H), (C)."""
+        if not name_str:
+            return ""
+        s = str(name_str).strip()
+        s = re.sub(r'^[A-Z]\d\s+', '', s)
+        s = re.sub(r'\s*\([HC]\)\s*$', '', s, flags=re.IGNORECASE)
+        return s.strip()
+
+    @staticmethod
     def _parse_date_string(date_str: str) -> str:
         """
         Parses a date string (e.g. '11 June 2026', '2026-06-11', 'June 11, 2026')
@@ -277,15 +298,84 @@ class LLMWikipediaScout:
         return ""
 
     @staticmethod
+    def _parse_date_range(raw_start: str, raw_end: str, page_title: str = "") -> tuple[str, str]:
+        """
+        Parses start and end dates from raw strings, date ranges, or infobox fields,
+        handling formats like '15 May – 29 August 2026', '19–29 August 2026', '3–20 December'.
+        """
+        combined = f"{raw_start} {raw_end}".strip()
+        if not combined:
+            return "", ""
+
+        # Infer year from page_title or text if omitted e.g. "3–20 December" in "2026 European Women's..."
+        default_year = ""
+        m_yr = re.search(r'\b(202\d|203\d)\b', f"{page_title} {combined}")
+        if m_yr:
+            default_year = m_yr.group(1)
+
+        month_map = {
+            'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
+            'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
+            'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'sept': 9,
+            'october': 10, 'oct': 10, 'november': 11, 'nov': 11, 'december': 12, 'dec': 12
+        }
+
+        # Pattern 1: "15 May – 29 August 2026" or "15 May - 29 August 2026"
+        m1 = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s*[–\-—]\s*(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?', combined)
+        if m1 and m1.group(2).lower() in month_map and m1.group(4).lower() in month_map:
+            yr = m1.group(5) or default_year
+            if yr:
+                d1, m1_val = int(m1.group(1)), month_map[m1.group(2).lower()]
+                d2, m2_val = int(m1.group(3)), month_map[m1.group(4).lower()]
+                return f"{int(yr):04d}-{m1_val:02d}-{d1:02d}", f"{int(yr):04d}-{m2_val:02d}-{d2:02d}"
+
+        # Pattern 2: "19–29 August 2026" or "3–20 December"
+        m2 = re.search(r'(\d{1,2})\s*[–\-—]\s*(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?', combined)
+        if m2 and m2.group(3).lower() in month_map:
+            yr = m2.group(4) or default_year
+            if yr:
+                d1, d2 = int(m2.group(1)), int(m2.group(2))
+                m_val = month_map[m2.group(3).lower()]
+                return f"{int(yr):04d}-{m_val:02d}-{d1:02d}", f"{int(yr):04d}-{m_val:02d}-{d2:02d}"
+
+        # Pattern 3: "June 11 – July 19, 2026"
+        m3 = re.search(r'([A-Za-z]+)\s+(\d{1,2})\s*[–\-—]\s*([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})', combined)
+        if m3 and m3.group(1).lower() in month_map and m3.group(3).lower() in month_map:
+            yr = m3.group(5)
+            d1, m1_val = int(m3.group(2)), month_map[m3.group(1).lower()]
+            d2, m2_val = int(m3.group(4)), month_map[m3.group(3).lower()]
+            return f"{int(yr):04d}-{m1_val:02d}-{d1:02d}", f"{int(yr):04d}-{m2_val:02d}-{d2:02d}"
+
+        start_iso = LLMWikipediaScout._parse_date_string(raw_start)
+        end_iso   = LLMWikipediaScout._parse_date_string(raw_end)
+        return start_iso, end_iso
+
+    @staticmethod
     def _normalise(raw: dict, page_title: str, wiki_url: str) -> dict:
         """Normalises a Gemini response into the canonical audit schema."""
-        groups       = raw.get("groups")   or []
+        is_disambiguation = bool(raw.get("is_disambiguation", False))
+        sub_tournaments   = raw.get("sub_tournaments") or []
+
+        raw_groups   = raw.get("groups")   or []
         fixtures_raw = raw.get("fixtures") or []
+
+        groups = []
+        for g in raw_groups:
+            g_name = str(g.get("name") or "").strip()
+            g_teams_raw = g.get("teams") or []
+            clean_teams = []
+            for t in g_teams_raw:
+                t_name = str(t.get("name") if isinstance(t, dict) else t).strip()
+                t_name = LLMWikipediaScout._clean_team_name(t_name)
+                if t_name:
+                    clean_teams.append({"name": t_name})
+            if g_name:
+                groups.append({"name": g_name, "teams": clean_teams})
 
         fixtures = []
         for fix in fixtures_raw:
-            home = str(fix.get("home_team") or "").strip()
-            away = str(fix.get("away_team") or "").strip()
+            home = LLMWikipediaScout._clean_team_name(str(fix.get("home_team") or ""))
+            away = LLMWikipediaScout._clean_team_name(str(fix.get("away_team") or ""))
             if not home or not away:
                 continue
             fixtures.append({
@@ -318,20 +408,11 @@ class LLMWikipediaScout:
         if not knockout_stages:
             knockout_stages = ["Quarterfinals", "Semifinals", "Final"]
 
-        # Parse & normalise tournament start and end dates
+        # Parse & normalise tournament start and end dates using _parse_date_range
         raw_start = str(raw.get("tournament_start_date") or raw.get("start_date") or "").strip()
         raw_end   = str(raw.get("tournament_end_date") or raw.get("end_date") or "").strip()
 
-        parsed_start = LLMWikipediaScout._parse_date_string(raw_start)
-        parsed_end   = LLMWikipediaScout._parse_date_string(raw_end)
-
-        # Fallback: if raw_start contains a date range e.g. "11 June – 19 July 2026"
-        if not parsed_start and raw_start:
-            dates = re.findall(r'\d{1,2}\s+[A-Za-z]+\s+\d{4}', raw_start)
-            if len(dates) >= 1:
-                parsed_start = LLMWikipediaScout._parse_date_string(dates[0])
-            if len(dates) >= 2 and not parsed_end:
-                parsed_end = LLMWikipediaScout._parse_date_string(dates[1])
+        parsed_start, parsed_end = LLMWikipediaScout._parse_date_range(raw_start, raw_end, page_title)
 
         # Fallback: check earliest fixture date if start date not explicitly provided
         if not parsed_start and fixtures:
@@ -341,6 +422,8 @@ class LLMWikipediaScout:
         return {
             "page_title":                 page_title,
             "wiki_url":                   wiki_url,
+            "is_disambiguation":          is_disambiguation,
+            "sub_tournaments":            sub_tournaments,
             "sections":                   [],
             "teams_count":                teams_count or 16,
             "groups_count":               groups_count,
