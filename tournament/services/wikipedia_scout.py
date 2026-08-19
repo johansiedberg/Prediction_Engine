@@ -279,7 +279,8 @@ class WikipediaScout:
                                 cell = th or (tds[0] if tds else None)
                                 if cell:
                                     tname = cell.get_text().strip()
-                                    clean_t = re.sub(r'\[.*?\]|\(\d+\)', '', tname).strip()
+                                    from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                                    clean_t = LLMWikipediaScout._clean_team_name(tname)
                                     if clean_t and not clean_t.isdigit() and len(clean_t) > 2 and clean_t not in teams_in_tbl:
                                         teams_in_tbl.append(clean_t)
                                         extracted_teams_set.add(clean_t)
@@ -313,7 +314,8 @@ class WikipediaScout:
                             if cell:
                                 t_name = cell.get_text().strip()
                                 if t_name and not t_name.isdigit() and len(t_name) > 2:
-                                    clean_t = re.sub(r'\[.*?\]|\(\d+\)', '', t_name).strip()
+                                    from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                                    clean_t = LLMWikipediaScout._clean_team_name(t_name)
                                     if clean_t and clean_t not in teams_in_tbl:
                                         teams_in_tbl.append(clean_t)
                                         extracted_teams_set.add(clean_t)

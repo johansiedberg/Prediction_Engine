@@ -267,7 +267,7 @@ class LLMWikipediaScout:
 
     @staticmethod
     def _clean_team_name(name_str: str) -> str:
-        """Strips seed codes (A1, B2), footnote brackets [1], host/champion indicators (H), (Host), and trailing venue/city suffixes."""
+        """Strips seed codes (A1, B2), footnote brackets [1], host/champion indicators (H), (Host), asterisks, and trailing venue/city suffixes."""
         if not name_str:
             return ""
         s = str(name_str).strip()
@@ -276,9 +276,11 @@ class LLMWikipediaScout:
         # Strip seed prefixes e.g. A1, B2
         s = re.sub(r'^[A-Z]\d\s+', '', s)
         # Strip (H), [H], (Host), (Hosts), (C), (Q), (A), (W) markers anywhere in the name
-        s = re.sub(r'\s*[\(\[]\s*(?:H|Host|Hosts|C|Q|A|W)\*?\s*[\)\]]', '', s, flags=re.IGNORECASE)
-        # Strip trailing parenthetical text e.g. (Antalya Sports), (Spodek), (Munich)
+        s = re.sub(r'[\*\s]*[\(\[]\s*(?:H|Host|Hosts|C|Q|A|W)\*?\s*[\)\]][\*\s]*', '', s, flags=re.IGNORECASE)
+        # Strip trailing parenthetical text e.g. (Antalya Sports), (Spodek), (Munich), (H)
         s = re.sub(r'\s*\([^\)]*\)\s*$', '', s)
+        # Strip trailing asterisks e.g. Saudi Arabia*
+        s = re.sub(r'\*+$', '', s)
 
         # Known venue and city suffix cleanup e.g. "Uruguay SAP Garden" -> "Uruguay", "Poland Spodek" -> "Poland"
         venue_suffix_pattern = r'\s+(?:SAP\s+Garden|Porsche.*|Arena.*|Spodek.*|GETEC.*|Wunderino.*|Lanxess.*|ZAG.*|Antalya.*|Tipos.*|Stadion.*|Stadium.*|Hall.*|Centre.*|Center.*|Dome.*|Palace.*|Park.*|Munich|Stuttgart|Kiel|Magdeburg|Hanover|Cologne|Brno|Katowice)$'
