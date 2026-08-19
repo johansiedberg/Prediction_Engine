@@ -770,19 +770,11 @@
                         </div>
                         <div>
                             <div class="fw-bold text-white fs-6 mb-0.5" id="scoutBulkProgressTitle">
-                                Djupscannar alla turneringar via Wikipedia &amp; AI...
+                                Djupscannar alla turneringar...
                             </div>
                             <div class="text-secondary small font-monospace" id="scoutBulkProgressSubtext" style="font-size:0.83rem;">
-                                Bearbetar... Inga turneringar hoppas över.
+                                Bearbetar via Wikipedia &amp; AI...
                             </div>
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        <div class="font-monospace text-warning fs-5 fw-extrabold" id="scoutBulkProgressPercent">
-                            0%
-                        </div>
-                        <div class="text-secondary small font-monospace" id="scoutBulkProgressCounts">
-                            0 / 0 turneringar
                         </div>
                     </div>
                 </div>
@@ -3743,9 +3735,7 @@ Search and extract upcoming sports tournaments matching:
             const pct = Math.round((currentNum / totalCount) * 100);
 
             if (progressTitle) progressTitle.innerText = `Djupscannar alla ${totalCount} turneringar...`;
-            if (progressSubtext) progressSubtext.innerText = `[${currentNum}/${totalCount}] Bearbetar "${item.name}" via Wikipedia & AI...`;
-            if (progressPercent) progressPercent.innerText = `${pct}%`;
-            if (progressCounts) progressCounts.innerText = `${currentNum} / ${totalCount} turneringar`;
+            if (progressSubtext) progressSubtext.innerText = `[${currentNum}/${totalCount}] Bearbetar via Wikipedia & AI...`;
             if (progressBar) progressBar.style.width = `${pct}%`;
 
             try {
@@ -3773,8 +3763,7 @@ Search and extract upcoming sports tournaments matching:
         }
 
         if (progressTitle) progressTitle.innerText = `Djupscanning klar för alla ${totalCount} turneringar!`;
-        if (progressSubtext) progressSubtext.innerText = `Resultat: ${gradeACount} Redo (Grad A), ${gradeBCount} Bevakas (Grad B), ${gradeCCount} Inte redo (Grad C). Uppdaterar listan...`;
-        if (progressPercent) progressPercent.innerText = '100%';
+        if (progressSubtext) progressSubtext.innerText = `[${totalCount}/${totalCount}] Bearbetning klar. Uppdaterar listan...`;
         if (progressBar) {
             progressBar.style.width = '100%';
             progressBar.classList.remove('bg-warning');
