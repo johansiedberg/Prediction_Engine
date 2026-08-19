@@ -3119,6 +3119,7 @@
 
     function filterScoutProspects(filterKey, btn) {
         updateScoutCountsFromDOM();
+        localStorage.setItem('scoutActiveFilter', filterKey);
         document.querySelectorAll('.scout-filter-btn').forEach(b => {
             b.classList.remove('active');
             b.style.opacity = '0.7';
@@ -3150,7 +3151,7 @@
             if (filterKey === 'all') {
                 match = true;
             } else {
-                match = (effStatus === filterKey || status === filterKey);
+                match = (effStatus === filterKey);
             }
 
             if (match) {
@@ -3164,6 +3165,14 @@
         const cntEl = document.getElementById('scoutVisibleCount');
         if (cntEl) cntEl.textContent = visibleCount;
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedFilter = localStorage.getItem('scoutActiveFilter') || 'all';
+        const targetBtn = document.querySelector(`.scout-filter-btn[data-filter="${savedFilter}"]`);
+        if (targetBtn) {
+            filterScoutProspects(savedFilter, targetBtn);
+        }
+    });
 
     function loadSampleScoutJson() {
         const sample = {
