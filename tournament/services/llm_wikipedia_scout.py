@@ -324,7 +324,8 @@ class LLMWikipediaScout:
 
         # Infer year from page_title or text if omitted e.g. "3–20 December" in "2026 European Women's..."
         default_year = ""
-        m_yr = re.search(r'\b(202\d|203\d)\b', f"{page_title} {combined}")
+        clean_title = (page_title or "").replace('_', ' ')
+        m_yr = re.search(r'\b(202\d|203\d)\b', f"{clean_title} {combined}")
         if m_yr:
             default_year = m_yr.group(1)
 
