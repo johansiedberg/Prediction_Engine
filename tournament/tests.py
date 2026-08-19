@@ -888,8 +888,8 @@ class LLMWikipediaScoutTestCase(TestCase):
         self.assertEqual(norm['end_date'], '2027-07-19')
 
     @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
-    def test_deep_scan_rejects_missing_date(self, mock_audit):
-        """_run_deep_scan_on_prospect deletes prospect and fails if start_date is missing."""
+    def test_deep_scan_retains_incomplete_date_as_grade_c(self, mock_audit):
+        """_run_deep_scan_on_prospect sets Grade C and preserves prospect when start_date is unconfirmed."""
         from tournament.models import ScannedTournament
         from tournament.views.engine_admin import _run_deep_scan_on_prospect
         from tournament.services.wikipedia_scout import WikipediaScout
@@ -913,9 +913,45 @@ class LLMWikipediaScoutTestCase(TestCase):
         }
 
         res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
-        self.assertFalse(res['ok'])
-        self.assertIn('Turneringar utan datum läggs inte till', res['error'])
-        self.assertFalse(ScannedTournament.objects.filter(id=prospect.id).exists())
+        self.assertTrue(res['ok'])
+        self.assertEqual(res['grade'], 'GRADE_C')
+        self.assertTrue(ScannedTournament.objects.filter(id=prospect.id).exists())
+
+    @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
+    def test_deep_scan_grade_b_for_missing_end_date(self, mock_audit):
+        """_run_deep_scan_on_prospect assigns Grade B (not Grade A) if end_date is missing/TBD."""
+        import datetime
+        from tournament.models import ScannedTournament
+        from tournament.views.engine_admin import _run_deep_scan_on_prospect
+        from tournament.services.wikipedia_scout import WikipediaScout
+        from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+
+        prospect = ScannedTournament.objects.create(
+            name="2026 FIVB Volleyball Boys' U17 World Championship",
+            master_event_code="2026-fivb-volleyball-u17",
+            start_date=datetime.date(2026, 8, 29),
+            end_date=None,
+            payload={}
+        )
+
+        mock_audit.return_value = {
+            'page_title': "2026 FIVB Volleyball Boys' U17 World Championship",
+            'tournament_start_date': '2026-08-29',
+            'tournament_end_date': '',
+            'start_date': '2026-08-29',
+            'end_date': '',
+            'draw_completed': True,
+            'groups_count': 4,
+            'fixtures_completed': True,
+            'fixtures_count': 12,
+        }
+
+        res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
+        self.assertTrue(res['ok'])
+        # Must be Grade B because end_date is TBD/missing despite draw_ok and fixtures_ok
+        self.assertEqual(res['grade'], 'GRADE_B')
+        self.assertIn('Slutdatum ej bekräftat', prospect.grade_reason)
+        self.assertTrue(ScannedTournament.objects.filter(id=prospect.id).exists())
 
     @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
     def test_deep_scan_rejects_past_or_ongoing_date(self, mock_audit):

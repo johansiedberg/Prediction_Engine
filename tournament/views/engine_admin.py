@@ -1197,18 +1197,8 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     if not end_date_obj and prospect.end_date:
         end_date_obj = prospect.end_date
 
-    # Mandatory Date Validation Rules:
-    # 1. Start date is mandatory. Tournaments without a valid start date cannot be added/retained.
-    if not start_date_obj:
-        prospect_name = prospect.name
-        prospect.delete()
-        return {
-            'ok': False,
-            'error': f"Djupscanning misslyckades: Kunde inte identifiera ett bekräftat startdatum för huvudturneringen '{prospect_name}'. Turneringar utan datum läggs inte till.",
-        }
-
-    # 2. Ongoing or Past tournaments (start_date <= today or end_date < today) cannot be added/retained.
-    if start_date_obj <= today_date:
+    # Only delete if tournament is PROVEN to be in the past or finished
+    if start_date_obj and start_date_obj <= today_date:
         prospect_name = prospect.name
         prospect.delete()
         return {
@@ -1226,12 +1216,10 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
 
     # Update prospect dates
     prospect.start_date = start_date_obj
-    if end_date_obj:
-        prospect.end_date = end_date_obj
+    prospect.end_date   = end_date_obj
 
-    payload.setdefault('master_event', {})['start_date'] = str(start_date_obj)
-    if end_date_obj:
-        payload.setdefault('master_event', {})['end_date'] = str(end_date_obj)
+    payload.setdefault('master_event', {})['start_date'] = str(start_date_obj) if start_date_obj else ""
+    payload.setdefault('master_event', {})['end_date']   = str(end_date_obj) if end_date_obj else ""
 
     # Stage 3 – Official Regulations cross-audit
     official_website = (
@@ -1242,23 +1230,27 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     official_audit = off_verifier.verify_official_regulations(official_website, prospect.name)
 
     # Stage 4 – Multi-Level Grade A/B/C Classification
-    draw_ok     = bool(audit.get('draw_completed') and audit.get('groups_count', 0) >= 2)
-    fixtures_ok = bool(audit.get('fixtures_completed') and
-                       (audit.get('fixtures_count', 0) >= 4 or audit.get('scheduled_matchdays', 0) >= 4))
+    has_full_dates = bool(start_date_obj and end_date_obj)
+    has_start_date = bool(start_date_obj)
+    draw_ok        = bool(audit.get('draw_completed') and audit.get('groups_count', 0) >= 2)
+    fixtures_ok    = bool(audit.get('fixtures_completed') and
+                          (audit.get('fixtures_count', 0) >= 4 or audit.get('scheduled_matchdays', 0) >= 4))
 
-    if draw_ok and fixtures_ok:
+    if has_full_dates and draw_ok and fixtures_ok:
         final_grade  = 'GRADE_A'
         final_reason = (f"Grad A (100% Redo): Djupskannad från Wikipedia: '{page_title}' "
-                        f"({audit.get('fixtures_count', 0)} matcher, "
+                        f"({start_date_obj} – {end_date_obj}, {audit.get('fixtures_count', 0)} matcher, "
                         f"{audit.get('teams_count', 0)} lag i {audit.get('groups_count', 0)} grupper verifierade).")
-    elif draw_ok or fixtures_ok:
+    elif has_start_date and (draw_ok or fixtures_ok or has_full_dates):
         final_grade  = 'GRADE_B'
+        end_str      = str(end_date_obj) if end_date_obj else 'Slutdatum ej bekräftat'
         final_reason = (f"Grad B (Nästan redo): Djupskannad från Wikipedia: '{page_title}' "
-                        f"({audit.get('teams_count', 0)} lag i {audit.get('groups_count', 0)} grupper"
+                        f"(Startdatum: {start_date_obj}, {end_str}, {audit.get('teams_count', 0)} lag"
                         f"{', spelschema ej slutfört' if not fixtures_ok else ', lottning ej genomförd'}).")
     else:
         final_grade  = 'GRADE_C'
-        final_reason = f"Grad C: Bevakningslista ('{page_title}'). Lottning och spelschema ej slutförda."
+        date_info    = f"Startdatum: {start_date_obj}" if start_date_obj else "Startdatum ej bekräftat ännu"
+        final_reason = f"Grad C (Bevakningslista): Djupskannad från Wikipedia ('{page_title}'). {date_info}. Lottning och spelschema ej slutförda."
 
     # Rescan date calculation
     next_rescan_date = today_date + datetime.timedelta(days=7)
