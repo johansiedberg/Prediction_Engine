@@ -893,9 +893,9 @@
                                                     </button>
                                                 {% endif %}
 
-                                                {% if item.prospect.payload.master_event.wikipedia_url %}
+                                                {% if item.wikipedia_url %}
                                                     <span class="text-secondary opacity-40">&bull;</span>
-                                                    <a href="{{ item.prospect.payload.master_event.wikipedia_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-warning border-opacity-40 text-warning text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.75rem;">
+                                                    <a href="{{ item.wikipedia_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-warning border-opacity-40 text-warning text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.75rem;">
                                                         Wiki
                                                     </a>
                                                 {% endif %}

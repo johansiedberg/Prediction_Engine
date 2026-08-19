@@ -370,6 +370,14 @@ def engine_admin_dashboard_view(request):
 
         official_rules_val = p.official_rules or audit.get('official_rules') or audit.get('advancement_rules') or ''
 
+        import urllib.parse
+        wiki_url_val = (
+            payload.get('master_event', {}).get('wikipedia_url')
+            or audit.get('wikipedia_url')
+            or (p.official_source_url if p.official_source_url and 'wikipedia.org' in p.official_source_url else '')
+            or f"https://en.wikipedia.org/wiki/{urllib.parse.quote((audit.get('wikipedia_title') or p.name).replace(' ', '_'))}"
+        )
+
         scanned_data.append({
             'prospect': p,
             'unified_status': unified_status,
@@ -385,6 +393,7 @@ def engine_admin_dashboard_view(request):
             'missing_items': missing_items,
             'action_needed': action_needed,
             'official_source_url': p.official_source_url or payload.get('master_event', {}).get('official_source_url') or '',
+            'wikipedia_url': wiki_url_val,
             'official_rules': official_rules_val,
             'draw_done': draw_done,
             'fixtures_done': fixtures_done,

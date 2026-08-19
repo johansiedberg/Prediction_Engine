@@ -741,6 +741,7 @@ def fetch_and_ingest_major_football_tournaments(sync_scout=True):
                     "start_date": start_date_str,
                     "end_date": end_date_str,
                     "official_source_url": "",
+                    "wikipedia_url": wiki_url,
                 },
                 "tournament_config": {
                     "total_teams": teams_count,
