@@ -1455,6 +1455,10 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
 
     prospect.save()
 
+    if prospect.converted_tournament:
+        from tournament.services.scout_service import transfer_scouted_logo_to_tournament
+        transfer_scouted_logo_to_tournament(prospect, prospect.converted_tournament)
+
     return {
         'ok':                True,
         'error':             None,

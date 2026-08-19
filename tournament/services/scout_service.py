@@ -831,6 +831,55 @@ def sync_all_scout_prospects(custom_query=None):
     return total_created, total_updated, all_prospects
 
 
+def transfer_scouted_logo_to_tournament(scanned, tournament, master_event=None):
+    """
+    Transfers scouted logotype image from ScannedTournament (logo_url) into
+    Tournament.icon (and MasterEvent.icon) by downloading the image payload.
+    """
+    if not scanned or not tournament:
+        return
+
+    payload = scanned.payload or {}
+    scout_audit = payload.get('scouting_audit') or {}
+    wiki_audit = scout_audit.get('wikipedia_audit') if isinstance(scout_audit, dict) else {}
+    master_evt_data = payload.get('master_event') if isinstance(payload.get('master_event'), dict) else {}
+
+    logo_url = (
+        scanned.logo_url
+        or (wiki_audit.get('logo_url') if isinstance(wiki_audit, dict) else None)
+        or master_evt_data.get('logo_url')
+        or payload.get('logo_url')
+    )
+
+    if not logo_url or not isinstance(logo_url, str) or not logo_url.startswith('http'):
+        return
+
+    # Skip if logo_url is invalid or country flag
+    from tournament.services.wikidata_scout import is_valid_tournament_logo
+    if not is_valid_tournament_logo(logo_url):
+        return
+
+    try:
+        import requests
+        import urllib.parse
+        import os
+        from django.core.files.base import ContentFile
+
+        headers = {'User-Agent': 'PredictionEngineScout/3.0 (contact@predictionengine.app)'}
+        res = requests.get(logo_url, headers=headers, timeout=10)
+        if res.status_code == 200 and res.content and len(res.content) > 100:
+            parsed_path = urllib.parse.urlparse(logo_url).path
+            ext = os.path.splitext(parsed_path)[1].lower()
+            if not ext or len(ext) > 5 or ext not in ['.png', '.jpg', '.jpeg', '.svg', '.webp']:
+                ext = '.png'
+
+            file_name = f"scouted_{tournament.id}_{scanned.id}{ext}"
+            tournament.icon.save(file_name, ContentFile(res.content), save=True)
+
+            if master_event and (not master_event.icon or not hasattr(master_event.icon, 'url') or not master_event.icon.url):
+                master_event.icon.save(file_name, ContentFile(res.content), save=True)
+    except Exception as e:
+        logger.warning(f"Could not transfer scouted logo from '{logo_url}' to tournament #{tournament.id}: {e}")
 
 
 def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, custom_point_system=None):
@@ -1051,5 +1100,8 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
         scanned.status = 'CONVERTED'
         scanned.converted_tournament = tournament
         scanned.save()
+
+        # Transfer scouted logotype image to Tournament.icon and MasterEvent.icon
+        transfer_scouted_logo_to_tournament(scanned, tournament, master_event)
 
         return tournament, None

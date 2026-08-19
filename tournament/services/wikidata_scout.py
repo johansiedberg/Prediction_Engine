@@ -5,6 +5,21 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+def is_valid_tournament_logo(url: str) -> bool:
+    if not url or not isinstance(url, str):
+        return False
+    url_lower = url.lower()
+    flag_patterns = [
+        'flag_of', 'flag%20of', 'flag%5fof', 'flag-', 'flag_',
+        'bandeira', 'drapeau', 'bandera', 'flagg',
+        '/flag', 'flag.', 'flag-icon', 'country-flag'
+    ]
+    for pattern in flag_patterns:
+        if pattern in url_lower:
+            return False
+    return True
+
+
 class WikidataScout:
     """
     Scouts structured tournament entity data directly from Wikidata APIs.
@@ -87,20 +102,6 @@ class WikidataScout:
                     if time_str := time_val.lstrip('+').split('T')[0]:
                         return time_str
                 return None
-
-            def is_valid_tournament_logo(url: str) -> bool:
-                if not url or not isinstance(url, str):
-                    return False
-                url_lower = url.lower()
-                flag_patterns = [
-                    'flag_of', 'flag%20of', 'flag%5fof', 'flag-', 'flag_',
-                    'bandeira', 'drapeau', 'bandera', 'flagg',
-                    '/flag', 'flag.', 'flag-icon', 'country-flag'
-                ]
-                for pattern in flag_patterns:
-                    if pattern in url_lower:
-                        return False
-                return True
 
             # P154 = logo image, P18 = general image
             def _extract_image(pid: str) -> Optional[str]:
