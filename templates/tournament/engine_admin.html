@@ -685,51 +685,22 @@
             <!-- Unified Scout Header & Filter Frame (Flush with top header navbar) -->
             <div class="card text-white mb-4 shadow-sm" style="background: linear-gradient(135deg, #0f172a 0%, #000000 100%) !important; margin: 0 -0.75rem 1.5rem -0.75rem; border: none; border-bottom: 2px solid #334155 !important; border-radius: 0 0 16px 16px;">
                 <div class="card-body p-4">
-                    <!-- Top Row: Section Title & Action Buttons -->
-                    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 pb-3 mb-3 border-bottom border-secondary border-opacity-20">
+                    <!-- Top Row: Section Title -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pb-3 mb-3 border-bottom border-secondary border-opacity-20">
                         <div>
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <span class="badge font-monospace text-uppercase px-2.5 py-1 fw-bold" style="background:#0c1a2e;border:1px solid #1e40af;color:#bfdbfe;">
                                     AI Tournament Scout
                                 </span>
                             </div>
-                            <h3 class="fw-extrabold mb-1 text-white">Scannade Turneringar &amp; Prospekt</h3>
-                            <p class="text-secondary mb-0 small">Automatiskt scannade och granskade turneringar. Verifiera lottning, spelschema och konvertera godkända turneringar med ett klick.</p>
+                            <h3 class="fw-extrabold mb-0 text-white">Scannade Turneringar &amp; Prospekt</h3>
                         </div>
-                        <div class="d-flex flex-wrap align-items-center gap-2">
-                            <button class="btn btn-info btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
-                                Scanna webben nu
-                            </button>
-                            <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#importWikipediaModal">
-                                Importera via Wikipedia
-                            </button>
-                            <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold" id="scoutRefreshAllBtn" onclick="refreshAllScoutProspects()">
-                                <i class="fa-solid fa-rotate me-1.5"></i>Djupscanna alla
-                            </button>
-                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-bold" onclick="clearScoutProspectsList()">
-                                Rensa
-                            </button>
-                            <div class="dropdown">
-                                <button class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5 dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 rounded-3">
-                                    <li>
-                                        <a class="dropdown-item py-2 small" href="#" data-bs-toggle="modal" data-bs-target="#importScoutJsonModal">
-                                            Importera Scout-JSON
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item py-2 small" href="#" onclick="copyGeminiPromptToClipboard()">
-                                            Kopiera Gemini-Prompt
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
+                        <p class="text-secondary mb-0 small text-end">Automatiskt scannade och granskade turneringar. Verifiera lottning, spelschema och konvertera godkända turneringar med ett klick.</p>
                     </div>
 
-                    <!-- Bottom Row: Unified Status Filter Controls & Visible Counter -->
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <!-- Single Status Row: Status filters | # Tournaments filtered | Header action buttons -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 p-3.5 rounded-4 shadow-sm" style="background:rgba(15, 23, 42, 0.7);border:1px solid rgba(255,255,255,0.12);">
+                        <!-- Left Column: Status Filters -->
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <span class="text-secondary small me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Status:</span>
                             <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);">
@@ -754,8 +725,42 @@
                                 <i class="fa-solid fa-circle-check me-1 text-success"></i>Aktiverade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
                             </button>
                         </div>
-                        <div class="text-secondary small font-monospace">
-                            <span id="scoutVisibleCount">{{ scout_counts.total }}</span> prospekt visas
+
+                        <!-- Center Column: # Tournaments Filtered -->
+                        <div class="text-secondary small font-monospace px-3 py-1.5 rounded-3 border" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1) !important;">
+                            <span id="scoutVisibleCount" class="fw-bold text-white fs-6">{{ scout_counts.total }}</span> <span class="text-secondary">prospekt visas</span>
+                        </div>
+
+                        <!-- Right Column: Header Action Buttons (affecting current filter only) -->
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <button class="btn btn-info btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
+                                Scanna webben nu
+                            </button>
+                            <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#importWikipediaModal">
+                                Importera via Wikipedia
+                            </button>
+                            <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold" id="scoutRefreshAllBtn" onclick="refreshFilteredScoutProspects()">
+                                <i class="fa-solid fa-rotate me-1.5"></i><span id="scoutBulkActionLabel">Djupscanna alla ({{ scout_counts.total }})</span>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-bold" onclick="clearFilteredScoutProspectsList()">
+                                Rensa
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 rounded-3">
+                                    <li>
+                                        <a class="dropdown-item py-2 small" href="#" data-bs-toggle="modal" data-bs-target="#importScoutJsonModal">
+                                            Importera Scout-JSON
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2 small" href="#" onclick="copyGeminiPromptToClipboard()">
+                                            Kopiera Gemini-Prompt
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3164,6 +3169,21 @@
 
         const cntEl = document.getElementById('scoutVisibleCount');
         if (cntEl) cntEl.textContent = visibleCount;
+
+        const actionLabelEl = document.getElementById('scoutBulkActionLabel');
+        if (actionLabelEl) {
+            const filterNames = {
+                'all': 'alla',
+                'NEW': 'nya',
+                'READY': 'redo',
+                'WATCHLIST': 'bevakade',
+                'NOT_READY': 'ej redo',
+                'ARCHIVED': 'ignorerade',
+                'CONVERTED': 'aktiverade'
+            };
+            const filterName = filterNames[filterKey] || 'filtrerade';
+            actionLabelEl.textContent = `Djupscanna ${filterName} (${visibleCount})`;
+        }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -3173,6 +3193,141 @@
             filterScoutProspects(savedFilter, targetBtn);
         }
     });
+
+    async function refreshFilteredScoutProspects() {
+        const visibleCards = Array.from(document.querySelectorAll('.scout-prospect-item')).filter(card => card.style.display !== 'none');
+        const prospectItems = visibleCards.map(card => {
+            const id = card.id.replace('prospect-card-', '');
+            const titleEl = card.querySelector('h4') || card.querySelector('.fw-bold');
+            const name = titleEl ? titleEl.innerText.trim() : `Turnering #${id}`;
+            return { id: parseInt(id), name: name, element: card };
+        }).filter(item => !isNaN(item.id));
+
+        if (prospectItems.length === 0) {
+            alert('Inga turneringar visas i det valda filtret att djupscanna.');
+            return;
+        }
+
+        const activeFilter = localStorage.getItem('scoutActiveFilter') || 'all';
+        const filterNames = { 'all': 'alla', 'NEW': 'nya', 'READY': 'redo', 'WATCHLIST': 'bevakade', 'NOT_READY': 'ej redo', 'ARCHIVED': 'ignorerade', 'CONVERTED': 'aktiverade' };
+        const filterName = filterNames[activeFilter] || 'filtrerade';
+
+        if (!confirm(`Vill du djupscanna de ${prospectItems.length} visade (${filterName}) turneringarna mot Wikipedia? Processen visar framsteg live.`)) {
+            return;
+        }
+
+        const progressContainer = document.getElementById('scoutBulkProgressContainer');
+        const progressTitle     = document.getElementById('scoutBulkProgressTitle');
+        const progressSubtext   = document.getElementById('scoutBulkProgressSubtext');
+        const progressBar       = document.getElementById('scoutBulkProgressBar');
+
+        if (progressContainer) {
+            progressContainer.classList.remove('d-none');
+            progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        const refreshBtn = document.getElementById('scoutRefreshAllBtn');
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Bearbetar...';
+        }
+
+        const totalCount = prospectItems.length;
+        let gradeACount = 0, gradeBCount = 0, gradeCCount = 0;
+        const csrfToken = getCSRFToken();
+
+        for (let i = 0; i < totalCount; i++) {
+            const item = prospectItems[i];
+            const currentNum = i + 1;
+            const pct = Math.round((currentNum / totalCount) * 100);
+
+            if (progressTitle) progressTitle.innerText = `Djupscannar ${totalCount} turneringar (${filterName})...`;
+            if (progressSubtext) progressSubtext.innerText = `[${currentNum}/${totalCount}] Bearbetar via Wikipedia & AI...`;
+            if (progressBar) progressBar.style.width = `${pct}%`;
+
+            try {
+                const res = await fetch(`/engine-admin/scout/deep-scan/${item.id}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    if (data.grade === 'GRADE_A') gradeACount++;
+                    else if (data.grade === 'GRADE_B') gradeBCount++;
+                    else gradeCCount++;
+
+                    if (item.element) {
+                        item.element.setAttribute('data-stage', 'DEEP');
+                        item.element.setAttribute('data-grade', data.grade);
+                    }
+                }
+            } catch (err) {
+                console.error(`Error deep scanning prospect #${item.id} (${item.name}):`, err);
+            }
+        }
+
+        if (progressTitle) progressTitle.innerText = `Djupscanning klar för de ${totalCount} turneringarna!`;
+        if (progressSubtext) progressSubtext.innerText = `[${totalCount}/${totalCount}] Bearbetning klar. Uppdaterar listan...`;
+        if (progressBar) {
+            progressBar.style.width = '100%';
+            progressBar.classList.remove('bg-warning');
+            progressBar.classList.add('bg-success');
+        }
+
+        setTimeout(() => {
+            localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+            location.reload();
+        }, 1200);
+    }
+
+    async function clearFilteredScoutProspectsList() {
+        const visibleCards = Array.from(document.querySelectorAll('.scout-prospect-item')).filter(card => card.style.display !== 'none');
+        const activeFilter = localStorage.getItem('scoutActiveFilter') || 'all';
+
+        if (activeFilter === 'all' || visibleCards.length === document.querySelectorAll('.scout-prospect-item').length) {
+            if (!confirm(`Vill du rensa/ignorera ALLA turneringar i scout-listan?`)) return;
+            const csrfToken = getCSRFToken();
+            try {
+                const r = await fetch('/engine-admin/scout/clear-list/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await r.json();
+                if (data.status === 'success') {
+                    localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                    location.hash = '#scout-pane';
+                    location.reload();
+                }
+            } catch (err) {
+                console.error('Nätverksfel vid rensning:', err);
+            }
+        } else {
+            if (visibleCards.length === 0) {
+                alert('Inga turneringar finns att rensa i det valda filtret.');
+                return;
+            }
+            if (!confirm(`Vill du ignorera/rensa de ${visibleCards.length} visade turneringarna i nuvarande filter?`)) return;
+
+            const csrfToken = getCSRFToken();
+            for (const card of visibleCards) {
+                const id = card.id.replace('prospect-card-', '');
+                try {
+                    await fetch(`/engine-admin/scout/archive/${id}/`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                } catch (e) {
+                    console.error(`Kunde inte ignorera turnering #${id}:`, e);
+                }
+            }
+            localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+            location.hash = '#scout-pane';
+            location.reload();
+        }
+    }
 
     function loadSampleScoutJson() {
         const sample = {
