@@ -1171,6 +1171,68 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
             'error': f'Kunde inte läsa Wikipedia-sidan för "{page_title}".',
         }
 
+    today_date = datetime.date.today()
+
+    # Extract start and end dates from audit or existing prospect
+    audit_start_str = audit.get('tournament_start_date') or audit.get('start_date') or ''
+    audit_end_str   = audit.get('tournament_end_date') or audit.get('end_date') or ''
+
+    start_date_obj = None
+    if audit_start_str:
+        try:
+            start_date_obj = datetime.date.fromisoformat(audit_start_str)
+        except Exception:
+            pass
+
+    if not start_date_obj and prospect.start_date:
+        start_date_obj = prospect.start_date
+
+    end_date_obj = None
+    if audit_end_str:
+        try:
+            end_date_obj = datetime.date.fromisoformat(audit_end_str)
+        except Exception:
+            pass
+
+    if not end_date_obj and prospect.end_date:
+        end_date_obj = prospect.end_date
+
+    # Mandatory Date Validation Rules:
+    # 1. Start date is mandatory. Tournaments without a valid start date cannot be added/retained.
+    if not start_date_obj:
+        prospect_name = prospect.name
+        prospect.delete()
+        return {
+            'ok': False,
+            'error': f"Djupscanning misslyckades: Kunde inte identifiera ett bekräftat startdatum för huvudturneringen '{prospect_name}'. Turneringar utan datum läggs inte till.",
+        }
+
+    # 2. Ongoing or Past tournaments (start_date <= today or end_date < today) cannot be added/retained.
+    if start_date_obj <= today_date:
+        prospect_name = prospect.name
+        prospect.delete()
+        return {
+            'ok': False,
+            'error': f"Djupscanning misslyckades: Turneringen '{prospect_name}' är pågående eller avslutad (Startdatum: {start_date_obj}). Endast framtida turneringar accepteras.",
+        }
+
+    if end_date_obj and end_date_obj < today_date:
+        prospect_name = prospect.name
+        prospect.delete()
+        return {
+            'ok': False,
+            'error': f"Djupscanning misslyckades: Turneringen '{prospect_name}' har redan avslutats (Slutdatum: {end_date_obj}). Endast framtida turneringar accepteras.",
+        }
+
+    # Update prospect dates
+    prospect.start_date = start_date_obj
+    if end_date_obj:
+        prospect.end_date = end_date_obj
+
+    payload.setdefault('master_event', {})['start_date'] = str(start_date_obj)
+    if end_date_obj:
+        payload.setdefault('master_event', {})['end_date'] = str(end_date_obj)
+
     # Stage 3 – Official Regulations cross-audit
     official_website = (
         payload.get('master_event', {}).get('official_source_url')
@@ -1199,7 +1261,6 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
         final_reason = f"Grad C: Bevakningslista ('{page_title}'). Lottning och spelschema ej slutförda."
 
     # Rescan date calculation
-    today_date       = datetime.date.today()
     next_rescan_date = today_date + datetime.timedelta(days=7)
     draw_date_str    = audit.get('draw_date') or ''
     if draw_date_str:

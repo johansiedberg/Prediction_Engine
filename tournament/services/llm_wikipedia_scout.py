@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 _RESPONSE_SCHEMA_DESC = """
 Return ONLY valid JSON matching this exact schema (no markdown fences, no prose):
 {
+  "tournament_start_date": "<ISO date YYYY-MM-DD or readable start date of main tournament e.g. 11 June 2026, or empty string if not stated>",
+  "tournament_end_date": "<ISO date YYYY-MM-DD or readable end date of main tournament e.g. 19 July 2026, or empty string if not stated>",
+  "date_reasoning": "<brief explanation of why these start/end dates were identified as the main final tournament dates vs qualification or draw dates>",
   "teams_count": <integer>,
   "host_country": "<string>",
   "groups": [
@@ -63,6 +66,11 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no prose)
 _SYSTEM_PROMPT = (
     "You are an expert sports tournament auditor. You will be given the plaintext content of a "
     "Wikipedia article about a sports tournament. Extract structured tournament information.\n"
+    "CRITICAL REQUIREMENT FOR TOURNAMENT DATES:\n"
+    "You MUST distinguish the MAIN TOURNAMENT / FINAL TOURNAMENT start and end dates from qualification dates, draw dates, bidding dates, or past/future edition dates.\n"
+    "Qualification matches happen months or years before the main tournament; DO NOT use qualification start/end dates as 'tournament_start_date' or 'tournament_end_date'.\n"
+    "Record ONLY the official main tournament start date and end date in 'tournament_start_date' and 'tournament_end_date'.\n"
+    "If the article does not mention the actual main tournament start date, return empty strings for these fields.\n"
     "CRITICAL REQUIREMENT FOR 'official_rules': Strive to extract a complete, comprehensive tournament rulebook summary "
     "covering:\n"
     "  1. Tournament format & competition structure (e.g. number of teams, groups, match format, 48 teams in 12 groups of 4).\n"
@@ -232,6 +240,43 @@ class LLMWikipediaScout:
             return None
 
     @staticmethod
+    def _parse_date_string(date_str: str) -> str:
+        """
+        Parses a date string (e.g. '11 June 2026', '2026-06-11', 'June 11, 2026')
+        into an ISO YYYY-MM-DD string, or returns empty string if unparseable.
+        """
+        if not date_str:
+            return ""
+        s = str(date_str).strip()
+        if re.match(r'^\d{4}-\d{2}-\d{2}$', s):
+            return s
+        
+        month_map = {
+            'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
+            'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
+            'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'sept': 9,
+            'october': 10, 'oct': 10, 'november': 11, 'nov': 11, 'december': 12, 'dec': 12
+        }
+
+        # 11 June 2026
+        m = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', s)
+        if m and m.group(2).lower() in month_map:
+            day = int(m.group(1))
+            month = month_map[m.group(2).lower()]
+            year = int(m.group(3))
+            return f"{year:04d}-{month:02d}-{day:02d}"
+
+        # June 11, 2026
+        m = re.search(r'([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})', s)
+        if m and m.group(1).lower() in month_map:
+            month = month_map[m.group(1).lower()]
+            day = int(m.group(2))
+            year = int(m.group(3))
+            return f"{year:04d}-{month:02d}-{day:02d}"
+
+        return ""
+
+    @staticmethod
     def _normalise(raw: dict, page_title: str, wiki_url: str) -> dict:
         """Normalises a Gemini response into the canonical audit schema."""
         groups       = raw.get("groups")   or []
@@ -273,6 +318,26 @@ class LLMWikipediaScout:
         if not knockout_stages:
             knockout_stages = ["Quarterfinals", "Semifinals", "Final"]
 
+        # Parse & normalise tournament start and end dates
+        raw_start = str(raw.get("tournament_start_date") or raw.get("start_date") or "").strip()
+        raw_end   = str(raw.get("tournament_end_date") or raw.get("end_date") or "").strip()
+
+        parsed_start = LLMWikipediaScout._parse_date_string(raw_start)
+        parsed_end   = LLMWikipediaScout._parse_date_string(raw_end)
+
+        # Fallback: if raw_start contains a date range e.g. "11 June – 19 July 2026"
+        if not parsed_start and raw_start:
+            dates = re.findall(r'\d{1,2}\s+[A-Za-z]+\s+\d{4}', raw_start)
+            if len(dates) >= 1:
+                parsed_start = LLMWikipediaScout._parse_date_string(dates[0])
+            if len(dates) >= 2 and not parsed_end:
+                parsed_end = LLMWikipediaScout._parse_date_string(dates[1])
+
+        # Fallback: check earliest fixture date if start date not explicitly provided
+        if not parsed_start and fixtures:
+            first_fix_date = fixtures[0].get("date", "")
+            parsed_start = LLMWikipediaScout._parse_date_string(first_fix_date)
+
         return {
             "page_title":                 page_title,
             "wiki_url":                   wiki_url,
@@ -286,6 +351,11 @@ class LLMWikipediaScout:
             "fixtures_have_placeholders": fixtures_have_placeholders,
             "draw_completed":             bool(raw.get("draw_completed",   False)),
             "draw_date":                  str(raw.get("draw_date")         or ""),
+            "tournament_start_date":      parsed_start,
+            "tournament_end_date":        parsed_end,
+            "start_date":                 parsed_start,
+            "end_date":                   parsed_end,
+            "date_reasoning":             str(raw.get("date_reasoning")    or ""),
             "advancement_rules":          str(raw.get("advancement_rules") or ""),
             "official_rules":             str(raw.get("official_rules") or raw.get("advancement_rules") or ""),
             "official_regulations_url":   str(raw.get("official_regulations_url") or ""),

@@ -436,15 +436,25 @@ class ScoutServiceTestCase(TestCase):
     def test_wikipedia_year_events_crawling(self, mock_requests_get):
         from tournament.services.scout_service import fetch_and_ingest_wikipedia_year_events
 
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.content = b'<html><body><a href="./2026_World_Junior_Ice_Hockey_Championships" title="2026 World Junior Ice Hockey Championships">2026 World Junior Ice Hockey Championships</a></body></html>'
-        mock_requests_get.return_value = mock_resp
+        def side_effect(url, **kwargs):
+            m = MagicMock()
+            m.status_code = 200
+            if 'mobile-sections' in url or 'api.php' in url or 'format=json' in str(kwargs.get('params', {})):
+                m.json.return_value = {
+                    'parse': {
+                        'text': {'*': '<table class="infobox"><tr><th>Dates</th><td>15 June – 15 July 2027</td></tr></table>'}
+                    }
+                }
+            else:
+                m.content = b'<html><body><a href="./2027_World_Junior_Ice_Hockey_Championships" title="2027 World Junior Ice Hockey Championships">2027 World Junior Ice Hockey Championships</a></body></html>'
+            return m
 
-        c, u, prospects = fetch_and_ingest_wikipedia_year_events(years=[2026])
+        mock_requests_get.side_effect = side_effect
+
+        c, u, prospects = fetch_and_ingest_wikipedia_year_events(years=[2027])
         self.assertGreaterEqual(c, 1)
         self.assertEqual(len(prospects), 1)
-        self.assertEqual(prospects[0].name, '2026 World Junior Ice Hockey Championships')
+        self.assertEqual(prospects[0].name, '2027 World Junior Ice Hockey Championships')
 
     def test_wikipedia_duplicate_tournament_merging(self):
         from tournament.models import ScannedTournament
@@ -675,19 +685,22 @@ class OfficialRegulationsVerifierTestCase(TestCase):
 
     @patch('tournament.services.wikipedia_scout.requests.get')
     def test_scout_deep_scan_one_view(self, mock_get):
+        import datetime
         from tournament.models import ScannedTournament
         admin = User.objects.create_superuser('deep_admin', 'deep@admin.test', 'deeppass123')
         self.client.force_login(admin)
 
         prospect = ScannedTournament.objects.create(
-            name="2026 Test Tournament",
-            master_event_code="2026-test-tournament",
+            name="2027 Test Tournament",
+            master_event_code="2027-test-tournament",
+            start_date=datetime.date(2027, 6, 1),
+            end_date=datetime.date(2027, 6, 15),
             completeness_grade="GRADE_C",
             payload={
                 "scouting_audit": {
                     "scouting_stage": "SHALLOW",
-                    "wikipedia_url": "https://en.wikipedia.org/wiki/2026_Test_Tournament",
-                    "wikipedia_title": "2026 Test Tournament"
+                    "wikipedia_url": "https://en.wikipedia.org/wiki/2027_Test_Tournament",
+                    "wikipedia_title": "2027 Test Tournament"
                 }
             }
         )
@@ -701,7 +714,7 @@ class OfficialRegulationsVerifierTestCase(TestCase):
                     {'line': 'Group B'},
                     {'line': 'Fixtures'}
                 ],
-                'text': {'*': '<table class="infobox"><tr><th>Teams</th><td>8</td></tr></table>'}
+                'text': {'*': '<table class="infobox"><tr><th>Teams</th><td>8</td></tr><tr><th>Dates</th><td>1 June – 15 June 2027</td></tr></table>'}
             }
         }
         mock_get.return_value = mock_resp
@@ -856,6 +869,84 @@ class LLMWikipediaScoutTestCase(TestCase):
         self.assertTrue(result['draw_completed'])
         self.assertEqual(result['draw_date'], '6 March 2026')
         self.assertIn('Round of 16', result['knockout_stages'])
+
+    def test_llm_date_extraction_normalisation(self):
+        """_parse_date_string and _normalise extract YYYY-MM-DD dates from varied inputs."""
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+        self.assertEqual(LLMWikipediaScout._parse_date_string('11 June 2027'), '2027-06-11')
+        self.assertEqual(LLMWikipediaScout._parse_date_string('June 11, 2027'), '2027-06-11')
+        self.assertEqual(LLMWikipediaScout._parse_date_string('2027-06-11'), '2027-06-11')
+
+        raw = {
+            'tournament_start_date': '11 June 2027',
+            'tournament_end_date': '19 July 2027',
+            'date_reasoning': 'Main final tournament matches scheduled 11 June - 19 July 2027.',
+            'teams_count': 16,
+        }
+        norm = LLMWikipediaScout._normalise(raw, '2027 Cup', 'https://en.wikipedia.org/wiki/2027_Cup')
+        self.assertEqual(norm['start_date'], '2027-06-11')
+        self.assertEqual(norm['end_date'], '2027-07-19')
+
+    @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
+    def test_deep_scan_rejects_missing_date(self, mock_audit):
+        """_run_deep_scan_on_prospect deletes prospect and fails if start_date is missing."""
+        from tournament.models import ScannedTournament
+        from tournament.views.engine_admin import _run_deep_scan_on_prospect
+        from tournament.services.wikipedia_scout import WikipediaScout
+        from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+
+        prospect = ScannedTournament.objects.create(
+            name="No Date Cup 2027",
+            master_event_code="no-date-cup-2027",
+            start_date=None,
+            payload={}
+        )
+
+        mock_audit.return_value = {
+            'page_title': 'No Date Cup 2027',
+            'tournament_start_date': '',
+            'tournament_end_date': '',
+            'start_date': '',
+            'end_date': '',
+            'draw_completed': False,
+            'fixtures_completed': False,
+        }
+
+        res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
+        self.assertFalse(res['ok'])
+        self.assertIn('Turneringar utan datum läggs inte till', res['error'])
+        self.assertFalse(ScannedTournament.objects.filter(id=prospect.id).exists())
+
+    @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
+    def test_deep_scan_rejects_past_or_ongoing_date(self, mock_audit):
+        """_run_deep_scan_on_prospect deletes prospect if start_date is today or in the past."""
+        import datetime
+        from tournament.models import ScannedTournament
+        from tournament.views.engine_admin import _run_deep_scan_on_prospect
+        from tournament.services.wikipedia_scout import WikipediaScout
+        from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+
+        past_date = str(datetime.date.today() - datetime.timedelta(days=10))
+
+        prospect = ScannedTournament.objects.create(
+            name="Past Cup 2025",
+            master_event_code="past-cup-2025",
+            start_date=datetime.date.today() - datetime.timedelta(days=10),
+            payload={}
+        )
+
+        mock_audit.return_value = {
+            'page_title': 'Past Cup 2025',
+            'tournament_start_date': past_date,
+            'start_date': past_date,
+            'draw_completed': False,
+            'fixtures_completed': False,
+        }
+
+        res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
+        self.assertFalse(res['ok'])
+        self.assertIn('pågående eller avslutad', res['error'])
+        self.assertFalse(ScannedTournament.objects.filter(id=prospect.id).exists())
 
 
 

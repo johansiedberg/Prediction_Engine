@@ -441,15 +441,19 @@ def fetch_and_ingest_wikipedia_year_events(years=None, sync_scout=True):
             # Start/End date parsing
             start_date_val = None
             if infobox and infobox.get('start_date'):
+                from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                iso_start = LLMWikipediaScout._parse_date_string(infobox['start_date'])
+                if not iso_start:
+                    iso_start = str(infobox['start_date'])[:10]
                 try:
-                    start_date_val = datetime.date.fromisoformat(str(infobox['start_date'])[:10])
+                    start_date_val = datetime.date.fromisoformat(iso_start)
                     start_date_str = str(start_date_val)
                 except Exception:
                     pass
 
-            # Skip past events
+            # Skip past/ongoing events or events without a confirmed start date
             today = datetime.date.today()
-            if start_date_val and start_date_val <= today:
+            if not start_date_val or start_date_val <= today:
                 continue
 
             sport_name = (infobox.get('sport') if infobox and infobox.get('sport') else "") or "Sports"
