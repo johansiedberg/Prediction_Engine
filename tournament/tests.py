@@ -887,14 +887,16 @@ class LLMWikipediaScoutTestCase(TestCase):
         self.assertEqual(norm['start_date'], '2027-06-11')
         self.assertEqual(norm['end_date'], '2027-07-19')
 
+    @patch('tournament.services.wikidata_scout.WikidataScout.fetch_wikidata_entity')
     @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
-    def test_deep_scan_retains_incomplete_date_as_grade_c(self, mock_audit):
+    def test_deep_scan_retains_incomplete_date_as_grade_c(self, mock_audit, mock_wikidata):
         """_run_deep_scan_on_prospect sets Grade C and preserves prospect when start_date is unconfirmed."""
         from tournament.models import ScannedTournament
         from tournament.views.engine_admin import _run_deep_scan_on_prospect
         from tournament.services.wikipedia_scout import WikipediaScout
         from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
 
+        mock_wikidata.return_value = {}
         prospect = ScannedTournament.objects.create(
             name="No Date Cup 2027",
             master_event_code="no-date-cup-2027",

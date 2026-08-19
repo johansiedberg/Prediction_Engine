@@ -1243,9 +1243,13 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
 
     today_date = datetime.date.today()
 
-    # Extract start and end dates from audit or existing prospect
-    audit_start_str = audit.get('tournament_start_date') or audit.get('start_date') or ''
-    audit_end_str   = audit.get('tournament_end_date') or audit.get('end_date') or ''
+    # Stage 2b - Wikidata Entity Cross-Audit
+    from tournament.services.wikidata_scout import WikidataScout
+    wikidata = WikidataScout.fetch_wikidata_entity(page_title)
+
+    # Extract start and end dates from audit, Wikidata, or existing prospect
+    audit_start_str = audit.get('tournament_start_date') or audit.get('start_date') or wikidata.get('start_date') or ''
+    audit_end_str   = audit.get('tournament_end_date') or audit.get('end_date') or wikidata.get('end_date') or ''
 
     start_date_obj = None
     if audit_start_str:
@@ -1405,7 +1409,7 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     if audit.get('host_country') and not payload.get('master_event', {}).get('host_country'):
         payload.setdefault('master_event', {})['host_country'] = audit['host_country']
 
-    extracted_logo_url = audit.get('logo_url') or ''
+    extracted_logo_url = audit.get('logo_url') or wikidata.get('logo_url') or ''
     if extracted_logo_url:
         prospect.logo_url = extracted_logo_url
         payload['logo_url'] = extracted_logo_url
@@ -1415,8 +1419,14 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     prospect.grade_reason       = final_reason
     if official_rules_str:
         prospect.official_rules = official_rules_str
-    if audit.get('official_regulations_url'):
-        prospect.official_source_url = audit['official_regulations_url']
+    
+    extracted_official_url = audit.get('official_regulations_url') or wikidata.get('official_website_url') or ''
+    if extracted_official_url:
+        prospect.official_source_url = extracted_official_url
+
+    if wikidata.get('wikidata_qid'):
+        payload['wikidata_qid'] = wikidata['wikidata_qid']
+
     prospect.save()
 
     return {

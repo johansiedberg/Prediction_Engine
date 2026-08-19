@@ -36,7 +36,11 @@ class WikipediaScout:
         return None
 
     def search_wikipedia_article(self, tournament_name, year=None):
-        """Searches Wikipedia for matching tournament article."""
+        """
+        Searches Wikipedia for matching tournament article.
+        If initial search in English Wikipedia yields no results or term is non-English,
+        queries Swedish Wikipedia and resolves interlanguage langlinks to English title.
+        """
         query = f"{tournament_name} {year}" if year else tournament_name
         params = {
             'action': 'query',
@@ -54,6 +58,28 @@ class WikipediaScout:
                     return results[0].get('title')
         except Exception as e:
             logger.error(f"Wikipedia search error for '{query}': {e}")
+
+        # Multilingual fallback: search Swedish Wikipedia and resolve English langlink
+        try:
+            sv_url = "https://sv.wikipedia.org/w/api.php"
+            res_sv = requests.get(sv_url, headers=self.headers, params=params, timeout=10)
+            if res_sv.status_code == 200:
+                results_sv = res_sv.json().get('query', {}).get('search', [])
+                if results_sv:
+                    sv_title = results_sv[0].get('title')
+                    res_link = requests.get(sv_url, headers=self.headers, params={
+                        'action': 'query', 'prop': 'langlinks', 'titles': sv_title, 'lllang': 'en', 'format': 'json'
+                    }, timeout=10)
+                    if res_link.status_code == 200:
+                        pages = res_link.json().get('query', {}).get('pages', {})
+                        for pid, page in pages.items():
+                            ll = page.get('langlinks', [])
+                            if ll and ll[0].get('*'):
+                                return ll[0].get('*')
+                    return sv_title
+        except Exception as e:
+            logger.warning(f"Swedish Wikipedia search fallback error for '{query}': {e}")
+
         return None
 
     def audit_infobox_only(self, page_title):
