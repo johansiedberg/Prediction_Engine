@@ -779,6 +779,15 @@ class Match(models.Model):
                     elif ref_match.away_goals > ref_match.home_goals:
                         winner_info = ref_match.get_away_team_info()
                         loser_info = ref_match.get_home_team_info()
+                    else:
+                        box_data = ref_match.box_score_data or {}
+                        pen_win = box_data.get('penalty_winner')
+                        a_team = ref_match.get_away_team_info()
+                        h_team = ref_match.get_home_team_info()
+                        if pen_win and pen_win == a_team.get('name'):
+                            winner_info, loser_info = a_team, h_team
+                        else:
+                            winner_info, loser_info = h_team, a_team
 
                 target_info = winner_info if role in ('winner', 'vinnare') else loser_info
                 if target_info and target_info['name'] and target_info['name'] != '-':

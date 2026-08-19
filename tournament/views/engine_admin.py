@@ -570,14 +570,40 @@ def engine_admin_simulate_tournament(request, tournament_id):
             if match.away_team in team_mapping:
                 match.away_team = team_mapping[match.away_team]
 
-    # Generate realistic scores for matches
+    # 1. Ensure complete knockout bracket exists (Quarterfinals, Semifinals, Final)
+    from tournament.services.scout_service import ensure_complete_knockout_bracket
+    ensure_complete_knockout_bracket(tournament)
+
+    # 2. Simulate Group Matches first
     simulated_count = 0
-    for match in tournament.matches.all():
+    group_matches = list(tournament.matches.filter(group__isnull=False).order_by('match_number', 'id'))
+    for match in group_matches:
         match.home_goals = random.choice([0, 1, 1, 2, 2, 3, 4])
         match.away_goals = random.choice([0, 1, 1, 2, 2, 3, 4])
         match.is_finished = True
         match.save()
         simulated_count += 1
+
+    # Clear cached lookup maps on tournament instance
+    if hasattr(tournament, '_matches_by_number_dict'):
+        delattr(tournament, '_matches_by_number_dict')
+    if hasattr(tournament, '_groups_by_code_dict'):
+        delattr(tournament, '_groups_by_code_dict')
+
+    # 3. Simulate Knockout Matches stage by stage
+    knockout_stages = list(tournament.knockout_stages.all().order_by('order', 'id'))
+    for stage in knockout_stages:
+        stage_matches = list(stage.matches.all().order_by('match_number', 'id'))
+        for match in stage_matches:
+            h_g = random.choice([1, 2, 2, 3, 4])
+            a_g = random.choice([0, 1, 1, 2, 3])
+            if h_g == a_g:
+                h_g += 1
+            match.home_goals = h_g
+            match.away_goals = a_g
+            match.is_finished = True
+            match.save()
+            simulated_count += 1
 
     invalidate_tournament_cache(tournament.id)
 

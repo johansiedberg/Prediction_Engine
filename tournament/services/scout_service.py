@@ -831,6 +831,78 @@ def sync_all_scout_prospects(custom_query=None):
     return total_created, total_updated, all_prospects
 
 
+def ensure_complete_knockout_bracket(tournament, base_dt=None, start_match_number=0):
+    """
+    Ensures that every configured KnockoutStage in tournament has appropriate matches.
+    If a stage (e.g. Quarterfinals, Semifinals, Final) has 0 matches, auto-generates
+    the bracket matches linking previous stage winners.
+    """
+    stages_list = list(tournament.knockout_stages.all().order_by('order', 'id'))
+    if not stages_list:
+        return start_match_number
+
+    if not base_dt:
+        base_dt = timezone.now() + datetime.timedelta(days=30)
+
+    match_counter = start_match_number or (tournament.matches.aggregate(models.Max('match_number')).get('match_number__max') or 0)
+
+    for idx, stage in enumerate(stages_list):
+        if stage.matches.exists():
+            continue
+
+        # Find previous stage with matches
+        prev_stage = None
+        for p in reversed(stages_list[:idx]):
+            if p.matches.exists():
+                prev_stage = p
+                break
+
+        if not prev_stage:
+            continue
+
+        prev_matches = list(prev_stage.matches.all().order_by('match_number', 'id'))
+        if not prev_matches:
+            continue
+
+        prev_max_num = prev_stage.matches.aggregate(models.Max('match_number')).get('match_number__max') or 0
+        match_counter = prev_max_num
+
+        num_prev = len(prev_matches)
+        if num_prev >= 2:
+            num_new_matches = num_prev // 2
+            
+            for m_idx in range(num_new_matches):
+                match_counter += 1
+                if num_prev == 8 and num_new_matches == 4:
+                    pairs = [(0, 2), (1, 5), (3, 4), (6, 7)]
+                    p1_idx, p2_idx = pairs[m_idx]
+                else:
+                    p1_idx = m_idx * 2
+                    p2_idx = m_idx * 2 + 1
+
+                if p1_idx < num_prev and p2_idx < num_prev:
+                    h_m = prev_matches[p1_idx]
+                    a_m = prev_matches[p2_idx]
+
+                    h_placeholder = f"Winner Match {h_m.match_number}"
+                    a_placeholder = f"Winner Match {a_m.match_number}"
+
+                    m_dt = base_dt + datetime.timedelta(days=7 + idx * 3 + m_idx)
+                    if timezone.is_naive(m_dt):
+                        m_dt = timezone.make_aware(m_dt, timezone.get_current_timezone())
+
+                    Match.objects.create(
+                        tournament=tournament,
+                        stage=stage,
+                        match_number=match_counter,
+                        home_team=h_placeholder,
+                        away_team=a_placeholder,
+                        date_time=m_dt
+                    )
+
+    return match_counter
+
+
 def transfer_scouted_logo_to_tournament(scanned, tournament, master_event=None):
     """
     Transfers scouted logotype image from ScannedTournament (logo_url) into
@@ -1082,6 +1154,9 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                     away_team=away_ph,
                     date_time=m_dt
                 )
+
+        # Auto-complete any empty knockout stages (Quarterfinals, Semifinals, Final)
+        match_number_counter = ensure_complete_knockout_bracket(tournament, base_dt, match_number_counter)
 
         # 8. Sidebets
         for sb in sidebets_data:
