@@ -213,14 +213,12 @@ def engine_admin_dashboard_view(request):
     scanned_data = []
     scout_counts = {
         'total': 0,
-        'grade_a': 0,
-        'grade_b': 0,
-        'grade_c': 0,
-        'converted': 0,
-        'watchlist': 0,
-        'archived': 0,
         'new': 0,
-        'deep': 0,
+        'ready': 0,
+        'watchlist': 0,
+        'not_ready': 0,
+        'archived': 0,
+        'converted': 0,
     }
 
     SPORT_ICONS = {
@@ -247,24 +245,33 @@ def engine_admin_dashboard_view(request):
         audit = payload.get('scouting_audit', {})
         scouting_stage = audit.get('scouting_stage', 'DEEP')  # Legacy prospects treated as DEEP
 
-        scout_counts['total'] += 1
-        if p.completeness_grade == 'GRADE_A':
-            scout_counts['grade_a'] += 1
-        elif p.completeness_grade == 'GRADE_B':
-            scout_counts['grade_b'] += 1
-        elif p.completeness_grade == 'GRADE_C':
-            scout_counts['grade_c'] += 1
-
+        # Compute Unified Status (combining Status + Grade)
         if p.status == 'CONVERTED':
-            scout_counts['converted'] += 1
+            unified_status = 'CONVERTED'
         elif p.status == 'WATCHLIST':
-            scout_counts['watchlist'] += 1
+            unified_status = 'WATCHLIST'
         elif p.status == 'ARCHIVED':
-            scout_counts['archived'] += 1
+            unified_status = 'ARCHIVED'
         elif scouting_stage == 'SHALLOW':
-            scout_counts['new'] += 1
+            unified_status = 'NEW'
+        elif p.completeness_grade == 'GRADE_A':
+            unified_status = 'READY'
         else:
-            scout_counts['deep'] += 1
+            unified_status = 'NOT_READY'
+
+        scout_counts['total'] += 1
+        if unified_status == 'CONVERTED':
+            scout_counts['converted'] += 1
+        elif unified_status == 'WATCHLIST':
+            scout_counts['watchlist'] += 1
+        elif unified_status == 'ARCHIVED':
+            scout_counts['archived'] += 1
+        elif unified_status == 'NEW':
+            scout_counts['new'] += 1
+        elif unified_status == 'READY':
+            scout_counts['ready'] += 1
+        elif unified_status == 'NOT_READY':
+            scout_counts['not_ready'] += 1
         groups = payload.get('groups', [])
         fixtures = payload.get('fixtures_sample', [])
         knockouts = payload.get('knockout_mapping_sample', [])
@@ -365,6 +372,7 @@ def engine_admin_dashboard_view(request):
 
         scanned_data.append({
             'prospect': p,
+            'unified_status': unified_status,
             'teams_count': teams_count,
             'groups_count': groups_count,
             'matches_count': matches_count,

@@ -726,38 +726,30 @@
                         </div>
                     </div>
 
-                    <!-- Bottom Row: Integrated Filter Controls & Visible Counter -->
+                    <!-- Bottom Row: Unified Status Filter Controls & Visible Counter -->
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <span class="text-secondary small me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Status:</span>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background:rgba(255,255,255,0.12);color:#e2e8f0;border:1px solid rgba(255,255,255,0.25);">
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);">
                                 Alla (<span id="count-scout-all">{{ scout_counts.total }}</span>)
                             </button>
                             <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="NEW" onclick="filterScoutProspects('NEW', this)" style="background:#1e293b;border:1px solid #475569;color:#cbd5e1;">
                                 Nya (<span id="count-scout-new">{{ scout_counts.new }}</span>)
                             </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="DEEP" onclick="filterScoutProspects('DEEP', this)" style="background:#451a03;border:1px solid #d97706;color:#fef3c7;">
-                                Scannade (<span id="count-scout-deep">{{ scout_counts.deep|default:0 }}</span>)
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="READY" onclick="filterScoutProspects('READY', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
+                                <i class="fa-solid fa-shield-check me-1 text-success"></i>Redo (<span id="count-scout-ready">{{ scout_counts.ready }}</span>)
                             </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="WATCHLIST" onclick="filterScoutProspects('WATCHLIST', this)" style="background:#082f49;border:1px solid #0284c7;color:#bae6fd;">
-                                Bevakade (<span id="count-scout-watchlist">{{ scout_counts.watchlist }}</span>)
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="WATCHLIST" onclick="filterScoutProspects('WATCHLIST', this)" style="background:#082F49;border:1px solid #0284C7;color:#BAE6FD;">
+                                <i class="fa-solid fa-eye me-1 text-info"></i>Bevakade (<span id="count-scout-watchlist">{{ scout_counts.watchlist }}</span>)
                             </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="CONVERTED" onclick="filterScoutProspects('CONVERTED', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
-                                Aktiverade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="NOT_READY" onclick="filterScoutProspects('NOT_READY', this)" style="background:#451A03;border:1px solid #D97706;color:#FEF3C7;">
+                                <i class="fa-solid fa-triangle-exclamation me-1 text-warning"></i>Ej redo (<span id="count-scout-not-ready">{{ scout_counts.not_ready }}</span>)
                             </button>
                             <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="ARCHIVED" onclick="filterScoutProspects('ARCHIVED', this)" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;">
-                                Ignorerade (<span id="count-scout-archived">{{ scout_counts.archived }}</span>)
+                                <i class="fa-solid fa-ban me-1 text-danger"></i>Ignorerade (<span id="count-scout-archived">{{ scout_counts.archived }}</span>)
                             </button>
-
-                            <span class="text-secondary small ms-2 me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Betyg:</span>
-                            <button class="btn btn-sm rounded-pill fw-bold px-2.5 scout-filter-btn" data-filter="GRADE_A" onclick="filterScoutProspects('GRADE_A', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
-                                <i class="fa-solid fa-shield-check me-1"></i>Redo (<span id="count-scout-grade-a">{{ scout_counts.grade_a }}</span>)
-                            </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-2.5 scout-filter-btn" data-filter="GRADE_B" onclick="filterScoutProspects('GRADE_B', this)" style="background:#082F49;border:1px solid #0284C7;color:#BAE6FD;">
-                                <i class="fa-regular fa-clock me-1"></i>Väntar lottning (<span id="count-scout-grade-b">{{ scout_counts.grade_b }}</span>)
-                            </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-2.5 scout-filter-btn" data-filter="GRADE_C" onclick="filterScoutProspects('GRADE_C', this)" style="background:#451A03;border:1px solid #D97706;color:#FEF3C7;">
-                                <i class="fa-solid fa-triangle-exclamation me-1"></i>Ej redo (<span id="count-scout-grade-c">{{ scout_counts.grade_c }}</span>)
+                            <button class="btn btn-sm rounded-pill fw-bold px-3 scout-filter-btn" data-filter="CONVERTED" onclick="filterScoutProspects('CONVERTED', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
+                                <i class="fa-solid fa-circle-check me-1 text-success"></i>Aktiverade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
                             </button>
                         </div>
                         <div class="text-secondary small font-monospace">
@@ -802,6 +794,7 @@
                 {% if scanned_tournaments %}
                     {% for item in scanned_tournaments %}
                     <div class="scout-card-wrap scout-prospect-item"
+                         data-unified-status="{{ item.unified_status }}"
                          data-grade="{{ item.prospect.completeness_grade }}"
                          data-status="{{ item.prospect.status }}"
                          data-stage="{{ item.scouting_stage }}"
@@ -821,29 +814,28 @@
                                         <div class="d-flex flex-column justify-content-center" style="gap:10px !important;">
                                             <!-- ROW 1: Status Badge, Rescan/Days, Prospect ID -->
                                             <div class="d-flex flex-wrap align-items-center gap-2">
-                                                <!-- Explicit Status Badge -->
-                                                {% if item.prospect.status == 'CONVERTED' %}
-                                                    <!-- Added (Aktiverad) = Green -->
+                                                <!-- Unified Status Badge -->
+                                                {% if item.unified_status == 'CONVERTED' %}
                                                     <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;font-size:14px;">
-                                                        Aktiverad
+                                                        <i class="fa-solid fa-circle-check me-1 text-success"></i>Aktiverad
                                                     </span>
-                                                {% elif item.prospect.status == 'WATCHLIST' %}
-                                                    <!-- Under Survey (Bevakad, [Datum för nästa scanning]) = Blue -->
+                                                {% elif item.unified_status == 'WATCHLIST' %}
                                                     <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#082f49;border:1px solid #0284c7;color:#bae6fd;font-size:14px;">
-                                                        Bevakad, {% if item.prospect.rescan_date %}{{ item.prospect.rescan_date|date:"Y-m-d" }}{% elif item.prospect.payload.scouting_audit.next_rescan_date %}{{ item.prospect.payload.scouting_audit.next_rescan_date|slice:":10" }}{% else %}2026-08-25{% endif %}
+                                                        <i class="fa-solid fa-eye me-1 text-info"></i>Bevakad{% if item.prospect.rescan_date %}, {{ item.prospect.rescan_date|date:"Y-m-d" }}{% endif %}
                                                     </span>
-                                                {% elif item.prospect.status == 'ARCHIVED' %}
-                                                    <!-- Ignored (Ignorerad) = Red -->
+                                                {% elif item.unified_status == 'ARCHIVED' %}
                                                     <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;font-size:14px;">
-                                                        Ignorerad
+                                                        <i class="fa-solid fa-ban me-1 text-danger"></i>Ignorerad
                                                     </span>
-                                                {% elif item.scouting_stage == 'DEEP' %}
-                                                    <!-- Scanned (Scannad) = Yellow -->
+                                                {% elif item.unified_status == 'READY' %}
+                                                    <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;font-size:14px;">
+                                                        <i class="fa-solid fa-shield-check me-1 text-success"></i>Redo (100%)
+                                                    </span>
+                                                {% elif item.unified_status == 'NOT_READY' %}
                                                     <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#451a03;border:1px solid #d97706;color:#fef3c7;font-size:14px;">
-                                                        Scannad
+                                                        <i class="fa-solid fa-triangle-exclamation me-1 text-warning"></i>Ej redo
                                                     </span>
                                                 {% else %}
-                                                    <!-- New (Ny) = Grey -->
                                                     <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#1e293b;border:1px solid #475569;color:#cbd5e1;font-size:14px;">
                                                         Ny
                                                     </span>
@@ -3075,32 +3067,38 @@
 
     function updateScoutCountsFromDOM() {
         const items = document.querySelectorAll('.scout-prospect-item');
-        let counts = {
+        const counts = {
             total: items.length,
             new: 0,
-            deep: 0,
+            ready: 0,
             watchlist: 0,
-            converted: 0,
+            not_ready: 0,
             archived: 0,
-            grade_a: 0,
-            grade_b: 0,
-            grade_c: 0
+            converted: 0
         };
 
         items.forEach(item => {
+            const uStatus = item.getAttribute('data-unified-status');
             const status = item.getAttribute('data-status');
             const grade = item.getAttribute('data-grade');
             const stage = item.getAttribute('data-stage');
 
-            if (grade === 'GRADE_A') counts.grade_a++;
-            else if (grade === 'GRADE_B') counts.grade_b++;
-            else if (grade === 'GRADE_C') counts.grade_c++;
+            let effStatus = uStatus;
+            if (!effStatus) {
+                if (status === 'CONVERTED') effStatus = 'CONVERTED';
+                else if (status === 'WATCHLIST') effStatus = 'WATCHLIST';
+                else if (status === 'ARCHIVED') effStatus = 'ARCHIVED';
+                else if (stage === 'SHALLOW') effStatus = 'NEW';
+                else if (grade === 'GRADE_A') effStatus = 'READY';
+                else effStatus = 'NOT_READY';
+            }
 
-            if (status === 'CONVERTED') counts.converted++;
-            else if (status === 'WATCHLIST') counts.watchlist++;
-            else if (status === 'ARCHIVED') counts.archived++;
-            else if (stage === 'SHALLOW') counts.new++;
-            else counts.deep++;
+            if (effStatus === 'CONVERTED') counts.converted++;
+            else if (effStatus === 'WATCHLIST') counts.watchlist++;
+            else if (effStatus === 'ARCHIVED') counts.archived++;
+            else if (effStatus === 'NEW') counts.new++;
+            else if (effStatus === 'READY') counts.ready++;
+            else counts.not_ready++;
         });
 
         const setCnt = (id, val) => {
@@ -3110,13 +3108,11 @@
 
         setCnt('count-scout-all', counts.total);
         setCnt('count-scout-new', counts.new);
-        setCnt('count-scout-deep', counts.deep);
+        setCnt('count-scout-ready', counts.ready);
         setCnt('count-scout-watchlist', counts.watchlist);
-        setCnt('count-scout-converted', counts.converted);
+        setCnt('count-scout-not-ready', counts.not_ready);
         setCnt('count-scout-archived', counts.archived);
-        setCnt('count-scout-grade-a', counts.grade_a);
-        setCnt('count-scout-grade-b', counts.grade_b);
-        setCnt('count-scout-grade-c', counts.grade_c);
+        setCnt('count-scout-converted', counts.converted);
 
         const scoutBadge = document.getElementById('scout-badge');
         if (scoutBadge) scoutBadge.textContent = counts.total;
@@ -3136,19 +3132,26 @@
         const items = document.querySelectorAll('.scout-prospect-item');
         let visibleCount = 0;
         items.forEach(item => {
-            const grade = item.getAttribute('data-grade');
+            const uStatus = item.getAttribute('data-unified-status');
             const status = item.getAttribute('data-status');
+            const grade = item.getAttribute('data-grade');
             const stage = item.getAttribute('data-stage');
+
+            let effStatus = uStatus;
+            if (!effStatus) {
+                if (status === 'CONVERTED') effStatus = 'CONVERTED';
+                else if (status === 'WATCHLIST') effStatus = 'WATCHLIST';
+                else if (status === 'ARCHIVED') effStatus = 'ARCHIVED';
+                else if (stage === 'SHALLOW') effStatus = 'NEW';
+                else if (grade === 'GRADE_A') effStatus = 'READY';
+                else effStatus = 'NOT_READY';
+            }
 
             let match = false;
             if (filterKey === 'all') {
                 match = true;
-            } else if (filterKey === 'DEEP') {
-                match = (stage === 'DEEP');
-            } else if (['NEW', 'WATCHLIST', 'ARCHIVED', 'CONVERTED'].includes(filterKey)) {
-                match = (status === filterKey);
-            } else if (['GRADE_A', 'GRADE_B', 'GRADE_C', 'GRADE_D'].includes(filterKey)) {
-                match = (grade === filterKey);
+            } else {
+                match = (effStatus === filterKey || status === filterKey);
             }
 
             if (match) {
