@@ -460,7 +460,23 @@ class LLMWikipediaScout:
                 "strategy":       "LLM_Gemini_Flash",
             })
 
-        fixtures_count      = int(raw.get("fixtures_count")      or len(fixtures))
+        if len(fixtures) < 5 and page_title:
+            try:
+                from tournament.services.wikipedia_scout import WikipediaScout
+                h_audit = WikipediaScout().audit_tournament_page(page_title)
+                if h_audit and isinstance(h_audit, dict):
+                    h_fixs = h_audit.get('fixtures', [])
+                    if h_fixs:
+                        seen = {f"{f.get('home_team')}_vs_{f.get('away_team')}" for f in fixtures}
+                        for hf in h_fixs:
+                            k = f"{hf.get('home_team')}_vs_{hf.get('away_team')}"
+                            if k not in seen:
+                                seen.add(k)
+                                fixtures.append(hf)
+            except Exception as e:
+                logger.warning("Error merging heuristic fixtures into LLM audit: %s", e)
+
+        fixtures_count      = max(int(raw.get("fixtures_count") or 0), len(fixtures))
         groups_count        = int(raw.get("groups_count")        or len(groups))
         teams_count         = int(raw.get("teams_count")         or 0)
         scheduled_matchdays = int(raw.get("scheduled_matchdays") or 0)

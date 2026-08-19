@@ -333,6 +333,7 @@ class WikipediaScout:
             MONTH_NAMES = {'january', 'february', 'march', 'april', 'may', 'june',
                            'july', 'august', 'september', 'october', 'november', 'december',
                            'jan', 'feb', 'mar', 'apr', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'}
+            MONTH_RE = r'(?:january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)'
 
             # Placeholder code regex: 1E, 2D, W37, W40, A1, B2, TBD, 3C/D/F, 1st, 2nd etc.
             PLACEHOLDER_RE = re.compile(
@@ -417,7 +418,7 @@ class WikipediaScout:
                 })
 
             # --- Strategy 1: FIFA footballbox match blocks (group-stage seeded + knockout placeholders) ---
-            MONTH_RE = r'(?:January|February|March|April|May|June|July|August|September|October|November|December)'
+            MONTH_RE = r'(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'
             DATE_RE  = rf'(\d{{1,2}}\s+{MONTH_RE}\s+\d{{4}})'
             TIME_RE  = r'(\d{1,2}:\d{2})'
 
@@ -506,6 +507,55 @@ class WikipediaScout:
                                 date_m.group(1) if date_m else '',
                                 time_m.group(1) if time_m else '',
                                 venue_t, 'Strategy_3_NLP_TableMining')
+
+            # --- Strategy 5: Cross-Table & Group-Adjacent Match Matrix Mining ---
+            # Supports round-robin & Nations League group tables where home/away fixture dates or scores
+            # are embedded as a cross-table matrix (e.g. 2026–27 UEFA Nations League).
+            matrix_count = 0
+            for tbl in soup.find_all('table', class_=re.compile(r'wikitable')):
+                prev_h = tbl.find_previous(re.compile(r'^h[2-4]$'))
+                gname = prev_h.get_text().strip() if prev_h else 'Gruppspel'
+
+                rows = tbl.find_all('tr')
+                if len(rows) < 3:
+                    continue
+
+                teams_in_matrix = []
+                team_rows = []
+                for r in rows[1:]:
+                    tds = r.find_all(['td', 'th'])
+                    if not tds:
+                        continue
+                    tname = ''
+                    for cell in tds[:3]:
+                        txt = cell.get_text().strip()
+                        clean = re.sub(r'^\d+\s*', '', txt).strip()
+                        if clean and not clean.isdigit() and len(clean) > 2 and not re.search(r'qualification|promotion|relegation|play.?off', clean, re.IGNORECASE):
+                            tname = clean
+                            break
+                    if tname:
+                        teams_in_matrix.append(tname)
+                        team_rows.append(r)
+
+                if len(teams_in_matrix) >= 2:
+                    for r_idx, r in enumerate(team_rows):
+                        home_t = teams_in_matrix[r_idx]
+                        cells = [c.get_text().strip() for c in r.find_all(['td', 'th'])]
+
+                        matrix_cells = []
+                        for c_txt in cells:
+                            if c_txt in ['—', '–'] or re.search(rf'\d{{1,2}}\s+{MONTH_RE}', c_txt, re.IGNORECASE) or re.search(r'\d+\s*[\u2013\-]\s*\d+', c_txt):
+                                matrix_cells.append(c_txt)
+
+                        if len(matrix_cells) == len(teams_in_matrix):
+                            for c_idx, val in enumerate(matrix_cells):
+                                if c_idx != r_idx and val not in ['—', '–']:
+                                    away_t = teams_in_matrix[c_idx]
+                                    m_date = re.search(rf'(\d{{1,2}}\s+{MONTH_RE}(?:\s+\d{{4}})?|\d{{1,2}}[\s\u2013\-]+\d{{1,2}}\s+{MONTH_RE})', val, re.IGNORECASE)
+                                    date_val = m_date.group(1) if m_date else val
+                                    add_fixture(r, home_t, away_t, date_val, '', '', 'Strategy_5_CrossTable_MatchMatrix')
+                                    matrix_count += 1
+            logger.info("Strategy 5 matrix fixtures added: %d, total fixtures now: %d", matrix_count, len(fixtures))
 
             # --- Strategy 4: Matchday / Schedule Table Mining ---
             # For qualifying competitions (e.g. UEFA Euro 2028 qualifying) and league-format
