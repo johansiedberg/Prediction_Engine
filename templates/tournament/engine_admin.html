@@ -699,7 +699,7 @@
                     </div>
 
                     <!-- Single Status Row: Status filters | # Tournaments filtered | Header action buttons -->
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 p-3.5 rounded-4 shadow-sm" style="background:rgba(15, 23, 42, 0.7);border:1px solid rgba(255,255,255,0.12);">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 py-1">
                         <!-- Left Column: Status Filters -->
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <span class="text-secondary small me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Status:</span>
@@ -726,8 +726,8 @@
                             </button>
                         </div>
 
-                        <!-- Center Column: # Tournaments Filtered -->
-                        <div class="text-secondary small font-monospace px-3 py-1.5 rounded-3 border" style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1) !important;">
+                        <!-- Center Column: # Tournaments Filtered (Pure text, no frame) -->
+                        <div class="text-secondary small font-monospace">
                             <span id="scoutVisibleCount" class="fw-bold text-white fs-6">{{ scout_counts.total }}</span> <span class="text-secondary">prospekt visas</span>
                         </div>
 
