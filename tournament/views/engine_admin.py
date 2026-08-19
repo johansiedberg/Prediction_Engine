@@ -1412,6 +1412,7 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
         prospect.official_rules = official_rules_str
     if audit.get('official_regulations_url'):
         prospect.official_source_url = audit['official_regulations_url']
+    prospect.save()
 
     return {
         'ok':                True,

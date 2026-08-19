@@ -177,7 +177,9 @@ class WikipediaScout:
             infobox = soup.find('table', class_=re.compile(r'infobox|vcard'))
             teams_count = 0
             host_country = ''
-            
+            start_date_extracted = ''
+            end_date_extracted = ''
+
             if infobox:
                 for row in infobox.find_all('tr'):
                     header = row.find('th')
@@ -191,6 +193,13 @@ class WikipediaScout:
                                 teams_count = int(m.group())
                         elif 'host' in h_text or 'location' in h_text:
                             host_country = d_text
+                        elif 'date' in h_text or 'dates' in h_text or 'duration' in h_text:
+                            from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                            s_iso, e_iso = LLMWikipediaScout._parse_date_range(d_text, "", page_title)
+                            if s_iso:
+                                start_date_extracted = s_iso
+                            if e_iso:
+                                end_date_extracted = e_iso
 
             # 2. Universal Heading-Scoped Group & Pool Extractor (Group A-Z, Pool A-Z, Division A-Z)
             groups = []
@@ -548,6 +557,10 @@ class WikipediaScout:
                 'fixtures_completed': fixtures_completed,
                 'knockout_stages': knockout_stages,
                 'host_country': host_country,
+                'tournament_start_date': start_date_extracted,
+                'tournament_end_date': end_date_extracted,
+                'start_date': start_date_extracted,
+                'end_date': end_date_extracted,
             }
 
         except Exception as e:
