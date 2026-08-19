@@ -802,8 +802,13 @@
                                 <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
                                     <!-- Left Info Block: Sport Icon (+100%) + Title & Status -->
                                     <div class="d-flex align-items-start gap-3">
-                                        <div class="d-flex align-items-center justify-content-center rounded-3 flex-shrink-0" style="width:84px;height:84px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);font-size:2.2rem;">
-                                            {{ item.sport_icon }}
+                                        <div class="d-flex align-items-center justify-content-center rounded-3 flex-shrink-0 p-1" style="width:84px;height:84px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);font-size:2.2rem;">
+                                            {% if item.prospect.logo_url %}
+                                                <img src="{{ item.prospect.logo_url }}" alt="{{ item.prospect.name }} Logotype" class="img-fluid rounded" style="max-height:74px;max-width:74px;object-fit:contain;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                                                <span style="display:none;">{{ item.sport_icon }}</span>
+                                            {% else %}
+                                                {{ item.sport_icon }}
+                                            {% endif %}
                                         </div>
                                         <div class="d-flex flex-column justify-content-center" style="gap:10px !important;">
                                             <!-- ROW 1: Status Badge, Rescan/Days, Prospect ID -->

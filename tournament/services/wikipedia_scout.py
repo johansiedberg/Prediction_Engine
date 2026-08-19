@@ -179,8 +179,17 @@ class WikipediaScout:
             host_country = ''
             start_date_extracted = ''
             end_date_extracted = ''
+            logo_url = ''
 
             if infobox:
+                img_tag = infobox.find('img')
+                if img_tag:
+                    src = img_tag.get('src', '')
+                    if src.startswith('//'):
+                        src = 'https:' + src
+                    if src:
+                        logo_url = src.split('?')[0]
+
                 for row in infobox.find_all('tr'):
                     header = row.find('th')
                     data_cell = row.find('td')
@@ -561,6 +570,7 @@ class WikipediaScout:
                 'tournament_end_date': end_date_extracted,
                 'start_date': start_date_extracted,
                 'end_date': end_date_extracted,
+                'logo_url': logo_url,
             }
 
         except Exception as e:

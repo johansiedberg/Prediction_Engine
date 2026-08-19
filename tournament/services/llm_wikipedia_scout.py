@@ -504,4 +504,5 @@ class LLMWikipediaScout:
             "fixtures_completed":         bool(raw.get("fixtures_completed", False)),
             "knockout_stages":            knockout_stages,
             "host_country":               str(raw.get("host_country")      or ""),
+            "logo_url":                   str(raw.get("logo_url")          or ""),
         }

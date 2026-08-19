@@ -1302,6 +1302,7 @@ class ScannedTournament(models.Model):
     grade_reason = models.TextField(blank=True, help_text="Detailed audit explanation of why this grade was assigned and what details are missing")
     official_source_url = models.URLField(max_length=500, blank=True, help_text="Direct URL to official federation/tournament website")
     official_rules = models.TextField(blank=True, default="", help_text="Extracted official format regulations and tiebreakers from LLM scan")
+    logo_url = models.URLField(max_length=500, blank=True, help_text="Scouted logotype / emblem image URL")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
     payload = models.JSONField(default=dict, help_text="Complete JSON payload from Gemini Tournament Scout")
     converted_tournament = models.ForeignKey(Tournament, on_delete=models.SET_NULL, null=True, blank=True, related_name='scouted_sources')

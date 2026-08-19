@@ -1405,6 +1405,11 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     if audit.get('host_country') and not payload.get('master_event', {}).get('host_country'):
         payload.setdefault('master_event', {})['host_country'] = audit['host_country']
 
+    extracted_logo_url = audit.get('logo_url') or ''
+    if extracted_logo_url:
+        prospect.logo_url = extracted_logo_url
+        payload['logo_url'] = extracted_logo_url
+
     prospect.payload            = payload
     prospect.completeness_grade = final_grade
     prospect.grade_reason       = final_reason
