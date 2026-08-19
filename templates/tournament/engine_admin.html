@@ -973,12 +973,16 @@
                                     <!-- Right Column: Frame for deepscan (if SHALLOW) OR Expansion headers (Else) -->
                                     <div class="col-12 col-lg-7">
                                         {% if item.scouting_stage == 'SHALLOW' %}
-                                        <!-- Big Shallow Scanning CTA Frame -->
-                                        <div class="p-4 rounded-3 text-center d-flex flex-column align-items-center justify-content-center h-100" style="background:rgba(245,158,11,0.06);border:1px dashed rgba(245,158,11,0.3);">
-                                            <i class="fa-solid fa-microscope text-warning fs-2 mb-2"></i>
-                                            <div class="fw-bold text-white fs-6 mb-1">Djupscanning krävs</div>
-                                            <div class="text-secondary small mb-3 font-monospace" style="max-width:340px;font-size:0.85rem;">Klicka på Djupscanna för att grupper, spelschema och föreskrifter ska hämtas automatiskt via Wikipedia.</div>
-                                            <button class="btn btn-warning btn-sm rounded-pill px-4 py-2 fw-bold shadow-sm text-dark" onclick="deepScanProspect({{ item.prospect.id }})">
+                                        <!-- Shallow Scanning CTA Frame (Horizontal: Icon | Text | Button) -->
+                                        <div class="p-3 rounded-3 d-flex flex-row align-items-center justify-content-between text-start gap-3 h-100" style="background:rgba(245,158,11,0.06);border:1px dashed rgba(245,158,11,0.3);">
+                                            <div class="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
+                                                <i class="fa-solid fa-microscope text-warning fs-3 flex-shrink-0"></i>
+                                                <div class="min-w-0">
+                                                    <div class="fw-bold text-white fs-6 mb-0.5">Djupscanning krävs</div>
+                                                    <div class="text-secondary small font-monospace" style="font-size:0.82rem;line-height:1.2;">Hämta grupper, spelschema och föreskrifter automatiskt via Wikipedia.</div>
+                                                </div>
+                                            </div>
+                                            <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-2 fw-bold shadow-sm text-dark text-nowrap flex-shrink-0" onclick="deepScanProspect({{ item.prospect.id }})">
                                                 <i class="fa-solid fa-microscope me-1.5"></i>Starta djupscanning
                                             </button>
                                         </div>
