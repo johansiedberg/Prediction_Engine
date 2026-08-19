@@ -620,10 +620,12 @@
                     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
                 }
                 .scout-grade-strip { width: 8px; flex-shrink: 0; border-radius: 4px 0 0 4px; }
-                .strip-a { background: #15803D; }
-                .strip-b { background: #0284C7; }
-                .strip-c { background: #D97706; }
-                .strip-d { background: #7f1d1d; }
+                .strip-new { background: #475569; }
+                .strip-ready { background: #22C55E; }
+                .strip-watchlist { background: #0284C7; }
+                .strip-not-ready { background: #D97706; }
+                .strip-archived { background: #B91C1C; }
+                .strip-converted { background: #15803D; }
                 .scout-shallow-cta {
                     background: rgba(69,26,3,0.4);
                     border: 1px solid rgba(180,83,9,0.5);
@@ -800,8 +802,8 @@
                          data-stage="{{ item.scouting_stage }}"
                          id="prospect-card-{{ item.prospect.id }}">
                         <div class="card scout-prospect-card text-white rounded-4 overflow-hidden shadow-sm d-flex flex-row align-items-stretch">
-                            <!-- Monochromatic Grade Strip -->
-                            <div class="scout-grade-strip {% if item.prospect.completeness_grade == 'GRADE_A' %}strip-a{% elif item.prospect.completeness_grade == 'GRADE_B' %}strip-b{% elif item.prospect.completeness_grade == 'GRADE_C' %}strip-c{% else %}strip-d{% endif %}"></div>
+                            <!-- Monochromatic Status Strip -->
+                            <div class="scout-grade-strip {% if item.unified_status == 'CONVERTED' %}strip-converted{% elif item.unified_status == 'READY' %}strip-ready{% elif item.unified_status == 'WATCHLIST' %}strip-watchlist{% elif item.unified_status == 'NOT_READY' %}strip-not-ready{% elif item.unified_status == 'ARCHIVED' %}strip-archived{% else %}strip-new{% endif %}"></div>
 
                             <div class="card-body p-3.5 flex-grow-1">
                                 <!-- Card Header: Icon, Meta, Title, Actions -->
