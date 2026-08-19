@@ -1039,8 +1039,11 @@
                                                             {% for g in item.groups %}
                                                             <div class="col-12 col-md-6">
                                                                 <div class="p-2.5 rounded-3" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
-                                                                    <div class="fw-bold text-warning small mb-1 font-monospace" style="font-size:0.85rem;">
-                                                                        <i class="fa-solid fa-users me-1.5"></i>{{ g.name|default:g }}
+                                                                    <div class="fw-bold text-warning small mb-1 font-monospace d-flex align-items-center justify-content-between" style="font-size:0.85rem;">
+                                                                        <span><i class="fa-solid fa-users me-1.5"></i>{{ g.name|default:g }}</span>
+                                                                        {% if g.is_second_stage or 'Group I' in g.name or 'Group II' in g.name or 'Main Group' in g.name or 'Main Round' in g.name %}
+                                                                            <span class="badge rounded-pill bg-info bg-opacity-20 text-info border border-info border-opacity-30 font-monospace" style="font-size:0.68rem;padding:2px 8px;">Main Round (Platshållare)</span>
+                                                                        {% endif %}
                                                                     </div>
                                                                     <ul class="list-unstyled mb-0 text-light ps-1 font-monospace" style="font-size:0.82rem;">
                                                                         {% for t in g.teams %}

@@ -283,11 +283,20 @@ class WikipediaScout:
                                     if clean_t and not clean_t.isdigit() and len(clean_t) > 2 and clean_t not in teams_in_tbl:
                                         teams_in_tbl.append(clean_t)
                                         extracted_teams_set.add(clean_t)
-                        
+
+                        is_second_stage = bool(re.search(r'Main|Second|Group\s+(?:[I|V|X]+|\d+)', grp_name, re.IGNORECASE) and not re.search(r'Group\s+[A-F]$', grp_name, re.IGNORECASE))
+                        if is_second_stage and not teams_in_tbl:
+                            if label_id in ['I', '1']:
+                                teams_in_tbl = ['A1 (1:a Grupp A)', 'A2 (2:a Grupp A)', 'A3 (3:a Grupp A)', 'B1 (1:a Grupp B)', 'B2 (2:a Grupp B)', 'B3 (3:a Grupp B)', 'C1 (1:a Grupp C)', 'C2 (2:a Grupp C)', 'C3 (3:a Grupp C)']
+                            elif label_id in ['II', '2']:
+                                teams_in_tbl = ['D1 (1:a Grupp D)', 'D2 (2:a Grupp D)', 'D3 (3:a Grupp D)', 'E1 (1:a Grupp E)', 'E2 (2:a Grupp E)', 'E3 (3:a Grupp E)', 'F1 (1:a Grupp F)', 'F2 (2:a Grupp F)', 'F3 (3:a Grupp F)']
+
                         if grp_name not in [g['name'] for g in groups]:
                             groups.append({
                                 'name': grp_name,
-                                'teams': [{'name': t} for t in teams_in_tbl]
+                                'is_second_stage': is_second_stage,
+                                'is_placeholder_group': is_second_stage or any(re.search(r'^[A-Z]\d', t) for t in teams_in_tbl),
+                                'teams': [{'name': t, 'is_placeholder': is_second_stage or bool(re.search(r'^[A-Z]\d', t))} for t in teams_in_tbl]
                             })
 
             # Fallback if heading-based scan didn't capture groups/pools
