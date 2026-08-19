@@ -3987,7 +3987,7 @@ Search and extract upcoming sports tournaments matching:
                 },
             });
             const data = await res.json();
-            if (data.status === 'success') {
+            if (data.status === 'success' || data.status === 'deleted') {
                 localStorage.setItem('engineAdminActiveTab', 'scout-tab');
                 setTimeout(() => location.reload(), 400);
             } else {

@@ -778,13 +778,42 @@ def scrape_web_for_tournaments(custom_query=None):
     return sync_all_scout_prospects(custom_query=custom_query)
 
 
+def purge_completed_past_prospects():
+    """
+    Scans all non-converted ScannedTournament records and automatically deletes any
+    prospect that has already passed/completed (e.g. end_date < today or qualification phase started/ended in past).
+    """
+    today = datetime.date.today()
+    deleted_cnt = 0
+    
+    prospects = list(ScannedTournament.objects.exclude(status='CONVERTED'))
+    for p in prospects:
+        is_past = False
+        if p.end_date and p.end_date < today:
+            is_past = True
+        elif p.start_date and p.start_date < today and ('qualification' in p.name.lower() or 'qualifying' in p.name.lower()):
+            is_past = True
+        
+        audit = (p.payload or {}).get('scouting_audit', {})
+        if audit.get('is_completed') or audit.get('tournament_status') in ['COMPLETED', 'PASSED', 'CONCLUDED']:
+            is_past = True
+
+        if is_past:
+            logger.info(f"Purging past/completed prospect '{p.name}' (#{p.id})")
+            p.delete()
+            deleted_cnt += 1
+            
+    return deleted_cnt
+
+
 def sync_all_scout_prospects(custom_query=None):
     """
     Triggers AllSportDB API (v3), Wikipedia Annual Sports Event Crawler, and
     Major Continental Football Tournaments & Qualifiers Crawler.
     Applies multi-step H2H team sport and format filtering, evaluates Grade A/B/C ratings,
     and ingests unique prospects into ScannedTournament for Engine Admin.
-    After ingestion, automatically merges duplicate prospects sharing the exact same Wikipedia page.
+    After ingestion, automatically merges duplicate prospects sharing the exact same Wikipedia page
+    and purges past/completed prospects.
     Returns (created_count, updated_count, list_of_prospects).
     """
     # 1. Authoritative AllSportDB Ingestion
@@ -809,6 +838,11 @@ def sync_all_scout_prospects(custom_query=None):
     merged_cnt, _ = merge_duplicate_scanned_tournaments_by_wikipedia()
     if merged_cnt > 0:
         logger.info(f"Merged {merged_cnt} duplicate prospects sharing the same Wikipedia page.")
+
+    # 5. Automatic Purge of Past / Completed / Passed Prospects
+    purged_cnt = purge_completed_past_prospects()
+    if purged_cnt > 0:
+        logger.info(f"Purged {purged_cnt} past/completed prospects from scout database.")
 
     # Re-fetch active non-archived prospects
     all_prospects = list(ScannedTournament.objects.exclude(status='ARCHIVED'))

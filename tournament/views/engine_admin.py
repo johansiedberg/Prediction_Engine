@@ -1505,6 +1505,8 @@ def scout_deep_scan_one_view(request, prospect_id):
             OfficialRegulationsVerifier(),
         )
         if not result['ok']:
+            if any(k in result['error'] for k in ['avslutats', 'avvisades', 'passerats', 'mindre än 30 dagar']):
+                return JsonResponse({'status': 'deleted', 'message': result['error']}, status=200)
             return JsonResponse({'status': 'error', 'message': result['error']}, status=400)
 
         prospect.save()
