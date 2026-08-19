@@ -620,10 +620,168 @@ def merge_duplicate_scanned_tournaments_by_wikipedia():
     return merged_count, retained_prospects
 
 
-def scrape_web_for_tournaments(custom_query=None):
+MAJOR_FOOTBALL_COMPETITIONS_TARGETS = [
+    # Global / FIFA
+    '2026 FIFA World Cup',
+    '2026 FIFA World Cup qualification',
+    '2030 FIFA World Cup',
+    '2027 FIFA Women\'s World Cup',
+    # UEFA (Europe)
+    'UEFA Euro 2028',
+    'UEFA Euro 2028 qualifying',
+    'UEFA Euro 2032',
+    'UEFA Women\'s Euro 2025',
+    'UEFA Women\'s Euro 2029',
+    '2026–27 UEFA Nations League',
+    '2028–29 UEFA Nations League',
+    # CONMEBOL (South America)
+    '2028 Copa América',
+    '2026 FIFA World Cup qualification (CONMEBOL)',
+    # CAF (Africa)
+    '2026 African Nations Championship',
+    '2027 Africa Cup of Nations',
+    '2026 FIFA World Cup qualification (CAF)',
+    # AFC (Asia)
+    '2027 AFC Asian Cup',
+    '2026 FIFA World Cup qualification (AFC)',
+    # CONCACAF (North & Central America)
+    '2025 CONCACAF Gold Cup',
+    '2027 CONCACAF Gold Cup',
+    '2026–27 CONCACAF Nations League',
+    '2026 FIFA World Cup qualification (CONCACAF)',
+    # OFC (Oceania)
+    '2028 OFC Men\'s Nations Cup',
+    '2026 FIFA World Cup qualification (OFC)',
+]
+
+
+def fetch_and_ingest_major_football_tournaments(sync_scout=True):
     """
-    Triggers both AllSportDB API (v3) and Wikipedia Annual Sports Event Crawler (e.g. 2026 in sports),
-    applies multi-step H2H team sport and format filtering, evaluates Grade A/B/C ratings,
+    Ingests major global & continental football competitions (and their qualifiers) across all major continental federations:
+    UEFA, CONMEBOL, CAF, AFC, CONCACAF, OFC, and FIFA.
+    """
+    created_cnt = 0
+    updated_cnt = 0
+    prospects_list = []
+
+    wiki_scout = WikipediaScout()
+    headers = {'User-Agent': 'PredictionEngineScout/3.0 (admin@predictionengine.org)'}
+
+    for target in MAJOR_FOOTBALL_COMPETITIONS_TARGETS:
+        try:
+            res = requests.get('https://en.wikipedia.org/w/api.php', headers=headers, params={
+                'action': 'query', 'list': 'search', 'srsearch': target, 'format': 'json', 'srlimit': 1
+            }, timeout=10)
+            if res.status_code != 200:
+                continue
+            results = res.json().get('query', {}).get('search', [])
+            if not results:
+                continue
+            title = results[0].get('title')
+            if not title:
+                continue
+
+            master_code = title.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
+
+            existing = ScannedTournament.objects.filter(
+                models.Q(master_event_code=master_code) |
+                models.Q(name__iexact=title)
+            ).first()
+
+            if existing:
+                continue
+
+            wiki_page = title.replace(' ', '_')
+            wiki_url = f"https://en.wikipedia.org/wiki/{wiki_page}"
+
+            infobox = wiki_scout.audit_infobox_only(wiki_page)
+
+            start_date_str = ""
+            end_date_str = ""
+            host_country = (infobox.get('host_country') if infobox else "") or ""
+            logo_url = (infobox.get('logo_url') if infobox else "") or ""
+
+            start_date_val = None
+            if infobox and infobox.get('start_date'):
+                from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                iso_start = LLMWikipediaScout._parse_date_string(infobox['start_date'])
+                if not iso_start:
+                    iso_start = str(infobox['start_date'])[:10]
+                try:
+                    start_date_val = datetime.date.fromisoformat(iso_start)
+                    start_date_str = str(start_date_val)
+                except Exception:
+                    pass
+
+            teams_count = (infobox.get('teams_count') if infobox and infobox.get('teams_count') else 16)
+            today = datetime.date.today()
+            next_rescan = today + datetime.timedelta(days=7)
+
+            scout_payload = {
+                "scouting_audit": {
+                    "scan_timestamp": datetime.datetime.now().isoformat(),
+                    "scouting_stage": "SHALLOW",
+                    "completeness_grade": "GRADE_C",
+                    "grade_reason": "Grad C (Inväntar djupscanning): Hittad via Wikipedia kontinental fotbollsscanning.",
+                    "official_source_url": "",
+                    "wikipedia_url": wiki_url,
+                    "wikipedia_title": title,
+                    "is_compatible_sport": True,
+                    "draw_date": "",
+                    "next_rescan_date": next_rescan.isoformat(),
+                    "advancement_rules": "",
+                    "official_site_audit": None,
+                    "wikipedia_audit": None,
+                },
+                "master_event": {
+                    "name": title,
+                    "code": master_code,
+                    "sport": "Football",
+                    "host_country": host_country,
+                    "start_date": start_date_str,
+                    "end_date": end_date_str,
+                    "official_source_url": "",
+                },
+                "tournament_config": {
+                    "total_teams": teams_count,
+                    "knockout_stages": ["Quarterfinals", "Semifinals", "Final"]
+                },
+                "groups": [],
+                "fixtures_sample": [],
+                "logo_url": logo_url,
+            }
+
+            scanned_obj = ScannedTournament.objects.create(
+                name=title,
+                master_event_code=master_code,
+                sport="Football",
+                organizer="FIFA/Continental",
+                host_country=host_country,
+                start_date=start_date_val,
+                logo_url=logo_url,
+                completeness_grade="GRADE_C",
+                grade_reason="Grad C (Inväntar djupscanning): Importerad från kontinental fotbollsscanning.",
+                status="NEW",
+                payload=scout_payload
+            )
+
+            created_cnt += 1
+            prospects_list.append(scanned_obj)
+        except Exception as exc:
+            logger.warning("Error scanning major football competition target '%s': %s", target, exc)
+
+    return created_cnt, updated_cnt, prospects_list
+
+
+def scrape_web_for_tournaments(custom_query=None):
+    return sync_all_scout_prospects(custom_query=custom_query)
+
+
+def sync_all_scout_prospects(custom_query=None):
+    """
+    Triggers AllSportDB API (v3), Wikipedia Annual Sports Event Crawler, and
+    Major Continental Football Tournaments & Qualifiers Crawler.
+    Applies multi-step H2H team sport and format filtering, evaluates Grade A/B/C ratings,
     and ingests unique prospects into ScannedTournament for Engine Admin.
     After ingestion, automatically merges duplicate prospects sharing the exact same Wikipedia page.
     Returns (created_count, updated_count, list_of_prospects).
@@ -641,15 +799,20 @@ def scrape_web_for_tournaments(custom_query=None):
         sync_scout=True
     )
 
-    # 3. Automatic Deduplication / Merge by Wikipedia Page
+    # 3. Major Continental Football Competitions & Qualifiers Ingestion
+    c3, u3, p3 = fetch_and_ingest_major_football_tournaments(
+        sync_scout=True
+    )
+
+    # 4. Automatic Deduplication / Merge by Wikipedia Page
     merged_cnt, _ = merge_duplicate_scanned_tournaments_by_wikipedia()
     if merged_cnt > 0:
         logger.info(f"Merged {merged_cnt} duplicate prospects sharing the same Wikipedia page.")
 
     # Re-fetch active non-archived prospects
     all_prospects = list(ScannedTournament.objects.exclude(status='ARCHIVED'))
-    total_created = c1 + c2
-    total_updated = u1 + u2
+    total_created = c1 + c2 + c3
+    total_updated = u1 + u2 + u3
 
     if custom_query and all_prospects:
         q_lower = custom_query.lower().strip()
