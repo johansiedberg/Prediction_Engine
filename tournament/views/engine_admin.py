@@ -336,7 +336,7 @@ def engine_admin_dashboard_view(request):
         sidebets_count = len(sidebets)
 
         allsport_emoji = payload.get('raw_allsportdb', {}).get('emoji')
-        icon = allsport_emoji or SPORT_ICONS.get(sport_clean, '🏆')
+        icon = allsport_emoji or sport_icon
 
         days_to_start = None
         if p.start_date:
