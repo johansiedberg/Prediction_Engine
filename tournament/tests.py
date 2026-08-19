@@ -908,6 +908,7 @@ class LLMWikipediaScoutTestCase(TestCase):
             'tournament_end_date': '',
             'start_date': '',
             'end_date': '',
+            'teams_count': 16,
             'draw_completed': False,
             'fixtures_completed': False,
         }
@@ -916,6 +917,36 @@ class LLMWikipediaScoutTestCase(TestCase):
         self.assertTrue(res['ok'])
         self.assertEqual(res['grade'], 'GRADE_C')
         self.assertTrue(ScannedTournament.objects.filter(id=prospect.id).exists())
+
+    @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
+    def test_deep_scan_rejects_empty_prospect_missing_dates_fixtures_teams(self, mock_audit):
+        """_run_deep_scan_on_prospect rejects and deletes prospect missing dates, fixtures, and teams."""
+        from tournament.models import ScannedTournament
+        from tournament.views.engine_admin import _run_deep_scan_on_prospect
+        from tournament.services.wikipedia_scout import WikipediaScout
+        from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+
+        prospect = ScannedTournament.objects.create(
+            name="Empty Cup 2027",
+            master_event_code="empty-cup-2027",
+            start_date=None,
+            payload={}
+        )
+
+        mock_audit.return_value = {
+            'page_title': 'Empty Cup 2027',
+            'tournament_start_date': '',
+            'start_date': '',
+            'teams_count': 0,
+            'groups_count': 0,
+            'draw_completed': False,
+            'fixtures_completed': False,
+        }
+
+        res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
+        self.assertFalse(res['ok'])
+        self.assertIn('saknar datum, spelschema och lag', res['error'])
+        self.assertFalse(ScannedTournament.objects.filter(id=prospect.id).exists())
 
     @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
     def test_deep_scan_grade_b_for_missing_end_date(self, mock_audit):
@@ -942,17 +973,18 @@ class LLMWikipediaScoutTestCase(TestCase):
             'tournament_end_date': '',
             'start_date': future_date,
             'end_date': '',
-            'draw_completed': True,
-            'groups_count': 4,
-            'fixtures_completed': True,
-            'fixtures_count': 12,
+            'draw_completed': False,
+            'draw_date': '6 December 2026',
+            'groups_count': 0,
+            'fixtures_completed': False,
+            'fixtures_count': 0,
         }
 
         res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
         self.assertTrue(res['ok'])
-        # Must be Grade B because end_date is TBD/missing despite draw_ok and fixtures_ok
+        # Must be Grade B because draw is pending (Väntar lottning)
         self.assertEqual(res['grade'], 'GRADE_B')
-        self.assertIn('Slutdatum ej bekräftat', prospect.grade_reason)
+        self.assertIn('Väntar lottning', prospect.grade_reason)
         self.assertTrue(ScannedTournament.objects.filter(id=prospect.id).exists())
 
     @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')

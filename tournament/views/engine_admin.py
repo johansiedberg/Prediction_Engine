@@ -1303,28 +1303,41 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     )
     official_audit = off_verifier.verify_official_regulations(official_website, prospect.name)
 
-    # Stage 4 – Multi-Level Grade A/B/C Classification
+    # Stage 4 – Multi-Level Grade Classification: Redo (A), Väntar lottning (B), Ej redo (C), Rejected (Delete)
     has_full_dates = bool(start_date_obj and end_date_obj)
     has_start_date = bool(start_date_obj)
     draw_ok        = bool(audit.get('draw_completed') and audit.get('groups_count', 0) >= 2)
     fixtures_ok    = bool(audit.get('fixtures_completed') and
                           (audit.get('fixtures_count', 0) >= 4 or audit.get('scheduled_matchdays', 0) >= 4))
 
+    # Rejection Rule 4: Completely empty unviable prospect (Missing dates AND fixtures AND teams)
+    if not has_start_date and not draw_ok and not fixtures_ok and audit.get('teams_count', 0) == 0:
+        prospect_name = prospect.name
+        prospect.delete()
+        return {
+            'ok': False,
+            'error': f"Djupscanning misslyckades: Turneringen '{prospect_name}' saknar datum, spelschema och lag. Turneringen avvisades.",
+        }
+
+    # Grade A: Redo (100% Ready) - Green
     if has_full_dates and draw_ok and fixtures_ok:
         final_grade  = 'GRADE_A'
-        final_reason = (f"Grad A (100% Redo): Djupskannad från Wikipedia: '{page_title}' "
+        final_reason = (f"Grad A (Redo): Djupskannad från Wikipedia: '{page_title}' "
                         f"({start_date_obj} – {end_date_obj}, {audit.get('fixtures_count', 0)} matcher, "
                         f"{audit.get('teams_count', 0)} lag i {audit.get('groups_count', 0)} grupper verifierade).")
-    elif has_start_date and (draw_ok or fixtures_ok or has_full_dates):
+
+    # Grade B: Väntar lottning (Draw pending, with LLM draw date) - Blue
+    elif has_start_date and not draw_ok:
         final_grade  = 'GRADE_B'
-        end_str      = str(end_date_obj) if end_date_obj else 'Slutdatum ej bekräftat'
-        final_reason = (f"Grad B (Nästan redo): Djupskannad från Wikipedia: '{page_title}' "
-                        f"(Startdatum: {start_date_obj}, {end_str}, {audit.get('teams_count', 0)} lag"
-                        f"{', spelschema ej slutfört' if not fixtures_ok else ', lottning ej genomförd'}).")
+        draw_date_str = audit.get('draw_date') or ''
+        draw_info = f" (Lottningsdatum: {draw_date_str})" if draw_date_str else " (Lottningsdatum ej angivet)"
+        final_reason = (f"Grad B (Väntar lottning): Turneringen startar {start_date_obj}, men lag/grupper är inte lottade ännu{draw_info}.")
+
+    # Grade C: Ej redo (Missing Fixtures/Dates or structure) - Yellow/Amber
     else:
         final_grade  = 'GRADE_C'
         date_info    = f"Startdatum: {start_date_obj}" if start_date_obj else "Startdatum ej bekräftat ännu"
-        final_reason = f"Grad C (Bevakningslista): Djupskannad från Wikipedia ('{page_title}'). {date_info}. Lottning och spelschema ej slutförda."
+        final_reason = f"Grad C (Ej redo): Djupskannad från Wikipedia ('{page_title}'). {date_info}. Saknar spelschema, datum eller turneringsstruktur."
 
     # Rescan date calculation
     next_rescan_date = today_date + datetime.timedelta(days=7)
