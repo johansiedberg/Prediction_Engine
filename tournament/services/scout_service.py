@@ -451,9 +451,11 @@ def fetch_and_ingest_wikipedia_year_events(years=None, sync_scout=True):
                 except Exception:
                     pass
 
-            # Skip past/ongoing events or events without a confirmed start date
+            # Skip only confirmed past/ongoing events during Webscan.
+            # Allow missing shallow dates so Webscan retrieves as many candidates as possible;
+            # Deepscan will specify exact dates and reject invalid ones.
             today = datetime.date.today()
-            if not start_date_val or start_date_val <= today:
+            if start_date_val and start_date_val <= today:
                 continue
 
             sport_name = (infobox.get('sport') if infobox and infobox.get('sport') else "") or "Sports"
