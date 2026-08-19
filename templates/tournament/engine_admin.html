@@ -698,40 +698,11 @@
                         <p class="text-secondary mb-0 small text-end">Automatiskt scannade och granskade turneringar. Verifiera lottning, spelschema och konvertera godkända turneringar med ett klick.</p>
                     </div>
 
-                    <!-- Single Status Row: Status filters | # Tournaments filtered | Header action buttons -->
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 py-1">
-                        <!-- Left Column: Status Filters -->
-                        <div class="d-flex flex-wrap align-items-center gap-2">
-                            <span class="text-secondary small me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Status:</span>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);">
-                                Alla (<span id="count-scout-all">{{ scout_counts.total }}</span>)
-                            </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="NEW" onclick="filterScoutProspects('NEW', this)" style="background:#1e293b;border:1px solid #475569;color:#cbd5e1;">
-                                Nya (<span id="count-scout-new">{{ scout_counts.new }}</span>)
-                            </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="READY" onclick="filterScoutProspects('READY', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
-                                <i class="fa-solid fa-shield-check me-1 text-success"></i>Redo (<span id="count-scout-ready">{{ scout_counts.ready }}</span>)
-                            </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="WATCHLIST" onclick="filterScoutProspects('WATCHLIST', this)" style="background:#082F49;border:1px solid #0284C7;color:#BAE6FD;">
-                                <i class="fa-solid fa-eye me-1 text-info"></i>Bevakade (<span id="count-scout-watchlist">{{ scout_counts.watchlist }}</span>)
-                            </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="NOT_READY" onclick="filterScoutProspects('NOT_READY', this)" style="background:#451A03;border:1px solid #D97706;color:#FEF3C7;">
-                                <i class="fa-solid fa-triangle-exclamation me-1 text-warning"></i>Ej redo (<span id="count-scout-not-ready">{{ scout_counts.not_ready }}</span>)
-                            </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="ARCHIVED" onclick="filterScoutProspects('ARCHIVED', this)" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;">
-                                <i class="fa-solid fa-ban me-1 text-danger"></i>Ignorerade (<span id="count-scout-archived">{{ scout_counts.archived }}</span>)
-                            </button>
-                            <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="CONVERTED" onclick="filterScoutProspects('CONVERTED', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
-                                <i class="fa-solid fa-circle-check me-1 text-success"></i>Aktiverade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
-                            </button>
-                        </div>
-
-                        <!-- Center Column: # Tournaments Filtered (Pure text, no frame) -->
+                    <!-- Action Bar: Counter & Action Buttons -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pb-2.5 mb-2.5 border-bottom border-secondary border-opacity-15">
                         <div class="text-secondary small font-monospace">
                             <span id="scoutVisibleCount" class="fw-bold text-white fs-6">{{ scout_counts.total }}</span> <span class="text-secondary">prospekt visas</span>
                         </div>
-
-                        <!-- Right Column: Header Action Buttons (affecting current filter only) -->
                         <div class="d-flex flex-wrap align-items-center gap-2">
                             <button class="btn btn-info btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
                                 Scanna webben nu
@@ -764,17 +735,64 @@
                         </div>
                     </div>
 
-                    <!-- Row 2: Sport Filter Row (Under Status Filter Row, No Separating Line) -->
-                    <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
-                        <span class="text-secondary small me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Sport:</span>
-                        <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-sport-btn active" data-sport="all" onclick="filterScoutSport('all', this)" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);">
-                            Alla (<span id="count-sport-all">{{ scout_counts.total }}</span>)
-                        </button>
-                        {% for sp in sport_filters %}
-                        <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-sport-btn" data-sport="{{ sp.key }}" onclick="filterScoutSport('{{ sp.key }}', this)" style="background:#0F172A;border:1px solid #334155;color:#E2E8F0;">
-                            <span>{{ sp.icon }}</span> {{ sp.name }} (<span id="count-sport-{{ sp.key }}">{{ sp.count }}</span>)
-                        </button>
-                        {% endfor %}
+                    <!-- Aligned Filter Grid: Status Row & Sport Row -->
+                    <div class="d-flex flex-column gap-2">
+                        <!-- Status Filter Row -->
+                        <div class="d-flex align-items-center" style="gap: 8px;">
+                            <!-- Column 1: Row Label -->
+                            <span class="text-secondary small font-monospace text-uppercase fw-semibold text-nowrap" style="font-size:0.75rem; width: 55px; flex-shrink: 0;">Status:</span>
+                            
+                            <!-- Column 2: Alla button -->
+                            <div style="flex-shrink: 0;">
+                                <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn active" data-filter="all" onclick="filterScoutProspects('all', this)" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);">
+                                    Alla (<span id="count-scout-all">{{ scout_counts.total }}</span>)
+                                </button>
+                            </div>
+
+                            <!-- Column 3: Specific Status Filter Buttons (Wrapping Flex) -->
+                            <div class="d-flex flex-wrap align-items-center gap-2" style="flex-grow: 1;">
+                                <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="NEW" onclick="filterScoutProspects('NEW', this)" style="background:#1e293b;border:1px solid #475569;color:#cbd5e1;">
+                                    Nya (<span id="count-scout-new">{{ scout_counts.new }}</span>)
+                                </button>
+                                <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="READY" onclick="filterScoutProspects('READY', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
+                                    <i class="fa-solid fa-shield-check me-1 text-success"></i>Redo (<span id="count-scout-ready">{{ scout_counts.ready }}</span>)
+                                </button>
+                                <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="WATCHLIST" onclick="filterScoutProspects('WATCHLIST', this)" style="background:#082F49;border:1px solid #0284C7;color:#BAE6FD;">
+                                    <i class="fa-solid fa-eye me-1 text-info"></i>Bevakade (<span id="count-scout-watchlist">{{ scout_counts.watchlist }}</span>)
+                                </button>
+                                <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="NOT_READY" onclick="filterScoutProspects('NOT_READY', this)" style="background:#451A03;border:1px solid #D97706;color:#FEF3C7;">
+                                    <i class="fa-solid fa-triangle-exclamation me-1 text-warning"></i>Ej redo (<span id="count-scout-not-ready">{{ scout_counts.not_ready }}</span>)
+                                </button>
+                                <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="ARCHIVED" onclick="filterScoutProspects('ARCHIVED', this)" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;">
+                                    <i class="fa-solid fa-ban me-1 text-danger"></i>Ignorerade (<span id="count-scout-archived">{{ scout_counts.archived }}</span>)
+                                </button>
+                                <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="CONVERTED" onclick="filterScoutProspects('CONVERTED', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
+                                    <i class="fa-solid fa-circle-check me-1 text-success"></i>Aktiverade (<span id="count-scout-converted">{{ scout_counts.converted }}</span>)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sport Filter Row -->
+                        <div class="d-flex align-items-start" style="gap: 8px;">
+                            <!-- Column 1: Row Label -->
+                            <span class="text-secondary small font-monospace text-uppercase fw-semibold text-nowrap pt-1" style="font-size:0.75rem; width: 55px; flex-shrink: 0;">Sport:</span>
+                            
+                            <!-- Column 2: Alla button -->
+                            <div style="flex-shrink: 0;">
+                                <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-sport-btn active" data-sport="all" onclick="filterScoutSport('all', this)" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);">
+                                    Alla (<span id="count-sport-all">{{ scout_counts.total }}</span>)
+                                </button>
+                            </div>
+
+                            <!-- Column 3: Specific Sport Filter Buttons (Wrapping Flex) -->
+                            <div class="d-flex flex-wrap align-items-center gap-2" style="flex-grow: 1;">
+                                {% for sp in sport_filters %}
+                                <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-sport-btn" data-sport="{{ sp.key }}" onclick="filterScoutSport('{{ sp.key }}', this)" style="background:#0F172A;border:1px solid #334155;color:#E2E8F0;">
+                                    <span>{{ sp.icon }}</span> {{ sp.name }} (<span id="count-sport-{{ sp.key }}">{{ sp.count }}</span>)
+                                </button>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
