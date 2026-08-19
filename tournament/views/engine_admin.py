@@ -288,14 +288,14 @@ def engine_admin_dashboard_view(request):
         # Compute Unified Status (combining Status + Grade)
         if p.status == 'CONVERTED':
             unified_status = 'CONVERTED'
-        elif p.status == 'WATCHLIST':
+        elif p.status == 'WATCHLIST' or p.completeness_grade == 'GRADE_B':
             unified_status = 'WATCHLIST'
-        elif p.status == 'ARCHIVED':
+        elif p.status == 'ARCHIVED' or p.completeness_grade == 'GRADE_D':
             unified_status = 'ARCHIVED'
-        elif scouting_stage == 'SHALLOW':
-            unified_status = 'NEW'
-        elif p.completeness_grade == 'GRADE_A':
+        elif p.status == 'READY' or p.completeness_grade == 'GRADE_A':
             unified_status = 'READY'
+        elif scouting_stage == 'SHALLOW' and p.status == 'NEW':
+            unified_status = 'NEW'
         else:
             unified_status = 'NOT_READY'
 
@@ -1505,6 +1505,14 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     prospect.payload            = payload
     prospect.completeness_grade = final_grade
     prospect.grade_reason       = final_reason
+
+    if final_grade == 'GRADE_A':
+        prospect.status = 'READY'
+    elif final_grade == 'GRADE_B':
+        prospect.status = 'WATCHLIST'
+    else:
+        prospect.status = 'NOT_READY'
+
     if official_rules_str:
         prospect.official_rules = official_rules_str
     
