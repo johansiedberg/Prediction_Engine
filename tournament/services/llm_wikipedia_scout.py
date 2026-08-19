@@ -40,6 +40,7 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no prose)
   "tournament_start_date": "<ISO date YYYY-MM-DD or readable start date of main tournament e.g. 11 June 2026, 15 May 2026, 19 August 2026, 3 December 2026, or empty string>",
   "tournament_end_date": "<ISO date YYYY-MM-DD or readable end date of main tournament e.g. 19 July 2026, 29 August 2026, 20 December 2026, or empty string>",
   "date_reasoning": "<brief explanation of why these start/end dates were identified as the main final tournament dates vs qualification or draw dates>",
+  "sport": "<standard AllSportDB sport name e.g. Football, Handball, Floorball, Ice Hockey, Basketball, Volleyball, Bandy, Curling, Rugby, Cricket, Baseball, Motorsport, Water Polo, American Football, Athletics, Tennis>",
   "teams_count": <integer>,
   "host_country": "<string>",
   "groups": [

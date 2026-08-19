@@ -220,34 +220,64 @@ def engine_admin_dashboard_view(request):
         'archived': 0,
         'converted': 0,
     }
-    sport_counts = {
-        'all': 0,
-        'football': 0,
-        'handball': 0,
-        'floorball': 0,
-        'ice_hockey': 0,
-        'basketball': 0,
-        'volleyball': 0,
-        'other': 0,
-    }
+    ALLSPORTDB_SPORTS_MAP = [
+        ('American Football', '🏈', ['american football', 'flag football', 'nfl', 'ifaf']),
+        ('Archery', '🎯', ['archery']),
+        ('Artistic Gymnastics', '🤸', ['artistic gymnastics']),
+        ('Artistic Swimming', '🏊', ['artistic swimming']),
+        ('Athletics', '🏃', ['athletics', 'track and field', 'friidrott']),
+        ('Badminton', '🏸', ['badminton']),
+        ('Bandy', '🏒', ['bandy']),
+        ('Baseball', '⚾', ['baseball', 'baseball5']),
+        ('Basketball', '🏀', ['basketball', 'basket', 'fiba', 'nba']),
+        ('Beach Soccer', '⚽', ['beach soccer']),
+        ('Beach Volleyball', '🏐', ['beach volleyball']),
+        ('Biathlon', '⛷⚫', ['biathlon']),
+        ('Boxing', '🥊', ['boxing']),
+        ('Canoeing', '🛶', ['canoeing', 'kayak']),
+        ('Chess', '♟', ['chess']),
+        ('Cricket', '🏏', ['cricket']),
+        ('Cross-Country Skiing', '⛷', ['cross-country skiing', 'längdskidor']),
+        ('Curling', '🥌', ['curling']),
+        ('Cycling', '🚴', ['cycling', 'cykel']),
+        ('Diving', '🏊', ['diving']),
+        ('Field Hockey', '🏑', ['field hockey', 'fih hockey']),
+        ('Figure Skating', '⛸', ['figure skating', 'konståkning']),
+        ('Floorball', '🏑', ['floorball', 'innebandy']),
+        ('Football', '⚽', ['football', 'fotboll', 'soccer', 'fifa', 'uefa', 'copa', 'gold cup', 'nations league', 'afcon', 'asian cup']),
+        ('Futsal', '⚽', ['futsal']),
+        ('Golf', '⛳', ['golf', 'pga']),
+        ('Handball', '🤾', ['handball', 'handboll', 'ihf', 'ehf']),
+        ('Ice Hockey', '🏒', ['ice hockey', 'ishockey', 'nhl', 'iihf']),
+        ('Judo', '🥋', ['judo']),
+        ('Karate', '🥋', ['karate']),
+        ('Lacrosse', '🥍', ['lacrosse']),
+        ('Motor Sports', '🏎', ['motor sports', 'formula 1', 'f1', 'motogp']),
+        ('Rowing', '🚣', ['rowing', 'rodd']),
+        ('Rugby', '🏉', ['rugby']),
+        ('Sailing', '⛵', ['sailing', 'segling']),
+        ('Ski Jumping', '🎿', ['ski jumping', 'backhoppning']),
+        ('Snowboarding', '🏂', ['snowboarding']),
+        ('Softball', '🥎', ['softball']),
+        ('Table Tennis', '🏓', ['table tennis', 'ping pong', 'bordtennis']),
+        ('Taekwondo', '🥋', ['taekwondo']),
+        ('Tennis', '🎾', ['tennis', 'wimbledon', 'atp', 'wta']),
+        ('Triathlon', '🏊🚴🏃', ['triathlon']),
+        ('Volleyball', '🏐', ['volleyball', 'volleyboll', 'fivb', 'avc']),
+        ('Water Polo', '🤽', ['water polo', 'vattenpolo']),
+        ('Weightlifting', '🏋', ['weightlifting', 'tyngdlyftning']),
+        ('Wrestling', '🤼', ['wrestling', 'brottning']),
+    ]
 
-    SPORT_ICONS = {
-        'football': '⚽',
-        'soccer': '⚽',
-        'ice hockey': '🏒',
-        'ishockey': '🏒',
-        'hockey': '🏒',
-        'floorball': '🏑',
-        'innebandy': '🏑',
-        'handball': '🤾',
-        'handboll': '🤾',
-        'rugby': '🏉',
-        'basketball': '🏀',
-        'basket': '🏀',
-        'water polo': '🤽',
-        'volleyball': '🏐',
-    }
+    def infer_sport(title, current_sport=None):
+        text = f"{title or ''} {current_sport or ''}".lower()
+        for sport_name, emoji, keywords in ALLSPORTDB_SPORTS_MAP:
+            for kw in keywords:
+                if kw in text:
+                    return sport_name, emoji
+        return (current_sport.title() if current_sport and current_sport.lower() != 'sports' else 'Other'), '🏆'
 
+    sport_counts_raw = {}
     today = timezone.localdate()
 
     for p in scanned_list:
@@ -283,31 +313,17 @@ def engine_admin_dashboard_view(request):
         elif unified_status == 'NOT_READY':
             scout_counts['not_ready'] += 1
 
-        sport_clean = (p.sport or '').lower().strip()
-        name_clean = p.name.lower().strip()
+        sport_name, sport_icon = infer_sport(p.name, p.sport)
+        sport_key = sport_name.lower().replace(' ', '_')
 
-        sport_counts['all'] += 1
-        if any(k in sport_clean or k in name_clean for k in ['football', 'fotboll', 'soccer', 'fifa', 'euro 2', 'copa amé', 'gold cup', 'nations league', 'afcon', 'asian cup']):
-            sport_key = 'football'
-            sport_counts['football'] += 1
-        elif 'handball' in sport_clean or 'handboll' in sport_clean or 'handball' in name_clean:
-            sport_key = 'handball'
-            sport_counts['handball'] += 1
-        elif 'floorball' in sport_clean or 'innebandy' in sport_clean or 'floorball' in name_clean:
-            sport_key = 'floorball'
-            sport_counts['floorball'] += 1
-        elif 'hockey' in sport_clean or 'ishockey' in sport_clean or 'ice hockey' in name_clean:
-            sport_key = 'ice_hockey'
-            sport_counts['ice_hockey'] += 1
-        elif 'basketball' in sport_clean or 'basket' in sport_clean or 'fiba' in name_clean:
-            sport_key = 'basketball'
-            sport_counts['basketball'] += 1
-        elif 'volleyball' in sport_clean or 'volleyboll' in sport_clean or 'volleyball' in name_clean:
-            sport_key = 'volleyball'
-            sport_counts['volleyball'] += 1
-        else:
-            sport_key = 'other'
-            sport_counts['other'] += 1
+        if sport_key not in sport_counts_raw:
+            sport_counts_raw[sport_key] = {
+                'name': sport_name,
+                'key': sport_key,
+                'icon': sport_icon,
+                'count': 0
+            }
+        sport_counts_raw[sport_key]['count'] += 1
 
         groups = payload.get('groups', [])
         fixtures = payload.get('fixtures_sample', [])
@@ -439,6 +455,8 @@ def engine_admin_dashboard_view(request):
             'raw_json': json.dumps(payload, ensure_ascii=False, indent=2),
         })
 
+    sport_filters = sorted(sport_counts_raw.values(), key=lambda x: x['count'], reverse=True)
+
     context = {
         'total_leagues': total_leagues,
         'total_users': total_users,
@@ -452,6 +470,7 @@ def engine_admin_dashboard_view(request):
         'tournaments_data': tournaments_data,
         'scanned_tournaments': scanned_data,
         'scout_counts': scout_counts,
+        'sport_filters': sport_filters,
     }
     return render(request, 'tournament/engine_admin.html', context)
 
