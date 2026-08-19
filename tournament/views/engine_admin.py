@@ -520,6 +520,16 @@ EURO_2028_EUROPEAN_TEAMS = [
     'Liechtenstein', 'Moldavien', 'Belarus', 'Litauen', 'Estland', 'Israel'
 ]
 
+WORLD_CUP_2026_NATIONAL_TEAMS = [
+    'USA', 'Mexiko', 'Kanada', 'Brasilien', 'Argentina', 'Frankrike',
+    'England', 'Spanien', 'Tyskland', 'Belgien', 'Nederländerna', 'Portugal',
+    'Italien', 'Kroatien', 'Uruguay', 'Japan', 'Sydkorea', 'Marocko',
+    'Senegal', 'Australien', 'Colombia', 'Ecuador', 'Chile', 'Peru',
+    'Nigeria', 'Elfenbenskusten', 'Ghana', 'Algeriet', 'Egypten', 'Kamerun',
+    'Iran', 'Saudiarabien', 'Qatar', 'Irak', 'Uzbekistan', 'Förenade Arabemiraten',
+    'Costa Rica', 'Jamaica', 'Panama', 'Honduras', 'Nya Zeeland', 'Tunisien'
+]
+
 
 @superuser_or_staff_required
 @require_POST
@@ -582,44 +592,23 @@ def engine_admin_simulate_tournament(request, tournament_id):
 @require_POST
 def engine_admin_reset_simulation(request, tournament_id):
     """
-    Full Reset:
-    - Resets all teams back to their official pre-draw group placeholders (e.g. A1, A2, B1, G5, etc.).
-    - Updates group match home/away team names back to the corresponding placeholders.
-    - Wipes all simulated match scores and finishes.
+    Resets simulated results and advancing teams:
+    - If tournament was converted from a ScannedTournament prospect, re-runs convert_scanned_to_live_tournament
+      to restore the exact pre-simulation team names, groups, fixtures, and regulations.
+    - Otherwise, wipes all simulated match scores/finishes and resets knockout stage match team names back
+      to stage placeholders while preserving all group team names intact.
     """
     tournament = get_object_or_404(Tournament, id=tournament_id)
-    
-    # 1. Reset Teams to Group Placeholders (A1, A2, B1, B2...)
-    groups = tournament.tournament_groups.all().order_by('order', 'id')
-    team_mapping = {}
-    total_teams_reset = 0
+    scanned = ScannedTournament.objects.filter(converted_tournament=tournament).first()
 
-    for g_idx, group in enumerate(groups):
-        parts = group.name.strip().split()
-        if parts and len(parts[-1]) == 1 and parts[-1].isalpha():
-            letter = parts[-1].upper()
-        else:
-            letter = chr(ord('A') + g_idx)
-        
-        group_teams = list(group.teams.all().order_by('id'))
-        for t_idx, team in enumerate(group_teams):
-            old_name = team.name
-            placeholder_name = f"{letter}{t_idx + 1}"
-            team_mapping[old_name] = placeholder_name
-            
-            team.name = placeholder_name
-            team.code = ''
-            team.save()
-            total_teams_reset += 1
+    if scanned:
+        from tournament.services.scout_service import convert_scanned_to_live_tournament
+        restored_tour, err = convert_scanned_to_live_tournament(scanned.id, request.user, is_active=tournament.is_active)
+        if restored_tour:
+            tournament = restored_tour
 
-    # 2. Reset Matches: restore placeholder names in group fixtures & wipe scores
     reset_matches_count = 0
     for match in tournament.matches.all():
-        if match.home_team in team_mapping:
-            match.home_team = team_mapping[match.home_team]
-        if match.away_team in team_mapping:
-            match.away_team = team_mapping[match.away_team]
-        
         match.home_goals = None
         match.away_goals = None
         match.is_finished = False
@@ -631,9 +620,8 @@ def engine_admin_reset_simulation(request, tournament_id):
 
     return JsonResponse({
         'status': 'success',
-        'message': f'Nollställde simulerade testresultat för {reset_matches_count} matcher och återställde {total_teams_reset} lag till korrekta placeholders i "{tournament.name}".',
+        'message': f'Nollställde alla simulerade resultat och återställde turneringen "{tournament.name}" till ursprungligt skick för uppstart!',
         'reset_count': reset_matches_count,
-        'teams_reset_count': total_teams_reset,
     })
 
 
