@@ -763,6 +763,35 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Row 2: Sport Filter Row (Under Status Filter Row) -->
+                    <div class="d-flex flex-wrap align-items-center gap-2 pt-2.5 mt-2 border-top border-secondary border-opacity-15">
+                        <span class="text-secondary small me-1 font-monospace text-uppercase fw-semibold" style="font-size:0.75rem;">Sport:</span>
+                        <button class="btn btn-sm rounded-pill fw-bold px-3 scout-sport-btn active" data-sport="all" onclick="filterScoutSport('all', this)" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border:1px solid rgba(255,255,255,0.3);">
+                            Alla sporter (<span id="count-sport-all">{{ sport_counts.all }}</span>)
+                        </button>
+                        <button class="btn btn-sm rounded-pill fw-bold px-3 scout-sport-btn" data-sport="football" onclick="filterScoutSport('football', this)" style="background:#0F172A;border:1px solid #38BDF8;color:#38BDF8;">
+                            ⚽ Fotboll (<span id="count-sport-football">{{ sport_counts.football }}</span>)
+                        </button>
+                        <button class="btn btn-sm rounded-pill fw-bold px-3 scout-sport-btn" data-sport="handball" onclick="filterScoutSport('handball', this)" style="background:#451A03;border:1px solid #D97706;color:#FEF3C7;">
+                            🤾 Handboll (<span id="count-sport-handball">{{ sport_counts.handball }}</span>)
+                        </button>
+                        <button class="btn btn-sm rounded-pill fw-bold px-3 scout-sport-btn" data-sport="floorball" onclick="filterScoutSport('floorball', this)" style="background:#0284C7;border:1px solid #38BDF8;color:#E0F2FE;">
+                            🏑 Innebandy (<span id="count-sport-floorball">{{ sport_counts.floorball }}</span>)
+                        </button>
+                        <button class="btn btn-sm rounded-pill fw-bold px-3 scout-sport-btn" data-sport="ice_hockey" onclick="filterScoutSport('ice_hockey', this)" style="background:#1E293B;border:1px solid #94A3B8;color:#F8FAFC;">
+                            🏒 Ishockey (<span id="count-sport-ice_hockey">{{ sport_counts.ice_hockey }}</span>)
+                        </button>
+                        <button class="btn btn-sm rounded-pill fw-bold px-3 scout-sport-btn" data-sport="basketball" onclick="filterScoutSport('basketball', this)" style="background:#431407;border:1px solid #EA580C;color:#FFEDD5;">
+                            🏀 Basket (<span id="count-sport-basketball">{{ sport_counts.basketball }}</span>)
+                        </button>
+                        <button class="btn btn-sm rounded-pill fw-bold px-3 scout-sport-btn" data-sport="volleyball" onclick="filterScoutSport('volleyball', this)" style="background:#312E81;border:1px solid #6366F1;color:#E0E7FF;">
+                            🏐 Volleyboll (<span id="count-sport-volleyball">{{ sport_counts.volleyball }}</span>)
+                        </button>
+                        <button class="btn btn-sm rounded-pill fw-bold px-3 scout-sport-btn" data-sport="other" onclick="filterScoutSport('other', this)" style="background:#1E293B;border:1px solid #475569;color:#CBD5E1;">
+                            🏆 Övrigt (<span id="count-sport-other">{{ sport_counts.other }}</span>)
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -796,6 +825,7 @@
                          data-unified-status="{{ item.unified_status }}"
                          data-grade="{{ item.prospect.completeness_grade }}"
                          data-status="{{ item.prospect.status }}"
+                         data-sport="{{ item.sport_key }}"
                          data-stage="{{ item.scouting_stage }}"
                          id="prospect-card-{{ item.prospect.id }}">
                         <div class="card scout-prospect-card text-white rounded-4 overflow-hidden shadow-sm d-flex flex-row align-items-stretch">
@@ -3125,8 +3155,11 @@
         if (scoutBadge) scoutBadge.textContent = counts.total;
     }
 
+    let currentScoutStatusFilter = 'all';
+    let currentScoutSportFilter = 'all';
+
     function filterScoutProspects(filterKey, btn) {
-        updateScoutCountsFromDOM();
+        currentScoutStatusFilter = filterKey;
         localStorage.setItem('scoutActiveFilter', filterKey);
         document.querySelectorAll('.scout-filter-btn').forEach(b => {
             b.classList.remove('active');
@@ -3136,7 +3169,25 @@
             btn.classList.add('active');
             btn.style.opacity = '1';
         }
+        applyCombinedScoutFilters();
+    }
 
+    function filterScoutSport(sportKey, btn) {
+        currentScoutSportFilter = sportKey;
+        localStorage.setItem('scoutActiveSportFilter', sportKey);
+        document.querySelectorAll('.scout-sport-btn').forEach(b => {
+            b.classList.remove('active');
+            b.style.opacity = '0.7';
+        });
+        if (btn) {
+            btn.classList.add('active');
+            btn.style.opacity = '1';
+        }
+        applyCombinedScoutFilters();
+    }
+
+    function applyCombinedScoutFilters() {
+        updateScoutCountsFromDOM();
         const items = document.querySelectorAll('.scout-prospect-item');
         let visibleCount = 0;
         items.forEach(item => {
@@ -3144,6 +3195,7 @@
             const status = item.getAttribute('data-status');
             const grade = item.getAttribute('data-grade');
             const stage = item.getAttribute('data-stage');
+            const sport = item.getAttribute('data-sport');
 
             let effStatus = uStatus;
             if (!effStatus) {
@@ -3155,14 +3207,10 @@
                 else effStatus = 'NOT_READY';
             }
 
-            let match = false;
-            if (filterKey === 'all') {
-                match = true;
-            } else {
-                match = (effStatus === filterKey);
-            }
+            const statusMatch = (currentScoutStatusFilter === 'all' || effStatus === currentScoutStatusFilter);
+            const sportMatch = (currentScoutSportFilter === 'all' || sport === currentScoutSportFilter);
 
-            if (match) {
+            if (statusMatch && sportMatch) {
                 item.style.display = '';
                 visibleCount++;
             } else {
@@ -3184,17 +3232,32 @@
                 'ARCHIVED': 'ignorerade',
                 'CONVERTED': 'aktiverade'
             };
-            const filterName = filterNames[filterKey] || 'filtrerade';
+            const filterName = filterNames[currentScoutStatusFilter] || 'filtrerade';
             actionLabelEl.textContent = `Djupscanna ${filterName} (${visibleCount})`;
         }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        const savedFilter = localStorage.getItem('scoutActiveFilter') || 'all';
-        const targetBtn = document.querySelector(`.scout-filter-btn[data-filter="${savedFilter}"]`);
-        if (targetBtn) {
-            filterScoutProspects(savedFilter, targetBtn);
+        const savedStatus = localStorage.getItem('scoutActiveFilter') || 'all';
+        const savedSport = localStorage.getItem('scoutActiveSportFilter') || 'all';
+
+        const statusBtn = document.querySelector(`.scout-filter-btn[data-filter="${savedStatus}"]`);
+        if (statusBtn) {
+            currentScoutStatusFilter = savedStatus;
+            document.querySelectorAll('.scout-filter-btn').forEach(b => { b.classList.remove('active'); b.style.opacity = '0.7'; });
+            statusBtn.classList.add('active');
+            statusBtn.style.opacity = '1';
         }
+
+        const sportBtn = document.querySelector(`.scout-sport-btn[data-sport="${savedSport}"]`);
+        if (sportBtn) {
+            currentScoutSportFilter = savedSport;
+            document.querySelectorAll('.scout-sport-btn').forEach(b => { b.classList.remove('active'); b.style.opacity = '0.7'; });
+            sportBtn.classList.add('active');
+            sportBtn.style.opacity = '1';
+        }
+
+        applyCombinedScoutFilters();
     });
 
     async function refreshFilteredScoutProspects() {

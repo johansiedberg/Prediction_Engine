@@ -220,6 +220,16 @@ def engine_admin_dashboard_view(request):
         'archived': 0,
         'converted': 0,
     }
+    sport_counts = {
+        'all': 0,
+        'football': 0,
+        'handball': 0,
+        'floorball': 0,
+        'ice_hockey': 0,
+        'basketball': 0,
+        'volleyball': 0,
+        'other': 0,
+    }
 
     SPORT_ICONS = {
         'football': '⚽',
@@ -272,6 +282,33 @@ def engine_admin_dashboard_view(request):
             scout_counts['ready'] += 1
         elif unified_status == 'NOT_READY':
             scout_counts['not_ready'] += 1
+
+        sport_clean = (p.sport or '').lower().strip()
+        name_clean = p.name.lower().strip()
+
+        sport_counts['all'] += 1
+        if any(k in sport_clean or k in name_clean for k in ['football', 'fotboll', 'soccer', 'fifa', 'euro 2', 'copa amé', 'gold cup', 'nations league', 'afcon', 'asian cup']):
+            sport_key = 'football'
+            sport_counts['football'] += 1
+        elif 'handball' in sport_clean or 'handboll' in sport_clean or 'handball' in name_clean:
+            sport_key = 'handball'
+            sport_counts['handball'] += 1
+        elif 'floorball' in sport_clean or 'innebandy' in sport_clean or 'floorball' in name_clean:
+            sport_key = 'floorball'
+            sport_counts['floorball'] += 1
+        elif 'hockey' in sport_clean or 'ishockey' in sport_clean or 'ice hockey' in name_clean:
+            sport_key = 'ice_hockey'
+            sport_counts['ice_hockey'] += 1
+        elif 'basketball' in sport_clean or 'basket' in sport_clean or 'fiba' in name_clean:
+            sport_key = 'basketball'
+            sport_counts['basketball'] += 1
+        elif 'volleyball' in sport_clean or 'volleyboll' in sport_clean or 'volleyball' in name_clean:
+            sport_key = 'volleyball'
+            sport_counts['volleyball'] += 1
+        else:
+            sport_key = 'other'
+            sport_counts['other'] += 1
+
         groups = payload.get('groups', [])
         fixtures = payload.get('fixtures_sample', [])
         knockouts = payload.get('knockout_mapping_sample', [])
@@ -282,7 +319,6 @@ def engine_admin_dashboard_view(request):
         matches_count = len(fixtures) + len(knockouts)
         sidebets_count = len(sidebets)
 
-        sport_clean = (p.sport or '').lower().strip()
         allsport_emoji = payload.get('raw_allsportdb', {}).get('emoji')
         icon = allsport_emoji or SPORT_ICONS.get(sport_clean, '🏆')
 
@@ -290,8 +326,6 @@ def engine_admin_dashboard_view(request):
         if p.start_date:
             days_to_start = (p.start_date - today).days
 
-        # AGENTS.md Monochromatic Tonal Contrast — Grade Badges
-        # Surface: 950 deep, Border: 700 mid-dark, Text: 100 pale tint, Icon: fa-solid
         grade_meta = {
             'GRADE_A': {
                 'label': 'Redo',
@@ -299,25 +333,21 @@ def engine_admin_dashboard_view(request):
                 'style': 'background:#052E16;border:1px solid #15803D;color:#DCFCE7;',
             },
             'GRADE_B': {
-                'label': 'Bevakas',
-                'icon':  'fa-eye',
-                'style': 'background:#082F49;border:1px solid #0284C7;color:#BAE6FD;',
+                'label': 'Väntar lottning',
+                'icon':  'fa-clock',
+                'style': 'background:#451A03;border:1px solid #B45309;color:#FEF3C7;',
             },
             'GRADE_C': {
-                'label': 'Inte redo',
+                'label': 'Ej redo',
                 'icon':  'fa-circle-info',
-                'style': 'background:#451A03;border:1px solid #D97706;color:#FEF3C7;',
+                'style': 'background:#0F172A;border:1px solid #475569;color:#E2E8F0;',
             },
             'GRADE_D': {
                 'label': 'Ej kompatibel',
                 'icon':  'fa-circle-xmark',
                 'style': 'background:#1c0404;border:1px solid #7f1d1d;color:#fecaca;',
             },
-        }.get(p.completeness_grade, {
-            'label': p.completeness_grade,
-            'icon':  'fa-circle-question',
-            'style': 'background:#1e293b;border:1px solid #475569;color:#cbd5e1;',
-        })
+        }
 
 
         status_meta = {
@@ -381,6 +411,7 @@ def engine_admin_dashboard_view(request):
         scanned_data.append({
             'prospect': p,
             'unified_status': unified_status,
+            'sport_key': sport_key,
             'teams_count': teams_count,
             'groups_count': groups_count,
             'matches_count': matches_count,
