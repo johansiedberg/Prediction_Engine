@@ -88,13 +88,29 @@ class WikidataScout:
                         return time_str
                 return None
 
+            def is_valid_tournament_logo(url: str) -> bool:
+                if not url or not isinstance(url, str):
+                    return False
+                url_lower = url.lower()
+                flag_patterns = [
+                    'flag_of', 'flag%20of', 'flag%5fof', 'flag-', 'flag_',
+                    'bandeira', 'drapeau', 'bandera', 'flagg',
+                    '/flag', 'flag.', 'flag-icon', 'country-flag'
+                ]
+                for pattern in flag_patterns:
+                    if pattern in url_lower:
+                        return False
+                return True
+
             # P154 = logo image, P18 = general image
             def _extract_image(pid: str) -> Optional[str]:
                 p_list = claims.get(pid, [])
-                if p_list:
-                    img_name = p_list[0].get('mainsnak', {}).get('datavalue', {}).get('value', '')
+                for p_item in p_list:
+                    img_name = p_item.get('mainsnak', {}).get('datavalue', {}).get('value', '')
                     if img_name:
-                        return f"https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(img_name)}"
+                        img_url = f"https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(img_name)}"
+                        if is_valid_tournament_logo(img_url):
+                            return img_url
                 return None
 
             # P856 = official website

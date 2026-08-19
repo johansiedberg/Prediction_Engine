@@ -1418,10 +1418,27 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     if audit.get('host_country') and not payload.get('master_event', {}).get('host_country'):
         payload.setdefault('master_event', {})['host_country'] = audit['host_country']
 
+    def is_valid_tournament_logo(url: str) -> bool:
+        if not url or not isinstance(url, str):
+            return False
+        url_lower = url.lower()
+        flag_patterns = [
+            'flag_of', 'flag%20of', 'flag%5fof', 'flag-', 'flag_',
+            'bandeira', 'drapeau', 'bandera', 'flagg',
+            '/flag', 'flag.', 'flag-icon', 'country-flag'
+        ]
+        for pattern in flag_patterns:
+            if pattern in url_lower:
+                return False
+        return True
+
     extracted_logo_url = audit.get('logo_url') or wikidata.get('logo_url') or ''
-    if extracted_logo_url:
+    if extracted_logo_url and is_valid_tournament_logo(extracted_logo_url):
         prospect.logo_url = extracted_logo_url
         payload['logo_url'] = extracted_logo_url
+    else:
+        prospect.logo_url = ''
+        payload['logo_url'] = ''
 
     prospect.payload            = payload
     prospect.completeness_grade = final_grade
