@@ -1110,6 +1110,11 @@ class LLMWikipediaScoutTestCase(TestCase):
         self.assertEqual(s6, "2027-08-25")
         self.assertEqual(e6, "2027-09-05")
 
+        # Example 7: Cross-year range (2027 World Junior Ice Hockey Championships)
+        s7, e7 = LLMWikipediaScout._parse_date_range("December 26, 2026 – January 5, 2027", "")
+        self.assertEqual(s7, "2026-12-26")
+        self.assertEqual(e7, "2027-01-05")
+
     def test_clean_team_name_seed_and_host_markers(self):
         """Tests cleaning of seed prefixes (A1, B2) and host markers (H)."""
         from tournament.services.llm_wikipedia_scout import LLMWikipediaScout

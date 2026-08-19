@@ -348,6 +348,36 @@ class LLMWikipediaScout:
             'october': 10, 'oct': 10, 'november': 11, 'nov': 11, 'december': 12, 'dec': 12
         }
 
+        # Pattern 4a: "December 26, 2026 – January 5, 2027" (Month Day, Year – Month Day, Year)
+        m4a = re.search(r'([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})\s*[–\-—\s]+\s*([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})', combined)
+        if m4a and m4a.group(1).lower() in month_map and m4a.group(4).lower() in month_map:
+            m1_val, d1, y1 = month_map[m4a.group(1).lower()], int(m4a.group(2)), int(m4a.group(3))
+            m2_val, d2, y2 = month_map[m4a.group(4).lower()], int(m4a.group(5)), int(m4a.group(6))
+            return f"{y1:04d}-{m1_val:02d}-{d1:02d}", f"{y2:04d}-{m2_val:02d}-{d2:02d}"
+
+        # Pattern 4b: "26 December 2026 – 5 January 2027" (Day Month Year – Day Month Year)
+        m4b = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s*[–\-—\s]+\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', combined)
+        if m4b and m4b.group(2).lower() in month_map and m4b.group(5).lower() in month_map:
+            d1, m1_val, y1 = int(m4b.group(1)), month_map[m4b.group(2).lower()], int(m4b.group(3))
+            d2, m2_val, y2 = int(m4b.group(4)), month_map[m4b.group(5).lower()], int(m4b.group(6))
+            return f"{y1:04d}-{m1_val:02d}-{d1:02d}", f"{y2:04d}-{m2_val:02d}-{d2:02d}"
+
+        # Pattern 4c: "December 26 – January 5, 2027" (Month Day – Month Day, Year across year boundary)
+        m4c = re.search(r'([A-Za-z]+)\s+(\d{1,2})\s*[–\-—\s]+\s*([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})', combined)
+        if m4c and m4c.group(1).lower() in month_map and m4c.group(3).lower() in month_map:
+            m1_val, d1 = month_map[m4c.group(1).lower()], int(m4c.group(2))
+            m2_val, d2, y2 = month_map[m4c.group(3).lower()], int(m4c.group(4)), int(m4c.group(5))
+            y1 = y2 - 1 if m1_val > m2_val else y2
+            return f"{y1:04d}-{m1_val:02d}-{d1:02d}", f"{y2:04d}-{m2_val:02d}-{d2:02d}"
+
+        # Pattern 4d: "26 December – 5 January 2027" (Day Month – Day Month Year across year boundary)
+        m4d = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s*[–\-—\s]+\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', combined)
+        if m4d and m4d.group(2).lower() in month_map and m4d.group(4).lower() in month_map:
+            d1, m1_val = int(m4d.group(1)), month_map[m4d.group(2).lower()]
+            d2, m2_val, y2 = int(m4d.group(3)), month_map[m4d.group(4).lower()], int(m4d.group(5))
+            y1 = y2 - 1 if m1_val > m2_val else y2
+            return f"{y1:04d}-{m1_val:02d}-{d1:02d}", f"{y2:04d}-{m2_val:02d}-{d2:02d}"
+
         # Pattern 1: "15 May – 29 August 2026" or "15 May - 29 August 2026"
         m1 = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s*[–\-—]\s*(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?', combined)
         if m1 and m1.group(2).lower() in month_map and m1.group(4).lower() in month_map:
