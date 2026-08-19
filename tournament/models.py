@@ -721,6 +721,18 @@ class Match(models.Model):
             models.Index(fields=['tournament', 'stage']),
         ]
 
+    def save(self, *args, **kwargs):
+        if hasattr(self, '_resolved_team_cache'):
+            self._resolved_team_cache.clear()
+        if self.tournament:
+            for attr in ['_matches_by_number_dict', '_resolved_team_cache', '_groups_by_code_dict']:
+                if hasattr(self.tournament, attr):
+                    try:
+                        delattr(self.tournament, attr)
+                    except AttributeError:
+                        pass
+        super().save(*args, **kwargs)
+
     def __str__(self):
         home_info = self.get_home_team_info()
         away_info = self.get_away_team_info()
@@ -754,6 +766,7 @@ class Match(models.Model):
             matches_map = getattr(self.tournament, '_matches_by_number_dict', None)
             ref_match = matches_map.get(match_num) if matches_map is not None else self.tournament.matches.filter(match_number=match_num).first()
             if ref_match:
+                ref_match.tournament = self.tournament
                 winner_info = None
                 loser_info = None
 
@@ -790,23 +803,33 @@ class Match(models.Model):
                             winner_info, loser_info = h_team, a_team
 
                 target_info = winner_info if role in ('winner', 'vinnare') else loser_info
-                if target_info and target_info['name'] and target_info['name'] != '-':
+                if target_info and target_info.get('name') and target_info['name'] != '-':
+                    real_name = target_info['name'].split(' (')[0].strip()
+                    code = target_info.get('code', '') or COUNTRY_CODE_MAP.get(real_name.lower(), '')
+                    flag = target_info.get('flag_url') or (f"https://flagcdn.com/w40/{code.lower()}.png" if code else '')
                     res = {
-                        'name': target_info['name'],
-                        'code': target_info['code'],
-                        'flag_url': target_info['flag_url'],
-                        'display_name': f"{target_info['name']} ({team_str_clean})"
+                        'name': real_name,
+                        'code': code,
+                        'flag_url': flag,
+                        'display_name': f"{real_name} ({team_str_clean})"
                     }
                     if user_predictions is None:
                         self._resolved_team_cache[team_str_clean] = res
                     return res
 
-        # 2. Match Group placeholder codes (e.g. "1st Group A", "2nd Group B", "A1", "1A", "B2", "L5")
+        # 2. Match Group placeholder codes (e.g. "Winner Group B", "Runner-up Group A", "1st Group A", "2nd Group B", "A1", "1A", "B2")
         idx = None
         group_code = None
 
+        m_winner = re.match(r'^(?:Winner|Vinnare|Ettan|1st|1:a)\s+(?:Group|Grupp)?\s*([A-L])$', team_str_clean, re.IGNORECASE)
+        m_runner = re.match(r'^(?:Runner[- ]?up|Tvåan|2nd|2:a)\s+(?:Group|Grupp)?\s*([A-L])$', team_str_clean, re.IGNORECASE)
         m_full = re.match(r'^(\d+)(?:st|nd|rd|th|:a)?\s+(?:Group|Grupp)\s+([A-L])$', team_str_clean, re.IGNORECASE)
-        if m_full:
+        
+        if m_winner:
+            idx, group_code = 1, m_winner.group(1).upper()
+        elif m_runner:
+            idx, group_code = 2, m_runner.group(1).upper()
+        elif m_full:
             idx, group_code = int(m_full.group(1)), m_full.group(2).upper()
         else:
             m = re.match(r'^([A-L])([1-5])$', team_str_clean, re.IGNORECASE)
@@ -824,16 +847,19 @@ class Match(models.Model):
                 }
             group = self.tournament._groups_by_code_dict.get(group_code)
             if group:
-                if user_predictions is not None:
-                    standings = group.get_standings(user_predictions)
-                    if 0 <= idx - 1 < len(standings):
-                        t = standings[idx - 1]['team']
-                        return {
-                            'name': t.name,
-                            'code': t.code,
-                            'flag_url': t.flag_url,
-                            'display_name': f"{t.name} ({team_str_clean})"
-                        }
+                standings = group.get_standings(user_predictions)
+                if standings and 0 <= idx - 1 < len(standings):
+                    t_item = standings[idx - 1]
+                    team_obj = t_item.get('team') if isinstance(t_item, dict) else t_item
+                    t_name = team_obj.name if hasattr(team_obj, 'name') else str(team_obj)
+                    t_code = getattr(team_obj, 'code', '') or ''
+                    t_flag = getattr(team_obj, 'flag_url', '') or (f"https://flagcdn.com/w40/{t_code.lower()}.png" if t_code else '')
+                    return {
+                        'name': t_name,
+                        'code': t_code,
+                        'flag_url': t_flag,
+                        'display_name': f"{t_name} ({team_str_clean})"
+                    }
                 
                 teams = list(group.teams.all())
                 if 0 <= idx - 1 < len(teams):
@@ -848,15 +874,19 @@ class Match(models.Model):
                         self._resolved_team_cache[team_str_clean] = res
                     return res
 
-        # 3. Third-place combination placeholders (e.g. "3rd Group C/E/F/H/I", "3rd Group D/E/F", "3DEF", "3ABCD", "DEF3")
+        # 3. Third-place combination placeholders (e.g. "Third Group A/C/D", "3rd Group C/E/F/H/I", "3rd Group D/E/F", "3DEF", "3ABCD", "DEF3")
         group_letters = []
-        m_third_slash = re.match(r'^(?:3rd\s+(?:Group\s+)?)?([A-L](?:/[A-L])+)', team_str_clean, re.IGNORECASE)
+        m_third_slash = re.match(r'^(?:Third|Trean|3rd|3:a)\s+(?:Group|Grupp)?\s*([A-L](?:/[A-L])+)', team_str_clean, re.IGNORECASE)
         if m_third_slash:
             group_letters = [g.upper() for g in m_third_slash.group(1).split('/')]
         else:
-            m_third = re.match(r'^(3?([A-L]{2,6})3?)$', team_str_clean, re.IGNORECASE)
-            if m_third:
-                group_letters = list(m_third.group(2).upper())
+            m_third_raw = re.match(r'^(?:3rd\s+(?:Group\s+)?)?([A-L](?:/[A-L])+)', team_str_clean, re.IGNORECASE)
+            if m_third_raw:
+                group_letters = [g.upper() for g in m_third_raw.group(1).split('/')]
+            else:
+                m_third = re.match(r'^(3?([A-L]{2,6})3?)$', team_str_clean, re.IGNORECASE)
+                if m_third:
+                    group_letters = list(m_third.group(2).upper())
 
         if group_letters:
             if not hasattr(self.tournament, '_groups_by_code_dict'):
@@ -887,24 +917,27 @@ class Match(models.Model):
         if not hasattr(self.tournament, '_teams_by_name_dict'):
             self.tournament._teams_by_name_dict = {t.name.strip().lower(): t for t in self.tournament.teams.all()}
         
-        team = self.tournament._teams_by_name_dict.get(team_str_clean.lower())
+        base_name = team_str_clean.split(' (')[0].strip()
+        team = self.tournament._teams_by_name_dict.get(team_str_clean.lower()) or self.tournament._teams_by_name_dict.get(base_name.lower())
         if team:
+            t_code = team.code or COUNTRY_CODE_MAP.get(team.name.strip().lower(), '')
+            t_flag = team.flag_url or (f"https://flagcdn.com/w40/{t_code.lower()}.png" if t_code else '')
             res = {
                 'name': team.name,
-                'code': team.code,
-                'flag_url': team.flag_url,
-                'display_name': team.name
+                'code': t_code,
+                'flag_url': t_flag,
+                'display_name': team_str_clean
             }
             if user_predictions is None:
                 self._resolved_team_cache[team_str_clean] = res
             return res
         
         # 4. Fallback using country code map
-        clean_key = team_str_clean.lower()
+        clean_key = base_name.lower()
         if clean_key in COUNTRY_CODE_MAP:
             code = COUNTRY_CODE_MAP[clean_key]
             res = {
-                'name': team_str_clean,
+                'name': base_name,
                 'code': code,
                 'flag_url': f"https://flagcdn.com/w40/{code}.png",
                 'display_name': team_str_clean
@@ -913,15 +946,12 @@ class Match(models.Model):
                 self._resolved_team_cache[team_str_clean] = res
             return res
 
-        res = {
+        return {
             'name': team_str_clean,
             'code': '',
             'flag_url': '',
             'display_name': team_str_clean
         }
-        if user_predictions is None:
-            self._resolved_team_cache[team_str_clean] = res
-        return res
 
 
 class MatchPrediction(models.Model):

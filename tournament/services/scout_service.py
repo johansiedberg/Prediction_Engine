@@ -1134,6 +1134,28 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                             date_time=m_dt
                         )
 
+        def _resolve_stage_obj(s_name, created_stages):
+            if not created_stages:
+                return None
+            if s_name in created_stages:
+                return created_stages[s_name]
+            clean_s = (s_name or '').lower().strip()
+            for k, obj in created_stages.items():
+                clean_k = k.lower().strip()
+                if clean_s == clean_k:
+                    return obj
+                if ('quarter' in clean_s or 'kvart' in clean_s) and ('quarter' in clean_k or 'kvart' in clean_k):
+                    return obj
+                if 'semi' in clean_s and 'semi' in clean_k:
+                    return obj
+                if ('final' in clean_s and 'semi' not in clean_s and 'quarter' not in clean_s) and ('final' in clean_k and 'semi' not in clean_k and 'quarter' not in clean_k):
+                    return obj
+                if ('16' in clean_s or '8-del' in clean_s) and ('16' in clean_k or '8-del' in clean_k):
+                    return obj
+                if ('32' in clean_s or '16-del' in clean_s) and ('32' in clean_k or '16-del' in clean_k):
+                    return obj
+            return list(created_stages.values())[0]
+
         # 7. Knockout mapping fixtures
         if knockout_mapping:
             for k_item in knockout_mapping:
@@ -1143,7 +1165,7 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                 home_ph = k_item.get('home_placeholder', '')
                 away_ph = k_item.get('away_placeholder', '')
                 
-                stage_obj = created_stages.get(s_name) or list(created_stages.values())[0] if created_stages else None
+                stage_obj = _resolve_stage_obj(s_name, created_stages)
                 m_dt = timezone.make_aware(base_dt + datetime.timedelta(days=7 + (match_number_counter % 5)), timezone.get_current_timezone())
 
                 Match.objects.create(

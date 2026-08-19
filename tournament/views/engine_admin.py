@@ -590,20 +590,18 @@ def engine_admin_simulate_tournament(request, tournament_id):
     if hasattr(tournament, '_groups_by_code_dict'):
         delattr(tournament, '_groups_by_code_dict')
 
-    # 3. Simulate Knockout Matches stage by stage
-    knockout_stages = list(tournament.knockout_stages.all().order_by('order', 'id'))
-    for stage in knockout_stages:
-        stage_matches = list(stage.matches.all().order_by('match_number', 'id'))
-        for match in stage_matches:
-            h_g = random.choice([1, 2, 2, 3, 4])
-            a_g = random.choice([0, 1, 1, 2, 3])
-            if h_g == a_g:
-                h_g += 1
-            match.home_goals = h_g
-            match.away_goals = a_g
-            match.is_finished = True
-            match.save()
-            simulated_count += 1
+    # 3. Simulate Knockout Matches in sequential match_number order
+    knockout_matches = list(tournament.matches.filter(group__isnull=True).order_by('match_number', 'id'))
+    for match in knockout_matches:
+        h_g = random.choice([1, 2, 2, 3, 4])
+        a_g = random.choice([0, 1, 1, 2, 3])
+        if h_g == a_g:
+            h_g += 1
+        match.home_goals = h_g
+        match.away_goals = a_g
+        match.is_finished = True
+        match.save()
+        simulated_count += 1
 
     invalidate_tournament_cache(tournament.id)
 
