@@ -483,18 +483,20 @@ class WikipediaScout:
 
             # --- Strategy 3: NLP Table & Row Pattern Mining ---
             for row in soup.find_all('tr'):
-                txt    = ' '.join(row.get_text().split())
+                cells  = [c.get_text().strip() for c in row.find_all(['td', 'th'])]
+                txt    = ' '.join(cells) if cells else ' '.join(row.get_text().split())
                 m_vs   = re.search(r'([A-Z][a-zA-Z\s]{2,20})\s+(?:v|vs|\u2013|\-)\s+([A-Z][a-zA-Z\s]{2,20})', txt)
                 date_m = re.search(DATE_RE, txt)
                 time_m = re.search(TIME_RE, txt)
 
                 if m_vs and (date_m or time_m):
+                    venue_t = cells[-1] if len(cells) >= 5 and cells[-1] and not re.search(r'\d{1,2}:\d{2}', cells[-1]) else ''
                     add_fixture(row,
                                 m_vs.group(1).strip(),
                                 m_vs.group(2).strip(),
                                 date_m.group(1) if date_m else '',
                                 time_m.group(1) if time_m else '',
-                                '', 'Strategy_3_NLP_TableMining')
+                                venue_t, 'Strategy_3_NLP_TableMining')
 
             # --- Strategy 4: Matchday / Schedule Table Mining ---
             # For qualifying competitions (e.g. UEFA Euro 2028 qualifying) and league-format
