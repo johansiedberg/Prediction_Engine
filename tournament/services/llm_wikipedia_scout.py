@@ -29,6 +29,7 @@ _RESPONSE_SCHEMA_DESC = """
 Return ONLY valid JSON matching this exact schema (no markdown fences, no prose):
 {
   "is_disambiguation": <true if this Wikipedia article is a split portal/disambiguation page pointing to separate tournaments (e.g. Men's and Women's tournaments), else false>,
+  "is_ongoing_or_finished": <true if the Wikipedia article contains played match scores e.g. "21 – 20", "13 – 47", standings/results, or if main tournament is currently underway or finished, else false>,
   "sub_tournaments": [
     {
       "name": "<e.g. 2026 FIBA 3x3 U23 World Cup – Men's tournament>",
@@ -76,6 +77,8 @@ _SYSTEM_PROMPT = (
     "Wikipedia article about a sports tournament. Extract structured tournament information.\n"
     "CRITICAL REQUIREMENT FOR DISAMBIGUATION / SPLIT PAGES:\n"
     "If the article is a portal/disambiguation page listing separate Men's and Women's tournaments (e.g. 'consists of two sections: Men's tournament and Women's tournament'), set 'is_disambiguation': true and list the sub_tournaments.\n"
+    "CRITICAL REQUIREMENT FOR PLAYED MATCH SCORES / ONGOING TOURNAMENTS:\n"
+    "Inspect the match schedule tables. If match scores or results are listed (e.g. '21 – 20', '13 – 47', 'Paris Musketeers 21 – 20 Frankfurt Galaxy'), set 'is_ongoing_or_finished': true.\n"
     "CRITICAL REQUIREMENT FOR TOURNAMENT DATES:\n"
     "You MUST distinguish the MAIN TOURNAMENT / FINAL TOURNAMENT start and end dates from qualification dates, draw dates, bidding dates, or past/future edition dates.\n"
     "Record official tournament start and end dates accurately, handling range formats such as '15 May – 29 August 2026', '19–29 August 2026', '3–20 December'.\n"
@@ -423,6 +426,7 @@ class LLMWikipediaScout:
             "page_title":                 page_title,
             "wiki_url":                   wiki_url,
             "is_disambiguation":          is_disambiguation,
+            "is_ongoing_or_finished":     bool(raw.get("is_ongoing_or_finished", False)),
             "sub_tournaments":            sub_tournaments,
             "sections":                   [],
             "teams_count":                teams_count or 16,

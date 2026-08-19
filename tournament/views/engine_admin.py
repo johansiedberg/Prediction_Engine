@@ -1259,15 +1259,27 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     if not end_date_obj and prospect.end_date:
         end_date_obj = prospect.end_date
 
-    # Only delete if tournament is PROVEN to be in the past or finished
-    if start_date_obj and start_date_obj <= today_date:
+    min_upcoming_date = today_date + datetime.timedelta(days=30)
+
+    # Rejection Rule 1: Tournaments with played match scores or marked as ongoing/finished
+    if audit.get('is_ongoing_or_finished'):
         prospect_name = prospect.name
         prospect.delete()
         return {
             'ok': False,
-            'error': f"Djupscanning misslyckades: Turneringen '{prospect_name}' är pågående eller avslutad (Startdatum: {start_date_obj}). Endast framtida turneringar accepteras.",
+            'error': f"Djupscanning misslyckades: Turneringen '{prospect_name}' är pågående eller avslutad (Spelade matcher/resultat hittades på Wikipedia). Endast framtida turneringar accepteras.",
         }
 
+    # Rejection Rule 2: Tournaments starting in less than 30 days or in the past (start_date < today + 30 days)
+    if start_date_obj and start_date_obj < min_upcoming_date:
+        prospect_name = prospect.name
+        prospect.delete()
+        return {
+            'ok': False,
+            'error': f"Djupscanning misslyckades: Turneringen '{prospect_name}' är pågående eller startar inom mindre än 30 dagar (Startdatum: {start_date_obj}, tröskel: {min_upcoming_date}). Endast framtida turneringar som startar om minst 30 dagar accepteras.",
+        }
+
+    # Rejection Rule 3: Tournaments already finished (end_date < today)
     if end_date_obj and end_date_obj < today_date:
         prospect_name = prospect.name
         prospect.delete()

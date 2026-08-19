@@ -926,19 +926,21 @@ class LLMWikipediaScoutTestCase(TestCase):
         from tournament.services.wikipedia_scout import WikipediaScout
         from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
 
+        future_date = str(datetime.date.today() + datetime.timedelta(days=45))
+
         prospect = ScannedTournament.objects.create(
             name="2026 FIVB Volleyball Boys' U17 World Championship",
             master_event_code="2026-fivb-volleyball-u17",
-            start_date=datetime.date(2026, 8, 29),
+            start_date=datetime.date.today() + datetime.timedelta(days=45),
             end_date=None,
             payload={}
         )
 
         mock_audit.return_value = {
             'page_title': "2026 FIVB Volleyball Boys' U17 World Championship",
-            'tournament_start_date': '2026-08-29',
+            'tournament_start_date': future_date,
             'tournament_end_date': '',
-            'start_date': '2026-08-29',
+            'start_date': future_date,
             'end_date': '',
             'draw_completed': True,
             'groups_count': 4,
@@ -981,7 +983,70 @@ class LLMWikipediaScoutTestCase(TestCase):
 
         res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
         self.assertFalse(res['ok'])
-        self.assertIn('pågående eller avslutad', res['error'])
+        self.assertIn('pågående eller startar inom mindre än 30 dagar', res['error'])
+        self.assertFalse(ScannedTournament.objects.filter(id=prospect.id).exists())
+
+    @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
+    def test_deep_scan_rejects_tournaments_starting_within_30_days(self, mock_audit):
+        """_run_deep_scan_on_prospect rejects/deletes prospects starting within 30 days."""
+        import datetime
+        from tournament.models import ScannedTournament
+        from tournament.views.engine_admin import _run_deep_scan_on_prospect
+        from tournament.services.wikipedia_scout import WikipediaScout
+        from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+
+        imminent_date = str(datetime.date.today() + datetime.timedelta(days=15))
+
+        prospect = ScannedTournament.objects.create(
+            name="Imminent Cup 2026",
+            master_event_code="imminent-cup-2026",
+            start_date=datetime.date.today() + datetime.timedelta(days=15),
+            payload={}
+        )
+
+        mock_audit.return_value = {
+            'page_title': 'Imminent Cup 2026',
+            'tournament_start_date': imminent_date,
+            'start_date': imminent_date,
+            'draw_completed': False,
+            'fixtures_completed': False,
+        }
+
+        res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
+        self.assertFalse(res['ok'])
+        self.assertIn('mindre än 30 dagar', res['error'])
+        self.assertFalse(ScannedTournament.objects.filter(id=prospect.id).exists())
+
+    @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
+    def test_deep_scan_rejects_ongoing_or_played_match_results(self, mock_audit):
+        """_run_deep_scan_on_prospect deletes prospects that have played match results (e.g. 21 - 20)."""
+        import datetime
+        from tournament.models import ScannedTournament
+        from tournament.views.engine_admin import _run_deep_scan_on_prospect
+        from tournament.services.wikipedia_scout import WikipediaScout
+        from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+
+        future_date = str(datetime.date.today() + datetime.timedelta(days=40))
+
+        prospect = ScannedTournament.objects.create(
+            name="2026 European Football Alliance season",
+            master_event_code="2026-efa-season",
+            start_date=datetime.date.today() + datetime.timedelta(days=40),
+            payload={}
+        )
+
+        mock_audit.return_value = {
+            'page_title': '2026 European Football Alliance season',
+            'tournament_start_date': future_date,
+            'start_date': future_date,
+            'is_ongoing_or_finished': True,
+            'draw_completed': True,
+            'fixtures_completed': True,
+        }
+
+        res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
+        self.assertFalse(res['ok'])
+        self.assertIn('Spelade matcher/resultat hittades', res['error'])
         self.assertFalse(ScannedTournament.objects.filter(id=prospect.id).exists())
 
     def test_parse_date_range_benchmark_examples(self):
