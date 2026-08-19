@@ -701,8 +701,8 @@
                             <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#importWikipediaModal">
                                 Importera via Wikipedia
                             </button>
-                            <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold" onclick="refreshAllScoutProspects()">
-                                Uppdatera alla
+                            <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold" id="scoutRefreshAllBtn" onclick="refreshAllScoutProspects()">
+                                <i class="fa-solid fa-rotate me-1.5"></i>Djupscanna alla
                             </button>
                             <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-bold" onclick="clearScoutProspectsList()">
                                 Rensa
@@ -764,6 +764,36 @@
                             <span id="scoutVisibleCount">{{ scout_counts.total }}</span> prospekt visas
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Bulk Deepscan Realtime Progress Banner -->
+            <div id="scoutBulkProgressContainer" class="p-3.5 mb-3 rounded-4 shadow border d-none" style="background:rgba(15, 23, 42, 0.95);border-color:rgba(245, 158, 11, 0.4) !important;">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="spinner-border text-warning" role="status" style="width: 1.5rem; height: 1.5rem; border-width: 0.18em;">
+                            <span class="visually-hidden">Scannar...</span>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-white fs-6 mb-0.5" id="scoutBulkProgressTitle">
+                                Djupscannar alla turneringar via Wikipedia &amp; AI...
+                            </div>
+                            <div class="text-secondary small font-monospace" id="scoutBulkProgressSubtext" style="font-size:0.83rem;">
+                                Bearbetar... Inga turneringar hoppas över.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div class="font-monospace text-warning fs-5 fw-extrabold" id="scoutBulkProgressPercent">
+                            0%
+                        </div>
+                        <div class="text-secondary small font-monospace" id="scoutBulkProgressCounts">
+                            0 / 0 turneringar
+                        </div>
+                    </div>
+                </div>
+                <div class="progress rounded-pill overflow-hidden" style="height:12px;background:rgba(255,255,255,0.1);">
+                    <div id="scoutBulkProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 0%;"></div>
                 </div>
             </div>
 
@@ -3659,28 +3689,97 @@ Search and extract upcoming sports tournaments matching:
         });
     }
 
-    function refreshAllScoutProspects() {
-        if (!confirm('Vill du uppdatera och om-scanna alla turneringar i listan mot Wikipedia?')) return;
+    async function refreshAllScoutProspects() {
+        const cards = Array.from(document.querySelectorAll('.scout-prospect-item'));
+        const prospectItems = cards.map(card => {
+            const id = card.id.replace('prospect-card-', '');
+            const titleEl = card.querySelector('h4') || card.querySelector('.fw-bold');
+            const name = titleEl ? titleEl.innerText.trim() : `Turnering #${id}`;
+            return { id: parseInt(id), name: name, element: card };
+        }).filter(item => !isNaN(item.id));
+
+        if (prospectItems.length === 0) {
+            alert('Inga turneringar finns i scout-listan att djupscanna.');
+            return;
+        }
+
+        if (!confirm(`Vill du djupscanna ALLA ${prospectItems.length} turneringar i listan mot Wikipedia? Processen visar framsteg live och alla turneringar granskas.`)) {
+            return;
+        }
+
+        const progressContainer = document.getElementById('scoutBulkProgressContainer');
+        const progressTitle     = document.getElementById('scoutBulkProgressTitle');
+        const progressSubtext   = document.getElementById('scoutBulkProgressSubtext');
+        const progressPercent   = document.getElementById('scoutBulkProgressPercent');
+        const progressCounts    = document.getElementById('scoutBulkProgressCounts');
+        const progressBar       = document.getElementById('scoutBulkProgressBar');
+
+        if (progressContainer) {
+            progressContainer.classList.remove('d-none');
+            progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        const refreshBtn = document.getElementById('scoutRefreshAllBtn');
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Scannar alla...';
+        }
+
+        const totalCount = prospectItems.length;
+        let gradeACount = 0;
+        let gradeBCount = 0;
+        let gradeCCount = 0;
+
         const csrfToken = getCSRFToken();
 
-        fetch('/engine-admin/scout/refresh-all/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
+        for (let i = 0; i < totalCount; i++) {
+            const item = prospectItems[i];
+            const currentNum = i + 1;
+            const pct = Math.round((currentNum / totalCount) * 100);
+
+            if (progressTitle) progressTitle.innerText = `Djupscannar alla ${totalCount} turneringar...`;
+            if (progressSubtext) progressSubtext.innerText = `[${currentNum}/${totalCount}] Bearbetar "${item.name}" via Wikipedia & AI...`;
+            if (progressPercent) progressPercent.innerText = `${pct}%`;
+            if (progressCounts) progressCounts.innerText = `${currentNum} / ${totalCount} turneringar`;
+            if (progressBar) progressBar.style.width = `${pct}%`;
+
+            try {
+                const res = await fetch(`/engine-admin/scout/deep-scan/${item.id}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    if (data.grade === 'GRADE_A') gradeACount++;
+                    else if (data.grade === 'GRADE_B') gradeBCount++;
+                    else gradeCCount++;
+
+                    if (item.element) {
+                        item.element.setAttribute('data-stage', 'DEEP');
+                        item.element.setAttribute('data-grade', data.grade);
+                    }
+                }
+            } catch (err) {
+                console.error(`Error deep scanning prospect #${item.id} (${item.name}):`, err);
             }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert('🔄 ' + data.message);
-                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
-                location.reload();
-            } else {
-                alert('Fel vid uppdatering: ' + data.message);
-            }
-        })
-        .catch(err => alert('Nätverksfel vid uppdatering: ' + err.message));
+        }
+
+        if (progressTitle) progressTitle.innerText = `Djupscanning klar för alla ${totalCount} turneringar!`;
+        if (progressSubtext) progressSubtext.innerText = `Resultat: ${gradeACount} Redo (Grad A), ${gradeBCount} Bevakas (Grad B), ${gradeCCount} Inte redo (Grad C). Uppdaterar listan...`;
+        if (progressPercent) progressPercent.innerText = '100%';
+        if (progressBar) {
+            progressBar.style.width = '100%';
+            progressBar.classList.remove('bg-warning');
+            progressBar.classList.add('bg-success');
+        }
+
+        setTimeout(() => {
+            localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+            location.reload();
+        }, 1200);
     }
 
     function clearScoutProspectsList() {
