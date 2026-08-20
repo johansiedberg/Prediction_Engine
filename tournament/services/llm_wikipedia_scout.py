@@ -367,38 +367,46 @@ class LLMWikipediaScout:
         return None
 
     def _call_gemini(self, article_text: str) -> dict | None:
-        """Calls Gemini Flash and returns parsed JSON dict, or None on failure."""
-        api_key = getattr(settings, "GEMINI_API_KEY", "")
+        """Calls Gemini Flash REST API and returns parsed JSON dict, or None on failure."""
+        api_key = getattr(settings, "GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
         if not api_key:
             return None
 
-        try:
-            import google.generativeai as genai
+        prompt = f"{_SYSTEM_PROMPT}\n\nWikipedia article text:\n\n{article_text[:12000]}"
+        headers = {'Content-Type': 'application/json'}
+        payload = {
+            'contents': [{'parts': [{'text': prompt}]}],
+            'generationConfig': {
+                'response_mime_type': 'application/json',
+                'temperature': 0.0,
+            }
+        }
 
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                system_instruction=_SYSTEM_PROMPT,
-                generation_config=genai.GenerationConfig(
-                    response_mime_type="application/json",
-                    temperature=0.0,
-                ),
-            )
-            response = model.generate_content(
-                f"Wikipedia article text:\n\n{article_text}"
-            )
-            raw = response.text.strip()
-            # Strip markdown fences if present despite application/json mime type
-            if raw.startswith("```"):
-                raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-            return json.loads(raw)
+        models = ['gemini-3.1-flash-lite', 'gemini-3.6-flash', 'gemini-flash-latest']
+        for m in models:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
+            try:
+                r = requests.post(url, headers=headers, json=payload, timeout=12)
 
-        except json.JSONDecodeError as exc:
-            logger.error("LLMWikipediaScout: JSON parse error from Gemini: %s", exc)
-            return None
-        except Exception as exc:
-            logger.error("LLMWikipediaScout: Gemini API error: %s", exc)
-            return None
+
+
+                if r.status_code == 200:
+                    data = r.json()
+                    candidates = data.get('candidates', [])
+                    if candidates:
+                        parts = candidates[0].get('content', {}).get('parts', [])
+                        if parts:
+                            raw = parts[0].get('text', '').strip()
+                            if raw.startswith("```"):
+                                raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+                            return json.loads(raw)
+                else:
+                    logger.warning("Gemini REST API error (%s): %s", m, r.text[:200])
+            except Exception as exc:
+                logger.error("Gemini REST API call failed for model %s: %s", m, exc)
+
+        return None
+
 
 
     @staticmethod
