@@ -69,6 +69,27 @@ Return ONLY valid JSON matching this exact schema (no markdown fences, no prose)
   "knockout_stages": ["Round of 16", "Quarterfinals", "Semifinals", "Final"],
   "fixtures_count": <integer>,
   "groups_count": <integer>,
+  "points_system": {
+    "win": <integer>,
+    "draw": <integer>,
+    "loss": <integer>
+  },
+  "tiebreakers": [
+    "<e.g. 'Head-to-head points'>",
+    "<e.g. 'Overall goal difference'>",
+    "<e.g. 'Goals scored'>"
+  ],
+  "advancement_logic": {
+    "teams_per_group_advancing": <integer>,
+    "best_third_placed_advancing": <integer>,
+    "has_best_thirds_table": <boolean>,
+    "has_runners_up_table": <boolean>
+  },
+  "match_format": {
+    "regular_time_minutes": <integer>,
+    "extra_time_minutes": <integer>,
+    "has_penalties": <boolean>
+  },
   "fixtures_completed": <true|false>
 }
 """
@@ -78,6 +99,7 @@ _SYSTEM_PROMPT = (
     "Wikipedia article about a sports tournament. Extract structured tournament information.\n"
     "CRITICAL REQUIREMENT FOR DISAMBIGUATION / SPLIT PAGES:\n"
     "If the article is a portal/disambiguation page listing separate Men's and Women's tournaments (e.g. 'consists of two sections: Men's tournament and Women's tournament'), set 'is_disambiguation': true and list the sub_tournaments.\n"
+    "DO NOT set 'is_disambiguation': true for multi-tier or multi-league tournaments (e.g. UEFA Nations League with League A, League B, League C). These MUST be treated as a single tournament. Extract all groups across all leagues (e.g., Group A1, Group B1) into the main 'groups' array.\n"
     "CRITICAL REQUIREMENT FOR PLAYED MATCH SCORES / ONGOING TOURNAMENTS:\n"
     "Inspect the match schedule tables. If match scores or results are listed (e.g. '21 – 20', '13 – 47', 'Paris Musketeers 21 – 20 Frankfurt Galaxy'), set 'is_ongoing_or_finished': true.\n"
     "CRITICAL REQUIREMENT FOR TOURNAMENT DATES:\n"
@@ -94,8 +116,21 @@ _SYSTEM_PROMPT = (
     "  3. Advancement & qualification criteria (e.g. top 2 per group + 8 best 3rd-placed teams advance to Round of 32).\n"
     "  4. Knockout stage rules (extra time format, 30 mins ET, penalty shootout, substitution rules).\n"
     "  5. Official regulation links or source references if mentioned.\n"
+    "CRITICAL REQUIREMENT FOR DATA POINTS (STRUCTURE & LOGIC):\n"
+    "Extract precise tournament structural rules for pool-admins:\n"
+    " - points_system: Number of points awarded for a win, draw, and loss.\n"
+    " - tiebreakers: Ordered list of group stage tiebreakers (e.g. H2H points, H2H goal diff, overall goal diff, goals scored, fair play).\n"
+    " - advancement_logic: How many teams advance per group. If best 3rd-placed teams advance, set 'best_third_placed_advancing' and 'has_best_thirds_table': true. If a runners-up table is used across groups, set 'has_runners_up_table': true.\n"
+    " - match_format: Standard match duration in minutes (e.g. 90, 60), extra time duration if applicable (e.g. 30), and whether penalty shootouts exist.\n"
     "Structure 'official_rules' into clean, well-formatted bullet points or numbered sections for maximum legibility.\n"
     "Use placeholder codes exactly as written (TBD, W37, 1A, etc).\n"
+    "CRITICAL REQUIREMENT FOR FIXTURES ORDER:\n"
+    "You MUST return the 'fixtures' array in chronological order. All Group Stage or League Phase matches MUST appear first, followed by knockout rounds, and the Final MUST be the very last fixture in the array.\n"
+    "CRITICAL REQUIREMENT FOR KNOCKOUT BRACKETS AND TWO-LEGGED TIES:\n"
+    "Wikipedia uses Markdown tables for knockouts and play-offs (e.g. Quarter-finals, Promotion play-offs).\n"
+    "If a table has columns '1st leg' and '2nd leg' (or similar), you MUST create TWO separate fixtures for each row: one for the 1st leg and one for the 2nd leg!\n"
+    "For bracket grids interwoven with dates like '25-30 March', extract each node as a placeholder fixture.\n"
+    "Assign the 'stage_or_group' appropriately (e.g. 'Quarter-final', 'Semi-final', 'Play-off'). Use the exact dates listed.\n"
     "For qualifying or league-format tournaments with matchday schedules but no individual "
     "fixtures yet, set scheduled_matchdays to the number of matchday rounds and leave "
     "fixtures as an empty list.\n"
@@ -193,31 +228,72 @@ class LLMWikipediaScout:
         except Exception as exc:
             logger.warning("LLMWikipediaScout: Action API wikitext fetch error for '%s': %s", page_title, exc)
 
-        # 2. Fetch full REST HTML page
+        # 2. Fetch full REST HTML page(s) including 'Main article' subpages
         try:
-            rest_url = f"https://en.wikipedia.org/api/rest_v1/page/html/{encoded}"
-            resp = requests.get(rest_url, headers=self.HEADERS, timeout=12)
-            if resp.status_code == 200:
-                raw_html = getattr(resp, "text", "") or ""
-                if isinstance(raw_html, str) and ("<html" in raw_html.lower() or "<div" in raw_html.lower() or "<p" in raw_html.lower() or "body" in raw_html.lower()):
-                    from bs4 import BeautifulSoup
-                    soup = BeautifulSoup(raw_html, "html.parser")
-                    for s in soup(["script", "style", "noscript", "meta"]):
-                        s.decompose()
-                    clean_text = re.sub(r"\s+", " ", soup.get_text())
-                    parts.append("=== ARTICLE CONTENT ===\n" + clean_text)
-                elif hasattr(resp, "json"):
-                    # Fallback for JSON dicts or test mocks
-                    try:
-                        data = resp.json()
-                        if isinstance(data, dict):
-                            lead_list = [p.get("text", "") for p in data.get("lead", {}).get("sections", []) if isinstance(p, dict)]
-                            rem_list = [f"\n== {s.get('line', '')} ==\n" + s.get("text", "") for s in data.get("remaining", {}).get("sections", []) if isinstance(s, dict)]
-                            clean = self._strip_html(" ".join(lead_list + rem_list))
-                            if clean:
-                                parts.append("=== ARTICLE CONTENT ===\n" + clean)
-                    except Exception:
-                        pass
+            urls_to_fetch = [encoded]
+            fetched_urls = set()
+            main_words = set(page_title.replace('-', ' ').replace('–', ' ').split())
+
+            while urls_to_fetch and len(fetched_urls) < 6:
+                current_url_encoded = urls_to_fetch.pop(0)
+                if current_url_encoded in fetched_urls:
+                    continue
+                fetched_urls.add(current_url_encoded)
+
+                rest_url = f"https://en.wikipedia.org/api/rest_v1/page/html/{current_url_encoded}"
+                resp = requests.get(rest_url, headers=self.HEADERS, timeout=12)
+                if resp.status_code == 200:
+                    raw_html = getattr(resp, "text", "") or ""
+                    if isinstance(raw_html, str) and ("<html" in raw_html.lower() or "<div" in raw_html.lower() or "<p" in raw_html.lower() or "body" in raw_html.lower()):
+                        from bs4 import BeautifulSoup
+                        soup = BeautifulSoup(raw_html, "html.parser")
+
+                        # If this is the main page, discover subpages
+                        if len(fetched_urls) == 1:
+                            for div in soup.find_all('div', class_='hatnote'):
+                                text = div.get_text().lower()
+                                if 'main article' in text or 'details' in text:
+                                    for a in div.find_all('a'):
+                                        href = a.get('href', '')
+                                        if href.startswith('./'):
+                                            sub_page = href.replace('./', '')
+                                            sub_words = set(urllib.parse.unquote(sub_page).replace('_', ' ').replace('-', ' ').replace('–', ' ').split())
+                                            if len(main_words.intersection(sub_words)) >= 2:
+                                                if sub_page not in fetched_urls and sub_page not in urls_to_fetch:
+                                                    urls_to_fetch.append(sub_page)
+
+                        for s in soup(["script", "style", "noscript", "meta", "nav", "footer"]):
+                            s.decompose()
+
+                        # Convert HTML tables to Markdown tables for better LLM comprehension
+                        for table in soup.find_all('table'):
+                            markdown = []
+                            for i, row in enumerate(table.find_all('tr')):
+                                cols = row.find_all(['td', 'th'])
+                                row_text = ' | '.join(col.get_text(strip=True).replace('\n', ' ') for col in cols)
+                                markdown.append('| ' + row_text + ' |')
+                                if i == 0:
+                                    markdown.append('|' + '|'.join(['---'] * len(cols)) + '|')
+                            table.replace_with('\n' + '\n'.join(markdown) + '\n')
+
+                        raw_text = soup.get_text(separator="\n")
+                        lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
+                        clean_text = "\n".join(lines)
+                        
+                        page_header = f"=== ARTICLE CONTENT: {urllib.parse.unquote(current_url_encoded).replace('_', ' ')} ==="
+                        parts.append(page_header + "\n" + clean_text)
+                    elif hasattr(resp, "json") and len(fetched_urls) == 1:
+                        # Fallback for JSON dicts or test mocks (only for main page)
+                        try:
+                            data = resp.json()
+                            if isinstance(data, dict):
+                                lead_list = [p.get("text", "") for p in data.get("lead", {}).get("sections", []) if isinstance(p, dict)]
+                                rem_list = [f"\n== {s.get('line', '')} ==\n" + s.get("text", "") for s in data.get("remaining", {}).get("sections", []) if isinstance(s, dict)]
+                                clean = self._strip_html(" ".join(lead_list + rem_list))
+                                if clean:
+                                    parts.append("=== ARTICLE CONTENT: Main Page ===\n" + clean)
+                        except Exception:
+                            pass
         except Exception as exc:
             logger.warning("LLMWikipediaScout: REST HTML fetch error for '%s': %s", page_title, exc)
 
@@ -463,6 +539,26 @@ class LLMWikipediaScout:
                 "strategy":       "LLM_Gemini_Flash",
             })
 
+        def _fixture_stage_weight(f):
+            stage = f.get("stage_or_group", "").lower()
+            if "final" in stage and "quarter" not in stage and "semi" not in stage and "1/8" not in stage and "1/16" not in stage:
+                return 100
+            if "semi" in stage or "1/2" in stage:
+                return 90
+            if "quarter" in stage or "1/4" in stage:
+                return 80
+            if "16" in stage or "eighth" in stage or "åtton" in stage or "1/8" in stage:
+                return 70
+            if "32" in stage or "1/16" in stage:
+                return 60
+            if "play-off" in stage or "playoff" in stage:
+                return 50
+            if "group" in stage or "grupp" in stage or "league" in stage:
+                return 10
+            return 20
+
+        fixtures.sort(key=lambda x: (_fixture_stage_weight(x), x.get("date", "")))
+
         if len(fixtures) < 5 and page_title:
             try:
                 from tournament.services.wikipedia_scout import WikipediaScout
@@ -532,6 +628,10 @@ class LLMWikipediaScout:
             "advancement_rules":          str(raw.get("advancement_rules") or ""),
             "official_rules":             str(raw.get("official_rules") or raw.get("advancement_rules") or ""),
             "official_regulations_url":   str(raw.get("official_regulations_url") or ""),
+            "points_system":              raw.get("points_system") or {},
+            "tiebreakers":                raw.get("tiebreakers") or [],
+            "advancement_logic":          raw.get("advancement_logic") or {},
+            "match_format":               raw.get("match_format") or {},
             "fixtures_completed":         bool(raw.get("fixtures_completed", False)),
             "knockout_stages":            knockout_stages,
             "host_country":               str(raw.get("host_country")      or ""),

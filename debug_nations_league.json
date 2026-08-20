@@ -1,0 +1,2116 @@
+{
+  "page_title": "2026–27 UEFA Nations League",
+  "wiki_url": "https://en.wikipedia.org/wiki/2026%E2%80%9327_UEFA_Nations_League",
+  "sections": [
+    "Format",
+    "UEFA Euro 2028 qualifying",
+    "Tiebreakers",
+    "Tiebreakers for group ranking",
+    "Criteria for league ranking",
+    "Criteria for interim overall ranking",
+    "Criteria for final overall ranking",
+    "Schedule",
+    "Seeding",
+    "League A",
+    "Group A1",
+    "Group A2",
+    "Group A3",
+    "Group A4",
+    "Knockout stage",
+    "Bracket",
+    "Quarter-finals",
+    "Nations League Finals",
+    "Semi-finals",
+    "Third place play-off",
+    "Final",
+    "League B",
+    "Group B1",
+    "Group B2",
+    "Group B3",
+    "Group B4",
+    "League C",
+    "Group C1",
+    "Group C2",
+    "Group C3",
+    "Group C4",
+    "Ranking of fourth-placed teams",
+    "League D",
+    "Group D1",
+    "Group D2",
+    "Promotion/relegation play-offs",
+    "League A vs League B",
+    "League B vs League C",
+    "League C vs League D",
+    "Top goalscorers",
+    "Overall ranking",
+    "Interim overall ranking",
+    "Final overall ranking",
+    "References",
+    "External links"
+  ],
+  "teams_count": 54,
+  "groups_count": 14,
+  "groups": [
+    {
+      "name": "Group A1",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "France",
+          "is_placeholder": false
+        },
+        {
+          "name": "Italy",
+          "is_placeholder": false
+        },
+        {
+          "name": "Belgium",
+          "is_placeholder": false
+        },
+        {
+          "name": "Turkey",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group A2",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Germany",
+          "is_placeholder": false
+        },
+        {
+          "name": "Netherlands",
+          "is_placeholder": false
+        },
+        {
+          "name": "Serbia",
+          "is_placeholder": false
+        },
+        {
+          "name": "Greece",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group A3",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Spain",
+          "is_placeholder": false
+        },
+        {
+          "name": "Croatia",
+          "is_placeholder": false
+        },
+        {
+          "name": "England",
+          "is_placeholder": false
+        },
+        {
+          "name": "Czech Republic",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group A4",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Portugal",
+          "is_placeholder": false
+        },
+        {
+          "name": "Denmark",
+          "is_placeholder": false
+        },
+        {
+          "name": "Norway",
+          "is_placeholder": false
+        },
+        {
+          "name": "Wales",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group B1",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Scotland",
+          "is_placeholder": false
+        },
+        {
+          "name": "Switzerland",
+          "is_placeholder": false
+        },
+        {
+          "name": "Slovenia",
+          "is_placeholder": false
+        },
+        {
+          "name": "North Macedonia",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group B2",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Hungary",
+          "is_placeholder": false
+        },
+        {
+          "name": "Ukraine",
+          "is_placeholder": false
+        },
+        {
+          "name": "Georgia",
+          "is_placeholder": false
+        },
+        {
+          "name": "Northern Ireland",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group B3",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Israel",
+          "is_placeholder": false
+        },
+        {
+          "name": "Austria",
+          "is_placeholder": false
+        },
+        {
+          "name": "Republic of Ireland",
+          "is_placeholder": false
+        },
+        {
+          "name": "Kosovo",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group B4",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Poland",
+          "is_placeholder": false
+        },
+        {
+          "name": "Bosnia and Herzegovina",
+          "is_placeholder": false
+        },
+        {
+          "name": "Romania",
+          "is_placeholder": false
+        },
+        {
+          "name": "Sweden",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group C1",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Albania",
+          "is_placeholder": false
+        },
+        {
+          "name": "Finland",
+          "is_placeholder": false
+        },
+        {
+          "name": "Belarus",
+          "is_placeholder": false
+        },
+        {
+          "name": "San Marino",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group C2",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Montenegro",
+          "is_placeholder": false
+        },
+        {
+          "name": "Armenia",
+          "is_placeholder": false
+        },
+        {
+          "name": "Cyprus",
+          "is_placeholder": false
+        },
+        {
+          "name": "Latvia",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group C3",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Kazakhstan",
+          "is_placeholder": false
+        },
+        {
+          "name": "Slovakia",
+          "is_placeholder": false
+        },
+        {
+          "name": "Faroe Islands",
+          "is_placeholder": false
+        },
+        {
+          "name": "Moldova",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group C4",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Iceland",
+          "is_placeholder": false
+        },
+        {
+          "name": "Bulgaria",
+          "is_placeholder": false
+        },
+        {
+          "name": "Estonia",
+          "is_placeholder": false
+        },
+        {
+          "name": "Luxembourg",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group D1",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Gibraltar",
+          "is_placeholder": false
+        },
+        {
+          "name": "Malta",
+          "is_placeholder": false
+        },
+        {
+          "name": "Andorra",
+          "is_placeholder": false
+        }
+      ]
+    },
+    {
+      "name": "Group D2",
+      "is_second_stage": false,
+      "is_placeholder_group": false,
+      "teams": [
+        {
+          "name": "Lithuania",
+          "is_placeholder": false
+        },
+        {
+          "name": "Azerbaijan",
+          "is_placeholder": false
+        },
+        {
+          "name": "Liechtenstein",
+          "is_placeholder": false
+        }
+      ]
+    }
+  ],
+  "fixtures": [
+    {
+      "home_team": "Winner Match 1",
+      "away_team": "Winner Match 2",
+      "stage_or_group": "Nations League Finals",
+      "date": "13 June 2027",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_1_Footballbox",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "France",
+      "away_team": "Italy",
+      "stage_or_group": "Group A1",
+      "date": "2 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "France",
+      "away_team": "Belgium",
+      "stage_or_group": "Group A1",
+      "date": "5 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "France",
+      "away_team": "Turkey",
+      "stage_or_group": "Group A1",
+      "date": "15 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Italy",
+      "away_team": "France",
+      "stage_or_group": "Group A1",
+      "date": "12 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Italy",
+      "away_team": "Belgium",
+      "stage_or_group": "Group A1",
+      "date": "25 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Italy",
+      "away_team": "Turkey",
+      "stage_or_group": "Group A1",
+      "date": "5 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Belgium",
+      "away_team": "France",
+      "stage_or_group": "Group A1",
+      "date": "28 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Belgium",
+      "away_team": "Italy",
+      "stage_or_group": "Group A1",
+      "date": "15 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Belgium",
+      "away_team": "Turkey",
+      "stage_or_group": "Group A1",
+      "date": "2 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Turkey",
+      "away_team": "France",
+      "stage_or_group": "Group A1",
+      "date": "25 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Turkey",
+      "away_team": "Italy",
+      "stage_or_group": "Group A1",
+      "date": "28 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Turkey",
+      "away_team": "Belgium",
+      "stage_or_group": "Group A1",
+      "date": "12 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Germany",
+      "away_team": "Netherlands",
+      "stage_or_group": "Group A2",
+      "date": "16 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Germany",
+      "away_team": "Serbia",
+      "stage_or_group": "Group A2",
+      "date": "1 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Germany",
+      "away_team": "Greece",
+      "stage_or_group": "Group A2",
+      "date": "27 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Netherlands",
+      "away_team": "Germany",
+      "stage_or_group": "Group A2",
+      "date": "24 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Netherlands",
+      "away_team": "Serbia",
+      "stage_or_group": "Group A2",
+      "date": "4 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Netherlands",
+      "away_team": "Greece",
+      "stage_or_group": "Group A2",
+      "date": "13 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Serbia",
+      "away_team": "Germany",
+      "stage_or_group": "Group A2",
+      "date": "13 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Serbia",
+      "away_team": "Netherlands",
+      "stage_or_group": "Group A2",
+      "date": "27 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Serbia",
+      "away_team": "Greece",
+      "stage_or_group": "Group A2",
+      "date": "24 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Greece",
+      "away_team": "Germany",
+      "stage_or_group": "Group A2",
+      "date": "4 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Greece",
+      "away_team": "Netherlands",
+      "stage_or_group": "Group A2",
+      "date": "1 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Greece",
+      "away_team": "Serbia",
+      "stage_or_group": "Group A2",
+      "date": "16 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Spain",
+      "away_team": "Croatia",
+      "stage_or_group": "Group A3",
+      "date": "29 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Spain",
+      "away_team": "England",
+      "stage_or_group": "Group A3",
+      "date": "15 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Spain",
+      "away_team": "Czech Republic",
+      "stage_or_group": "Group A3",
+      "date": "3 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Croatia",
+      "away_team": "Spain",
+      "stage_or_group": "Group A3",
+      "date": "6 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Croatia",
+      "away_team": "England",
+      "stage_or_group": "Group A3",
+      "date": "3 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Croatia",
+      "away_team": "Czech Republic",
+      "stage_or_group": "Group A3",
+      "date": "15 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "England",
+      "away_team": "Spain",
+      "stage_or_group": "Group A3",
+      "date": "26 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "England",
+      "away_team": "Croatia",
+      "stage_or_group": "Group A3",
+      "date": "12 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "England",
+      "away_team": "Czech Republic",
+      "stage_or_group": "Group A3",
+      "date": "6 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Czech Republic",
+      "away_team": "Spain",
+      "stage_or_group": "Group A3",
+      "date": "12 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Czech Republic",
+      "away_team": "Croatia",
+      "stage_or_group": "Group A3",
+      "date": "26 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Czech Republic",
+      "away_team": "England",
+      "stage_or_group": "Group A3",
+      "date": "29 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Portugal",
+      "away_team": "Denmark",
+      "stage_or_group": "Group A4",
+      "date": "14 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Portugal",
+      "away_team": "Norway",
+      "stage_or_group": "Group A4",
+      "date": "4 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Portugal",
+      "away_team": "Wales",
+      "stage_or_group": "Group A4",
+      "date": "24 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Denmark",
+      "away_team": "Portugal",
+      "stage_or_group": "Group A4",
+      "date": "1 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Denmark",
+      "away_team": "Norway",
+      "stage_or_group": "Group A4",
+      "date": "17 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Denmark",
+      "away_team": "Wales",
+      "stage_or_group": "Group A4",
+      "date": "27 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Norway",
+      "away_team": "Portugal",
+      "stage_or_group": "Group A4",
+      "date": "27 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Norway",
+      "away_team": "Denmark",
+      "stage_or_group": "Group A4",
+      "date": "24 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Norway",
+      "away_team": "Wales",
+      "stage_or_group": "Group A4",
+      "date": "14 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Wales",
+      "away_team": "Portugal",
+      "stage_or_group": "Group A4",
+      "date": "17 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Wales",
+      "away_team": "Denmark",
+      "stage_or_group": "Group A4",
+      "date": "4 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Wales",
+      "away_team": "Norway",
+      "stage_or_group": "Group A4",
+      "date": "1 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Scotland",
+      "away_team": "Switzerland",
+      "stage_or_group": "Group B1",
+      "date": "29 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Scotland",
+      "away_team": "Slovenia",
+      "stage_or_group": "Group B1",
+      "date": "6 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Scotland",
+      "away_team": "North Macedonia",
+      "stage_or_group": "Group B1",
+      "date": "13 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Switzerland",
+      "away_team": "Scotland",
+      "stage_or_group": "Group B1",
+      "date": "16 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Switzerland",
+      "away_team": "Slovenia",
+      "stage_or_group": "Group B1",
+      "date": "3 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Switzerland",
+      "away_team": "North Macedonia",
+      "stage_or_group": "Group B1",
+      "date": "6 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Slovenia",
+      "away_team": "Scotland",
+      "stage_or_group": "Group B1",
+      "date": "26 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Slovenia",
+      "away_team": "Switzerland",
+      "stage_or_group": "Group B1",
+      "date": "13 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Slovenia",
+      "away_team": "North Macedonia",
+      "stage_or_group": "Group B1",
+      "date": "29 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "North Macedonia",
+      "away_team": "Scotland",
+      "stage_or_group": "Group B1",
+      "date": "3 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "North Macedonia",
+      "away_team": "Switzerland",
+      "stage_or_group": "Group B1",
+      "date": "26 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "North Macedonia",
+      "away_team": "Slovenia",
+      "stage_or_group": "Group B1",
+      "date": "16 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Hungary",
+      "away_team": "Ukraine",
+      "stage_or_group": "Group B2",
+      "date": "25 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Hungary",
+      "away_team": "Georgia",
+      "stage_or_group": "Group B2",
+      "date": "2 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Hungary",
+      "away_team": "Northern Ireland",
+      "stage_or_group": "Group B2",
+      "date": "17 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Ukraine",
+      "away_team": "Hungary",
+      "stage_or_group": "Group B2",
+      "date": "5 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Ukraine",
+      "away_team": "Georgia",
+      "stage_or_group": "Group B2",
+      "date": "17 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Ukraine",
+      "away_team": "Northern Ireland",
+      "stage_or_group": "Group B2",
+      "date": "2 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Georgia",
+      "away_team": "Hungary",
+      "stage_or_group": "Group B2",
+      "date": "14 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Georgia",
+      "away_team": "Ukraine",
+      "stage_or_group": "Group B2",
+      "date": "28 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Georgia",
+      "away_team": "Northern Ireland",
+      "stage_or_group": "Group B2",
+      "date": "25 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Northern Ireland",
+      "away_team": "Hungary",
+      "stage_or_group": "Group B2",
+      "date": "28 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Northern Ireland",
+      "away_team": "Ukraine",
+      "stage_or_group": "Group B2",
+      "date": "14 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Northern Ireland",
+      "away_team": "Georgia",
+      "stage_or_group": "Group B2",
+      "date": "5 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Israel",
+      "away_team": "Austria",
+      "stage_or_group": "Group B3",
+      "date": "17 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Israel",
+      "away_team": "Republic of Ireland",
+      "stage_or_group": "Group B3",
+      "date": "27 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Israel",
+      "away_team": "Kosovo",
+      "stage_or_group": "Group B3",
+      "date": "1 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Austria",
+      "away_team": "Israel",
+      "stage_or_group": "Group B3",
+      "date": "24 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Austria",
+      "away_team": "Republic of Ireland",
+      "stage_or_group": "Group B3",
+      "date": "14 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Austria",
+      "away_team": "Kosovo",
+      "stage_or_group": "Group B3",
+      "date": "27 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Republic of Ireland",
+      "away_team": "Israel",
+      "stage_or_group": "Group B3",
+      "date": "4 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Republic of Ireland",
+      "away_team": "Austria",
+      "stage_or_group": "Group B3",
+      "date": "1 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Republic of Ireland",
+      "away_team": "Kosovo",
+      "stage_or_group": "Group B3",
+      "date": "17 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Kosovo",
+      "away_team": "Israel",
+      "stage_or_group": "Group B3",
+      "date": "14 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Kosovo",
+      "away_team": "Austria",
+      "stage_or_group": "Group B3",
+      "date": "4 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Kosovo",
+      "away_team": "Republic of Ireland",
+      "stage_or_group": "Group B3",
+      "date": "24 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Poland",
+      "away_team": "Bosnia and Herzegovina",
+      "stage_or_group": "Group B4",
+      "date": "25 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Poland",
+      "away_team": "Romania",
+      "stage_or_group": "Group B4",
+      "date": "2 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Poland",
+      "away_team": "Sweden",
+      "stage_or_group": "Group B4",
+      "date": "17 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Bosnia and Herzegovina",
+      "away_team": "Poland",
+      "stage_or_group": "Group B4",
+      "date": "5 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Bosnia and Herzegovina",
+      "away_team": "Romania",
+      "stage_or_group": "Group B4",
+      "date": "17 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Bosnia and Herzegovina",
+      "away_team": "Sweden",
+      "stage_or_group": "Group B4",
+      "date": "2 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Romania",
+      "away_team": "Poland",
+      "stage_or_group": "Group B4",
+      "date": "14 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Romania",
+      "away_team": "Bosnia and Herzegovina",
+      "stage_or_group": "Group B4",
+      "date": "28 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Romania",
+      "away_team": "Sweden",
+      "stage_or_group": "Group B4",
+      "date": "5 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Sweden",
+      "away_team": "Poland",
+      "stage_or_group": "Group B4",
+      "date": "28 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Sweden",
+      "away_team": "Bosnia and Herzegovina",
+      "stage_or_group": "Group B4",
+      "date": "14 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Sweden",
+      "away_team": "Romania",
+      "stage_or_group": "Group B4",
+      "date": "25 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Albania",
+      "away_team": "Finland",
+      "stage_or_group": "Group C1",
+      "date": "12 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Albania",
+      "away_team": "Belarus",
+      "stage_or_group": "Group C1",
+      "date": "26 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Albania",
+      "away_team": "San Marino",
+      "stage_or_group": "Group C1",
+      "date": "6 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Finland",
+      "away_team": "Albania",
+      "stage_or_group": "Group C1",
+      "date": "3 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Finland",
+      "away_team": "Belarus",
+      "stage_or_group": "Group C1",
+      "date": "29 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Finland",
+      "away_team": "San Marino",
+      "stage_or_group": "Group C1",
+      "date": "15 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Belarus",
+      "away_team": "Albania",
+      "stage_or_group": "Group C1",
+      "date": "15 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Belarus",
+      "away_team": "Finland",
+      "stage_or_group": "Group C1",
+      "date": "6 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Belarus",
+      "away_team": "San Marino",
+      "stage_or_group": "Group C1",
+      "date": "3 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "San Marino",
+      "away_team": "Albania",
+      "stage_or_group": "Group C1",
+      "date": "29 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "San Marino",
+      "away_team": "Finland",
+      "stage_or_group": "Group C1",
+      "date": "26 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "San Marino",
+      "away_team": "Belarus",
+      "stage_or_group": "Group C1",
+      "date": "12 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Montenegro",
+      "away_team": "Armenia",
+      "stage_or_group": "Group C2",
+      "date": "5 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Montenegro",
+      "away_team": "Cyprus",
+      "stage_or_group": "Group C2",
+      "date": "25 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Montenegro",
+      "away_team": "Latvia",
+      "stage_or_group": "Group C2",
+      "date": "12 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Armenia",
+      "away_team": "Montenegro",
+      "stage_or_group": "Group C2",
+      "date": "28 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Armenia",
+      "away_team": "Cyprus",
+      "stage_or_group": "Group C2",
+      "date": "12 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Armenia",
+      "away_team": "Latvia",
+      "stage_or_group": "Group C2",
+      "date": "25 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Cyprus",
+      "away_team": "Montenegro",
+      "stage_or_group": "Group C2",
+      "date": "15 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Cyprus",
+      "away_team": "Armenia",
+      "stage_or_group": "Group C2",
+      "date": "2 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Cyprus",
+      "away_team": "Latvia",
+      "stage_or_group": "Group C2",
+      "date": "5 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Latvia",
+      "away_team": "Montenegro",
+      "stage_or_group": "Group C2",
+      "date": "2 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Latvia",
+      "away_team": "Armenia",
+      "stage_or_group": "Group C2",
+      "date": "15 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Latvia",
+      "away_team": "Cyprus",
+      "stage_or_group": "Group C2",
+      "date": "28 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Kazakhstan",
+      "away_team": "Slovakia",
+      "stage_or_group": "Group C3",
+      "date": "16 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Kazakhstan",
+      "away_team": "Faroe Islands",
+      "stage_or_group": "Group C3",
+      "date": "6 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Kazakhstan",
+      "away_team": "Moldova",
+      "stage_or_group": "Group C3",
+      "date": "2 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Slovakia",
+      "away_team": "Kazakhstan",
+      "stage_or_group": "Group C3",
+      "date": "29 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Slovakia",
+      "away_team": "Faroe Islands",
+      "stage_or_group": "Group C3",
+      "date": "13 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Slovakia",
+      "away_team": "Moldova",
+      "stage_or_group": "Group C3",
+      "date": "26 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Faroe Islands",
+      "away_team": "Kazakhstan",
+      "stage_or_group": "Group C3",
+      "date": "26 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Faroe Islands",
+      "away_team": "Slovakia",
+      "stage_or_group": "Group C3",
+      "date": "2 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Faroe Islands",
+      "away_team": "Moldova",
+      "stage_or_group": "Group C3",
+      "date": "16 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Moldova",
+      "away_team": "Kazakhstan",
+      "stage_or_group": "Group C3",
+      "date": "13 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Moldova",
+      "away_team": "Slovakia",
+      "stage_or_group": "Group C3",
+      "date": "6 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Moldova",
+      "away_team": "Faroe Islands",
+      "stage_or_group": "Group C3",
+      "date": "29 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Iceland",
+      "away_team": "Bulgaria",
+      "stage_or_group": "Group C4",
+      "date": "3 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Iceland",
+      "away_team": "Estonia",
+      "stage_or_group": "Group C4",
+      "date": "26 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Iceland",
+      "away_team": "Luxembourg",
+      "stage_or_group": "Group C4",
+      "date": "16 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Bulgaria",
+      "away_team": "Iceland",
+      "stage_or_group": "Group C4",
+      "date": "13 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Bulgaria",
+      "away_team": "Estonia",
+      "stage_or_group": "Group C4",
+      "date": "29 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Bulgaria",
+      "away_team": "Luxembourg",
+      "stage_or_group": "Group C4",
+      "date": "26 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Estonia",
+      "away_team": "Iceland",
+      "stage_or_group": "Group C4",
+      "date": "6 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Estonia",
+      "away_team": "Bulgaria",
+      "stage_or_group": "Group C4",
+      "date": "16 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Estonia",
+      "away_team": "Luxembourg",
+      "stage_or_group": "Group C4",
+      "date": "3 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Luxembourg",
+      "away_team": "Iceland",
+      "stage_or_group": "Group C4",
+      "date": "29 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Luxembourg",
+      "away_team": "Bulgaria",
+      "stage_or_group": "Group C4",
+      "date": "6 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Luxembourg",
+      "away_team": "Estonia",
+      "stage_or_group": "Group C4",
+      "date": "13 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Gibraltar",
+      "away_team": "Malta",
+      "stage_or_group": "Group D1",
+      "date": "16 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Gibraltar",
+      "away_team": "Andorra",
+      "stage_or_group": "Group D1",
+      "date": "27 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Malta",
+      "away_team": "Gibraltar",
+      "stage_or_group": "Group D1",
+      "date": "1 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Malta",
+      "away_team": "Andorra",
+      "stage_or_group": "Group D1",
+      "date": "4 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Andorra",
+      "away_team": "Gibraltar",
+      "stage_or_group": "Group D1",
+      "date": "13 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Andorra",
+      "away_team": "Malta",
+      "stage_or_group": "Group D1",
+      "date": "24 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Lithuania",
+      "away_team": "Azerbaijan",
+      "stage_or_group": "Group D2",
+      "date": "27 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Lithuania",
+      "away_team": "Liechtenstein",
+      "stage_or_group": "Group D2",
+      "date": "16 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Azerbaijan",
+      "away_team": "Lithuania",
+      "stage_or_group": "Group D2",
+      "date": "4 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Azerbaijan",
+      "away_team": "Liechtenstein",
+      "stage_or_group": "Group D2",
+      "date": "1 Oct",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Liechtenstein",
+      "away_team": "Lithuania",
+      "stage_or_group": "Group D2",
+      "date": "24 Sep",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    },
+    {
+      "home_team": "Liechtenstein",
+      "away_team": "Azerbaijan",
+      "stage_or_group": "Group D2",
+      "date": "13 Nov",
+      "time": "",
+      "venue": "",
+      "confidence": 0.7,
+      "strategy": "Strategy_5_CrossTable_MatchMatrix",
+      "is_placeholder": false
+    }
+  ],
+  "fixtures_count": 157,
+  "scheduled_matchdays": 7,
+  "fixtures_have_placeholders": false,
+  "draw_completed": true,
+  "draw_date": "",
+  "advancement_rules": "De två eller fyra bästa lagen från varje grupp/pool går vidare till slutspel.",
+  "fixtures_completed": true,
+  "knockout_stages": [
+    "Quarterfinals",
+    "Semifinals",
+    "Final"
+  ],
+  "host_country": "",
+  "tournament_start_date": "2026-09-24",
+  "tournament_end_date": "2026-11-17",
+  "start_date": "2026-09-24",
+  "end_date": "2026-11-17",
+  "logo_url": ""
+}

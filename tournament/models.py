@@ -1309,6 +1309,21 @@ class PoolAdminRequest(models.Model):
         return f"{self.user.get_full_name() or self.user.email} → {self.pool_name} ({self.status})"
 
 
+class OfficialDataSource(models.Model):
+    """
+    Master List of verified domains for sports federations and tournaments.
+    Used by the Dual-Source Scout Orchestrator to verify if an agentic search result
+    is a Tier 1 (official) source.
+    """
+    name = models.CharField(max_length=200, help_text="Federation or Tournament name (e.g. UEFA, FIFA)")
+    domain = models.CharField(max_length=200, unique=True, help_text="Official domain without protocol (e.g. uefa.com)")
+    is_verified = models.BooleanField(default=True, help_text="True if manually whitelisted by an Admin")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.domain})"
+
+
 # --- AI Tournament Scout Models ---
 
 class ScannedTournament(models.Model):
@@ -1344,6 +1359,7 @@ class ScannedTournament(models.Model):
     logo_url = models.URLField(max_length=500, blank=True, help_text="Scouted logotype / emblem image URL")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
     payload = models.JSONField(default=dict, help_text="Complete JSON payload from Gemini Tournament Scout")
+    provenance_metadata = models.JSONField(default=dict, blank=True, help_text="Audit trail of field-level confidence and source URLs")
     converted_tournament = models.ForeignKey(Tournament, on_delete=models.SET_NULL, null=True, blank=True, related_name='scouted_sources')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

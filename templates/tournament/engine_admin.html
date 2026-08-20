@@ -1046,6 +1046,89 @@
                                         <!-- Accordion Expansion Headers -->
                                         <div class="accordion scout-accordion" id="prospectAccordion-{{ item.prospect.id }}">
 
+                                            <!-- Turneringsstruktur & Datapunkter -->
+                                            {% if item.scouting_stage == 'DEEP' %}
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed" type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#collapseStructure-{{ item.prospect.id }}">
+                                                        <i class="fa-solid fa-sitemap text-primary me-2" style="font-size:16px;"></i>
+                                                        <strong style="font-size:16px;">Turneringsstruktur & Datapunkter</strong>
+                                                        <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Regler & Logik</span>
+                                                    </button>
+                                                </h2>
+                                                <div id="collapseStructure-{{ item.prospect.id }}" class="accordion-collapse collapse">
+                                                    <div class="accordion-body px-3 py-3">
+                                                        <div class="row g-3">
+                                                            <!-- Poängsystem & Matchformat -->
+                                                            <div class="col-12 col-md-6">
+                                                                <div class="p-3 rounded-3 h-100" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+                                                                    <div class="fw-bold text-info small mb-2 font-monospace d-flex align-items-center">
+                                                                        <i class="fa-solid fa-calculator me-1.5"></i>Poängsystem & Matchformat
+                                                                    </div>
+                                                                    <ul class="list-unstyled mb-0 text-light font-monospace" style="font-size:0.82rem;">
+                                                                        <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                                                                            <span>Vinst/Oavgjort/Förlust:</span>
+                                                                            <strong class="text-white">
+                                                                                {% if item.points_system and 'win' in item.points_system %}
+                                                                                    {{ item.points_system.win }} / {{ item.points_system.draw }} / {{ item.points_system.loss }}
+                                                                                {% else %}
+                                                                                    Okänt (Ej specificerat)
+                                                                                {% endif %}
+                                                                            </strong>
+                                                                        </li>
+                                                                        <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                                                                            <span>Matchtid:</span>
+                                                                            <strong class="text-white">{% if item.match_format and item.match_format.regular_time_minutes %}{{ item.match_format.regular_time_minutes }} min{% else %}Okänt{% endif %}</strong>
+                                                                        </li>
+                                                                        <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                                                                            <span>Förlängning:</span>
+                                                                            <strong class="text-white">{% if item.match_format and item.match_format.extra_time_minutes %}{{ item.match_format.extra_time_minutes }} min{% else %}Okänt / Nej{% endif %}</strong>
+                                                                        </li>
+                                                                        <li class="py-1 d-flex justify-content-between">
+                                                                            <span>Straffar/Penalties:</span>
+                                                                            <strong class="text-white">{% if item.match_format and item.match_format.has_penalties %}Ja{% else %}Okänt / Nej{% endif %}</strong>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                            <!-- Avancemang & Tiebreakers -->
+                                                            <div class="col-12 col-md-6">
+                                                                <div class="p-3 rounded-3 h-100" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+                                                                    <div class="fw-bold text-warning small mb-2 font-monospace d-flex align-items-center">
+                                                                        <i class="fa-solid fa-list-ol me-1.5"></i>Avancemang & Tiebreakers
+                                                                    </div>
+                                                                    <ul class="list-unstyled mb-0 text-light font-monospace" style="font-size:0.82rem;">
+                                                                        {% if item.advancement_logic %}
+                                                                        <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                                                                            <span>Lag vidare per grupp:</span>
+                                                                            <strong class="text-white">{{ item.advancement_logic.teams_per_group_advancing|default:"-" }}</strong>
+                                                                        </li>
+                                                                        {% if item.advancement_logic.has_best_thirds_table %}
+                                                                        <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                                                                            <span>Bästa treor går vidare:</span>
+                                                                            <strong class="text-white">{{ item.advancement_logic.best_third_placed_advancing|default:"Ja" }}</strong>
+                                                                        </li>
+                                                                        {% endif %}
+                                                                        {% endif %}
+                                                                    </ul>
+                                                                    {% if item.tiebreakers %}
+                                                                    <div class="mt-2 text-secondary" style="font-size:0.75rem;">Tiebreakers:</div>
+                                                                    <ol class="mb-0 text-light font-monospace ps-3" style="font-size:0.8rem;">
+                                                                        {% for tb in item.tiebreakers %}
+                                                                        <li>{{ tb }}</li>
+                                                                        {% endfor %}
+                                                                    </ol>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+
                                             <!-- Groups -->
                                             <div class="accordion-item">
                                                 <h2 class="accordion-header">
@@ -1157,6 +1240,13 @@
                                                 <div id="collapseRules-{{ item.prospect.id }}" class="accordion-collapse collapse">
                                                     <div class="accordion-body p-3">
                                                         {% if item.official_rules %}
+                                                        {% if item.prospect.provenance_metadata.official_rules %}
+                                                            <div class="mb-1 d-flex justify-content-end">
+                                                                <span class="badge {% if item.prospect.provenance_metadata.official_rules.confidence == 'high' %}bg-success{% else %}bg-warning text-dark{% endif %} bg-opacity-75 font-monospace" style="font-size:0.75rem;" title="{{ item.prospect.provenance_metadata.official_rules.url }}">
+                                                                    <i class="fa-solid fa-shield-halved me-1"></i>Källa: {{ item.prospect.provenance_metadata.official_rules.source }} ({{ item.prospect.provenance_metadata.official_rules.confidence }})
+                                                                </span>
+                                                            </div>
+                                                        {% endif %}
                                                         <div class="p-3 rounded-3 mb-2 font-monospace text-light" style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.08);white-space:pre-wrap;font-size:0.85rem;line-height:1.5;max-height:200px;overflow-y:auto;">
                                                             {{ item.official_rules }}
                                                         </div>

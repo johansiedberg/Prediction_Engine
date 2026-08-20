@@ -453,6 +453,10 @@ def engine_admin_dashboard_view(request):
             'official_source_url': p.official_source_url or payload.get('master_event', {}).get('official_source_url') or '',
             'wikipedia_url': wiki_url_val,
             'official_rules': official_rules_val,
+            'points_system': audit.get('points_system', {}),
+            'tiebreakers': audit.get('tiebreakers', []),
+            'advancement_logic': audit.get('advancement_logic', {}),
+            'match_format': audit.get('match_format', {}),
             'draw_done': draw_done,
             'fixtures_done': fixtures_done,
             'readiness': readiness,
@@ -1234,7 +1238,7 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     The caller is responsible for calling prospect.save().
     """
     import datetime
-    from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+    from tournament.services.scout_orchestrator import DualScoutOrchestrator
 
     payload        = prospect.payload or {}
     scouting_audit = payload.get('scouting_audit', {})
@@ -1253,8 +1257,9 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
             'error': f'Kunde inte hitta Wikipedia-artikel för "{prospect.name}". Kontrollera Wikipedia-länken.',
         }
 
-    # Stage 2 – LLM deep audit (falls back to HTML heuristics automatically)
-    audit = LLMWikipediaScout().audit_with_llm(page_title)
+    # Stage 2 – Dual-Source Deep Scan (Web + Wikipedia)
+    known_url = prospect.official_source_url or scouting_audit.get('official_source_url') or ''
+    audit = DualScoutOrchestrator().run_deep_scan(page_title, prospect.master_event_code, known_official_url=known_url)
     if not audit:
         return {
             'ok': False,
@@ -1478,6 +1483,10 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
         'next_rescan_date':    next_rescan_date.isoformat(),
         'advancement_rules':   audit.get('advancement_rules', ''),
         'official_rules':      official_rules_str,
+        'points_system':       audit.get('points_system', {}),
+        'tiebreakers':         audit.get('tiebreakers', []),
+        'advancement_logic':   audit.get('advancement_logic', {}),
+        'match_format':        audit.get('match_format', {}),
         'official_site_audit': official_audit,
         'wikipedia_audit':     audit,
     })
@@ -1530,6 +1539,8 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
     extracted_official_url = audit.get('official_regulations_url') or wikidata.get('official_website_url') or ''
     if extracted_official_url:
         prospect.official_source_url = extracted_official_url
+
+    prospect.provenance_metadata = audit.get('provenance_metadata', {})
 
     if wikidata.get('wikidata_qid'):
         payload['wikidata_qid'] = wikidata['wikidata_qid']

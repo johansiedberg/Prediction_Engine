@@ -20,7 +20,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 ENGINE_ADMIN_PORT = os.getenv('ENGINE_ADMIN_PORT', None)
 
 # Google Gemini API key for LLM-powered Wikipedia deep scan
-# Set via environment variable: export GEMINI_API_KEY=your-key-here
+# Load from .env file if present
+env_path = os.path.join(BASE_DIR, '.env')
+if os.path.exists(env_path):
+    with open(env_path) as f:
+        for line in f:
+            if line.startswith('GEMINI_API_KEY='):
+                os.environ['GEMINI_API_KEY'] = line.strip().split('=', 1)[1]
+
 # If not set, the scout falls back to the HTML heuristic parser.
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 
