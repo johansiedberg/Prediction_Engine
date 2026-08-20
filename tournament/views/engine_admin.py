@@ -590,8 +590,11 @@ def engine_admin_dashboard_view(request):
         'scanned_tournaments': scanned_data,
         'scout_counts': scout_counts,
         'sport_filters': sport_filters,
+        'gemini_key_active': bool(getattr(settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')),
+        'gemini_key_masked': (getattr(settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', ''))[:6] + '...' + (getattr(settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', ''))[-4:] if len(getattr(settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')) >= 10 else '',
     }
     return render(request, 'tournament/engine_admin.html', context)
+
 
 
 
@@ -1717,6 +1720,44 @@ def tournament_sidebet_delete_view(request, tournament_id, sidebet_id):
         'status': 'success',
         'message': f'Sidebet "{q}" raderades.'
     })
+
+
+@superuser_or_staff_required
+@require_POST
+def save_gemini_api_key_view(request):
+    """
+    Saves or updates GEMINI_API_KEY in the project's .env file and live os.environ.
+    Called from Engine Admin Scout UI.
+    """
+    api_key = request.POST.get('gemini_api_key', '').strip()
+    if not api_key:
+        messages.error(request, "Ingen API-nyckel angavs.")
+        return redirect('/admin-engine/#scout-pane')
+
+    os.environ['GEMINI_API_KEY'] = api_key
+    settings.GEMINI_API_KEY = api_key
+
+    # Save to .env file
+    env_path = os.path.join(settings.BASE_DIR, '.env')
+    lines = []
+    found = False
+    if os.path.exists(env_path):
+        with open(env_path, 'r') as f:
+            for line in f:
+                if line.startswith('GEMINI_API_KEY='):
+                    lines.append(f"GEMINI_API_KEY={api_key}\n")
+                    found = True
+                else:
+                    lines.append(line)
+    if not found:
+        lines.append(f"GEMINI_API_KEY={api_key}\n")
+
+    with open(env_path, 'w') as f:
+        f.writelines(lines)
+
+    messages.success(request, "Google Gemini API-nyckel har sparats och aktiverats i Engine Admin!")
+    return redirect('/admin-engine/#scout-pane')
+
 
 
 

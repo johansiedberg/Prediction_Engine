@@ -33,6 +33,8 @@ from tournament.views.engine_admin import (
     scout_deep_scan_one_view,
     scout_update_official_url_view,
     scout_update_official_rules_view,
+    save_gemini_api_key_view,
+
     tournament_points_sidebets_get_view,
 
 

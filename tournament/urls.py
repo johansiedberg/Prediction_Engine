@@ -16,7 +16,8 @@ from .views import (
     scout_import_json_view, scout_import_wikipedia_view, scout_convert_view, scout_update_status_view,
     scout_delete_view, scout_prospect_json_view, scout_scrape_web_view,
     scout_clear_list_view, scout_refresh_all_view, scout_deep_scan_one_view, scout_update_official_url_view,
-    scout_update_official_rules_view,
+    scout_update_official_rules_view, save_gemini_api_key_view,
+
 
 
     # Pool Admin (Port 2028)
@@ -93,6 +94,8 @@ urlpatterns = [
     path('engine-admin/scout/status/<int:prospect_id>/', scout_update_status_view, name='scout_update_status'),
     path('engine-admin/scout/delete/<int:prospect_id>/', scout_delete_view, name='scout_delete'),
     path('engine-admin/scout/prospect/<int:prospect_id>/json/', scout_prospect_json_view, name='scout_prospect_json'),
+    path('engine-admin/scout/save-gemini-key/', save_gemini_api_key_view, name='save_gemini_api_key'),
+
 ]
 
 
