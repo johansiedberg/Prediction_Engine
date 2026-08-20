@@ -1344,11 +1344,6 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout=None, off_verifier=None):
     from tournament.services.modular_deep_scout import ModularDeepScout
     return ModularDeepScout().deep_scan_prospect(prospect)
 
-=======
-    from tournament.services.modular_deep_scout import ModularDeepScout
-    deep_scout = ModularDeepScout()
-    return deep_scout.deep_scan_prospect(prospect)
->>>>>>> 74d9408 (feat: Add multi-channel EmblemScout service & end-to-end PointSystem flow alignment)
 
 
 @superuser_or_staff_required
