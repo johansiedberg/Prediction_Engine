@@ -177,13 +177,13 @@
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <label class="form-label text-white small fw-bold mb-1">Målskillnad (+/- / Diff)</label>
-                                                        <div class="input-group input-group-sm">
-                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_goal_diff', -1)">-</button>
-                                                            <input type="number" id="pts_group_correct_goal_diff" name="group_correct_goal_diff" value="{{ point_system.group_correct_goal_diff }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
-                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('group_correct_goal_diff', 1)">+</button>
-                                                        </div>
-                                                    </div>
+                                                         <label class="form-label text-white small fw-bold mb-1">Målskillnad / Totalt Mål (Diff / Totalt)</label>
+                                                         <div class="input-group input-group-sm">
+                                                             <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('match_correct_total_goals', -1)">-</button>
+                                                             <input type="number" id="pts_match_correct_total_goals" name="match_correct_total_goals" value="{{ point_system.match_correct_total_goals }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                             <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('match_correct_total_goals', 1)">+</button>
+                                                         </div>
+                                                     </div>
                                                 </div>
                                             </div>
 

@@ -21,8 +21,105 @@ from tournament.services.official_regulations_verifier import OfficialRegulation
 logger = logging.getLogger(__name__)
 
 
+def is_real_team_name(name_str: str) -> bool:
+    """
+    Returns True if name_str represents an actual team or country name,
+    and False if it is a placeholder, code, seed, or generic string (e.g. 'A1', 'A1 (1:a Grupp A)', 'Lag 1', 'Total', 'Seed', 'TBD').
+    """
+    if not name_str or not isinstance(name_str, str):
+        return False
+    s = name_str.strip()
+    if not s or len(s) < 2:
+        return False
+
+    lower = s.lower()
+
+    fake_words = {
+        'tbd', 'total', 'lag', 'seed', 'team', 'group', 'grupp', 'winner', 'runner-up',
+        'vinnare', 'tvåa', 'trea', 'fyra', 'speltillfälle', 'match', 'place', 'placeholder',
+        'vinnare grupp', 'runner-up group', 'ru group', 'w group', 'loser', 'förlorare',
+        'lag 1', 'lag 2', 'lag 3', 'lag 4', 'lag 5', 'lag 6', 'team 1', 'team 2', 'team 3', 'team 4',
+        'group a', 'group b', 'group c', 'group d', 'group e', 'group f', 'group g', 'group h',
+        'grupp a', 'grupp b', 'grupp c', 'grupp d', 'grupp e', 'grupp f', 'grupp g', 'grupp h',
+        'seed 1', 'seed 2', 'seed 3', 'seed 4'
+    }
+    if lower in fake_words:
+        return False
+
+    if re.match(r'^(?:group|grupp|lag|team|seed|winner|runner-up|vinnare|tbd|total|match|qf|sf|r16|r32)\s*[\w\d_-]*$', lower):
+        return False
+    if re.match(r'^[A-Z]\d+\b', s):  # e.g. A1, B2, C3, A1 (1:a Grupp A)
+        return False
+    if re.search(r'\(\d+:?[ae]?\s+(?:grupp|group)\s+[A-Z]\)', s, re.IGNORECASE):  # e.g. (1:a Grupp A)
+        return False
+    if re.search(r'\b(?:1st|2nd|3rd|4th|1:a|2:a|3:e|4:e)\s+(?:grupp|group)\b', lower):  # e.g. 1:a Grupp A
+        return False
+    if re.match(r'^(?:W_|RU_|L_|QF_|SF_|R16_|R32_)', s, re.IGNORECASE):
+        return False
+    if re.match(r'^(?:Team|Lag|Seed)\s*\d+$', s, re.IGNORECASE):
+        return False
+
+    return True
+
+
+def has_real_teams(groups: list) -> bool:
+    """
+    Evaluates whether the groups list contains real assigned team names.
+    Returns False if groups are missing, empty, or populated with placeholder codes/names.
+    """
+    if not groups or not isinstance(groups, list) or len(groups) < 2:
+        return False
+
+    total_teams = 0
+    real_teams = 0
+    for g in groups:
+        if not isinstance(g, dict):
+            continue
+        teams = g.get('teams', [])
+        for t in teams:
+            t_name = t.get('name') if isinstance(t, dict) else str(t)
+            total_teams += 1
+            if is_real_team_name(t_name):
+                real_teams += 1
+
+    # Require at least 4 real assigned team names and > 50% real teams across groups
+    return real_teams >= 4 and (real_teams / (total_teams or 1)) > 0.5
+
+
+def resolve_rescan_date_for_prospect(prospect) -> Optional[datetime.date]:
+    """
+    Calculates the next automated rescan date for a WATCHLIST prospect.
+    If an established draw date exists, sets next rescan date to that exact draw date.
+    Otherwise falls back to start date or 7 days from today.
+    """
+    import datetime
+    payload = prospect.payload or {}
+    bp = prospect.tournament_blueprint or payload.get('tournament_blueprint') or {}
+    scouting_audit = payload.get('scouting_audit', {})
+
+    raw_draw_date = (
+        bp.get('draw_date')
+        or scouting_audit.get('draw_date')
+        or payload.get('draw_date')
+    )
+
+    if raw_draw_date:
+        try:
+            from dateutil import parser
+            d_obj = parser.parse(str(raw_draw_date)).date()
+            if d_obj >= datetime.date.today():
+                return d_obj
+        except Exception:
+            pass
+
+    if prospect.start_date:
+        return prospect.start_date
+
+    return datetime.date.today() + datetime.timedelta(days=7)
+
 
 def parse_and_save_scouted_json(payload):
+
     """
     Validates and ingests a JSON payload from Gemini Tournament Scout.
     Returns (scanned_instance, created_boolean, error_string_if_any).
@@ -95,6 +192,23 @@ def parse_and_save_scouted_json(payload):
     if not scanned_obj:
         scanned_obj = ScannedTournament.objects.filter(name=name).first()
 
+    from tournament.services.skeleton_builder import SkeletonBuilder
+
+    bp_dict = payload.get('tournament_blueprint')
+    if not bp_dict:
+        bp_dict = SkeletonBuilder({
+            "tournament_name": name,
+            "sport": sport,
+            "organizer": organizer,
+            "host_country": host_country,
+            "start_date": str(start_date) if start_date else None,
+            "end_date": str(end_date) if end_date else None,
+            "groups_count": len(payload.get('groups', [])) or 4,
+            "groups": payload.get('groups', []),
+            "official_rules_summary": official_rules
+        }).build_skeleton()
+    payload['tournament_blueprint'] = bp_dict
+
     created = False
     if scanned_obj:
         scanned_obj.name = name
@@ -110,6 +224,7 @@ def parse_and_save_scouted_json(payload):
             scanned_obj.official_source_url = official_source_url
         if official_rules:
             scanned_obj.official_rules = official_rules
+        scanned_obj.tournament_blueprint = bp_dict
         scanned_obj.payload = payload
         # Preserve status if existing (e.g. ARCHIVED or WATCHLIST stays preserved on rescans)
         scanned_obj.save()
@@ -126,6 +241,7 @@ def parse_and_save_scouted_json(payload):
             grade_reason=grade_reason,
             official_source_url=official_source_url,
             official_rules=official_rules,
+            tournament_blueprint=bp_dict,
             status='NEW',
             payload=payload
         )
@@ -1004,6 +1120,25 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
     groups_data = payload.get('groups', [])
     fixtures_data = payload.get('fixtures_sample', [])
     knockout_mapping = payload.get('knockout_mapping_sample', [])
+
+    from tournament.services.skeleton_builder import SkeletonBuilder
+    builder = SkeletonBuilder(scanned.tournament_blueprint or payload.get('tournament_blueprint') or {})
+    skeleton = builder.build_skeleton()
+
+    if not groups_data:
+        groups_data = skeleton.get('groups', [])
+    if not knockout_mapping:
+        ko_tree = skeleton.get('knockout_tree', [])
+        knockout_mapping = []
+        for stage_dict in ko_tree:
+            s_name = stage_dict.get('stage_name', '')
+            for m in stage_dict.get('matches', []):
+                knockout_mapping.append({
+                    'stage': s_name,
+                    'home_placeholder': m.get('home_source', ''),
+                    'away_placeholder': m.get('away_source', ''),
+                    'match_code': m.get('match_code', '')
+                })
     sidebets_data = payload.get('sidebets_suggestions', [])
 
     with transaction.atomic():

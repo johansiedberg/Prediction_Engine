@@ -295,10 +295,10 @@ def engine_admin_dashboard_view(request):
         # Compute Unified Status (combining Status + Grade)
         if p.status == 'CONVERTED':
             unified_status = 'CONVERTED'
-        elif p.status == 'WATCHLIST' or p.completeness_grade == 'GRADE_B':
-            unified_status = 'WATCHLIST'
         elif p.status == 'ARCHIVED' or p.completeness_grade == 'GRADE_D':
             unified_status = 'ARCHIVED'
+        elif p.status == 'WATCHLIST':
+            unified_status = 'WATCHLIST'
         elif p.status == 'READY' or p.completeness_grade == 'GRADE_A':
             unified_status = 'READY'
         elif scouting_stage == 'SHALLOW' and p.status == 'NEW':
@@ -403,11 +403,14 @@ def engine_admin_dashboard_view(request):
                     "Turneringen har redan passerat eller avbrutits"
                 ]
 
-        is_grade_a = (p.completeness_grade == 'GRADE_A')
-        draw_done = bool(audit.get('draw_completed', False) or is_grade_a or (groups_count > 0 and teams_count > 0))
-        fixtures_done = bool(audit.get('fixtures_completed', False) or is_grade_a or matches_count > 0)
+        from tournament.services.scout_service import has_real_teams
+        real_teams_ready = has_real_teams(groups)
+
+        is_grade_a = (p.completeness_grade == 'GRADE_A' and real_teams_ready)
+        draw_done = bool((audit.get('draw_completed', False) or is_grade_a or (groups_count > 0 and teams_count > 0)) and real_teams_ready)
+        fixtures_done = bool((audit.get('fixtures_completed', False) or is_grade_a or matches_count > 0) and real_teams_ready)
         scheduled_matchdays = int(audit.get('scheduled_matchdays', 0))
-        fixtures_have_placeholders = bool(audit.get('fixtures_have_placeholders', False))
+        fixtures_have_placeholders = bool(audit.get('fixtures_have_placeholders', False)) or not real_teams_ready
         scouting_stage = audit.get('scouting_stage', 'DEEP')  # Legacy prospects treated as DEEP
 
         readiness = {
@@ -431,8 +434,100 @@ def engine_admin_dashboard_view(request):
             or f"https://en.wikipedia.org/wiki/{urllib.parse.quote((audit.get('wikipedia_title') or p.name).replace(' ', '_'))}"
         )
 
+        TIEBREAKER_LABELS = {
+            'H2H_POINTS': {'label': 'Inbördes Möten (Poäng)', 'icon': 'fa-handshake', 'short': 'Inbördes Poäng'},
+            'H2H_GOAL_DIFFERENCE': {'label': 'Inbördes Målskillnad', 'icon': 'fa-scale-balanced', 'short': 'Inbördes Målskillnad'},
+            'H2H_GOALS_SCORED': {'label': 'Inbördes Gjorda Mål', 'icon': 'fa-futbol', 'short': 'Inbördes Mål'},
+            'OVERALL_GOAL_DIFFERENCE': {'label': 'Total Målskillnad', 'icon': 'fa-chart-simple', 'short': 'Total Målskillnad'},
+            'OVERALL_GOALS_SCORED': {'label': 'Totala Gjorda Mål', 'icon': 'fa-bullseye', 'short': 'Totala Mål'},
+            'DISCIPLINARY_POINTS': {'label': 'Fair Play / Disciplin', 'icon': 'fa-shield-halved', 'short': 'Fair Play'},
+            'COEFFICIENT': {'label': 'Koefficient', 'icon': 'fa-award', 'short': 'Koefficient'},
+            'RANDOM_DRAW': {'label': 'Lottning', 'icon': 'fa-dice', 'short': 'Lottning'},
+        }
+
+        bp = p.tournament_blueprint or payload.get('tournament_blueprint') or {}
+        raw_tb = bp.get('tiebreaker_hierarchy') or ['H2H_POINTS', 'H2H_GOAL_DIFFERENCE', 'OVERALL_GOAL_DIFFERENCE', 'OVERALL_GOALS_SCORED', 'DISCIPLINARY_POINTS', 'RANDOM_DRAW']
+        
+        tiebreakers_display = []
+        for idx, rule_code in enumerate(raw_tb, 1):
+            rule_str = str(rule_code)
+            info = TIEBREAKER_LABELS.get(rule_str, {'label': rule_str, 'icon': 'fa-list-ol', 'short': rule_str})
+            tiebreakers_display.append({
+                'step': idx,
+                'code': rule_str,
+                'label': info['label'],
+                'short': info['short'],
+                'icon': info['icon']
+            })
+
+        def _parse_rules_to_sections(text: str) -> list:
+            if not text or not isinstance(text, str):
+                return []
+            lines = [l.strip() for l in text.strip().split('\n') if l.strip()]
+            sec_list = []
+            cur_title = "Format & Reglemente"
+            cur_items = []
+            for line in lines:
+                if re.match(r'^(?:[#=1-9\.\s]*)(?:Format|Competition|Group|Knockout|Tiebreaker|Advancement|Rules|Regler|Särskiljning|Avancemang|Slutspel)', line, re.IGNORECASE) or line.startswith('###') or line.startswith('=='):
+                    if cur_items:
+                        sec_list.append({'title': cur_title, 'items': cur_items})
+                        cur_items = []
+                    cur_title = re.sub(r'^[#=1-9\.\s]+', '', line).strip().title() or "Reglemente"
+                else:
+                    item_str = re.sub(r'^[\*\-\•\d\.\s]+', '', line).strip()
+                    if item_str:
+                        cur_items.append(item_str)
+            if cur_items:
+                sec_list.append({'title': cur_title, 'items': cur_items})
+            return sec_list
+
+        rules_sections = _parse_rules_to_sections(official_rules_val)
+
+        pts_win = bp.get('points_for_win', 3)
+        pts_draw = bp.get('points_for_draw', 1)
+        pts_loss = bp.get('points_for_loss', 0)
+        yc_thresh = bp.get('yellow_card_suspension_threshold', 2)
+
+        adv_text = (
+            bp.get('qualifying_advancement_summary')
+            or audit.get('advancement_rules')
+            or f"De 2 bästa lagen per grupp ({groups_count} grupper) avancerar direkt till Slutspel."
+        )
+
+        ko_rule_text = (
+            bp.get('knockout_tiebreakers')
+            or "Vid oavgjort i slutspel tillämpas Förlängning (2x15 min) följt av Straffsparksläggning vid oavgjort."
+        )
+
+        rules_grid = {
+            'group_stage': {
+                'points_win': pts_win,
+                'points_draw': pts_draw,
+                'points_loss': pts_loss,
+                'yellow_cards_suspension': f"{yc_thresh} gula kort = 1 match avstängning",
+                'red_card_suspension': "1 rött kort = minst 1 match avstängning",
+            },
+            'group_table': {
+                'tiebreakers': tiebreakers_display
+            },
+            'qualifying': {
+                'groups_count': groups_count,
+                'teams_count': teams_count,
+                'advancement_summary': adv_text,
+                'target_stage': "Slutspel (Knockout Tree)",
+            },
+            'knockout_stage': {
+                'extra_time': "Förlängning (2 x 15 min)",
+                'penalties': "Straffsparksläggning (5 straffar + sudden death)",
+                'summary': ko_rule_text,
+            }
+        }
+
         r_date_obj = p.rescan_date
         rescan_date_str = r_date_obj.strftime('%Y-%m-%d') if r_date_obj else (today + datetime.timedelta(days=7)).strftime('%Y-%m-%d')
+
+        draw_date_val = audit.get('draw_date') or bp.get('draw_date') or payload.get('draw_date') or ''
+        logo_url_val = p.logo_url or payload.get('logo_url') or payload.get('master_event', {}).get('logo_url') or ''
 
         scanned_data.append({
             'prospect': p,
@@ -443,6 +538,7 @@ def engine_admin_dashboard_view(request):
             'matches_count': matches_count,
             'sidebets_count': sidebets_count,
             'sport_icon': icon,
+            'has_real_teams': real_teams_ready,
             'rescan_date_str': rescan_date_str,
             'days_to_start': days_to_start,
             'grade_meta': grade_meta,
@@ -451,13 +547,19 @@ def engine_admin_dashboard_view(request):
             'missing_items': missing_items,
             'action_needed': action_needed,
             'official_source_url': p.official_source_url or payload.get('master_event', {}).get('official_source_url') or '',
+            'logo_url': logo_url_val,
             'wikipedia_url': wiki_url_val,
             'official_rules': official_rules_val,
             'points_system': audit.get('points_system', {}),
             'tiebreakers': audit.get('tiebreakers', []),
             'advancement_logic': audit.get('advancement_logic', {}),
             'match_format': audit.get('match_format', {}),
+            'tiebreakers_display': tiebreakers_display,
+            'rules_sections': rules_sections,
+            'rules_grid': rules_grid,
+
             'draw_done': draw_done,
+            'draw_date': draw_date_val,
             'fixtures_done': fixtures_done,
             'readiness': readiness,
             'scheduled_matchdays': scheduled_matchdays,
@@ -466,6 +568,8 @@ def engine_admin_dashboard_view(request):
             'groups': groups,
             'fixtures': fixtures,
             'knockouts': knockouts,
+
+
             'sidebets': sidebets,
             'raw_json': json.dumps(payload, ensure_ascii=False, indent=2),
         })
@@ -1139,14 +1243,26 @@ def scout_update_status_view(request, prospect_id):
         return JsonResponse({'status': 'error', 'message': f'Ogiltig status "{new_status}".'}, status=400)
 
     prospect.status = new_status
+    if new_status == 'WATCHLIST':
+        from tournament.services.scout_service import resolve_rescan_date_for_prospect
+        res_date = resolve_rescan_date_for_prospect(prospect)
+        if res_date:
+            payload = prospect.payload or {}
+            scouting_audit = payload.get('scouting_audit', {})
+            scouting_audit['next_rescan_date'] = res_date.strftime('%Y-%m-%d')
+            payload['scouting_audit'] = scouting_audit
+            prospect.payload = payload
     prospect.save()
 
     return JsonResponse({
         'status': 'success',
         'message': f'Status för "{prospect.name}" ändrades till {new_status}.',
         'prospect_id': prospect.id,
-        'new_status': prospect.status
+        'new_status': prospect.status,
+        'rescan_date': prospect.rescan_date.strftime('%Y-%m-%d') if prospect.rescan_date else None
     })
+
+
 
 
 @superuser_or_staff_required
@@ -1189,19 +1305,21 @@ def scout_prospect_json_view(request, prospect_id):
 @superuser_or_staff_required
 @require_POST
 def scout_scrape_web_view(request):
-    """Triggers AllSportDB web scanning to discover upcoming tournaments."""
+    """Triggers Phase 1 WebCrawl / Ingestion Agent to discover upcoming tournaments."""
     try:
         custom_query = request.POST.get('query', '').strip()
-        created_cnt, updated_cnt, prospects = scrape_web_for_tournaments(custom_query)
+        from tournament.services.web_crawl_agent import WebCrawlAgent
+        agent = WebCrawlAgent()
+        created_cnt, updated_cnt, prospects = agent.discover_and_ingest(custom_query)
         total_found = len(prospects)
-        
+
         api_key = getattr(settings, 'ALLSPORTDB_API_KEY', '')
         if total_found == 0 and not api_key:
             return JsonResponse({
                 'status': 'error',
                 'message': 'Ingen giltig AllSportDB API-nyckel konfigurerad. Ange ALLSPORTDB_API_KEY i inställningarna eller använd "Importera via Wikipedia".'
             }, status=400)
-            
+
         return JsonResponse({
             'status': 'success',
             'message': f'Webbscanning slutförd! Hittade {total_found} prospekt ({created_cnt} nya, {updated_cnt} uppdaterade).',
@@ -1218,351 +1336,19 @@ def scout_scrape_web_view(request):
         }, status=500)
 
 
-def _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier):
+def _run_deep_scan_on_prospect(prospect, wiki_scout=None, off_verifier=None):
     """
-    Shared Stage 2–4 deep-scan engine.
-
-    Fetches Wikipedia article plaintext and uses Google Gemini Flash (LLM) to
-    semantically extract groups, fixtures, draw dates, and advancement rules
-    without any structure assumptions.  Falls back transparently to the HTML
-    heuristic WikipediaScout if GEMINI_API_KEY is not set or the LLM call fails.
-
-    Also runs OfficialRegulationsVerifier cross-audit (Stage 3) and Multi-Level
-    Grade A/B/C classification (Stage 4).
-
-    Returns a dict with keys:
-        ok (bool), error (str|None), grade, grade_reason,
-        fixtures_count, groups_count, teams_count,
-        draw_completed, draw_date, scheduled_matchdays
-
-    The caller is responsible for calling prospect.save().
+    Shared Stage 2 Deep Scan Engine.
+    Delegates to ModularDeepScout to populate the unified TournamentProspectBlueprint schema.
     """
-    import datetime
-    from tournament.services.scout_orchestrator import DualScoutOrchestrator
+    from tournament.services.modular_deep_scout import ModularDeepScout
+    return ModularDeepScout().deep_scan_prospect(prospect)
 
-    payload        = prospect.payload or {}
-    scouting_audit = payload.get('scouting_audit', {})
-
-    # Resolve Wikipedia page title (wiki_scout used only for title resolution)
-    wiki_url   = scouting_audit.get('wikipedia_url') or prospect.official_source_url or ''
-    page_title = wiki_scout.get_article_title_from_url(wiki_url)
-    if not page_title:
-        page_title = scouting_audit.get('wikipedia_title') or ''
-    if not page_title:
-        page_title = wiki_scout.search_wikipedia_article(prospect.name)
-
-    if not page_title:
-        return {
-            'ok': False,
-            'error': f'Kunde inte hitta Wikipedia-artikel för "{prospect.name}". Kontrollera Wikipedia-länken.',
-        }
-
-    # Stage 2 – Dual-Source Deep Scan (Web + Wikipedia)
-    known_url = prospect.official_source_url or scouting_audit.get('official_source_url') or ''
-    audit = DualScoutOrchestrator().run_deep_scan(page_title, prospect.master_event_code, known_official_url=known_url)
-    if not audit:
-        return {
-            'ok': False,
-            'error': f'Kunde inte läsa Wikipedia-sidan för "{page_title}".',
-        }
-
-    # Disambiguation / Split Tournament Portal Handling (e.g. 2026 FIBA 3x3 U23 World Cup)
-    if audit.get('is_disambiguation') and audit.get('sub_tournaments'):
-        import urllib.parse
-        from tournament.services.scout_service import parse_and_save_scouted_json
-        created_names = []
-        for sub in audit.get('sub_tournaments'):
-            sub_name = sub.get('name') or sub.get('wiki_title')
-            if not sub_name:
-                continue
-            sub_url = sub.get('wiki_url') or f"https://en.wikipedia.org/wiki/{urllib.parse.quote(sub_name.replace(' ', '_'))}"
-            sub_code = sub_name.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
-
-            sub_payload = {
-                "scouting_audit": {
-                    "scan_timestamp": datetime.datetime.now().isoformat(),
-                    "scouting_stage": "SHALLOW",
-                    "completeness_grade": "GRADE_C",
-                    "grade_reason": f"Uppdelad från samlingssida '{prospect.name}'. Klicka 'Djupscanna' för fullständig analys.",
-                    "official_source_url": "",
-                    "wikipedia_url": sub_url,
-                    "wikipedia_title": sub_name,
-                    "is_compatible_sport": True,
-                },
-                "master_event": {
-                    "name": sub_name,
-                    "code": sub_code,
-                    "sport": prospect.sport or "Sports",
-                    "organizer": prospect.organizer or "Wikipedia",
-                    "host_country": prospect.host_country or "",
-                    "official_source_url": "",
-                    "wikipedia_url": sub_url,
-                    "start_date": "",
-                    "end_date": "",
-                },
-                "tournament_config": {
-                    "name": sub_name,
-                    "total_teams": 16,
-                    "knockout_stages": ["Quarterfinals", "Semifinals", "Final"],
-                },
-                "groups": [],
-                "fixtures_sample": [],
-            }
-            sub_obj, _, _ = parse_and_save_scouted_json(sub_payload)
-            if sub_obj:
-                created_names.append(sub_obj.name)
-
-        prospect.completeness_grade = 'GRADE_C'
-        prospect.grade_reason = f"Grad C (Uppdelad): Innehåller {len(created_names)} separata turneringar ({', '.join(created_names)}). Se respektive turneringskort i scout-listan."
-        prospect.save()
-
-        return {
-            'ok': True,
-            'grade': 'GRADE_C',
-            'grade_reason': prospect.grade_reason,
-            'fixtures_count': 0,
-            'groups_count': 0,
-            'teams_count': 0,
-            'draw_completed': False,
-            'draw_date': '',
-            'scheduled_matchdays': 0,
-        }
-
-    today_date = datetime.date.today()
-
-    # Stage 2b - Wikidata Entity Cross-Audit
-    from tournament.services.wikidata_scout import WikidataScout
-    wikidata = WikidataScout.fetch_wikidata_entity(page_title)
-
-    # Extract start and end dates from audit, Wikidata, or existing prospect
-    audit_start_str = audit.get('tournament_start_date') or audit.get('start_date') or wikidata.get('start_date') or ''
-    audit_end_str   = audit.get('tournament_end_date') or audit.get('end_date') or wikidata.get('end_date') or ''
-
-    start_date_obj = None
-    if audit_start_str:
-        try:
-            start_date_obj = datetime.date.fromisoformat(audit_start_str)
-        except Exception:
-            pass
-
-    if not start_date_obj and prospect.start_date:
-        start_date_obj = prospect.start_date
-
-    end_date_obj = None
-    if audit_end_str:
-        try:
-            end_date_obj = datetime.date.fromisoformat(audit_end_str)
-        except Exception:
-            pass
-
-    if not end_date_obj and prospect.end_date:
-        end_date_obj = prospect.end_date
-
-    min_upcoming_date = today_date + datetime.timedelta(days=30)
-
-    # Rejection Rule 1: Tournaments with played match scores or marked as ongoing/finished
-    if audit.get('is_ongoing_or_finished'):
-        prospect_name = prospect.name
-        prospect.delete()
-        return {
-            'ok': False,
-            'error': f"Djupscanning misslyckades: Turneringen '{prospect_name}' är pågående eller avslutad (Spelade matcher/resultat hittades på Wikipedia). Endast framtida turneringar accepteras.",
-        }
-
-    # Rejection Rule 2: Tournaments starting in less than 30 days or in the past (start_date < today + 30 days)
-    if start_date_obj and start_date_obj < min_upcoming_date:
-        prospect_name = prospect.name
-        prospect.delete()
-        return {
-            'ok': False,
-            'error': f"Djupscanning misslyckades: Turneringen '{prospect_name}' är pågående eller startar inom mindre än 30 dagar (Startdatum: {start_date_obj}, tröskel: {min_upcoming_date}). Endast framtida turneringar som startar om minst 30 dagar accepteras.",
-        }
-
-    # Rejection Rule 3: Tournaments already finished (end_date < today)
-    if end_date_obj and end_date_obj < today_date:
-        prospect_name = prospect.name
-        prospect.delete()
-        return {
-            'ok': False,
-            'error': f"Djupscanning misslyckades: Turneringen '{prospect_name}' har redan avslutats (Slutdatum: {end_date_obj}). Endast framtida turneringar accepteras.",
-        }
-
-    # Update prospect dates
-    prospect.start_date = start_date_obj
-    prospect.end_date   = end_date_obj
-
-    payload.setdefault('master_event', {})['start_date'] = str(start_date_obj) if start_date_obj else ""
-    payload.setdefault('master_event', {})['end_date']   = str(end_date_obj) if end_date_obj else ""
-
-    # Stage 3 – Official Regulations cross-audit
-    official_website = (
-        payload.get('master_event', {}).get('official_source_url')
-        or scouting_audit.get('official_source_url')
-        or ''
-    )
-    official_audit = off_verifier.verify_official_regulations(official_website, prospect.name)
-
-    # Stage 4 – Multi-Level Grade Classification: Redo (A), Väntar lottning (B), Ej redo (C), Rejected (Delete)
-    has_full_dates = bool(start_date_obj and end_date_obj)
-    has_start_date = bool(start_date_obj)
-    draw_ok        = bool(audit.get('draw_completed') and audit.get('groups_count', 0) >= 2)
-    fixtures_ok    = bool(audit.get('fixtures_completed') and
-                          (audit.get('fixtures_count', 0) >= 4 or audit.get('scheduled_matchdays', 0) >= 4))
-
-    # Rejection Rule 4: Completely empty unviable prospect (Missing dates AND fixtures AND teams)
-    if not has_start_date and not draw_ok and not fixtures_ok and audit.get('teams_count', 0) == 0:
-        prospect_name = prospect.name
-        prospect.delete()
-        return {
-            'ok': False,
-            'error': f"Djupscanning misslyckades: Turneringen '{prospect_name}' saknar datum, spelschema och lag. Turneringen avvisades.",
-        }
-
-    # Grade A: Redo (100% Ready) - Green
-    if has_full_dates and draw_ok and fixtures_ok:
-        final_grade  = 'GRADE_A'
-        final_reason = (f"Grad A (Redo): Djupskannad från Wikipedia: '{page_title}' "
-                        f"({start_date_obj} – {end_date_obj}, {audit.get('fixtures_count', 0)} matcher, "
-                        f"{audit.get('teams_count', 0)} lag i {audit.get('groups_count', 0)} grupper verifierade).")
-
-    # Grade B: Väntar lottning (Draw pending, with LLM draw date) - Blue
-    elif has_start_date and not draw_ok:
-        final_grade  = 'GRADE_B'
-        draw_date_str = audit.get('draw_date') or ''
-        draw_info = f" (Lottningsdatum: {draw_date_str})" if draw_date_str else " (Lottningsdatum ej angivet)"
-        final_reason = (f"Grad B (Väntar lottning): Turneringen startar {start_date_obj}, men lag/grupper är inte lottade ännu{draw_info}.")
-
-    # Grade C: Ej redo (Missing Fixtures/Dates or structure) - Yellow/Amber
-    else:
-        final_grade  = 'GRADE_C'
-        date_info    = f"Startdatum: {start_date_obj}" if start_date_obj else "Startdatum ej bekräftat ännu"
-        final_reason = f"Grad C (Ej redo): Djupskannad från Wikipedia ('{page_title}'). {date_info}. Saknar spelschema, datum eller turneringsstruktur."
-
-    # Rescan date calculation
-    next_rescan_date = today_date + datetime.timedelta(days=7)
-    draw_date_str    = audit.get('draw_date') or ''
-    if draw_date_str:
-        m_eng     = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', draw_date_str)
-        month_map = {
-            'january':1,'february':2,'march':3,'april':4,'may':5,'june':6,
-            'july':7,'august':8,'september':9,'october':10,'november':11,'december':12
-        }
-        if m_eng and m_eng.group(2).lower() in month_map:
-            try:
-                d_obj = datetime.date(int(m_eng.group(3)), month_map[m_eng.group(2).lower()], int(m_eng.group(1)))
-                if d_obj >= today_date:
-                    next_rescan_date = d_obj + datetime.timedelta(days=7)
-            except Exception:
-                pass
-
-    # Extract & normalise fixtures
-    extracted_fixtures = []
-    for i, fix in enumerate(audit.get('fixtures', []), 1):
-        dt_str = f"{fix.get('date', '')} {fix.get('time', '')}".strip()
-        extracted_fixtures.append({
-            'match_number':   i,
-            'stage_or_group': fix.get('stage_or_group', 'Gruppspel'),
-            'date_time':      dt_str,
-            'home_team':      fix.get('home_team', ''),
-            'away_team':      fix.get('away_team', ''),
-            'venue':          fix.get('venue', ''),
-            'is_placeholder': fix.get('is_placeholder', False),
-        })
-
-    official_rules_str = audit.get('official_rules') or audit.get('advancement_rules') or ''
-
-    # Persist back into payload
-    payload.setdefault('scouting_audit', {}).update({
-        'scouting_stage':      'DEEP',
-        'scan_timestamp':      datetime.datetime.now().isoformat(),
-        'completeness_grade':  final_grade,
-        'grade_reason':        final_reason,
-        'wikipedia_url':       audit.get('wiki_url', wiki_url),
-        'wikipedia_title':     audit.get('page_title', page_title),
-        'draw_date':           draw_date_str,
-        'next_rescan_date':    next_rescan_date.isoformat(),
-        'advancement_rules':   audit.get('advancement_rules', ''),
-        'official_rules':      official_rules_str,
-        'points_system':       audit.get('points_system', {}),
-        'tiebreakers':         audit.get('tiebreakers', []),
-        'advancement_logic':   audit.get('advancement_logic', {}),
-        'match_format':        audit.get('match_format', {}),
-        'official_site_audit': official_audit,
-        'wikipedia_audit':     audit,
-    })
-    if audit.get('groups'):
-        payload['groups'] = audit['groups']
-    payload['fixtures_sample'] = extracted_fixtures
-    if audit.get('knockout_stages'):
-        payload.setdefault('tournament_config', {})['knockout_stages'] = audit['knockout_stages']
-    if audit.get('teams_count'):
-        payload.setdefault('tournament_config', {})['total_teams'] = audit['teams_count']
-    if audit.get('host_country') and not payload.get('master_event', {}).get('host_country'):
-        payload.setdefault('master_event', {})['host_country'] = audit['host_country']
-
-    def is_valid_tournament_logo(url: str) -> bool:
-        if not url or not isinstance(url, str):
-            return False
-        url_lower = url.lower()
-        flag_patterns = [
-            'flag_of', 'flag%20of', 'flag%5fof', 'flag-', 'flag_',
-            'bandeira', 'drapeau', 'bandera', 'flagg',
-            '/flag', 'flag.', 'flag-icon', 'country-flag'
-        ]
-        for pattern in flag_patterns:
-            if pattern in url_lower:
-                return False
-        return True
-
-    extracted_logo_url = audit.get('logo_url') or wikidata.get('logo_url') or ''
-    if extracted_logo_url and is_valid_tournament_logo(extracted_logo_url):
-        prospect.logo_url = extracted_logo_url
-        payload['logo_url'] = extracted_logo_url
-    else:
-        prospect.logo_url = ''
-        payload['logo_url'] = ''
-
-    prospect.payload            = payload
-    prospect.completeness_grade = final_grade
-    prospect.grade_reason       = final_reason
-
-    if final_grade == 'GRADE_A':
-        prospect.status = 'READY'
-    elif final_grade == 'GRADE_B':
-        prospect.status = 'WATCHLIST'
-    else:
-        prospect.status = 'NOT_READY'
-
-    if official_rules_str:
-        prospect.official_rules = official_rules_str
-    
-    extracted_official_url = audit.get('official_regulations_url') or wikidata.get('official_website_url') or ''
-    if extracted_official_url:
-        prospect.official_source_url = extracted_official_url
-
-    prospect.provenance_metadata = audit.get('provenance_metadata', {})
-
-    if wikidata.get('wikidata_qid'):
-        payload['wikidata_qid'] = wikidata['wikidata_qid']
-
-    prospect.save()
-
-    if prospect.converted_tournament:
-        from tournament.services.scout_service import transfer_scouted_logo_to_tournament
-        transfer_scouted_logo_to_tournament(prospect, prospect.converted_tournament)
-
-    return {
-        'ok':                True,
-        'error':             None,
-        'grade':             final_grade,
-        'grade_reason':      final_reason,
-        'fixtures_count':    audit.get('fixtures_count', 0),
-        'groups_count':      audit.get('groups_count', 0),
-        'teams_count':       audit.get('teams_count', 0),
-        'draw_completed':    audit.get('draw_completed', False),
-        'draw_date':         draw_date_str,
-        'scheduled_matchdays': audit.get('scheduled_matchdays', 0),
-    }
+=======
+    from tournament.services.modular_deep_scout import ModularDeepScout
+    deep_scout = ModularDeepScout()
+    return deep_scout.deep_scan_prospect(prospect)
+>>>>>>> 74d9408 (feat: Add multi-channel EmblemScout service & end-to-end PointSystem flow alignment)
 
 
 @superuser_or_staff_required
@@ -1754,6 +1540,9 @@ def scout_refresh_all_view(request):
                 })
                 logger.warning(f"scout_refresh_all: skipped prospect #{prospect.id} '{prospect.name}': {result['error']}")
         except Exception as e:
+            if prospect.status == 'NEW':
+                prospect.status = 'NOT_READY'
+                prospect.save()
             skipped_count += 1
             results.append({'id': prospect.id, 'name': prospect.name, 'ok': False, 'error': str(e)})
             logger.error(f"scout_refresh_all: error on prospect #{prospect.id}: {e}", exc_info=True)

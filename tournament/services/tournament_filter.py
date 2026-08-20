@@ -32,8 +32,9 @@ INDIVIDUAL_NON_H2H_SPORTS = {
 FORMAT_WHITELIST_KEYWORDS = [
     'cup', 'championship', 'world cup', 'euro', 'copa', 'playoff', 'play-off',
     'play-offs', 'finals', 'knockout', 'tournament', 'olympic', 'olympics',
-    'qualifier', 'qualifiers', 'qualification', 'preliminary'
+    'qualifier', 'qualifiers', 'qualification', 'preliminary', 'wfc'
 ]
+
 
 
 FORMAT_BLACKLIST_KEYWORDS = [

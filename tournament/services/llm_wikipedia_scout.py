@@ -22,6 +22,14 @@ import urllib.parse
 import requests
 from django.conf import settings
 
+from tournament.schemas.tournament_blueprint import (
+    TournamentSetup,
+    GroupStructure,
+    KnockoutStructure,
+    KnockoutMatchPlaceholder,
+    TiebreakerRule,
+)
+
 logger = logging.getLogger(__name__)
 
 # ── Prompt sent to Gemini ──────────────────────────────────────────────────────
@@ -308,6 +316,56 @@ class LLMWikipediaScout:
             clean = clean.replace(ent, rep)
         return re.sub(r"\s{2,}", " ", clean).strip()
 
+    def audit_webpage_content(self, url: str, page_title: str = "") -> dict | None:
+        """
+        Fetches an official federation or tournament webpage (e.g. worldaquatics.com, fifa.com, uefa.com)
+        and uses Gemini LLM to extract start/end dates, host country, logo URL, groups, and schedules.
+        """
+        if not url or not url.startswith("http"):
+            return None
+
+        try:
+            from bs4 import BeautifulSoup
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            }
+            resp = requests.get(url, headers=headers, timeout=12, allow_redirects=True)
+            if resp.status_code != 200 or not resp.text:
+                return None
+
+            soup = BeautifulSoup(resp.text, 'html.parser')
+
+            meta_parts = []
+            if page_title:
+                meta_parts.append(f"PAGE TITLE: {page_title}")
+
+            for meta in soup.find_all(['meta', 'title']):
+                name = meta.get('name') or meta.get('property') or 'title'
+                content = meta.get('content') or meta.string or ''
+                if content and any(k in name.lower() for k in ['description', 'title', 'image', 'url', 'og:']):
+                    meta_parts.append(f"{name}: {content}")
+
+            for date_span in soup.find_all(class_=re.compile(r'date', re.I)):
+                d_val = date_span.get('data-date') or date_span.string or ''
+                if d_val:
+                    meta_parts.append(f"EVENT DATE ELEMENT: {d_val}")
+
+            for script in soup(['script', 'style', 'noscript']):
+                script.decompose()
+
+            clean_text = re.sub(r'\s+', ' ', soup.get_text())
+            full_text = "\n".join(meta_parts) + "\n\n=== WEBPAGE CONTENT ===\n" + clean_text[: self.MAX_CHARS]
+
+            raw = self._call_gemini(full_text)
+            if raw and isinstance(raw, dict):
+                return self._normalise(raw, page_title or raw.get('tournament_name') or 'Official Tournament', url)
+
+        except Exception as exc:
+            logger.warning("LLMWikipediaScout: audit_webpage_content error for '%s': %s", url, exc)
+
+        return None
+
     def _call_gemini(self, article_text: str) -> dict | None:
         """Calls Gemini Flash and returns parsed JSON dict, or None on failure."""
         api_key = getattr(settings, "GEMINI_API_KEY", "")
@@ -341,6 +399,7 @@ class LLMWikipediaScout:
         except Exception as exc:
             logger.error("LLMWikipediaScout: Gemini API error: %s", exc)
             return None
+
 
     @staticmethod
     def _clean_team_name(name_str: str) -> str:
@@ -604,7 +663,7 @@ class LLMWikipediaScout:
             first_fix_date = fixtures[0].get("date", "")
             parsed_start = LLMWikipediaScout._parse_date_string(first_fix_date)
 
-        return {
+        norm_dict = {
             "page_title":                 page_title,
             "wiki_url":                   wiki_url,
             "is_disambiguation":          is_disambiguation,
@@ -637,3 +696,75 @@ class LLMWikipediaScout:
             "host_country":               str(raw.get("host_country")      or ""),
             "logo_url":                   str(raw.get("logo_url")          or ""),
         }
+
+        norm_dict["tournament_blueprint"] = LLMWikipediaScout._build_tournament_blueprint(raw, norm_dict)
+        return norm_dict
+
+    @staticmethod
+    def _build_tournament_blueprint(raw: dict, normalised: dict) -> dict:
+        """
+        Builds and validates a TournamentSetup Pydantic model instance from
+        raw LLM output and normalised audit data. Returns a validated dict.
+        """
+        group_models = []
+        for g in normalised.get("groups", []):
+            g_name = g.get("name", "")
+            g_teams = [t.get("name") if isinstance(t, dict) else str(t) for t in g.get("teams", [])]
+            group_models.append(
+                GroupStructure(
+                    name=g_name,
+                    teams_count=len(g_teams),
+                    teams=g_teams,
+                    advancement_description=normalised.get("advancement_rules", "")
+                )
+            )
+
+        raw_ko_stages = normalised.get("knockout_stages") or []
+        ko_models = []
+        for stage in raw_ko_stages:
+            stage_name = str(stage.get("stage_name") if isinstance(stage, dict) else stage)
+            ko_models.append(
+                KnockoutStructure(
+                    stage_name=stage_name,
+                    match_count=stage.get("match_count", 0) if isinstance(stage, dict) else 0,
+                    matches=[],
+                    has_third_place_match=("third" in stage_name.lower() or "3rd" in stage_name.lower())
+                )
+            )
+
+        tiebreakers = [
+            TiebreakerRule.H2H_POINTS,
+            TiebreakerRule.H2H_GOAL_DIFFERENCE,
+            TiebreakerRule.H2H_GOALS_SCORED,
+            TiebreakerRule.OVERALL_GOAL_DIFFERENCE,
+            TiebreakerRule.OVERALL_GOALS_SCORED,
+            TiebreakerRule.DISCIPLINARY_POINTS,
+            TiebreakerRule.RANDOM_DRAW,
+        ]
+        raw_tb = raw.get("tiebreaker_hierarchy") or []
+        if isinstance(raw_tb, list) and raw_tb:
+            parsed_tb = []
+            for item in raw_tb:
+                try:
+                    parsed_tb.append(TiebreakerRule(item))
+                except Exception:
+                    pass
+            if parsed_tb:
+                tiebreakers = parsed_tb
+
+        blueprint = TournamentSetup(
+            tournament_name=normalised.get("page_title") or raw.get("tournament_name") or "",
+            sport=raw.get("sport") or "Football",
+            organizer=raw.get("organizer") or "",
+            host_country=normalised.get("host_country") or raw.get("host_country") or "",
+            start_date=normalised.get("start_date") or None,
+            end_date=normalised.get("end_date") or None,
+            teams_count=normalised.get("teams_count", 0),
+            groups_count=normalised.get("groups_count", 0),
+            groups=group_models,
+            knockout_stages=ko_models,
+            tiebreaker_hierarchy=tiebreakers,
+            official_rules_summary=normalised.get("official_rules") or ""
+        )
+
+        return blueprint.model_dump()

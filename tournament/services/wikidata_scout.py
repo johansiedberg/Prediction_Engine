@@ -1,23 +1,14 @@
 import logging
+import re
 import requests
 import urllib.parse
 from typing import Dict, Any, Optional
 
+
 logger = logging.getLogger(__name__)
 
-def is_valid_tournament_logo(url: str) -> bool:
-    if not url or not isinstance(url, str):
-        return False
-    url_lower = url.lower()
-    flag_patterns = [
-        'flag_of', 'flag%20of', 'flag%5fof', 'flag-', 'flag_',
-        'bandeira', 'drapeau', 'bandera', 'flagg',
-        '/flag', 'flag.', 'flag-icon', 'country-flag'
-    ]
-    for pattern in flag_patterns:
-        if pattern in url_lower:
-            return False
-    return True
+from tournament.services.emblem_scout import is_valid_tournament_logo
+
 
 
 class WikidataScout:
@@ -128,7 +119,18 @@ class WikidataScout:
             result['logo_url'] = _extract_image('P154') or _extract_image('P18')
             result['official_website_url'] = _extract_string('P856')
 
+            # Parent tournament fallback for qualification titles (e.g. 'UEFA Euro 2028 qualifying' -> 'UEFA Euro 2028')
+            if (not result['logo_url'] or not result['official_website_url']) and re.search(r'\b(qualifying|qualification|qualifiers)\b', page_title, re.I):
+                parent_title = re.sub(r'\s*\b(qualifying|qualification|qualifiers)\b.*', '', page_title, flags=re.I).strip()
+                if parent_title and parent_title != page_title:
+                    parent_res = cls.fetch_wikidata_entity(parent_title)
+                    if not result['logo_url'] and parent_res.get('logo_url'):
+                        result['logo_url'] = parent_res['logo_url']
+                    if not result['official_website_url'] and parent_res.get('official_website_url'):
+                        result['official_website_url'] = parent_res['official_website_url']
+
         except Exception as exc:
             logger.warning("WikidataScout: Error fetching entity data for Q-ID '%s': %s", q_id, exc)
 
         return result
+

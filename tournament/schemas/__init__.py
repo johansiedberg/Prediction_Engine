@@ -1,0 +1,3 @@
+"""
+Tournament Pydantic schemas package.
+"""

@@ -261,7 +261,32 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     is_active_in_pool = league.tournaments.filter(id=tournament.id).exists()
 
-    point_system, _ = LeaguePointSystem.objects.get_or_create(league=league)
+    point_system, created = LeaguePointSystem.objects.get_or_create(league=league)
+    if created and hasattr(tournament, 'point_system') and tournament.point_system:
+        t_ps = tournament.point_system
+        point_system.match_correct_1x2 = t_ps.match_correct_1x2
+        point_system.match_correct_goals_per_team = t_ps.match_correct_goals_per_team
+        point_system.match_correct_total_goals = t_ps.match_correct_total_goals
+        point_system.group_correct_placement = t_ps.group_correct_placement
+        point_system.group_correct_points = t_ps.group_correct_points
+        point_system.group_correct_goals_scored = t_ps.group_correct_goals_scored
+        point_system.group_correct_goals_conceded = t_ps.group_correct_goals_conceded
+        point_system.group_correct_goal_diff = t_ps.group_correct_goal_diff
+        point_system.group_team_qualified = t_ps.group_team_qualified
+        point_system.qualifying_table_team_qualified = t_ps.qualifying_table_team_qualified
+        point_system.qualifying_table_exact_rank = t_ps.qualifying_table_exact_rank
+        point_system.qualifying_table_points = t_ps.qualifying_table_points
+        point_system.qualifying_table_goals_scored = t_ps.qualifying_table_goals_scored
+        point_system.qualifying_table_goals_conceded = t_ps.qualifying_table_goals_conceded
+        point_system.qualifying_table_goal_diff = t_ps.qualifying_table_goal_diff
+        point_system.knockout_round_of_32 = t_ps.knockout_round_of_32
+        point_system.knockout_round_of_16 = t_ps.knockout_round_of_16
+        point_system.knockout_quarterfinal = t_ps.knockout_quarterfinal
+        point_system.knockout_semifinal = t_ps.knockout_semifinal
+        point_system.knockout_bronze_match = t_ps.knockout_bronze_match
+        point_system.knockout_final = t_ps.knockout_final
+        point_system.save()
+
     sidebets = Sidebet.objects.filter(tournament=tournament)
     players_data = get_player_progress_matrix(league, tournament)
     enrolled_user_ids = set(tournament.players.values_list('id', flat=True))
@@ -493,6 +518,31 @@ def verify_member_view(request, member_id):
     member.save()
     status_str = "verifierats" if member.is_verified else "av-verifierats"
     messages.success(request, f"Deltagare {member.player.get_full_name() or member.player.email} har {status_str}.")
+    point_system, created = LeaguePointSystem.objects.get_or_create(league=member.league)
+    if created and hasattr(member.league.tournaments.first(), 'point_system') and member.league.tournaments.first().point_system:
+        t_ps = member.league.tournaments.first().point_system
+        point_system.match_correct_1x2 = t_ps.match_correct_1x2
+        point_system.match_correct_goals_per_team = t_ps.match_correct_goals_per_team
+        point_system.match_correct_total_goals = t_ps.match_correct_total_goals
+        point_system.group_correct_placement = t_ps.group_correct_placement
+        point_system.group_correct_points = t_ps.group_correct_points
+        point_system.group_correct_goals_scored = t_ps.group_correct_goals_scored
+        point_system.group_correct_goals_conceded = t_ps.group_correct_goals_conceded
+        point_system.group_correct_goal_diff = t_ps.group_correct_goal_diff
+        point_system.group_team_qualified = t_ps.group_team_qualified
+        point_system.qualifying_table_team_qualified = t_ps.qualifying_table_team_qualified
+        point_system.qualifying_table_exact_rank = t_ps.qualifying_table_exact_rank
+        point_system.qualifying_table_points = t_ps.qualifying_table_points
+        point_system.qualifying_table_goals_scored = t_ps.qualifying_table_goals_scored
+        point_system.qualifying_table_goals_conceded = t_ps.qualifying_table_goals_conceded
+        point_system.qualifying_table_goal_diff = t_ps.qualifying_table_goal_diff
+        point_system.knockout_round_of_32 = t_ps.knockout_round_of_32
+        point_system.knockout_round_of_16 = t_ps.knockout_round_of_16
+        point_system.knockout_quarterfinal = t_ps.knockout_quarterfinal
+        point_system.knockout_semifinal = t_ps.knockout_semifinal
+        point_system.knockout_bronze_match = t_ps.knockout_bronze_match
+        point_system.knockout_final = t_ps.knockout_final
+        point_system.save()
     return redirect('pool_admin_dashboard', league_id=member.league.id)
 
 
@@ -513,13 +563,13 @@ def update_pool_points_view(request, league_id):
     point_system, _ = LeaguePointSystem.objects.get_or_create(league=league)
 
     # Match scoring
-    point_system.match_correct_1x2 = int(request.POST.get('match_correct_1x2', 3))
-    point_system.match_correct_goals_per_team = int(request.POST.get('match_correct_goals_per_team', 3))
-    point_system.match_correct_total_goals = int(request.POST.get('match_correct_total_goals', 1))
+    point_system.match_correct_1x2 = int(request.POST.get('match_correct_1x2', 4))
+    point_system.match_correct_goals_per_team = int(request.POST.get('match_correct_goals_per_team', 2))
+    point_system.match_correct_total_goals = int(request.POST.get('match_correct_total_goals', 2))
 
     # Group scoring
-    point_system.group_correct_placement = int(request.POST.get('group_correct_placement', 2))
-    point_system.group_correct_points = int(request.POST.get('group_correct_points', 1))
+    point_system.group_correct_placement = int(request.POST.get('group_correct_placement', 3))
+    point_system.group_correct_points = int(request.POST.get('group_correct_points', 2))
     point_system.group_correct_goals_scored = int(request.POST.get('group_correct_goals_scored', 1))
     point_system.group_correct_goals_conceded = int(request.POST.get('group_correct_goals_conceded', 1))
     point_system.group_correct_goal_diff = int(request.POST.get('group_correct_goal_diff', 1))
@@ -527,12 +577,19 @@ def update_pool_points_view(request, league_id):
 
     # Qualifying table
     point_system.qualifying_table_team_qualified = int(request.POST.get('qualifying_table_team_qualified', 5))
+    point_system.qualifying_table_exact_rank = int(request.POST.get('qualifying_table_exact_rank', 0))
+    point_system.qualifying_table_points = int(request.POST.get('qualifying_table_points', 0))
+    point_system.qualifying_table_goals_scored = int(request.POST.get('qualifying_table_goals_scored', 0))
+    point_system.qualifying_table_goals_conceded = int(request.POST.get('qualifying_table_goals_conceded', 0))
+    point_system.qualifying_table_goal_diff = int(request.POST.get('qualifying_table_goal_diff', 0))
 
     # Knockout
-    point_system.knockout_round_of_16 = int(request.POST.get('knockout_round_of_16', 3))
-    point_system.knockout_quarterfinal = int(request.POST.get('knockout_quarterfinal', 4))
-    point_system.knockout_semifinal = int(request.POST.get('knockout_semifinal', 5))
-    point_system.knockout_final = int(request.POST.get('knockout_final', 8))
+    point_system.knockout_round_of_32 = int(request.POST.get('knockout_round_of_32', 2))
+    point_system.knockout_round_of_16 = int(request.POST.get('knockout_round_of_16', 4))
+    point_system.knockout_quarterfinal = int(request.POST.get('knockout_quarterfinal', 6))
+    point_system.knockout_semifinal = int(request.POST.get('knockout_semifinal', 8))
+    point_system.knockout_bronze_match = int(request.POST.get('knockout_bronze_match', 10))
+    point_system.knockout_final = int(request.POST.get('knockout_final', 10))
 
     point_system.save()
     messages.success(request, "Poängreglerna har sparats för din pool!")

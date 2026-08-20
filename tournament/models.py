@@ -1360,6 +1360,8 @@ class ScannedTournament(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
     payload = models.JSONField(default=dict, help_text="Complete JSON payload from Gemini Tournament Scout")
     provenance_metadata = models.JSONField(default=dict, blank=True, help_text="Audit trail of field-level confidence and source URLs")
+    tournament_blueprint = models.JSONField(default=dict, blank=True, help_text="Structured tournament blueprint extracted by Gemini LLM")
+
     converted_tournament = models.ForeignKey(Tournament, on_delete=models.SET_NULL, null=True, blank=True, related_name='scouted_sources')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1372,18 +1374,24 @@ class ScannedTournament(models.Model):
     @property
     def rescan_date(self):
         """Returns the next scheduled rescan date as a datetime.date object or None."""
-        audit = (self.payload or {}).get('scouting_audit', {})
-        d_str = audit.get('next_rescan_date') or audit.get('rescan_date')
+        import datetime
+        payload = self.payload or {}
+        audit = payload.get('scouting_audit', {})
+        bp = self.tournament_blueprint or payload.get('tournament_blueprint') or {}
+
+        d_str = audit.get('next_rescan_date') or audit.get('draw_date') or bp.get('draw_date') or audit.get('rescan_date')
         if d_str:
             try:
-                import datetime
-                return datetime.date.fromisoformat(str(d_str)[:10])
+                from dateutil import parser
+                d_obj = parser.parse(str(d_str)).date()
+                if d_obj >= datetime.date.today():
+                    return d_obj
             except Exception:
                 pass
         if self.created_at:
-            import datetime
             return self.created_at.date() + datetime.timedelta(days=7)
         return None
+
 
     def __str__(self):
         return f"[{self.completeness_grade}] {self.name} ({self.status})"

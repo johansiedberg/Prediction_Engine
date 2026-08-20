@@ -1157,5 +1157,356 @@ class LLMWikipediaScoutTestCase(TestCase):
         self.assertTrue(ScannedTournament.objects.filter(name="2026 FIBA 3x3 U23 World Cup – Women's tournament").exists())
 
 
+class DeepscanBlueprintTests(TestCase):
+    """
+    Tests for Deepscan blueprint schemas, Gemini LLM structured outputs, and SkeletonBuilder.
+    """
+
+    def test_tournament_setup_pydantic_validation(self):
+        from tournament.schemas.tournament_blueprint import (
+            TournamentSetup, GroupStructure, KnockoutStructure, TiebreakerRule
+        )
+
+        setup = TournamentSetup(
+            tournament_name="2026 FIFA World Cup",
+            sport="Football",
+            host_country="USA / Canada / Mexico",
+            groups=[
+                GroupStructure(name="Group A", teams_count=4, teams=["USA", "Mexico", "Canada", "Costa Rica"])
+            ],
+            knockout_stages=[
+                KnockoutStructure(stage_name="Quarterfinals", match_count=4)
+            ]
+        )
+        self.assertEqual(setup.tournament_name, "2026 FIFA World Cup")
+        self.assertEqual(setup.sport, "Football")
+        self.assertEqual(len(setup.groups), 1)
+        self.assertEqual(setup.tiebreaker_hierarchy[0], TiebreakerRule.H2H_POINTS)
+
+    def test_llm_scout_blueprint_building(self):
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+        raw_llm = {
+            "tournament_name": "2026 IFF World Floorball Championship",
+            "sport": "Floorball",
+            "host_country": "Sweden",
+            "tiebreaker_hierarchy": ["H2H_POINTS", "OVERALL_GOAL_DIFFERENCE"]
+        }
+        norm = {
+            "page_title": "2026 Men's World Floorball Championship",
+            "host_country": "Sweden",
+            "groups": [
+                {"name": "Group A", "teams": [{"name": "Sweden"}, {"name": "Finland"}]}
+            ],
+            "knockout_stages": ["Semifinals", "Final"],
+            "official_rules": "Standard IFF tiebreaker rules"
+        }
+        bp_dict = LLMWikipediaScout._build_tournament_blueprint(raw_llm, norm)
+        self.assertIn("tournament_name", bp_dict)
+        self.assertEqual(bp_dict["sport"], "Floorball")
+        self.assertEqual(len(bp_dict["groups"]), 1)
+
+    def test_skeleton_builder_group_and_knockout_placeholders(self):
+        from tournament.services.skeleton_builder import SkeletonBuilder
+        bp = {
+            "tournament_name": "2026 Floorball Championship",
+            "sport": "Floorball",
+            "groups_count": 4,
+            "groups": [
+                {"name": "Group A", "teams_count": 4, "teams": ["Sweden", "Finland"]},
+                {"name": "Group B", "teams_count": 4, "teams": ["Czech Republic", "Switzerland"]},
+                {"name": "Group C", "teams_count": 4, "teams": ["Latvia", "Slovakia"]},
+                {"name": "Group D", "teams_count": 4, "teams": ["Norway", "Germany"]},
+            ]
+        }
+        builder = SkeletonBuilder(bp)
+        skeleton = builder.build_skeleton()
+
+        self.assertEqual(len(skeleton["groups"]), 4)
+        # Check team placeholders filled up to count
+        self.assertEqual(len(skeleton["groups"][0]["teams"]), 4)
+        self.assertEqual(skeleton["groups"][0]["teams"][2], "A3")
+
+        # Check knockout bracket tree placeholders
+        tree = skeleton["knockout_tree"]
+        self.assertTrue(len(tree) >= 3)  # QF, SF, Finals
+        qf_stage = tree[0]
+        self.assertEqual(qf_stage["stage_name"], "Quarterfinals")
+        self.assertEqual(qf_stage["matches"][0]["home_source"], "Winner Group A")
+        self.assertEqual(qf_stage["matches"][0]["away_source"], "Runner-up Group B")
+
+    def test_skeleton_builder_12_groups_r32(self):
+        from tournament.services.skeleton_builder import SkeletonBuilder
+        bp = {
+            "tournament_name": "2026 FIFA World Cup",
+            "sport": "Football",
+            "groups_count": 12,
+        }
+        builder = SkeletonBuilder(bp)
+        skeleton = builder.build_skeleton()
+
+        self.assertEqual(len(skeleton["groups"]), 12)
+        tree = skeleton["knockout_tree"]
+        self.assertEqual(tree[0]["stage_name"], "Round of 32")
+        self.assertEqual(tree[0]["match_count"], 16)
+        self.assertEqual(tree[0]["matches"][0]["home_source"], "Winner Group A")
+
+    def test_convert_scanned_to_live_tournament_with_skeleton_fallback(self):
+        from django.contrib.auth import get_user_model
+        from tournament.models import ScannedTournament, Tournament
+        from tournament.services.scout_service import convert_scanned_to_live_tournament
+
+        User = get_user_model()
+        admin = User.objects.create_user(username="admin_test_scout", email="admin@test.com", password="password")
+
+        scanned = ScannedTournament.objects.create(
+            name="2026 Skeleton Fallback Cup",
+            sport="Floorball",
+            payload={}
+        )
+        tourn, err = convert_scanned_to_live_tournament(scanned.id, admin)
+        self.assertIsNotNone(tourn)
+        self.assertIsNone(err)
+        self.assertEqual(tourn.tournament_groups.count(), 4)
+        self.assertTrue(tourn.matches.count() > 0)
+
+    def test_is_real_team_name_and_has_real_teams(self):
+        from tournament.services.scout_service import is_real_team_name, has_real_teams
+
+        # Placeholders / fake names should return False
+        self.assertFalse(is_real_team_name("A1"))
+        self.assertFalse(is_real_team_name("Lag 1"))
+        self.assertFalse(is_real_team_name("Total"))
+        self.assertFalse(is_real_team_name("TBD"))
+        self.assertFalse(is_real_team_name("Seed 1"))
+        self.assertFalse(is_real_team_name("Group A"))
+
+        # Real team names should return True
+        self.assertTrue(is_real_team_name("Sweden"))
+        self.assertTrue(is_real_team_name("Mexico"))
+        self.assertTrue(is_real_team_name("Real Madrid"))
+
+        # Groups with placeholders return False
+        fake_groups = [
+            {"name": "Group A", "teams": [{"name": "A1"}, {"name": "A2"}, {"name": "A3"}, {"name": "A4"}]},
+            {"name": "Group B", "teams": [{"name": "B1"}, {"name": "B2"}, {"name": "B3"}, {"name": "B4"}]},
+        ]
+        self.assertFalse(has_real_teams(fake_groups))
+
+        # Groups with real teams return True
+        real_groups = [
+            {"name": "Group A", "teams": [{"name": "Sweden"}, {"name": "Finland"}, {"name": "Czech Republic"}, {"name": "Switzerland"}]},
+            {"name": "Group B", "teams": [{"name": "Germany"}, {"name": "Norway"}, {"name": "Slovakia"}, {"name": "Latvia"}]},
+        ]
+        self.assertTrue(has_real_teams(real_groups))
+
+    def test_deep_scan_transitions_out_of_new_status(self):
+        from unittest.mock import patch
+        from tournament.models import ScannedTournament
+        from tournament.views.engine_admin import _run_deep_scan_on_prospect
+        from tournament.services.wikipedia_scout import WikipediaScout
+        from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+
+        prospect = ScannedTournament.objects.create(
+            name="Non Existent Cup 9999",
+            status="NEW",
+            payload={}
+        )
+        self.assertEqual(prospect.status, "NEW")
+
+        wiki_scout = WikipediaScout()
+        off_verifier = OfficialRegulationsVerifier()
+
+        with patch.object(wiki_scout, 'get_article_title_from_url', return_value=''):
+            with patch.object(wiki_scout, 'search_wikipedia_article', return_value=''):
+                res = _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier)
+
+        prospect.refresh_from_db()
+        self.assertFalse(res['ok'])
+        self.assertNotEqual(prospect.status, "NEW")
+        self.assertEqual(prospect.status, "NOT_READY")
+        self.assertEqual(prospect.completeness_grade, "GRADE_C")
+
+    def test_unified_tournament_prospect_blueprint_schema(self):
+        """Tests that TournamentProspectBlueprint correctly validates and converts to legacy format."""
+        from tournament.schemas.tournament_prospect_schema import (
+            TournamentProspectBlueprint, ProspectMetadata, ScoutingAudit, GroupProspect, TeamEntry
+        )
+        bp = TournamentProspectBlueprint(
+            metadata=ProspectMetadata(
+                name="Euro 2028 Test",
+                master_event_code="euro-2028-test",
+                sport="Football",
+                organizer="UEFA",
+                host_country="UK & Ireland",
+                start_date="2028-06-09",
+                end_date="2028-07-09",
+            ),
+            groups=[
+                GroupProspect(name="Group A", teams=[TeamEntry(name="England"), TeamEntry(name="Scotland")])
+            ]
+        )
+        self.assertEqual(bp.metadata.name, "Euro 2028 Test")
+        self.assertEqual(len(bp.groups), 1)
+        self.assertEqual(bp.groups[0].teams[0].name, "England")
+
+        legacy = bp.to_legacy_dict()
+        self.assertEqual(legacy['master_event']['name'], "Euro 2028 Test")
+        self.assertEqual(legacy['master_event']['sport'], "Football")
+        self.assertEqual(len(legacy['groups']), 1)
+
+    def test_web_crawl_agent_ingestion(self):
+        """Tests Phase 1 WebCrawlAgent discovers events and sets status to NEW."""
+        import datetime
+        from unittest.mock import patch
+        from tournament.services.web_crawl_agent import WebCrawlAgent
+        from tournament.models import ScannedTournament
+
+        mock_prospect = ScannedTournament.objects.create(
+            name='Test Floorball WFC 2027',
+            sport='Floorball',
+            status='NEW',
+            completeness_grade='GRADE_C',
+            start_date=datetime.date(2027, 12, 1),
+            end_date=datetime.date(2027, 12, 10)
+        )
+        with patch('tournament.services.scout_service.sync_all_scout_prospects', return_value=(1, 0, [mock_prospect])):
+            agent = WebCrawlAgent(min_days_ahead=30)
+            created, updated, prospects = agent.discover_and_ingest()
+
+        self.assertGreaterEqual(created + updated, 1)
+        scanned = ScannedTournament.objects.filter(name='Test Floorball WFC 2027').first()
+        self.assertIsNotNone(scanned)
+        self.assertEqual(scanned.status, 'NEW')
+        self.assertEqual(scanned.completeness_grade, 'GRADE_C')
+
+
+
+
+    def test_modular_deep_scout_execution(self):
+        """Tests Phase 2 ModularDeepScout populates blueprint JSON and calculates grade."""
+        from unittest.mock import patch
+        from tournament.models import ScannedTournament
+        from tournament.services.modular_deep_scout import ModularDeepScout
+
+        prospect = ScannedTournament.objects.create(
+            name="World Cup 2030 Test",
+            sport="Football",
+            status="NEW",
+            payload={}
+        )
+
+        mock_audit = {
+            'page_title': 'World Cup 2030 Test',
+            'tournament_start_date': '2030-06-01',
+            'tournament_end_date': '2030-07-01',
+            'is_ongoing_or_finished': False,
+            'draw_completed': True,
+            'fixtures_completed': True,
+            'groups': [
+                {'name': 'Group A', 'teams': [{'name': 'Spain'}, {'name': 'Portugal'}, {'name': 'Morocco'}, {'name': 'Uruguay'}]},
+                {'name': 'Group B', 'teams': [{'name': 'France'}, {'name': 'Argentina'}, {'name': 'Japan'}, {'name': 'Brazil'}]},
+            ],
+            'fixtures': [
+                {'match_number': 1, 'stage_or_group': 'Group A', 'date_time': '2030-06-01 15:00', 'home_team': 'Spain', 'away_team': 'Portugal'},
+                {'match_number': 2, 'stage_or_group': 'Group A', 'date_time': '2030-06-01 18:00', 'home_team': 'Morocco', 'away_team': 'Uruguay'},
+                {'match_number': 3, 'stage_or_group': 'Group B', 'date_time': '2030-06-02 15:00', 'home_team': 'France', 'away_team': 'Argentina'},
+                {'match_number': 4, 'stage_or_group': 'Group B', 'date_time': '2030-06-02 18:00', 'home_team': 'Japan', 'away_team': 'Brazil'},
+            ]
+        }
+
+        deep_scout = ModularDeepScout()
+        with patch.object(deep_scout.wiki_scout, 'get_article_title_from_url', return_value='World Cup 2030 Test'):
+            with patch.object(deep_scout.llm_scout, 'audit_with_llm', return_value=mock_audit):
+                res = deep_scout.deep_scan_prospect(prospect)
+
+        prospect.refresh_from_db()
+        self.assertTrue(res['ok'])
+        self.assertEqual(prospect.completeness_grade, 'GRADE_A')
+        self.assertEqual(prospect.status, 'READY')
+        self.assertEqual(len(prospect.payload.get('groups', [])), 2)
+
+
+class PointSystemFlowTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from tournament.models import Tournament, PointSystem, League, LeaguePointSystem, Match, MatchPrediction
+
+        User = get_user_model()
+        self.admin_user = User.objects.create_superuser(username="admin", email="admin@test.com", password="password")
+        self.tournament = Tournament.objects.create(name="Test World Cup 2026", admin=self.admin_user)
+
+
+        self.point_system = PointSystem.objects.create(
+            tournament=self.tournament,
+            match_correct_1x2=4,
+            match_correct_goals_per_team=2,
+            match_correct_total_goals=2,
+            group_correct_placement=3,
+            group_correct_points=2,
+            group_correct_goals_scored=1,
+            group_correct_goals_conceded=1,
+            group_correct_goal_diff=1,
+            qualifying_table_team_qualified=5,
+            knockout_round_of_32=2,
+            knockout_round_of_16=4,
+            knockout_quarterfinal=6,
+            knockout_semifinal=8,
+            knockout_bronze_match=10,
+            knockout_final=10,
+        )
+        self.league = League.objects.create(name="Test Super Pool", admin=self.admin_user)
+        self.league.tournaments.add(self.tournament)
+
+    def test_pool_admin_inherits_engine_admin_point_system(self):
+        """Verifies that LeaguePointSystem inherits default points from Tournament PointSystem on creation."""
+        from tournament.models import LeaguePointSystem
+
+        pool_ps, created = LeaguePointSystem.objects.get_or_create(league=self.league)
+        if created and hasattr(self.tournament, 'point_system'):
+            t_ps = self.tournament.point_system
+            pool_ps.match_correct_1x2 = t_ps.match_correct_1x2
+            pool_ps.match_correct_goals_per_team = t_ps.match_correct_goals_per_team
+            pool_ps.match_correct_total_goals = t_ps.match_correct_total_goals
+            pool_ps.group_correct_placement = t_ps.group_correct_placement
+            pool_ps.group_correct_points = t_ps.group_correct_points
+            pool_ps.save()
+
+        self.assertEqual(pool_ps.match_correct_1x2, 4)
+        self.assertEqual(pool_ps.match_correct_goals_per_team, 2)
+        self.assertEqual(pool_ps.match_correct_total_goals, 2)
+        self.assertEqual(pool_ps.group_correct_placement, 3)
+
+    def test_exact_scoreline_prediction_scoring_calculation(self):
+        """Verifies that an exact scoreline prediction (2-1 predict vs 2-1 result) awards 10 max points."""
+        from tournament.models import Match, MatchPrediction
+        from tournament.services.scoring import calc_pred_points_detail
+
+        match = Match.objects.create(
+            tournament=self.tournament,
+            match_number=1,
+            home_goals=2,
+            away_goals=1,
+        )
+        pred = MatchPrediction(
+            match=match,
+            home_goals=2,
+            away_goals=1,
+        )
+
+        detail = calc_pred_points_detail(pred, match, self.point_system)
+        self.assertTrue(detail['exact_score'])
+        self.assertEqual(detail['pts_1x2'], 4)
+        self.assertEqual(detail['pts_home'], 2)
+        self.assertEqual(detail['pts_away'], 2)
+        self.assertEqual(detail['pts_tot_goals'], 2)
+        self.assertEqual(detail['total'], 10)
+
+
+
+
+
+
+
+
 
 
