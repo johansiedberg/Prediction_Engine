@@ -382,11 +382,12 @@ class LLMWikipediaScout:
             }
         }
 
-        models = ['gemini-3.1-flash-lite', 'gemini-3.6-flash', 'gemini-flash-latest']
+        models = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest']
         for m in models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
             try:
                 r = requests.post(url, headers=headers, json=payload, timeout=12)
+
 
 
 
