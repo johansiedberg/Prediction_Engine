@@ -97,8 +97,18 @@ class ModularDeepScout:
         if not page_title:
             page_title = self.wiki_scout.search_wikipedia_article(prospect.name)
 
-        # Automatically discover official site URL if missing or points to Wikipedia
-        if not official_url or 'wikipedia.org' in official_url:
+        audit = None
+        if page_title:
+            audit = self.llm_scout.audit_with_llm(page_title)
+            if audit:
+                active_sources.append(f"LLM Multimodal Audit ({audit.get('source_type', 'Wikipedia')})")
+
+        if not audit and official_url and 'wikipedia.org' not in official_url:
+            audit = self.llm_scout.audit_webpage_content(official_url, prospect.name)
+            if audit:
+                active_sources.append(f"Official Site Parser ({official_url})")
+
+        if not audit and (not official_url or 'wikipedia.org' in official_url):
             from tournament.services.official_site_scout import OfficialSiteScout
             disc_url = OfficialSiteScout.discover_official_site(prospect.name, wikipedia_title=page_title)
             if disc_url:
@@ -108,20 +118,9 @@ class ModularDeepScout:
                 payload.setdefault('scouting_audit', {})['official_source_url'] = official_url
                 prospect.payload = payload
                 prospect.save()
-
-        audit = None
-        # Try auditing official webpage first if provided and not a wikipedia link
-        if official_url and 'wikipedia.org' not in official_url:
-            audit = self.llm_scout.audit_webpage_content(official_url, prospect.name)
-            if audit:
-                active_sources.append(f"Official Site Parser ({official_url})")
-
-        # Fallback to Wikipedia title resolution and audit
-        if not audit:
-            if page_title:
-                audit = self.llm_scout.audit_with_llm(page_title)
+                audit = self.llm_scout.audit_webpage_content(official_url, prospect.name)
                 if audit:
-                    active_sources.append(f"LLM Multimodal Audit ({audit.get('source_type', 'Wikipedia')})")
+                    active_sources.append(f"Official Site Parser ({official_url})")
 
 
         if not audit:

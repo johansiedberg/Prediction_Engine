@@ -370,4 +370,130 @@ footer {
     position: relative !important;
 }
 
+/* ==========================================
+   ICON & EMOJI SPACING UTILITIES (5px-6px MINIMUM GAP)
+   ========================================== */
+.icon-gap {
+    margin-right: 6px !important;
+}
+
+.emoji-gap {
+    margin-right: 6px !important;
+    display: inline-block;
+}
+
+.gap-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px !important;
+}
+
+.flex-gap-sm {
+    gap: 6px !important;
+}
+
+/* ==========================================
+   MONOCHROMATIC TONAL CONTRAST BANNERS & BADGES
+   ========================================== */
+/* Success / Ready (Green) */
+.banner-success {
+    background-color: #052E16 !important; /* Green-950 */
+    border: 1px solid #15803D !important; /* Green-700 */
+    color: #DCFCE7 !important;            /* Green-100 */
+    border-radius: 0.75rem;
+    padding: 0.85rem 1.25rem;
+}
+.banner-success i, .banner-success .banner-icon {
+    color: #DCFCE7 !important;
+    margin-right: 8px;
+}
+
+/* Warning / Pending (Amber) */
+.banner-warning {
+    background-color: #451A03 !important; /* Amber-950 */
+    border: 1px solid #B45309 !important; /* Amber-700 */
+    color: #FEF3C7 !important;            /* Amber-100 */
+    border-radius: 0.75rem;
+    padding: 0.85rem 1.25rem;
+}
+.banner-warning i, .banner-warning .banner-icon {
+    color: #FEF3C7 !important;
+    margin-right: 8px;
+}
+
+/* Danger / Error (Red) */
+.banner-danger {
+    background-color: #450A0A !important; /* Red-950 */
+    border: 1px solid #B91C1C !important; /* Red-700 */
+    color: #FEE2E2 !important;            /* Red-100 */
+    border-radius: 0.75rem;
+    padding: 0.85rem 1.25rem;
+}
+.banner-danger i, .banner-danger .banner-icon {
+    color: #FEE2E2 !important;
+    margin-right: 8px;
+}
+
+/* Info / Active (Blue) */
+.banner-info {
+    background-color: #172554 !important; /* Blue-950 */
+    border: 1px solid #1D4ED8 !important; /* Blue-700 */
+    color: #DBEAFE !important;            /* Blue-100 */
+    border-radius: 0.75rem;
+    padding: 0.85rem 1.25rem;
+}
+.banner-info i, .banner-info .banner-icon {
+    color: #DBEAFE !important;
+    margin-right: 8px;
+}
+
+/* Neutral / Filtered (Slate) */
+.banner-neutral {
+    background-color: #0F172A !important; /* Slate-900 */
+    border: 1px solid #475569 !important; /* Slate-600 */
+    color: #E2E8F0 !important;            /* Slate-200 */
+    border-radius: 0.75rem;
+    padding: 0.85rem 1.25rem;
+}
+.banner-neutral i, .banner-neutral .banner-icon {
+    color: #E2E8F0 !important;
+    margin-right: 8px;
+}
+
+/* High-Contrast Monochromatic Badges */
+.badge-status-a, .badge-mono-success {
+    background-color: #052E16 !important;
+    border: 1px solid #15803D !important;
+    color: #DCFCE7 !important;
+    font-weight: 600;
+}
+
+.badge-status-b, .badge-mono-warning {
+    background-color: #451A03 !important;
+    border: 1px solid #B45309 !important;
+    color: #FEF3C7 !important;
+    font-weight: 600;
+}
+
+.badge-status-c, .badge-mono-neutral {
+    background-color: #0F172A !important;
+    border: 1px solid #475569 !important;
+    color: #E2E8F0 !important;
+    font-weight: 600;
+}
+
+.badge-mono-danger {
+    background-color: #450A0A !important;
+    border: 1px solid #B91C1C !important;
+    color: #FEE2E2 !important;
+    font-weight: 600;
+}
+
+.badge-mono-info {
+    background-color: #172554 !important;
+    border: 1px solid #1D4ED8 !important;
+    color: #DBEAFE !important;
+    font-weight: 600;
+}
+
 

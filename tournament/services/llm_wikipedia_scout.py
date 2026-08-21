@@ -14,6 +14,7 @@ audit_with_llm() transparently falls back to the existing HTML heuristic
 WikipediaScout.audit_tournament_page() so there is zero regression.
 """
 
+import os
 import json
 import logging
 import re
@@ -366,13 +367,13 @@ class LLMWikipediaScout:
 
         return None
 
-    def _call_gemini(self, article_text: str) -> dict | None:
+    def _call_gemini(self, article_text: str, custom_prompt: bool = False) -> dict | None:
         """Calls Gemini Flash REST API and returns parsed JSON dict, or None on failure."""
-        api_key = getattr(settings, "GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
+        api_key = getattr(settings, "GEMINI_API_KEY", "")
         if not api_key:
             return None
 
-        prompt = f"{_SYSTEM_PROMPT}\n\nWikipedia article text:\n\n{article_text[:12000]}"
+        prompt = article_text if custom_prompt else f"{_SYSTEM_PROMPT}\n\nWikipedia article text:\n\n{article_text[:12000]}"
         headers = {'Content-Type': 'application/json'}
         payload = {
             'contents': [{'parts': [{'text': prompt}]}],
@@ -382,7 +383,7 @@ class LLMWikipediaScout:
             }
         }
 
-        models = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest']
+        models = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest']
         for m in models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
             try:

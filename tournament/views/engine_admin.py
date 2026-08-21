@@ -1,3 +1,4 @@
+import os
 import re
 import random
 import json
@@ -32,14 +33,14 @@ from tournament.services.scout_service import (
 
 
 def engine_admin_root_view(request):
-    """Entry point for Port 2029 (Engine Admin). Shows Dashboard if logged in as admin, else Login form."""
-    if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
+    """Entry point for Port 2029 (Engine Admin). Shows Dashboard if logged in as standalone system Engine Admin ('johansiedberg'), else Login form."""
+    if request.user.is_authenticated and request.user.username == 'johansiedberg' and request.user.is_superuser:
         return engine_admin_dashboard_view(request)
     return render(request, 'tournament/engine_admin_login.html')
 
 
 def engine_admin_login_view(request):
-    """Processes login specifically for Port 2029 Engine Admin."""
+    """Processes login specifically for Port 2029 Engine Admin (Restricted strictly to system admin 'johansiedberg')."""
     if request.method == 'POST':
         login_input = request.POST.get('email', '').strip() or request.POST.get('username', '').strip()
         pwd = request.POST.get('password', '').strip()
@@ -48,11 +49,11 @@ def engine_admin_login_view(request):
             user_obj = User.objects.filter(email__iexact=login_input).first()
             if user_obj:
                 user = authenticate(request, username=user_obj.username, password=pwd)
-        if user is not None and (user.is_superuser or user.is_staff):
+        if user is not None and user.username == 'johansiedberg' and user.is_superuser:
             login(request, user)
             return redirect('/')
         else:
-            messages.error(request, "Felaktig e-postadress, lösenord eller saknad Engine Admin-behörighet.")
+            messages.error(request, "Tillgång nekad: Endast det dedikerade Engine Admin-systemkontot har behörighet till Port 2029.")
     return render(request, 'tournament/engine_admin_login.html')
 
 
@@ -590,8 +591,8 @@ def engine_admin_dashboard_view(request):
         'scanned_tournaments': scanned_data,
         'scout_counts': scout_counts,
         'sport_filters': sport_filters,
-        'gemini_key_active': bool(getattr(settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')),
-        'gemini_key_masked': (getattr(settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', ''))[:6] + '...' + (getattr(settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', ''))[-4:] if len(getattr(settings, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')) >= 10 else '',
+        'gemini_key_active': bool(getattr(settings, 'GEMINI_API_KEY', '')),
+        'gemini_key_masked': getattr(settings, 'GEMINI_API_KEY', '')[:6] + '...' + getattr(settings, 'GEMINI_API_KEY', '')[-4:] if len(getattr(settings, 'GEMINI_API_KEY', '')) >= 10 else '',
     }
     return render(request, 'tournament/engine_admin.html', context)
 
@@ -1345,7 +1346,12 @@ def _run_deep_scan_on_prospect(prospect, wiki_scout=None, off_verifier=None):
     Delegates to ModularDeepScout to populate the unified TournamentProspectBlueprint schema.
     """
     from tournament.services.modular_deep_scout import ModularDeepScout
-    return ModularDeepScout().deep_scan_prospect(prospect)
+    scout = ModularDeepScout()
+    if wiki_scout is not None:
+        scout.wiki_scout = wiki_scout
+    if off_verifier is not None:
+        scout.off_verifier = off_verifier
+    return scout.deep_scan_prospect(prospect)
 
 
 

@@ -50,14 +50,14 @@ class CustomLoginView(LoginView):
 def superuser_or_staff_required(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        if not request.user.is_authenticated or not (request.user.is_superuser or request.user.is_staff):
+        if not request.user.is_authenticated or request.user.username != 'johansiedberg' or not request.user.is_superuser:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', ''):
                 from django.http import JsonResponse
-                return JsonResponse({'status': 'error', 'message': 'Sessionen har gått ut. Vänligen logga in på nytt.'}, status=401)
+                return JsonResponse({'status': 'error', 'message': 'Sessionen har gått ut eller saknar Engine Admin-behörighet.'}, status=401)
             if str(request.get_port()) == '2029':
                 from tournament.views.engine_admin import engine_admin_root_view
                 return engine_admin_root_view(request)
-            messages.error(request, "Åtkomst nekad: Endast Engine Admin har behörighet hit.")
+            messages.error(request, "Åtkomst nekad: Endast det dedikerade Engine Admin-systemkontot har behörighet.")
             return redirect('login')
         return view_func(request, *args, **kwargs)
     return _wrapped_view

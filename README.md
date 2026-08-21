@@ -177,4 +177,19 @@ To initialize all user accounts and league configurations:
 * **Communication Language:** Discussion and planning are conducted in **English**.
 * **Code & Comments:** All code, function signatures, and comments are written in **English**.
 * **App Output & UI Text:** User-facing text, labels, badges, and examples are strictly in **Swedish**.
-* **Design & Aesthetics:** Dark mode glassmorphism theme, high-contrast badges, crisp typography, and responsive micro-animations.
+* **Antigravity Agent Permission & Workflow Control Rules:**
+  * **Direct UI/UX Execution**: When the user explicitly requests UI/UX changes, the agent executes them directly without intermediate plan gating.
+  * **Collateral UI/UX Review Gate**: When UI/UX modifications are part of a wider code feature/refactor (not explicitly requested as UI/UX by the user), the agent MUST present a proposed plan detailing the UI changes and await user confirmation before modifying UI files.
+  * **Mandatory Plan Review**: Any prompt requesting a goal or implementation plan requires creating `implementation_plan.md`, setting `request_feedback: true`, and waiting for explicit user approval before execution.
+  * **Autonomous Command Execution**: Once a plan is approved by the user, tool calls and background operations execute autonomously in batched sequences without turn-by-turn permission prompts.
+* **Icon & Emoji Visual Spacing Standard:**
+  * All icons (`<i class="...">`) and emojis (e.g. 🏆, ⚽, ⏱️, ✅, 🛡️) MUST maintain a minimum **5px–6px** visual gap (or two space units / flex gap) from adjacent text elements.
+  * Emojis and icons must NEVER directly touch text characters without explicit padding/margin or space delimiters.
+  * Use utility classes `.icon-gap`, `.emoji-gap`, `me-1.5`, `me-2`, or `d-inline-flex align-items-center gap-2`.
+* **Monochromatic Tonal Contrast & Legibility System:**
+  * All banners, cards, badges, and alert notifications use strict monochromatic tonal contrast token sets for maximum readability (minimum 4.5:1 text WCAG AA contrast ratio).
+  * Status states (Success, Warning, Danger, Info, Neutral) utilize paired background, border, text, and icon tokens in both Light and Dark mode.
+  * Dark mode uses reversed polarity with deep tone surfaces (~10% lightness), mid-dark borders (~35% lightness), and pale tint text/icons (~85–90% lightness) to avoid glare and chromatic aberration.
+  * Multi-modal signaling pairs visual color with explicit status icons and descriptive text labels.
+* **Tab State Persistence Standard:**
+  * Tab navigation states in Engine Admin (`engine_admin.html`) persist in `localStorage` (`engineAdminActiveTab`) and URL hashes, restoring the active tab section seamlessly on page reload.

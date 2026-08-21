@@ -40,14 +40,14 @@
             <!-- Row 1: Logged in as User & Logout Button -->
             <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 mt-1">
                 <div class="header-badge">
-                    <i class="fa-solid fa-user-check me-1"></i>
+                    <i class="fa-solid fa-user-check me-1.5"></i>
                     <span>Inloggad som: <strong>{% if request.user.get_full_name %}{{ request.user.get_full_name }}{% elif request.user.first_name %}{{ request.user.first_name }} {{ request.user.last_name }}{% else %}{{ request.user.email }}{% endif %}</strong></span>
                 </div>
                 <form action="{% url 'logout' %}" method="post" class="d-inline">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-outline-danger btn-sm py-0.5 px-2.5 fw-semibold"
                         style="font-size: 0.75rem;">
-                        <i class="fa-solid fa-right-from-bracket me-1"></i>Logga ut
+                        <i class="fa-solid fa-right-from-bracket me-1.5"></i>Logga ut
                     </button>
                 </form>
             </div>
@@ -58,7 +58,7 @@
                 <div class="dropdown position-relative" style="z-index: 1060;">
                     <button class="btn btn-sm btn-dark border border-secondary border-opacity-30 dropdown-toggle px-4 py-1.5 text-white small fw-bold shadow-sm d-flex align-items-center justify-content-between gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: rgba(15, 23, 42, 0.9); border-radius: 24px; min-width: 280px;">
                         <span class="d-inline-flex align-items-center gap-1.5 text-truncate">
-                            <i class="fa-solid fa-users text-warning me-1"></i>
+                            <i class="fa-solid fa-users text-warning me-1.5"></i>
                             <span class="text-white-50">Tipsgrupp:</span>
                             <strong class="text-warning text-truncate">{{ active_league.name|default:"Välj tipsgrupp" }}</strong>
                         </span>

@@ -26,6 +26,7 @@ def is_valid_tournament_logo(url: str) -> bool:
         'flag_of', 'flag%20of', 'flag%5fof', 'flag-', 'flag_',
         'bandeira', 'drapeau', 'bandera', 'flagg', 'flag.', 'flag-icon', 'country-flag',
         'stadium', 'arena', 'stade', 'venue', 'map_of', 'location_map', 'carte_de',
+        'map.svg', 'map.png', 'map.jpg', 'map.jpeg', '_map', '-map', '%20map', 'associations_map', 'member_associations',
         'trophy', 'pokal', 'trofeo', 'trophe', 'medaille', 'medal',
         'crowd', 'spectators', 'team_photo', 'roster', 'ball', 'pitch',
         'photo-resources', 'photo_resources', 'action-photo', '_vs_', '-vs-', 'vs_', 'vs-',
@@ -59,6 +60,11 @@ class EmblemScout:
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 PredictionEngine/3.0'
     }
 
+    CANONICAL_EMBLEM_MAP = {
+        'uefa nations league': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz2ElJCEQq7n0uWqJZr9G2bzxkSSDVanpAg6pfdZFxAA&s',
+        'concacaf nations league': 'https://commons.wikimedia.org/wiki/Special:FilePath/Concacaf_Nations_League_logo.svg',
+    }
+
     @classmethod
     def discover_official_emblem(cls, tournament_name: str, official_url: Optional[str] = None, wikidata_qid: Optional[str] = None) -> str:
         """
@@ -70,6 +76,13 @@ class EmblemScout:
 
         clean_name = tournament_name.strip()
         logger.info("EmblemScout: Starting official emblem search for '%s'", clean_name)
+
+        # 0. Canonical Emblem Map Fast-Path Override
+        name_lower = clean_name.lower()
+        for key, canonical_url in cls.CANONICAL_EMBLEM_MAP.items():
+            if key in name_lower:
+                logger.info("EmblemScout: Found canonical emblem override for '%s': %s", clean_name, canonical_url)
+                return canonical_url
 
         # 1. Wikidata P154 (Official Emblem) & Parent Entity Fallback
         logo_url = cls._fetch_from_wikidata(clean_name, wikidata_qid)
@@ -101,6 +114,14 @@ class EmblemScout:
         if logo_url and is_valid_tournament_logo(logo_url):
             logger.info("EmblemScout: Resolved emblem via Gemini AI Search: %s", logo_url)
             return logo_url
+
+        # 6. Fallback: Strip season year prefixes (e.g. "2026–27 UEFA Nations League" -> "UEFA Nations League") and retry
+        parent_name = re.sub(r'^\d{4}(?:[–\-]\d{2,4})?\s*', '', clean_name).strip()
+        if parent_name and parent_name != clean_name:
+            logger.info("EmblemScout: Retrying search with parent tournament name '%s'", parent_name)
+            parent_logo = cls.discover_official_emblem(parent_name, official_url, wikidata_qid)
+            if parent_logo:
+                return parent_logo
 
         logger.warning("EmblemScout: No valid emblem logo found for '%s'", clean_name)
         return ""
@@ -210,21 +231,33 @@ class EmblemScout:
     @classmethod
     def _fetch_from_gemini_ai(cls, tournament_name: str, official_url: Optional[str] = None) -> Optional[str]:
         """
-        Uses Gemini LLM to search for the official emblem logo URL.
+        Uses Gemini LLM with a 2-step visual prompt strategy:
+        1. Articulates the visual brand features of the official competition emblem/logo.
+        2. Resolves the exact direct image URL (SVG/PNG/WebP) matching that visual description.
         """
         try:
             from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
             llm_scout = LLMWikipediaScout()
             prompt = (
-                f"Find the direct image URL (SVG/PNG/WebP) for the official competition emblem logo of '{tournament_name}'.\n"
-                f"Official website context: {official_url or 'N/A'}\n"
-                "CRITICAL: Do NOT return country flags, maps, trophies, stadium photos, or player match pictures.\n"
-                "Return ONLY JSON: {\"logo_url\": \"<URL>\"}"
+                "You are an expert sports graphic designer and brand auditor.\n"
+                f"Your task is to identify the official emblem / logotype for '{tournament_name}'.\n"
+                f"Official website context: {official_url or 'N/A'}\n\n"
+                "Step 1: Briefly describe the visual features of the official competition emblem (colors, shapes, icons, text).\n"
+                "Step 2: Provide the direct Wikimedia Commons or official site image URL (SVG, PNG, or WebP) matching this visual description.\n\n"
+                "CRITICAL: Do NOT return geographical maps, national flags, trophies without logo styling, or stadium photos.\n"
+                "Return ONLY valid JSON:\n"
+                "{\n"
+                "  \"emblem_visual_description\": \"<description>\",\n"
+                "  \"logo_url\": \"<direct_image_url>\"\n"
+                "}"
             )
-            audit = llm_scout.audit_with_llm(prompt)
+            audit = llm_scout._call_gemini(prompt, custom_prompt=True)
             if audit and isinstance(audit, dict):
                 logo = audit.get('logo_url')
                 if logo and is_valid_tournament_logo(logo):
+                    desc = audit.get('emblem_visual_description', '')
+                    if desc:
+                        logger.info("EmblemScout Gemini AI Visual Audit for '%s': %s", tournament_name, desc[:120])
                     return logo
 
         except Exception as exc:

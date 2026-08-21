@@ -85,6 +85,8 @@ class Command(BaseCommand):
 
         # Remove superuser/staff status from all other users to ensure strictly ONE global Engine Admin
         User.objects.exclude(pk=admin_user.pk).update(is_staff=False, is_superuser=False)
+        # Ensure Engine Admin account is never enrolled in any player tipping pool
+        LeagueMember.objects.filter(player=admin_user).delete()
         self.stdout.write(self.style.SUCCESS("Enforced isolated Engine Admin 'johansiedberg'."))
 
         # 3. Create default league 'Toarps Herrklubb' with player Johan Siedberg as Pool Admin

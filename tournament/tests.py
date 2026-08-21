@@ -12,7 +12,7 @@ from tournament.editorial_engine.detectors import check_and_trigger_special_edit
 
 class SpecialEditionTestCase(TestCase):
     def setUp(self):
-        self.admin = User.objects.create_superuser('admin', 'admin@test.com', 'password')
+        self.admin = User.objects.create_superuser('johansiedberg', 'admin@test.com', 'password')
         self.user1 = User.objects.create_user('alice', 'alice@test.com', 'password', first_name='Alice', last_name='Smith')
         self.user2 = User.objects.create_user('bob', 'bob@test.com', 'password', first_name='Bob', last_name='Jones')
 
@@ -75,7 +75,7 @@ class SpecialEditionTestCase(TestCase):
 class EngineHubTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('user1', 'u1@test.com', 'password', first_name='John', last_name='Doe')
-        self.admin = User.objects.create_superuser('admin', 'admin@test.com', 'password')
+        self.admin = User.objects.create_superuser('johansiedberg', 'admin@test.com', 'password')
         self.tournament = Tournament.objects.create(name='Test Tournament', admin=self.admin, is_active=True)
         self.league = League.objects.create(name='Test League', admin=self.admin, invite_code='ENGINE8')
 
@@ -95,13 +95,13 @@ class EngineHubTestCase(TestCase):
 
 class EngineAdminTournamentUpdateTestCase(TestCase):
     def setUp(self):
-        self.admin = User.objects.create_superuser('admin_user', 'admin@engine.test', 'adminpass123')
+        self.admin = User.objects.create_superuser('johansiedberg', 'admin@engine.test', 'adminpass123')
         self.staff = User.objects.create_user('staff_user', 'staff@engine.test', 'staffpass123', is_staff=True)
         self.normal_user = User.objects.create_user('player1', 'p1@engine.test', 'playerpass123')
         self.tournament = Tournament.objects.create(name='Original Tournament Name', admin=self.admin)
 
     def test_update_tournament_name_by_admin(self):
-        self.client.login(username='admin_user', password='adminpass123')
+        self.client.login(username='johansiedberg', password='adminpass123')
         response = self.client.post(
             f'/engine-admin/update-tournament/{self.tournament.id}/',
             {'name': 'UEFA Euro 2028 UK & Ireland'},
@@ -116,7 +116,7 @@ class EngineAdminTournamentUpdateTestCase(TestCase):
 
     def test_update_tournament_upload_images(self):
         from django.core.files.uploadedfile import SimpleUploadedFile
-        self.client.login(username='staff_user', password='staffpass123')
+        self.client.login(username='johansiedberg', password='adminpass123')
 
         # 1x1 transparent PNG bytes
         dummy_png = (
@@ -231,7 +231,7 @@ class EmailUserIdentificationTestCase(TestCase):
 class WANHTTPSAccessTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('wan_user', 'wan@test.com', 'password123', first_name='WAN', last_name='Tester')
-        self.admin = User.objects.create_superuser('wan_admin', 'admin@wan.test', 'adminpass123')
+        self.admin = User.objects.create_superuser('johansiedberg', 'admin@wan.test', 'adminpass123')
 
     def test_player_app_wan_https_access(self):
         self.client.login(username='wan_user', password='password123')
@@ -244,7 +244,7 @@ class WANHTTPSAccessTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_engine_admin_wan_https_access(self):
-        self.client.login(username='wan_admin', password='adminpass123')
+        self.client.login(username='johansiedberg', password='adminpass123')
         response = self.client.get(
             '/engine-admin/',
             HTTP_HOST='217.31.171.173:2029',
@@ -253,7 +253,7 @@ class WANHTTPSAccessTestCase(TestCase):
         )
 class ScoutServiceTestCase(TestCase):
     def setUp(self):
-        self.admin = User.objects.create_superuser('scout_admin', 'scout@admin.test', 'scoutpass123')
+        self.admin = User.objects.create_superuser('johansiedberg', 'scout@admin.test', 'scoutpass123')
 
     @patch('tournament.services.allsportdb_client.requests.get')
     def test_scrape_web_for_tournaments(self, mock_get):
@@ -659,7 +659,7 @@ class OfficialRegulationsVerifierTestCase(TestCase):
 
     @patch('tournament.services.wikipedia_scout.requests.get')
     def test_scout_import_wikipedia_view(self, mock_get):
-        admin = User.objects.create_superuser('wiki_admin', 'wiki@admin.test', 'wikipass123')
+        admin = User.objects.create_superuser('johansiedberg', 'wiki@admin.test', 'wikipass123')
         self.client.force_login(admin)
 
         mock_resp = MagicMock()
@@ -687,7 +687,7 @@ class OfficialRegulationsVerifierTestCase(TestCase):
     def test_scout_deep_scan_one_view(self, mock_get):
         import datetime
         from tournament.models import ScannedTournament
-        admin = User.objects.create_superuser('deep_admin', 'deep@admin.test', 'deeppass123')
+        admin = User.objects.create_superuser('johansiedberg', 'deep@admin.test', 'deeppass123')
         self.client.force_login(admin)
 
         prospect = ScannedTournament.objects.create(
@@ -736,7 +736,7 @@ class OfficialRegulationsVerifierTestCase(TestCase):
     @patch('tournament.services.official_regulations_verifier.requests.get')
     def test_scout_update_official_url_view(self, mock_get):
         from tournament.models import ScannedTournament
-        admin = User.objects.create_superuser('url_admin', 'url@admin.test', 'urlpass123')
+        admin = User.objects.create_superuser('johansiedberg', 'url@admin.test', 'urlpass123')
         self.client.force_login(admin)
 
         prospect = ScannedTournament.objects.create(
@@ -1432,7 +1432,7 @@ class PointSystemFlowTests(TestCase):
         from tournament.models import Tournament, PointSystem, League, LeaguePointSystem, Match, MatchPrediction
 
         User = get_user_model()
-        self.admin_user = User.objects.create_superuser(username="admin", email="admin@test.com", password="password")
+        self.admin_user = User.objects.create_superuser(username="johansiedberg", email="admin@test.com", password="password")
         self.tournament = Tournament.objects.create(name="Test World Cup 2026", admin=self.admin_user)
 
 

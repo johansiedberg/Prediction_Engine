@@ -16,14 +16,21 @@ class LLMWebScout:
         if api_key:
             genai.configure(api_key=api_key)
         # Initialize model with Google Search Grounding enabled
-        try:
-            self.model = genai.GenerativeModel(
-                'gemini-1.5-pro',
-                tools='google_search_retrieval'
-            )
-        except Exception:
-            # Fallback if tools string is invalid in current SDK version
-            self.model = genai.GenerativeModel('gemini-1.5-pro')
+        # Try models in order of available quota (Flash-Lite has 500 RPD)
+        target_models = ['gemini-3.1-flash-lite', 'gemini-2.5-flash', 'gemini-3.6-flash']
+        self.model = None
+        for m in target_models:
+            try:
+                self.model = genai.GenerativeModel(m, tools='google_search_retrieval')
+                break
+            except Exception:
+                try:
+                    self.model = genai.GenerativeModel(m)
+                    break
+                except Exception:
+                    continue
+        if self.model is None:
+            self.model = genai.GenerativeModel('gemini-3.1-flash-lite')
 
     def search_official_rules(self, tournament_name: str, whitelisted_domains: list) -> dict:
         """
