@@ -685,7 +685,7 @@
             <!-- Unified Scout Header & Filter Frame (Flush with top header navbar) -->
             <div class="card text-white mb-4 shadow-sm" style="background: linear-gradient(135deg, #0f172a 0%, #000000 100%) !important; margin: 0 -0.75rem 1.5rem -0.75rem; border: none; border-bottom: 2px solid #334155 !important; border-radius: 0 0 16px 16px;">
                 <div class="card-body p-4">
-                    <!-- Top Row: Section Title & Gemini API Key Controller -->
+                    <!-- Top Row: Section Title -->
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pb-3 mb-3 border-bottom border-secondary border-opacity-20">
                         <div>
                             <div class="d-flex align-items-center gap-2 mb-1">
@@ -695,26 +695,6 @@
                             </div>
                             <h3 class="fw-extrabold mb-0 text-white">Scannade Turneringar &amp; Prospekt</h3>
                         </div>
-
-                        <!-- Gemini API Key Status & Input Card -->
-                        <form method="post" action="{% url 'save_gemini_api_key' %}" class="d-flex align-items-center flex-wrap gap-2">
-                            {% csrf_token %}
-                            {% if gemini_key_active %}
-                            <span class="badge px-3 py-2 font-monospace" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;font-size:0.78rem;" title="Google Gemini LLM Deep Scan is Active">
-                                <i class="fa-solid fa-circle-check text-success me-1.5"></i>Gemini AI: {{ gemini_key_masked }}
-                            </span>
-                            {% else %}
-                            <span class="badge px-3 py-2 font-monospace" style="background:#451A03;border:1px solid #B45309;color:#FEF3C7;font-size:0.78rem;" title="Gemini API-nyckel saknas. Klistra in API-nyckel nedan för att aktivera Google AI Deep Scan.">
-                                <i class="fa-solid fa-triangle-exclamation text-warning me-1.5"></i>Gemini AI: Ej Konfigurerad
-                            </span>
-                            {% endif %}
-                            <div class="input-group input-group-sm" style="width: 290px;">
-                                <input type="password" name="gemini_api_key" class="form-control form-control-sm font-monospace" placeholder="Klistra in Gemini API Key (AIzaSy...)" style="background:#0F172A;border:1px solid #334155;color:#FFFFFF;font-size:0.75rem;">
-                                <button type="submit" class="btn btn-sm btn-primary fw-bold" style="font-size:0.75rem;background:#2563eb;border:none;">
-                                    <i class="fa-solid fa-key me-1"></i>Spara Nyckel
-                                </button>
-                            </div>
-                        </form>
                     </div>
 
 
@@ -1093,12 +1073,12 @@
                                                             data-bs-toggle="collapse"
                                                             data-bs-target="#collapseStructure-{{ item.prospect.id }}">
                                                         <i class="fa-solid fa-sitemap text-primary me-2" style="font-size:16px;"></i>
-                                                        <strong style="font-size:16px;">Turneringsstruktur & Datapunkter</strong>
+                                                        <strong style="font-size:16px;">Turneringsstruktur &amp; Datapunkter</strong>
                                                         {% if item.scouting_stage == 'DEEP' %}
-                                                            <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Regler & Logik</span>
+                                                            <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Regler &amp; Logik</span>
                                                         {% endif %}
                                                         {% if item.official_rules or item.official_source_url %}
-                                                            <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Föreskrifter verifierade"></i>
+                                                            <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Regler &amp; Logik verifierade"></i>
                                                         {% endif %}
                                                     </button>
                                                 </h2>
@@ -1227,10 +1207,10 @@
                                                         {% if item.scouting_stage == 'DEEP' %}
                                                             {% if item.groups_count > 0 and item.teams_count > 0 and item.has_real_teams %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag</span>
-                                                                <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Grupper &amp; Reella lag genomförda"></i>
+                                                                <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Grupper &amp; Reella lag klara"></i>
                                                             {% elif item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottning: {{ item.draw_date }}</span>
-                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Väntar lottning av reella lag (Lottningsdatum: {{ item.draw_date }})"></i>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottas {{ item.draw_date }}</span>
+                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Lottas {{ item.draw_date }}"></i>
                                                             {% elif item.groups_count > 0 and item.teams_count > 0 %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag (Platshållare)</span>
                                                                 <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Väntar lottning av reella lag (Platshållare)"></i>
@@ -1240,9 +1220,7 @@
                                                             {% endif %}
                                                         {% else %}
                                                             {% if item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottning: {{ item.draw_date }}</span>
-                                                            {% else %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Datum för lottning saknas</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottas {{ item.draw_date }}</span>
                                                             {% endif %}
                                                         {% endif %}
                                                     </button>
@@ -1287,22 +1265,22 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Fixtures -->
+                                            <!-- Matcher & Slutspel -->
                                             <div class="accordion-item">
                                                 <h2 class="accordion-header">
                                                     <button class="accordion-button collapsed" type="button"
                                                             data-bs-toggle="collapse"
                                                             data-bs-target="#collapseFixtures-{{ item.prospect.id }}">
                                                         <i class="fa-solid fa-calendar-days me-2 text-info" style="font-size:16px;"></i>
-                                                        <strong style="font-size:16px;">Spelschema &amp; Slutspel</strong>
+                                                        <strong style="font-size:16px;">Matcher &amp; Slutspel</strong>
                                                         
                                                         {% if item.scouting_stage == 'DEEP' %}
                                                             {% if item.matches_count > 0 and item.fixtures_done and item.has_real_teams %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher</span>
                                                                 <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställt"></i>
                                                             {% elif item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottning: {{ item.draw_date }}</span>
-                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställs vid lottningen {{ item.draw_date }}"></i>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottas {{ item.draw_date }}</span>
+                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Lottas {{ item.draw_date }}"></i>
                                                             {% elif item.matches_count > 0 %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher (Preliminärt)</span>
                                                                 <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema ej slutfört"></i>
@@ -1312,9 +1290,7 @@
                                                             {% endif %}
                                                         {% else %}
                                                             {% if item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottning: {{ item.draw_date }}</span>
-                                                            {% else %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Spelschema ej fastställt</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottas {{ item.draw_date }}</span>
                                                             {% endif %}
                                                         {% endif %}
                                                     </button>
@@ -1432,7 +1408,7 @@
                         <i class="fa-solid fa-scroll fs-4"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-extrabold text-white mb-0" id="editOfficialRulesModalLabel">Officiella Föreskrifter &amp; Reglemente</h5>
+                        <h5 class="modal-title fw-extrabold text-white mb-0" id="editOfficialRulesModalLabel">Redigera Regler &amp; Datapunkter</h5>
                         <span class="text-secondary small" id="editOfficialRulesProspectName">Turnering</span>
                     </div>
                 </div>
@@ -1443,15 +1419,15 @@
                 <input type="hidden" id="editRulesProspectId">
                 <div class="mb-3">
                     <label for="editRulesTextInput" class="form-label text-info small font-monospace fw-bold text-uppercase mb-1">
-                        Officiella Regler, Tiebreakers &amp; Formatbeskrivning
+                        Regler, Tiebreakers &amp; Formatbeskrivning
                     </label>
-                    <textarea class="form-control bg-dark text-white border-secondary border-opacity-40 rounded-3 p-3 font-monospace small" id="editRulesTextInput" rows="8" placeholder="Exempel:&#10;- Gruppspel avgörs genom poäng (3 för vinst, 1 för oavgjort).&#10;- Vid lika poäng gäller: 1) Inbördes möten, 2) Målskillnad, 3) Gjorda mål.&#10;- Slutspel avgörs med förlängning (2x5 min) och straffar vid oavgjort resultat."></textarea>
-                    <div class="form-text text-secondary small">Dessa föreskrifter visas för både Pool Admins och Spelare i turneringsguiden.</div>
+                    <textarea class="form-control bg-dark text-white border-secondary border-opacity-40 rounded-3 p-3 font-monospace small" id="editRulesTextInput" rows="8" placeholder="Exempel:&#10;- Gruppspel avgörs genom poäng (3 för vinst, 1 för oavgjort).&#10;- Vid lika poäng gäller: 1) Inbördes möten, 2) Målskillnad, 3) Gjorda mål.&#10;- Slutspel avgörs med förlängning (2x15 min) och straffar vid oavgjort resultat."></textarea>
+                    <div class="form-text text-secondary small">Dessa regler visas för både Pool Admins och Spelare i turneringsguiden.</div>
                 </div>
 
                 <div class="mb-2">
                     <label for="editRulesUrlInput" class="form-label text-info small font-monospace fw-bold text-uppercase mb-1">
-                        Officiell Webbadress / PDF-Länk
+                        Officiell Webbadress / Reglemente
                     </label>
                     <input type="url" class="form-control bg-dark text-white border-secondary border-opacity-40 rounded-3 p-2.5 font-monospace small" id="editRulesUrlInput" placeholder="https://www.uefa.com/euro2028/regulations/">
                 </div>
@@ -1460,7 +1436,7 @@
             <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 justify-content-between">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Avbryt</button>
                 <button type="button" class="btn btn-info rounded-pill px-4 fw-bold shadow-sm text-dark" onclick="saveOfficialRulesFromModal()">
-                    <i class="fa-solid fa-floppy-disk me-1.5"></i>Spara föreskrifter
+                    <i class="fa-solid fa-floppy-disk me-1.5"></i>Spara regler
                 </button>
             </div>
         </div>
