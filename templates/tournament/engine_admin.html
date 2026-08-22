@@ -1066,7 +1066,7 @@
                                         <!-- Accordion Expansion Headers -->
                                         <div class="accordion scout-accordion" id="prospectAccordion-{{ item.prospect.id }}">
 
-                                            <!-- Turneringsstruktur & Datapunkter -->
+                                            <!-- Turneringsstruktur & Datapunkter Regler & Logik -->
                                             {% if item.scouting_stage == 'DEEP' %}
                                             <div class="accordion-item">
                                                 <h2 class="accordion-header">
@@ -1074,75 +1074,75 @@
                                                             data-bs-toggle="collapse"
                                                             data-bs-target="#collapseStructure-{{ item.prospect.id }}">
                                                         <i class="fa-solid fa-sitemap text-primary me-2" style="font-size:16px;"></i>
-                                                        <strong style="font-size:16px;">Turneringsstruktur & Datapunkter</strong>
-                                                        <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Regler & Logik</span>
+                                                        <strong style="font-size:16px;">Turneringsstruktur & Datapunkter Regler & Logik</strong>
+                                                        {% if item.official_rules or item.official_source_url %}
+                                                            <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Föreskrifter verifierade"></i>
+                                                        {% endif %}
                                                     </button>
                                                 </h2>
                                                 <div id="collapseStructure-{{ item.prospect.id }}" class="accordion-collapse collapse">
                                                     <div class="accordion-body px-3 py-3">
-                                                        <div class="row g-3">
-                                                            <!-- Poängsystem & Matchformat -->
+                                                        <div class="row g-3 mb-3">
+                                                            <!-- Tournament Setup -->
                                                             <div class="col-12 col-md-6">
                                                                 <div class="p-3 rounded-3 h-100" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
                                                                     <div class="fw-bold text-info small mb-2 font-monospace d-flex align-items-center">
-                                                                        <i class="fa-solid fa-calculator me-1.5"></i>Poängsystem & Matchformat
+                                                                        <i class="fa-solid fa-layer-group me-1.5"></i>Tournament Setup
                                                                     </div>
                                                                     <ul class="list-unstyled mb-0 text-light font-monospace" style="font-size:0.82rem;">
-                                                                        <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
-                                                                            <span>Vinst/Oavgjort/Förlust:</span>
-                                                                            <strong class="text-white">
-                                                                                {% if item.points_system and 'win' in item.points_system %}
-                                                                                    {{ item.points_system.win }} / {{ item.points_system.draw }} / {{ item.points_system.loss }}
-                                                                                {% else %}
-                                                                                    Okänt (Ej specificerat)
-                                                                                {% endif %}
-                                                                            </strong>
+                                                                        <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
+                                                                            <span class="text-secondary mb-1">Gruppspel:</span>
+                                                                            <strong class="text-white">{{ item.teams_count }} lag indelade i {{ item.groups_count }} grupper.</strong>
                                                                         </li>
-                                                                        <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
-                                                                            <span>Matchtid:</span>
-                                                                            <strong class="text-white">{% if item.match_format and item.match_format.regular_time_minutes %}{{ item.match_format.regular_time_minutes }} min{% else %}Okänt{% endif %}</strong>
+                                                                        <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
+                                                                            <span class="text-secondary mb-1">Kvalificeringstabeller & Avancemang:</span>
+                                                                            <strong class="text-white">{{ item.rules_grid.qualifying.advancement_summary }}</strong>
                                                                         </li>
-                                                                        <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
-                                                                            <span>Förlängning:</span>
-                                                                            <strong class="text-white">{% if item.match_format and item.match_format.extra_time_minutes %}{{ item.match_format.extra_time_minutes }} min{% else %}Okänt / Nej{% endif %}</strong>
-                                                                        </li>
-                                                                        <li class="py-1 d-flex justify-content-between">
-                                                                            <span>Straffar/Penalties:</span>
-                                                                            <strong class="text-white">{% if item.match_format and item.match_format.has_penalties %}Ja{% else %}Okänt / Nej{% endif %}</strong>
+                                                                        <li class="py-2 d-flex flex-column">
+                                                                            <span class="text-secondary mb-1">Slutspel (Knockout stage):</span>
+                                                                            <strong class="text-white">Börjar med {{ item.knockouts.0.stage_name|default:"Slutspel" }} ({{ item.knockouts|length }} omgångar).</strong>
                                                                         </li>
                                                                     </ul>
                                                                 </div>
                                                             </div>
-                                                            <!-- Avancemang & Tiebreakers -->
+                                                            <!-- Rules / Regulations -->
                                                             <div class="col-12 col-md-6">
                                                                 <div class="p-3 rounded-3 h-100" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
                                                                     <div class="fw-bold text-warning small mb-2 font-monospace d-flex align-items-center">
-                                                                        <i class="fa-solid fa-list-ol me-1.5"></i>Avancemang & Tiebreakers
+                                                                        <i class="fa-solid fa-gavel me-1.5"></i>Rules / Regulations
                                                                     </div>
                                                                     <ul class="list-unstyled mb-0 text-light font-monospace" style="font-size:0.82rem;">
-                                                                        {% if item.advancement_logic %}
-                                                                        <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
-                                                                            <span>Lag vidare per grupp:</span>
-                                                                            <strong class="text-white">{{ item.advancement_logic.teams_per_group_advancing|default:"-" }}</strong>
+                                                                        <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                                                                            <span class="text-secondary">Poäng (V/O/F i grupp):</span>
+                                                                            <strong class="text-white">{{ item.rules_grid.group_stage.points_win }}p / {{ item.rules_grid.group_stage.points_draw }}p / {{ item.rules_grid.group_stage.points_loss }}p</strong>
                                                                         </li>
-                                                                        {% if item.advancement_logic.has_best_thirds_table %}
-                                                                        <li class="py-1 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
-                                                                            <span>Bästa treor går vidare:</span>
-                                                                            <strong class="text-white">{{ item.advancement_logic.best_third_placed_advancing|default:"Ja" }}</strong>
+                                                                        <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                                                                            <span class="text-secondary">Slutspel Oavgjort:</span>
+                                                                            <strong class="text-white text-end w-50">{{ item.rules_grid.knockout_stage.summary }}</strong>
                                                                         </li>
-                                                                        {% endif %}
-                                                                        {% endif %}
+                                                                        <li class="py-2 d-flex flex-column">
+                                                                            <span class="text-secondary mb-2"><strong>Tiebreakers (Särskiljning):</strong></span>
+                                                                            <ol class="mb-0 ps-3 text-white" style="font-size:0.75rem;line-height:1.6;">
+                                                                                {% for tb in item.tiebreakers_display %}
+                                                                                <li>{{ tb.label }}</li>
+                                                                                {% empty %}
+                                                                                <li>Okänt (Ej specificerat)</li>
+                                                                                {% endfor %}
+                                                                            </ol>
+                                                                        </li>
                                                                     </ul>
-                                                                    {% if item.tiebreakers %}
-                                                                    <div class="mt-2 text-secondary" style="font-size:0.75rem;">Tiebreakers:</div>
-                                                                    <ol class="mb-0 text-light font-monospace ps-3" style="font-size:0.8rem;">
-                                                                        {% for tb in item.tiebreakers %}
-                                                                        <li>{{ tb }}</li>
-                                                                        {% endfor %}
-                                                                    </ol>
-                                                                    {% endif %}
                                                                 </div>
                                                             </div>
+                                                        </div>
+                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2">
+                                                            {% if item.official_source_url %}
+                                                            <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1.5 px-3 rounded-pill font-monospace" style="font-size:0.78rem;">
+                                                                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiellt Reglemente (Länk)
+                                                            </a>
+                                                            {% endif %}
+                                                            <button class="btn btn-outline-info btn-xs rounded-pill px-3 py-1.5 font-monospace ms-auto" style="font-size:0.78rem;" onclick="openEditRulesModal({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}', '{{ item.official_rules|escapejs }}', '{{ item.official_source_url|escapejs }}')">
+                                                                <i class="fa-solid fa-pen-to-square me-1"></i>Redigera föreskrifter
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1260,138 +1260,7 @@
                                                         </div>
                                                         {% endif %}
                                                     </div>
-                                                </div>
-                                            </div>
-
-                                            <!-- Officiella Föreskrifter & Reglemente -->
-                                            <div class="accordion-item">
-                                                <h2 class="accordion-header">
-                                                    <button class="accordion-button collapsed" type="button"
-                                                            data-bs-toggle="collapse"
-                                                            data-bs-target="#collapseRules-{{ item.prospect.id }}">
-                                                        <i class="fa-solid fa-scroll me-2 text-info" style="font-size:16px;"></i>
-                                                        <strong style="font-size:16px;">Officiella Föreskrifter &amp; Reglemente</strong>
-                                                        {% if item.official_rules or item.official_source_url %}
-                                                            <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Föreskrifter verifierade"></i>
-                                                        {% else %}
-                                                            <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Föreskrifter ej inlästa"></i>
-                                                        {% endif %}
-                                                    </button>
-                                                </h2>
-                                                <div id="collapseRules-{{ item.prospect.id }}" class="accordion-collapse collapse">
-                                                     <div class="accordion-body p-3">
-                                                         <!-- 4-CARD VISUAL REGULATIONS GRID -->
-                                                         <div class="row g-2.5 mb-3">
-                                                             <!-- CARD 1: Group Stage (Gruppspel & Matchpoäng) -->
-                                                             <div class="col-12 col-md-6">
-                                                                 <div class="p-3 rounded-3 h-100 font-monospace" style="background:rgba(15,23,42,0.6);border:1px solid rgba(56,189,248,0.25);">
-                                                                     <div class="fw-bold text-info small mb-2.5 d-flex align-items-center justify-content-between">
-                                                                         <span><i class="fa-solid fa-futbol me-1.5"></i>1. Gruppspel &amp; Matchpoäng</span>
-                                                                         <span class="badge bg-info bg-opacity-20 text-info font-monospace" style="font-size:0.68rem;">Poängregler</span>
-                                                                     </div>
-                                                                     <div class="d-flex flex-wrap gap-2 mb-2.5">
-                                                                         <span class="badge px-2.5 py-1.5 rounded-pill" style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#86efac;font-size:0.78rem;">
-                                                                             <i class="fa-solid fa-trophy me-1"></i>Vinst: <strong>{{ item.rules_grid.group_stage.points_win }}p</strong>
-                                                                         </span>
-                                                                         <span class="badge px-2.5 py-1.5 rounded-pill" style="background:rgba(234,179,8,0.15);border:1px solid rgba(234,179,8,0.3);color:#fef08a;font-size:0.78rem;">
-                                                                             <i class="fa-solid fa-handshake me-1"></i>Oavgjort: <strong>{{ item.rules_grid.group_stage.points_draw }}p</strong>
-                                                                         </span>
-                                                                         <span class="badge px-2.5 py-1.5 rounded-pill" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-size:0.78rem;">
-                                                                             <i class="fa-solid fa-xmark me-1"></i>Förlust: <strong>{{ item.rules_grid.group_stage.points_loss }}p</strong>
-                                                                         </span>
-                                                                     </div>
-                                                                     <div class="p-2 rounded-2" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);font-size:0.78rem;">
-                                                                         <div class="text-warning fw-bold mb-1"><i class="fa-solid fa-square-parking me-1"></i>Avstängningar (Kort):</div>
-                                                                         <div class="text-light">&bull; {{ item.rules_grid.group_stage.yellow_cards_suspension }}</div>
-                                                                         <div class="text-light">&bull; {{ item.rules_grid.group_stage.red_card_suspension }}</div>
-                                                                     </div>
-                                                                 </div>
-                                                             </div>
-
-                                                             <!-- CARD 2: Group Table Ranking & Tiebreakers -->
-                                                             <div class="col-12 col-md-6">
-                                                                 <div class="p-3 rounded-3 h-100 font-monospace" style="background:rgba(15,23,42,0.6);border:1px solid rgba(168,85,247,0.25);">
-                                                                     <div class="fw-bold text-purple small mb-2.5 d-flex align-items-center justify-content-between" style="color:#c084fc;">
-                                                                         <span><i class="fa-solid fa-list-ol me-1.5"></i>2. Grupptabell &amp; Särskiljning</span>
-                                                                         <span class="badge bg-purple bg-opacity-20 text-purple font-monospace" style="font-size:0.68rem;color:#e9d5ff;background:rgba(168,85,247,0.2);">Tiebreakers</span>
-                                                                     </div>
-                                                                     <div class="d-flex flex-column gap-1.5" style="font-size:0.78rem;">
-                                                                         {% for tb in item.tiebreakers_display %}
-                                                                         <div class="d-flex align-items-center justify-content-between px-2.5 py-1 rounded-2" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);">
-                                                                             <div class="d-flex align-items-center gap-2">
-                                                                                 <span class="badge rounded-circle font-monospace fw-bold" style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;background:#9333ea;color:#fff;">{{ tb.step }}</span>
-                                                                                 <i class="fa-solid {{ tb.icon }}" style="font-size:0.75rem;color:#c084fc;"></i>
-                                                                                 <span class="text-light fw-bold">{{ tb.label }}</span>
-                                                                             </div>
-                                                                             <span class="text-secondary small font-monospace">{{ tb.desc }}</span>
-                                                                         </div>
-                                                                         {% endfor %}
-                                                                     </div>
-                                                                 </div>
-                                                             </div>
-
-                                                             <!-- CARD 3: Advancement & Next Stage Rules -->
-                                                             <div class="col-12 col-md-6">
-                                                                 <div class="p-3 rounded-3 h-100 font-monospace" style="background:rgba(15,23,42,0.6);border:1px solid rgba(34,197,94,0.25);">
-                                                                     <div class="fw-bold text-success small mb-2.5 d-flex align-items-center justify-content-between">
-                                                                         <span><i class="fa-solid fa-right-to-bracket me-1.5"></i>3. Avancemang &amp; Slutspelspool</span>
-                                                                         <span class="badge bg-success bg-opacity-20 text-success font-monospace" style="font-size:0.68rem;">Kvalificering</span>
-                                                                     </div>
-                                                                     <div class="p-2.5 rounded-2 mb-2" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);font-size:0.78rem;">
-                                                                         <div class="text-success fw-bold mb-1"><i class="fa-solid fa-arrow-trend-up me-1"></i>Direktavancemang:</div>
-                                                                         <div class="text-light fw-bold">&bull; {{ item.rules_grid.advancement.direct_qualification }}</div>
-                                                                     </div>
-                                                                     {% if item.rules_grid.advancement.best_third_place %}
-                                                                     <div class="p-2.5 rounded-2" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);font-size:0.78rem;">
-                                                                         <div class="text-info fw-bold mb-1"><i class="fa-solid fa-award me-1"></i>Bästa treor / Playoff:</div>
-                                                                         <div class="text-light">&bull; {{ item.rules_grid.advancement.best_third_place }}</div>
-                                                                     </div>
-                                                                     {% endif %}
-                                                                 </div>
-                                                             </div>
-
-                                                             <!-- CARD 4: Knockout Stage & Overtime Rules -->
-                                                             <div class="col-12 col-md-6">
-                                                                 <div class="p-3 rounded-3 h-100 font-monospace" style="background:rgba(15,23,42,0.6);border:1px solid rgba(245,158,11,0.25);">
-                                                                     <div class="fw-bold text-warning small mb-2.5 d-flex align-items-center justify-content-between">
-                                                                         <span><i class="fa-solid fa-shield-halved me-1.5"></i>4. Slutspel &amp; Oavgjort (Knockout)</span>
-                                                                         <span class="badge bg-warning bg-opacity-20 text-warning font-monospace" style="font-size:0.68rem;">Slutspelsregler</span>
-                                                                     </div>
-                                                                     <div class="d-flex flex-column gap-1.5 mb-2" style="font-size:0.78rem;">
-                                                                         <div class="d-flex align-items-center gap-2 p-2 rounded-2" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);">
-                                                                             <i class="fa-solid fa-stopwatch text-warning" style="font-size:0.85rem;"></i>
-                                                                             <div>
-                                                                                 <span class="text-warning fw-bold">Förlängning:</span>
-                                                                                 <span class="text-light ms-1">{{ item.rules_grid.knockout_stage.extra_time }}</span>
-                                                                             </div>
-                                                                         </div>
-                                                                         <div class="d-flex align-items-center gap-2 p-2 rounded-2" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);">
-                                                                             <i class="fa-solid fa-bullseye text-warning" style="font-size:0.85rem;"></i>
-                                                                             <div>
-                                                                                 <span class="text-warning fw-bold">Straffar:</span>
-                                                                                 <span class="text-light ms-1">{{ item.rules_grid.knockout_stage.penalties }}</span>
-                                                                             </div>
-                                                                         </div>
-                                                                     </div>
-                                                                     <div class="text-secondary" style="font-size:0.75rem;line-height:1.4;">
-                                                                         <i class="fa-solid fa-circle-info me-1 text-warning"></i>{{ item.rules_grid.knockout_stage.summary }}
-                                                                     </div>
-                                                                 </div>
-                                                             </div>
-                                                         </div>
-
-                                                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2">
-                                                            {% if item.official_source_url %}
-                                                            <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1.5 px-3 rounded-pill font-monospace" style="font-size:0.78rem;">
-                                                                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Officiellt Reglemente (Länk)
-                                                            </a>
-                                                            {% endif %}
-                                                            <button class="btn btn-outline-info btn-xs rounded-pill px-3 py-1.5 font-monospace ms-auto" style="font-size:0.78rem;" onclick="openEditRulesModal({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}', '{{ item.official_rules|escapejs }}', '{{ item.official_source_url|escapejs }}')">
-                                                                <i class="fa-solid fa-pen-to-square me-1"></i>Redigera föreskrifter
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                                        </div>
                                             </div>
 
                                         </div>

@@ -61,7 +61,7 @@ class EmblemScout:
     }
 
     CANONICAL_EMBLEM_MAP = {
-        'uefa nations league': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQz2ElJCEQq7n0uWqJZr9G2bzxkSSDVanpAg6pfdZFxAA&s',
+        'uefa nations league': 'https://commons.wikimedia.org/wiki/Special:FilePath/UEFA_Nations_League_logo.svg',
         'concacaf nations league': 'https://commons.wikimedia.org/wiki/Special:FilePath/Concacaf_Nations_League_logo.svg',
     }
 
@@ -155,6 +155,16 @@ class EmblemScout:
                     continue
                 data = res.json()
                 results = data.get('query', {}).get('search', [])
+                
+                def ext_score(title: str) -> int:
+                    t = title.lower()
+                    if t.endswith('.svg'): return 4
+                    if t.endswith('.png'): return 3
+                    if t.endswith('.webp'): return 2
+                    return 1
+
+                results = sorted(results, key=lambda x: ext_score(x.get('title', '')), reverse=True)
+
                 for item in results:
                     title = item.get('title', '')
                     title_lower = title.lower()
@@ -243,8 +253,11 @@ class EmblemScout:
                 f"Your task is to identify the official emblem / logotype for '{tournament_name}'.\n"
                 f"Official website context: {official_url or 'N/A'}\n\n"
                 "Step 1: Briefly describe the visual features of the official competition emblem (colors, shapes, icons, text).\n"
-                "Step 2: Provide the direct Wikimedia Commons or official site image URL (SVG, PNG, or WebP) matching this visual description.\n\n"
-                "CRITICAL: Do NOT return geographical maps, national flags, trophies without logo styling, or stadium photos.\n"
+                "Step 2: Provide the direct Wikimedia Commons or official site image URL matching this visual description.\n\n"
+                "CRITICAL REQUIREMENTS:\n"
+                "- The image MUST be an isolated, unmasked version with a transparent background.\n"
+                "- SVG format is highly preferred. PNG is acceptable if no SVG exists. Avoid JPG/JPEG.\n"
+                "- Do NOT return geographical maps, national flags, trophies without logo styling, or stadium photos.\n"
                 "Return ONLY valid JSON:\n"
                 "{\n"
                 "  \"emblem_visual_description\": \"<description>\",\n"
