@@ -815,24 +815,46 @@
                 </div>
             </div>
 
-            <!-- Bulk Deepscan Realtime Progress Banner -->
+            <!-- Deepscan Realtime Sub-Agent Progress Banner -->
             <div id="scoutBulkProgressContainer" class="p-3.5 mb-3 rounded-4 shadow border d-none" style="background:rgba(15, 23, 42, 0.95);border-color:rgba(245, 158, 11, 0.4) !important;">
-                <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2.5">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="spinner-border text-warning" role="status" style="width: 1.5rem; height: 1.5rem; border-width: 0.18em;">
+                        <div class="spinner-border text-warning flex-shrink-0" role="status" style="width: 1.5rem; height: 1.5rem; border-width: 0.18em;">
                             <span class="visually-hidden">Scannar...</span>
                         </div>
                         <div>
-                            <div class="fw-bold text-white fs-6 mb-0.5" id="scoutBulkProgressTitle">
-                                Djupscannar alla turneringar...
+                            <div class="fw-bold text-white fs-6 mb-0.5 d-flex align-items-center flex-wrap gap-2">
+                                <span id="scoutBulkProgressTitle">Djupscanning pågår...</span>
+                                <span class="badge bg-warning bg-opacity-20 text-warning font-monospace py-1 px-2.5 border border-warning border-opacity-30" id="scoutActiveTournamentBadge" style="font-size:0.78rem;">Scannar just nu: —</span>
                             </div>
                             <div class="text-secondary small font-monospace" id="scoutBulkProgressSubtext" style="font-size:0.83rem;">
-                                Bearbetar via Wikipedia &amp; AI...
+                                Initierar sub-agenter...
                             </div>
                         </div>
                     </div>
+                    <div class="text-end font-monospace text-warning small fw-bold" id="scoutBulkProgressPercent" style="font-size:0.85rem;">0%</div>
                 </div>
-                <div class="progress rounded-pill overflow-hidden" style="height:12px;background:rgba(255,255,255,0.1);">
+
+                <!-- Sub-Agent Pipeline Step Badges -->
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2.5" id="scoutSubAgentPills">
+                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill" id="pillAgent1" style="font-size:0.72rem;background:rgba(0,0,0,0.3);">
+                        <i class="fa-solid fa-compass me-1"></i>1. Head Discovery
+                    </span>
+                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill" id="pillAgent2" style="font-size:0.72rem;background:rgba(0,0,0,0.3);">
+                        <i class="fa-solid fa-shield-halved me-1"></i>2. General &amp; Emblem
+                    </span>
+                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill" id="pillAgent3" style="font-size:0.72rem;background:rgba(0,0,0,0.3);">
+                        <i class="fa-solid fa-gavel me-1"></i>3. Structure &amp; Rules
+                    </span>
+                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill" id="pillAgent4" style="font-size:0.72rem;background:rgba(0,0,0,0.3);">
+                        <i class="fa-solid fa-users me-1"></i>4. Groups &amp; Teams
+                    </span>
+                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill" id="pillAgent5" style="font-size:0.72rem;background:rgba(0,0,0,0.3);">
+                        <i class="fa-solid fa-calendar-days me-1"></i>5. Matches &amp; Knockout
+                    </span>
+                </div>
+
+                <div class="progress rounded-pill overflow-hidden" style="height:10px;background:rgba(255,255,255,0.08);">
                     <div id="scoutBulkProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 0%;"></div>
                 </div>
             </div>
@@ -1206,17 +1228,22 @@
                                                         <strong style="font-size:16px;">Gruppindelning &amp; Lag</strong>
                                                         
                                                         {% if item.scouting_stage == 'DEEP' %}
-                                                            <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag{% if not item.has_real_teams and item.groups_count > 0 %} (Platshållare){% endif %}</span>
                                                             {% if item.groups_count > 0 and item.teams_count > 0 and item.has_real_teams %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag</span>
                                                                 <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Grupper &amp; Reella lag genomförda"></i>
+                                                            {% elif item.draw_date %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottning: {{ item.draw_date }}</span>
+                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Väntar lottning av reella lag (Lottningsdatum: {{ item.draw_date }})"></i>
                                                             {% elif item.groups_count > 0 and item.teams_count > 0 %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag (Platshållare)</span>
                                                                 <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Väntar lottning av reella lag (Platshållare)"></i>
                                                             {% else %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Datum för lottning saknas</span>
                                                                 <i class="fa-solid fa-triangle-exclamation text-danger ms-2" style="margin-left:7px !important;font-size:16px;" title="Saknar grupper/lag"></i>
                                                             {% endif %}
                                                         {% else %}
                                                             {% if item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Lottning: {{ item.draw_date }}</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottning: {{ item.draw_date }}</span>
                                                             {% else %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Datum för lottning saknas</span>
                                                             {% endif %}
@@ -1273,15 +1300,22 @@
                                                         <strong style="font-size:16px;">Spelschema &amp; Slutspel</strong>
                                                         
                                                         {% if item.scouting_stage == 'DEEP' %}
-                                                            <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher</span>
-                                                            {% if item.matches_count > 0 and item.fixtures_done %}
+                                                            {% if item.matches_count > 0 and item.fixtures_done and item.has_real_teams %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher</span>
                                                                 <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställt"></i>
+                                                            {% elif item.draw_date %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottning: {{ item.draw_date }}</span>
+                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställs vid lottningen {{ item.draw_date }}"></i>
+                                                            {% elif item.matches_count > 0 %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher (Preliminärt)</span>
+                                                                <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema ej slutfört"></i>
                                                             {% else %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Spelschema ej fastställt</span>
                                                                 <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema ej slutfört"></i>
                                                             {% endif %}
                                                         {% else %}
                                                             {% if item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Lottning: {{ item.draw_date }}</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottning: {{ item.draw_date }}</span>
                                                             {% else %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Spelschema ej fastställt</span>
                                                             {% endif %}
@@ -4100,6 +4134,32 @@ Search and extract upcoming sports tournaments matching:
         });
     }
 
+    function setSubAgentStep(stepNum) {
+        for (let i = 1; i <= 5; i++) {
+            const pill = document.getElementById(`pillAgent${i}`);
+            if (!pill) continue;
+            if (i < stepNum) {
+                // Completed
+                pill.className = 'badge rounded-pill border py-1.5 px-2.5 font-monospace sub-agent-pill';
+                pill.style.background = 'rgba(34, 197, 94, 0.15)';
+                pill.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+                pill.style.color = '#86efac';
+            } else if (i === stepNum) {
+                // Active
+                pill.className = 'badge rounded-pill border py-1.5 px-2.5 font-monospace sub-agent-pill shadow-sm';
+                pill.style.background = 'rgba(245, 158, 11, 0.25)';
+                pill.style.borderColor = 'rgba(245, 158, 11, 0.8)';
+                pill.style.color = '#fef08a';
+            } else {
+                // Pending
+                pill.className = 'badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill';
+                pill.style.background = 'rgba(0,0,0,0.3)';
+                pill.style.borderColor = 'rgba(255,255,255,0.1)';
+                pill.style.color = '#94a3b8';
+            }
+        }
+    }
+
     async function refreshAllScoutProspects() {
         const cards = Array.from(document.querySelectorAll('.scout-prospect-item'));
         const prospectItems = cards.map(card => {
@@ -4120,9 +4180,9 @@ Search and extract upcoming sports tournaments matching:
 
         const progressContainer = document.getElementById('scoutBulkProgressContainer');
         const progressTitle     = document.getElementById('scoutBulkProgressTitle');
+        const progressBadge     = document.getElementById('scoutActiveTournamentBadge');
         const progressSubtext   = document.getElementById('scoutBulkProgressSubtext');
         const progressPercent   = document.getElementById('scoutBulkProgressPercent');
-        const progressCounts    = document.getElementById('scoutBulkProgressCounts');
         const progressBar       = document.getElementById('scoutBulkProgressBar');
 
         if (progressContainer) {
@@ -4148,9 +4208,13 @@ Search and extract upcoming sports tournaments matching:
             const currentNum = i + 1;
             const pct = Math.round((currentNum / totalCount) * 100);
 
-            if (progressTitle) progressTitle.innerText = `Djupscannar alla ${totalCount} turneringar...`;
-            if (progressSubtext) progressSubtext.innerText = `[${currentNum}/${totalCount}] Bearbetar via Wikipedia & AI...`;
+            if (progressTitle) progressTitle.innerText = `Djupscannar alla turneringar (${currentNum}/${totalCount})...`;
+            if (progressBadge) progressBadge.innerText = `Scannar just nu: ${item.name}`;
+            if (progressSubtext) progressSubtext.innerText = `Kör 5 sub-agenter för ${item.name}...`;
             if (progressBar) progressBar.style.width = `${pct}%`;
+            if (progressPercent) progressPercent.innerText = `${pct}%`;
+
+            setSubAgentStep((i % 5) + 1);
 
             try {
                 const res = await fetch(`/engine-admin/scout/deep-scan/${item.id}/`, {
@@ -4176,13 +4240,16 @@ Search and extract upcoming sports tournaments matching:
             }
         }
 
+        setSubAgentStep(6);
         if (progressTitle) progressTitle.innerText = `Djupscanning klar för alla ${totalCount} turneringar!`;
+        if (progressBadge) progressBadge.innerText = 'Alla sub-agenter slutförda!';
         if (progressSubtext) progressSubtext.innerText = `[${totalCount}/${totalCount}] Bearbetning klar. Uppdaterar listan...`;
         if (progressBar) {
             progressBar.style.width = '100%';
             progressBar.classList.remove('bg-warning');
             progressBar.classList.add('bg-success');
         }
+        if (progressPercent) progressPercent.innerText = '100%';
 
         setTimeout(() => {
             localStorage.setItem('engineAdminActiveTab', 'scout-tab');
@@ -4212,12 +4279,57 @@ Search and extract upcoming sports tournaments matching:
     }
 
     async function deepScanProspect(prospectId) {
+        const card = document.getElementById(`prospect-card-${prospectId}`);
+        const titleEl = card ? (card.querySelector('h4') || card.querySelector('.fw-bold')) : null;
+        const tournamentName = titleEl ? titleEl.innerText.trim() : `Turnering #${prospectId}`;
+
+        const progressContainer = document.getElementById('scoutBulkProgressContainer');
+        const progressTitle     = document.getElementById('scoutBulkProgressTitle');
+        const progressBadge     = document.getElementById('scoutActiveTournamentBadge');
+        const progressSubtext   = document.getElementById('scoutBulkProgressSubtext');
+        const progressPercent   = document.getElementById('scoutBulkProgressPercent');
+        const progressBar       = document.getElementById('scoutBulkProgressBar');
+
+        if (progressContainer) {
+            progressContainer.classList.remove('d-none');
+            progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (progressTitle) progressTitle.innerText = 'Djupscannar turnering...';
+            if (progressBadge) progressBadge.innerText = `Scannar just nu: ${tournamentName}`;
+            if (progressBar) {
+                progressBar.style.width = '20%';
+                progressBar.classList.remove('bg-success');
+                progressBar.classList.add('bg-warning');
+            }
+            if (progressPercent) progressPercent.innerText = '20%';
+            setSubAgentStep(1);
+        }
+
         const btn = document.getElementById(`deepScanBtn-${prospectId}`);
         const originalHtml = btn ? btn.innerHTML : '';
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i><span>Skannar…</span>';
         }
+
+        let currentStep = 1;
+        const subtextMessages = [
+            '1/5 Head Discovery: Validerar H2H-sport och master-kod...',
+            '2/5 General & Emblem: Hämtar officiella datum, spelorter och transparent SVG-emblem...',
+            '3/5 Structure & Rules: Extraherar poängsystem, särskiljningsregler och kvalificeringstabeller...',
+            '4/5 Groups & Teams: Läser in gruppmatris, seedningspotter och reella lag...',
+            '5/5 Matches & Knockout: Skapar fullständigt spelschema och slutspelsträd...'
+        ];
+
+        const stepInterval = setInterval(() => {
+            if (currentStep < 5) {
+                currentStep++;
+                setSubAgentStep(currentStep);
+                if (progressSubtext) progressSubtext.innerText = subtextMessages[currentStep - 1];
+                if (progressBar) progressBar.style.width = `${currentStep * 18}%`;
+                if (progressPercent) progressPercent.innerText = `${currentStep * 18}%`;
+            }
+        }, 900);
+
         try {
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
                 || getCookie('csrftoken');
@@ -4229,15 +4341,32 @@ Search and extract upcoming sports tournaments matching:
                 },
             });
             const data = await res.json();
+            clearInterval(stepInterval);
+
             if (data.status === 'success' || data.status === 'deleted') {
+                setSubAgentStep(6);
+                if (progressTitle) progressTitle.innerText = `Djupscanning klar för ${tournamentName}!`;
+                if (progressBadge) progressBadge.innerText = 'Alla 5 sub-agenter klara!';
+                if (progressSubtext) progressSubtext.innerText = 'Alla 5 sub-agenter genomförda med framgång. Laddar om...';
+                if (progressBar) {
+                    progressBar.style.width = '100%';
+                    progressBar.classList.remove('bg-warning');
+                    progressBar.classList.add('bg-success');
+                }
+                if (progressPercent) progressPercent.innerText = '100%';
+
                 localStorage.setItem('engineAdminActiveTab', 'scout-tab');
-                setTimeout(() => location.reload(), 400);
+                setTimeout(() => location.reload(), 600);
             } else {
                 if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+                if (progressContainer) progressContainer.classList.add('d-none');
+                alert(data.error || 'Djupscanning misslyckades.');
             }
         } catch (e) {
+            clearInterval(stepInterval);
             console.error('deepScanProspect error:', e);
             if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+            if (progressContainer) progressContainer.classList.add('d-none');
         }
     }
 
