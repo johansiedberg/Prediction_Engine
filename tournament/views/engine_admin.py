@@ -333,14 +333,19 @@ def engine_admin_dashboard_view(request):
             }
         sport_counts_raw[sport_key]['count'] += 1
 
-        groups = payload.get('groups', [])
-        fixtures = payload.get('fixtures_sample', [])
-        knockouts = payload.get('knockout_mapping_sample', [])
+        struct_seg = payload.get('structure_and_rules_segment', {})
+        groups_seg = payload.get('groups_and_teams_segment', {})
+        matches_seg = payload.get('matches_and_knockout_segment', {})
+        general_seg = payload.get('general_segment', {})
+
+        groups = groups_seg.get('groups') or payload.get('groups', [])
+        fixtures = matches_seg.get('group_matches') or payload.get('fixtures_sample', [])
+        knockouts = matches_seg.get('knockout_bracket') or payload.get('knockout_mapping_sample', [])
         sidebets = payload.get('sidebets_suggestions', [])
         
-        teams_count = sum(len(g.get('teams', [])) for g in groups) or payload.get('tournament_config', {}).get('total_teams', 0)
-        groups_count = len(groups)
-        matches_count = len(fixtures) + len(knockouts)
+        teams_count = groups_seg.get('teams_count') or sum(len(g.get('teams', [])) for g in groups) or payload.get('tournament_config', {}).get('total_teams', 0)
+        groups_count = groups_seg.get('groups_count') or len(groups)
+        matches_count = matches_seg.get('total_matches') or (len(fixtures) + len(knockouts))
         sidebets_count = len(sidebets)
 
         allsport_emoji = payload.get('raw_allsportdb', {}).get('emoji')
@@ -373,7 +378,6 @@ def engine_admin_dashboard_view(request):
             },
         }
 
-
         status_meta = {
             'NEW': {'label': 'Nytt Prospekt', 'badge_class': 'bg-primary text-white', 'icon': 'fa-sparkles'},
             'WATCHLIST': {'label': 'Bevakas (Survey)', 'badge_class': 'bg-info text-dark', 'icon': 'fa-eye'},
@@ -405,14 +409,24 @@ def engine_admin_dashboard_view(request):
                 ]
 
         from tournament.services.scout_service import has_real_teams
-        real_teams_ready = has_real_teams(groups)
+        real_teams_ready = groups_seg.get('has_real_teams') if 'has_real_teams' in groups_seg else has_real_teams(groups)
 
         is_grade_a = (p.completeness_grade == 'GRADE_A' and real_teams_ready)
-        draw_done = bool((audit.get('draw_completed', False) or is_grade_a or (groups_count > 0 and teams_count > 0)) and real_teams_ready)
-        fixtures_done = bool((audit.get('fixtures_completed', False) or is_grade_a or matches_count > 0) and real_teams_ready)
-        scheduled_matchdays = int(audit.get('scheduled_matchdays', 0))
+        draw_done = bool(
+            struct_seg.get('general_setup', {}).get('draw_completed')
+            or audit.get('draw_completed', False)
+            or is_grade_a
+            or (groups_count > 0 and teams_count > 0 and real_teams_ready)
+        )
+        fixtures_done = bool(
+            matches_seg.get('fixtures_completed')
+            or audit.get('fixtures_completed', False)
+            or is_grade_a
+            or (matches_count > 0 and real_teams_ready)
+        )
+        scheduled_matchdays = int(audit.get('scheduled_matchdays', len(fixtures)))
         fixtures_have_placeholders = bool(audit.get('fixtures_have_placeholders', False)) or not real_teams_ready
-        scouting_stage = audit.get('scouting_stage', 'DEEP')  # Legacy prospects treated as DEEP
+        scouting_stage = audit.get('scouting_stage', 'DEEP')
 
         readiness = {
             'draw_completed': draw_done,
@@ -421,15 +435,16 @@ def engine_admin_dashboard_view(request):
 
         # Override missing_items for SHALLOW prospects or Grade A
         if scouting_stage == 'SHALLOW':
-            missing_items = []  # No bullet points — card shows "Inväntar djupscanning" block instead
+            missing_items = []
         elif is_grade_a:
-            missing_items = []  # Grade A has 100% readiness, no missing items
+            missing_items = []
 
-        official_rules_val = p.official_rules or audit.get('official_rules') or audit.get('advancement_rules') or ''
+        official_rules_val = p.official_rules or audit.get('official_rules') or struct_seg.get('official_rules_summary') or audit.get('advancement_rules') or ''
 
         import urllib.parse
         wiki_url_val = (
-            payload.get('master_event', {}).get('wikipedia_url')
+            general_seg.get('wikipedia_url')
+            or payload.get('master_event', {}).get('wikipedia_url')
             or audit.get('wikipedia_url')
             or (p.official_source_url if p.official_source_url and 'wikipedia.org' in p.official_source_url else '')
             or f"https://en.wikipedia.org/wiki/{urllib.parse.quote((audit.get('wikipedia_title') or p.name).replace(' ', '_'))}"
@@ -447,19 +462,30 @@ def engine_admin_dashboard_view(request):
         }
 
         bp = p.tournament_blueprint or payload.get('tournament_blueprint') or {}
-        raw_tb = bp.get('tiebreaker_hierarchy') or ['H2H_POINTS', 'H2H_GOAL_DIFFERENCE', 'OVERALL_GOAL_DIFFERENCE', 'OVERALL_GOALS_SCORED', 'DISCIPLINARY_POINTS', 'RANDOM_DRAW']
+        raw_tb = struct_seg.get('group_stage_rules', {}).get('tiebreaker_hierarchy') or bp.get('tiebreaker_hierarchy') or ['H2H_POINTS', 'H2H_GOAL_DIFFERENCE', 'OVERALL_GOAL_DIFFERENCE', 'OVERALL_GOALS_SCORED', 'DISCIPLINARY_POINTS', 'RANDOM_DRAW']
         
         tiebreakers_display = []
-        for idx, rule_code in enumerate(raw_tb, 1):
-            rule_str = str(rule_code)
-            info = TIEBREAKER_LABELS.get(rule_str, {'label': rule_str, 'icon': 'fa-list-ol', 'short': rule_str})
-            tiebreakers_display.append({
-                'step': idx,
-                'code': rule_str,
-                'label': info['label'],
-                'short': info['short'],
-                'icon': info['icon']
-            })
+        for idx, rule_item in enumerate(raw_tb, 1):
+            if isinstance(rule_item, dict):
+                tiebreakers_display.append({
+                    'step': rule_item.get('step', idx),
+                    'code': rule_item.get('rule', 'CUSTOM'),
+                    'label': rule_item.get('label', str(rule_item)),
+                    'short': rule_item.get('label', str(rule_item)),
+                    'icon': rule_item.get('icon', 'fa-list-ol'),
+                    'desc': rule_item.get('desc', ''),
+                })
+            else:
+                rule_str = str(rule_item)
+                info = TIEBREAKER_LABELS.get(rule_str, {'label': rule_str, 'icon': 'fa-list-ol', 'short': rule_str})
+                tiebreakers_display.append({
+                    'step': idx,
+                    'code': rule_str,
+                    'label': info['label'],
+                    'short': info['short'],
+                    'icon': info['icon'],
+                    'desc': '',
+                })
 
         def _parse_rules_to_sections(text: str) -> list:
             if not text or not isinstance(text, str):
@@ -484,19 +510,21 @@ def engine_admin_dashboard_view(request):
 
         rules_sections = _parse_rules_to_sections(official_rules_val)
 
-        pts_win = bp.get('points_for_win', 3)
-        pts_draw = bp.get('points_for_draw', 1)
-        pts_loss = bp.get('points_for_loss', 0)
+        pts_win = struct_seg.get('group_stage_rules', {}).get('points_win', bp.get('points_for_win', 3))
+        pts_draw = struct_seg.get('group_stage_rules', {}).get('points_draw', bp.get('points_for_draw', 1))
+        pts_loss = struct_seg.get('group_stage_rules', {}).get('points_loss', bp.get('points_for_loss', 0))
         yc_thresh = bp.get('yellow_card_suspension_threshold', 2)
 
         adv_text = (
-            bp.get('qualifying_advancement_summary')
+            struct_seg.get('qualifying_tables_rules', {}).get('description')
+            or bp.get('qualifying_advancement_summary')
             or audit.get('advancement_rules')
             or f"De 2 bästa lagen per grupp ({groups_count} grupper) avancerar direkt till Slutspel."
         )
 
         ko_rule_text = (
-            bp.get('knockout_tiebreakers')
+            struct_seg.get('knockout_rules', {}).get('tiebreaker_description')
+            or bp.get('knockout_tiebreakers')
             or "Vid oavgjort i slutspel tillämpas Förlängning (2x15 min) följt av Straffsparksläggning vid oavgjort."
         )
 
@@ -505,8 +533,8 @@ def engine_admin_dashboard_view(request):
                 'points_win': pts_win,
                 'points_draw': pts_draw,
                 'points_loss': pts_loss,
-                'yellow_cards_suspension': f"{yc_thresh} gula kort = 1 match avstängning",
-                'red_card_suspension': "1 rött kort = minst 1 match avstängning",
+                'yellow_cards_suspension': struct_seg.get('group_stage_rules', {}).get('yellow_cards_suspension', f"{yc_thresh} gula kort = 1 match avstängning"),
+                'red_card_suspension': struct_seg.get('group_stage_rules', {}).get('red_card_suspension', "1 rött kort = minst 1 match avstängning"),
             },
             'group_table': {
                 'tiebreakers': tiebreakers_display
@@ -515,11 +543,11 @@ def engine_admin_dashboard_view(request):
                 'groups_count': groups_count,
                 'teams_count': teams_count,
                 'advancement_summary': adv_text,
-                'target_stage': "Slutspel (Knockout Tree)",
+                'target_stage': struct_seg.get('knockout_rules', {}).get('starting_round', "Slutspel"),
             },
             'knockout_stage': {
-                'extra_time': "Förlängning (2 x 15 min)",
-                'penalties': "Straffsparksläggning (5 straffar + sudden death)",
+                'extra_time': f"Förlängning ({struct_seg.get('knockout_rules', {}).get('extra_time_minutes', 30)} min)",
+                'penalties': "Straffsparksläggning" if struct_seg.get('knockout_rules', {}).get('has_penalties', True) else "Nej",
                 'summary': ko_rule_text,
             }
         }
@@ -527,8 +555,37 @@ def engine_admin_dashboard_view(request):
         r_date_obj = p.rescan_date
         rescan_date_str = r_date_obj.strftime('%Y-%m-%d') if r_date_obj else (today + datetime.timedelta(days=7)).strftime('%Y-%m-%d')
 
-        draw_date_val = audit.get('draw_date') or bp.get('draw_date') or payload.get('draw_date') or ''
-        logo_url_val = p.logo_url or payload.get('logo_url') or payload.get('master_event', {}).get('logo_url') or ''
+        draw_date_val = (
+            struct_seg.get('general_setup', {}).get('draw_date')
+            or audit.get('draw_date')
+            or bp.get('draw_date')
+            or payload.get('draw_date')
+            or ''
+        )
+        logo_url_val = (
+            general_seg.get('emblem', {}).get('logo_url')
+            or p.logo_url
+            or payload.get('logo_url')
+            or payload.get('master_event', {}).get('logo_url')
+            or ''
+        )
+
+        pts_system_dict = payload.get('points_system') or audit.get('points_system') or {
+            'win': pts_win,
+            'draw': pts_draw,
+            'loss': pts_loss,
+        }
+        adv_logic_dict = payload.get('advancement_logic') or audit.get('advancement_logic') or {
+            'teams_per_group_advancing': struct_seg.get('group_stage_rules', {}).get('teams_per_group_advancing', 2),
+            'best_third_placed_advancing': struct_seg.get('qualifying_tables_rules', {}).get('best_thirds_count', 0),
+            'has_best_thirds_table': struct_seg.get('qualifying_tables_rules', {}).get('has_best_thirds', False),
+            'has_runners_up_table': struct_seg.get('qualifying_tables_rules', {}).get('has_runners_up', False),
+        }
+        match_format_dict = payload.get('match_format') or audit.get('match_format') or {
+            'regular_time_minutes': 90,
+            'extra_time_minutes': struct_seg.get('knockout_rules', {}).get('extra_time_minutes', 30),
+            'has_penalties': struct_seg.get('knockout_rules', {}).get('has_penalties', True),
+        }
 
         scanned_data.append({
             'prospect': p,
@@ -547,14 +604,14 @@ def engine_admin_dashboard_view(request):
             'grade_reason': grade_reason,
             'missing_items': missing_items,
             'action_needed': action_needed,
-            'official_source_url': p.official_source_url or payload.get('master_event', {}).get('official_source_url') or '',
+            'official_source_url': p.official_source_url or general_seg.get('official_website_url') or payload.get('master_event', {}).get('official_source_url') or '',
             'logo_url': logo_url_val,
             'wikipedia_url': wiki_url_val,
             'official_rules': official_rules_val,
-            'points_system': audit.get('points_system', {}),
-            'tiebreakers': audit.get('tiebreakers', []),
-            'advancement_logic': audit.get('advancement_logic', {}),
-            'match_format': audit.get('match_format', {}),
+            'points_system': pts_system_dict,
+            'tiebreakers': payload.get('tiebreakers') or audit.get('tiebreakers', []),
+            'advancement_logic': adv_logic_dict,
+            'match_format': match_format_dict,
             'tiebreakers_display': tiebreakers_display,
             'rules_sections': rules_sections,
             'rules_grid': rules_grid,

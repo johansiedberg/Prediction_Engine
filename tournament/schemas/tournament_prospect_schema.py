@@ -1,9 +1,16 @@
 """
-Unified Tournament Prospect JSON Schema
-=======================================
+Unified Tournament Prospect JSON Schema (5-Segment Agnostic Blueprint)
+========================================================================
 Pydantic schema definitions representing the single authoritative state contract
 for AI-scouted tournament prospects across all ingestion agents, deep-scanners,
 staging models, and the live tournament creation engine.
+
+Divided into 5 distinct agnostic segments:
+1. HeadSegment (Discovery / Webcrawl)
+2. GeneralSegment (Deepscan)
+3. StructureAndRulesSegment (Deepscan)
+4. GroupsAndTeamsSegment (Deepscan)
+5. MatchesAndKnockoutSegment (Deepscan)
 """
 
 from enum import Enum
@@ -17,10 +24,10 @@ class ScoutingStage(str, Enum):
 
 
 class CompletenessGrade(str, Enum):
-    GRADE_A = "GRADE_A"  # 100% Ready (Redo)
-    GRADE_B = "GRADE_B"  # Pending Draw/Fixtures (Väntar lottning)
-    GRADE_C = "GRADE_C"  # Pending Deepscan / Missing structure (Ej redo)
-    GRADE_D = "GRADE_D"  # Incompatible / Past event / Discarded
+    GRADE_A = "GRADE_A"
+    GRADE_B = "GRADE_B"
+    GRADE_C = "GRADE_C"
+    GRADE_D = "GRADE_D"
 
 
 class ProspectStatus(str, Enum):
@@ -41,44 +48,114 @@ class TiebreakerRule(str, Enum):
     RANDOM_DRAW = "RANDOM_DRAW"
 
 
-class ProspectMetadata(BaseModel):
+# ---------------------------------------------------------------------------
+# 1. HEAD SEGMENT (Webcrawl / Discovery)
+# ---------------------------------------------------------------------------
+
+class HeadSegment(BaseModel):
     name: str = Field(description="Official tournament name e.g. FIFA World Cup 2026")
     master_event_code: str = Field(description="Slug identifier e.g. fifa-world-cup-2026")
     sport: str = Field(default="Football", description="Sport discipline")
     is_h2h_team_sport: bool = Field(default=True, description="True if H2H team sport with group/knockout mechanics")
-    organizer: str = Field(default="", description="Governing body e.g. FIFA, UEFA, IFF")
-    host_country: str = Field(default="", description="Host country or host cities")
+    start_date: Optional[str] = Field(default=None, description="Expected start date YYYY-MM-DD")
+    discovery_source: str = Field(default="", description="Source of shallow discovery e.g. AllSportDB, WikiPortal")
+
+
+# ---------------------------------------------------------------------------
+# 2. GENERAL SEGMENT (Deepscan)
+# ---------------------------------------------------------------------------
+
+class LocationInfo(BaseModel):
+    host_country: str = Field(default="", description="Host country or multiple countries")
+    host_cities: List[str] = Field(default_factory=list, description="Host cities")
+    venues: List[str] = Field(default_factory=list, description="Stadiums and venues")
+
+
+class EmblemInfo(BaseModel):
+    logo_url: str = Field(default="", description="Emblem or logotype image URL")
+    is_vector: bool = Field(default=False, description="True if SVG or high-res vector")
+    is_transparent: bool = Field(default=False, description="True if transparent background")
+    source: str = Field(default="", description="Emblem source e.g. Wikimedia Commons, Official")
+
+
+class GeneralSegment(BaseModel):
     start_date: Optional[str] = Field(default=None, description="ISO date YYYY-MM-DD")
     end_date: Optional[str] = Field(default=None, description="ISO date YYYY-MM-DD")
-    draw_date: Optional[str] = Field(default=None, description="Official draw date e.g. 2026-12-06")
-    draw_completed: bool = Field(default=False, description="True if official draw completed")
-    official_source_url: str = Field(default="", description="Direct URL to official website")
-    logo_url: str = Field(default="", description="Emblem or logotype image URL")
+    location: LocationInfo = Field(default_factory=LocationInfo)
+    emblem: EmblemInfo = Field(default_factory=EmblemInfo)
+    organizer: str = Field(default="", description="Governing body e.g. FIFA, UEFA, IIHF")
+    official_website_url: str = Field(default="", description="Direct URL to official federation tournament site")
+    wikipedia_url: str = Field(default="", description="Wikipedia article URL")
     wikidata_qid: Optional[str] = Field(default=None, description="Wikidata Entity QID")
 
 
-class ScoutingAudit(BaseModel):
-    stage: ScoutingStage = Field(default=ScoutingStage.SHALLOW)
-    completeness_grade: CompletenessGrade = Field(default=CompletenessGrade.GRADE_C)
-    status: ProspectStatus = Field(default=ProspectStatus.NEW)
-    grade_reason: str = Field(default="")
-    missing_items: List[str] = Field(default_factory=list)
-    draw_date: Optional[str] = Field(default=None)
-    draw_completed: bool = Field(default=False)
-    next_rescan_date: Optional[str] = Field(default=None)
-    scan_timestamp: Optional[str] = Field(default=None)
-    active_sources_used: List[str] = Field(default_factory=list)
+# ---------------------------------------------------------------------------
+# 3. STRUCTURE & RULES SEGMENT (Deepscan)
+# ---------------------------------------------------------------------------
+
+class TiebreakerStep(BaseModel):
+    step: int = Field(default=1)
+    rule: str = Field(default="H2H_POINTS")
+    label: str = Field(default="Inbördes möten (Poäng)")
+    icon: str = Field(default="fa-trophy")
+    desc: str = Field(default="")
 
 
+class GeneralSetup(BaseModel):
+    draw_date: Optional[str] = Field(default=None, description="Date of official group/fixture lottery")
+    draw_completed: bool = Field(default=False, description="True if official draw is complete")
+    seeding_elements: List[str] = Field(default_factory=list, description="Seeding pots/tiers e.g. Pot 1 (Hosts)")
+    host_guarantees: Optional[str] = Field(default=None, description="Host team auto-placement rules")
+
+
+class GroupStageRules(BaseModel):
+    points_win: int = Field(default=3)
+    points_draw: int = Field(default=1)
+    points_loss: int = Field(default=0)
+    yellow_cards_suspension: str = Field(default="2 gula kort = 1 match avstängning")
+    red_card_suspension: str = Field(default="1 rött kort = minst 1 match avstängning")
+    tiebreaker_hierarchy: List[TiebreakerStep] = Field(default_factory=list)
+    teams_per_group_advancing: int = Field(default=2)
+
+
+class QualifyingTablesRules(BaseModel):
+    has_best_thirds: bool = Field(default=False)
+    best_thirds_count: int = Field(default=0)
+    has_runners_up: bool = Field(default=False)
+    runners_up_count: int = Field(default=0)
+    ranking_criteria: List[str] = Field(default_factory=list)
+    description: str = Field(default="")
+
+
+class KnockoutRules(BaseModel):
+    starting_round: str = Field(default="Slutspel")
+    total_rounds: int = Field(default=3)
+    extra_time_minutes: int = Field(default=30)
+    has_penalties: bool = Field(default=True)
+    tiebreaker_description: str = Field(default="Vid oavgjort i slutspel spelas förlängning följt av straffar.")
+
+
+class StructureAndRulesSegment(BaseModel):
+    general_setup: GeneralSetup = Field(default_factory=GeneralSetup)
+    group_stage_rules: GroupStageRules = Field(default_factory=GroupStageRules)
+    qualifying_tables_rules: QualifyingTablesRules = Field(default_factory=QualifyingTablesRules)
+    knockout_rules: KnockoutRules = Field(default_factory=KnockoutRules)
+    official_rules_summary: str = Field(default="")
+
+
+# ---------------------------------------------------------------------------
+# 4. GROUPS & TEAMS SEGMENT (Deepscan)
+# ---------------------------------------------------------------------------
 
 class TeamEntry(BaseModel):
-    name: str = Field(description="Team name e.g. Spain")
+    name: str = Field(description="Team name e.g. Spain or Placeholder A1")
     code: str = Field(default="", description="Short code e.g. ESP")
-    is_placeholder: bool = Field(default=False, description="True if placeholder like A1 or Team 1")
+    is_placeholder: bool = Field(default=False, description="True if placeholder like A1 or Playoff Winner")
+    seed: Optional[str] = Field(default=None, description="Seeding code e.g. A1, Pot 1")
     flag_emoji: str = Field(default="")
 
 
-class GroupProspect(BaseModel):
+class GroupEntry(BaseModel):
     name: str = Field(description="Group designation e.g. Group A")
     teams_count: int = Field(default=4)
     teams: List[TeamEntry] = Field(default_factory=list)
@@ -102,138 +179,154 @@ class GroupProspect(BaseModel):
         return result
 
 
+class GroupsAndTeamsSegment(BaseModel):
+    groups_count: int = Field(default=0)
+    teams_count: int = Field(default=0)
+    has_real_teams: bool = Field(default=False)
+    groups: List[GroupEntry] = Field(default_factory=list)
 
-class FixtureProspect(BaseModel):
+
+# ---------------------------------------------------------------------------
+# 5. MATCHES & KNOCKOUT SEGMENT (Deepscan)
+# ---------------------------------------------------------------------------
+
+class GroupMatchEntry(BaseModel):
     match_number: int = Field(description="Sequence match number")
     stage_or_group: str = Field(default="Group Stage")
-    date_time: Optional[str] = Field(default=None)
     home_team: str = Field(default="")
     away_team: str = Field(default="")
+    date_time: Optional[str] = Field(default=None)
     venue: str = Field(default="")
     is_placeholder: bool = Field(default=False)
 
 
-class KnockoutMatchProspect(BaseModel):
+class AdvancementFixtureEntry(BaseModel):
+    match_code: str = Field(description="e.g. R32_1, QF_1")
+    stage_name: str = Field(default="Quarterfinals")
+    source_home: str = Field(default="Winner Group A")
+    source_away: str = Field(default="Runner-up Group B")
+
+
+class KnockoutMatchEntry(BaseModel):
     match_code: str = Field(description="e.g. QF_1")
     stage_name: str = Field(default="Quarterfinals")
-    home_source: str = Field(default="Winner Group A")
-    away_source: str = Field(default="Runner-up Group B")
+    home_team: str = Field(default="")
+    away_team: str = Field(default="")
+    winner_to: Optional[str] = Field(default=None)
+    date_time: Optional[str] = Field(default=None)
+    venue: str = Field(default="")
 
 
-class KnockoutStageProspect(BaseModel):
-    stage_name: str = Field(description="e.g. Quarterfinals")
-    matches: List[KnockoutMatchProspect] = Field(default_factory=list)
+class KnockoutStageEntry(BaseModel):
+    stage_name: str = Field(description="e.g. Round of 32, Quarterfinals")
+    round_order: int = Field(default=1)
+    matches: List[KnockoutMatchEntry] = Field(default_factory=list)
 
 
-class RulesAndPointsProspect(BaseModel):
-    points_for_win: int = Field(default=3)
-    points_for_draw: int = Field(default=1)
-    points_for_loss: int = Field(default=0)
-    yellow_card_suspension_threshold: int = Field(default=2)
-    tiebreaker_hierarchy: List[TiebreakerRule] = Field(
-        default_factory=lambda: [
-            TiebreakerRule.H2H_POINTS,
-            TiebreakerRule.H2H_GOAL_DIFFERENCE,
-            TiebreakerRule.H2H_GOALS_SCORED,
-            TiebreakerRule.OVERALL_GOAL_DIFFERENCE,
-            TiebreakerRule.OVERALL_GOALS_SCORED,
-            TiebreakerRule.DISCIPLINARY_POINTS,
-            TiebreakerRule.RANDOM_DRAW,
-        ]
-    )
-    knockout_tiebreakers: str = Field(default="Vid oavgjort i slutspel tillämpas Förlängning (2x15 min) följt av Straffsparksläggning.")
-    official_rules_summary: str = Field(default="")
+class MatchesAndKnockoutSegment(BaseModel):
+    total_matches: int = Field(default=0)
+    fixtures_completed: bool = Field(default=False)
+    group_matches: List[GroupMatchEntry] = Field(default_factory=list)
+    advancement_fixtures: List[AdvancementFixtureEntry] = Field(default_factory=list)
+    knockout_bracket: List[KnockoutStageEntry] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# SCOUTING AUDIT & UNIFIED BLUEPRINT
+# ---------------------------------------------------------------------------
+
+class ScoutingAudit(BaseModel):
+    stage: ScoutingStage = Field(default=ScoutingStage.SHALLOW)
+    completeness_grade: CompletenessGrade = Field(default=CompletenessGrade.GRADE_C)
+    status: ProspectStatus = Field(default=ProspectStatus.NEW)
+    grade_reason: str = Field(default="")
+    missing_items: List[str] = Field(default_factory=list)
+    draw_date: Optional[str] = Field(default=None)
+    draw_completed: bool = Field(default=False)
+    next_rescan_date: Optional[str] = Field(default=None)
+    scan_timestamp: Optional[str] = Field(default=None)
+    active_sources_used: List[str] = Field(default_factory=list)
 
 
 class TournamentProspectBlueprint(BaseModel):
     """
-    Unified Schema model representing a complete tournament prospect.
+    Unified 5-Segment Tournament Prospect Blueprint Model.
     """
-    metadata: ProspectMetadata
+    head_segment: HeadSegment
+    general_segment: GeneralSegment = Field(default_factory=GeneralSegment)
+    structure_and_rules_segment: StructureAndRulesSegment = Field(default_factory=StructureAndRulesSegment)
+    groups_and_teams_segment: GroupsAndTeamsSegment = Field(default_factory=GroupsAndTeamsSegment)
+    matches_and_knockout_segment: MatchesAndKnockoutSegment = Field(default_factory=MatchesAndKnockoutSegment)
     scouting_audit: ScoutingAudit = Field(default_factory=ScoutingAudit)
-    groups: List[GroupProspect] = Field(default_factory=list)
-    fixtures: List[FixtureProspect] = Field(default_factory=list)
-    knockout_stages: List[KnockoutStageProspect] = Field(default_factory=list)
-    rules_and_points: RulesAndPointsProspect = Field(default_factory=RulesAndPointsProspect)
 
-    def to_legacy_dict(self) -> Dict[str, Any]:
+    def to_payload_dict(self) -> Dict[str, Any]:
         """
-        Converts blueprint into legacy payload format for backwards compatibility with existing views.
+        Exports full 5-segment schema as a persistent dictionary with backward-compatible accessors.
         """
         return {
+            "head_segment": self.head_segment.model_dump(),
+            "general_segment": self.general_segment.model_dump(),
+            "structure_and_rules_segment": self.structure_and_rules_segment.model_dump(),
+            "groups_and_teams_segment": self.groups_and_teams_segment.model_dump(),
+            "matches_and_knockout_segment": self.matches_and_knockout_segment.model_dump(),
+            "scouting_audit": self.scouting_audit.model_dump(),
+            # Legacy aliases for existing view layers & templates
             "master_event": {
-                "name": self.metadata.name,
-                "code": self.metadata.master_event_code,
-                "sport": self.metadata.sport,
-                "organizer": self.metadata.organizer,
-                "host_country": self.metadata.host_country,
-                "start_date": self.metadata.start_date or "",
-                "end_date": self.metadata.end_date or "",
-                "official_source_url": self.metadata.official_source_url,
-                "wikidata_qid": self.metadata.wikidata_qid,
+                "name": self.head_segment.name,
+                "code": self.head_segment.master_event_code,
+                "sport": self.head_segment.sport,
+                "organizer": self.general_segment.organizer,
+                "host_country": self.general_segment.location.host_country,
+                "start_date": self.general_segment.start_date or self.head_segment.start_date or "",
+                "end_date": self.general_segment.end_date or "",
+                "official_source_url": self.general_segment.official_website_url,
+                "wikipedia_url": self.general_segment.wikipedia_url,
+                "wikidata_qid": self.general_segment.wikidata_qid,
+                "logo_url": self.general_segment.emblem.logo_url,
             },
             "tournament_config": {
-                "name": self.metadata.name,
-                "total_teams": sum(len(g.teams) for g in self.groups) or 16,
-                "knockout_stages": [ks.stage_name for ks in self.knockout_stages],
+                "name": self.head_segment.name,
+                "total_teams": self.groups_and_teams_segment.teams_count or 16,
+                "knockout_stages": [ks.stage_name for ks in self.matches_and_knockout_segment.knockout_bracket],
             },
-            "scouting_audit": {
-                "scouting_stage": self.scouting_audit.stage.value,
-                "completeness_grade": self.scouting_audit.completeness_grade.value,
-                "grade_reason": self.scouting_audit.grade_reason,
-                "missing_items": self.scouting_audit.missing_items,
-                "official_source_url": self.metadata.official_source_url,
-                "next_rescan_date": self.scouting_audit.next_rescan_date,
-                "scan_timestamp": self.scouting_audit.scan_timestamp,
-                "advancement_rules": self.rules_and_points.official_rules_summary,
-            },
-            "groups": [
-                {
-                    "name": g.name,
-                    "teams": [{"name": t.name, "code": t.code} for t in g.teams],
-                    "advancement_description": g.advancement_description,
-                }
-                for g in self.groups
-            ],
-            "fixtures_sample": [
-                {
-                    "match_number": f.match_number,
-                    "stage_or_group": f.stage_or_group,
-                    "date_time": f.date_time or "",
-                    "home_team": f.home_team,
-                    "away_team": f.away_team,
-                    "venue": f.venue,
-                    "is_placeholder": f.is_placeholder,
-                }
-                for f in self.fixtures
-            ],
+            "groups": [g.model_dump() for g in self.groups_and_teams_segment.groups],
+            "fixtures_sample": [m.model_dump() for m in self.matches_and_knockout_segment.group_matches],
             "knockout_mapping_sample": [
                 {
                     "stage": km.stage_name,
                     "match_code": km.match_code,
-                    "home_placeholder": km.home_source,
-                    "away_placeholder": km.away_source,
+                    "home_placeholder": km.source_home,
+                    "away_placeholder": km.source_away,
                 }
-                for ks in self.knockout_stages
-                for km in ks.matches
+                for km in self.matches_and_knockout_segment.advancement_fixtures
             ],
-            "logo_url": self.metadata.logo_url,
-            "tournament_blueprint": {
-                "tournament_name": self.metadata.name,
-                "sport": self.metadata.sport,
-                "organizer": self.metadata.organizer,
-                "host_country": self.metadata.host_country,
-                "start_date": self.metadata.start_date,
-                "end_date": self.metadata.end_date,
-                "draw_date": self.metadata.draw_date or self.scouting_audit.draw_date or "",
-                "draw_completed": self.metadata.draw_completed or self.scouting_audit.draw_completed,
-                "tiebreaker_hierarchy": [tb.value for tb in self.rules_and_points.tiebreaker_hierarchy],
-                "points_for_win": self.rules_and_points.points_for_win,
-                "points_for_draw": self.rules_and_points.points_for_draw,
-                "points_for_loss": self.rules_and_points.points_for_loss,
-                "yellow_card_suspension_threshold": self.rules_and_points.yellow_card_suspension_threshold,
-
-                "knockout_tiebreakers": self.rules_and_points.knockout_tiebreakers,
-                "official_rules_summary": self.rules_and_points.official_rules_summary,
+            "logo_url": self.general_segment.emblem.logo_url,
+            "draw_date": self.structure_and_rules_segment.general_setup.draw_date or self.scouting_audit.draw_date or "",
+            "draw_completed": self.structure_and_rules_segment.general_setup.draw_completed or self.scouting_audit.draw_completed,
+            "advancement_logic": {
+                "teams_per_group_advancing": self.structure_and_rules_segment.group_stage_rules.teams_per_group_advancing,
+                "best_third_placed_advancing": self.structure_and_rules_segment.qualifying_tables_rules.best_thirds_count,
+                "has_best_thirds_table": self.structure_and_rules_segment.qualifying_tables_rules.has_best_thirds,
+                "has_runners_up_table": self.structure_and_rules_segment.qualifying_tables_rules.has_runners_up,
             },
+            "points_system": {
+                "win": self.structure_and_rules_segment.group_stage_rules.points_win,
+                "draw": self.structure_and_rules_segment.group_stage_rules.points_draw,
+                "loss": self.structure_and_rules_segment.group_stage_rules.points_loss,
+            },
+            "match_format": {
+                "regular_time_minutes": 90,
+                "extra_time_minutes": self.structure_and_rules_segment.knockout_rules.extra_time_minutes,
+                "has_penalties": self.structure_and_rules_segment.knockout_rules.has_penalties,
+            },
+            "tiebreakers": [tb.label for tb in self.structure_and_rules_segment.group_stage_rules.tiebreaker_hierarchy],
         }
+
+
+# Legacy Aliases for backwards compatibility with previous imports
+ProspectMetadata = HeadSegment
+GroupProspect = GroupEntry
+FixtureProspect = GroupMatchEntry
+KnockoutStageProspect = KnockoutStageEntry
+KnockoutMatchProspect = KnockoutMatchEntry
+RulesAndPointsProspect = StructureAndRulesSegment
