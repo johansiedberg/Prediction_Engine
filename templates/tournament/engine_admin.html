@@ -3497,16 +3497,23 @@
             refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Scannar...';
         }
 
-        const totalCount = prospectItems.length;
-        let gradeACount = 0, gradeBCount = 0, gradeCCount = 0;
+        let gradeACount = 0, gradeBCount = 0, gradeCCount = 0, rejectedCount = 0;
         const csrfToken = getCSRFToken();
 
         for (let i = 0; i < totalCount; i++) {
             const item = prospectItems[i];
             const currentNum = i + 1;
 
+            if (progressBar) {
+                progressBar.classList.remove('bg-danger', 'bg-success');
+                progressBar.classList.add('bg-warning');
+            }
+            if (progressBadge) {
+                progressBadge.className = 'badge bg-warning bg-opacity-20 text-warning font-monospace py-1 px-2.5 border border-warning border-opacity-30';
+                progressBadge.innerText = `Scannar just nu: ${item.name}`;
+            }
+
             if (progressTitle) progressTitle.innerText = `Djupscannar ${totalCount} turneringar (${filterName})...`;
-            if (progressBadge) progressBadge.innerText = `Scannar just nu: ${item.name}`;
             if (progressSubtext) progressSubtext.innerHTML = `[${currentNum}/${totalCount}] Bearbetar <strong>${item.name}</strong> via Google/Gemini &amp; AI...`;
 
             let subStep = 1;
@@ -3531,13 +3538,13 @@
                 });
                 const data = await res.json();
                 clearInterval(subInterval);
-                setSubAgentStep(6);
 
                 const itemDonePct = Math.round(((i + 1) / totalCount) * 100);
                 if (progressBar) progressBar.style.width = `${itemDonePct}%`;
                 if (progressPercent) progressPercent.innerText = `${itemDonePct}%`;
 
                 if (res.ok && data.status === 'success') {
+                    setSubAgentStep(6);
                     if (data.grade === 'GRADE_A') gradeACount++;
                     else if (data.grade === 'GRADE_B') gradeBCount++;
                     else gradeCCount++;
@@ -3546,20 +3553,48 @@
                         item.element.setAttribute('data-stage', 'DEEP');
                         item.element.setAttribute('data-grade', data.grade);
                     }
+                } else if (data.status === 'deleted' || !res.ok || data.status === 'error') {
+                    // Turn progress bar RED and smoothly move on
+                    rejectedCount++;
+                    if (progressBar) {
+                        progressBar.classList.remove('bg-warning', 'bg-success');
+                        progressBar.classList.add('bg-danger');
+                    }
+                    if (progressBadge) {
+                        progressBadge.className = 'badge bg-danger bg-opacity-25 text-danger font-monospace py-1 px-2.5 border border-danger border-opacity-40';
+                        progressBadge.innerText = `Avvisad / Raderad: ${item.name}`;
+                    }
+                    if (progressSubtext) {
+                        progressSubtext.innerHTML = `[${currentNum}/${totalCount}] <span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Avvisades (${data.message || data.error || 'Ej godkänd'})</span> — Fortsätter till nästa...`;
+                    }
+                    if (item.element) {
+                        item.element.style.opacity = '0.25';
+                        item.element.style.filter = 'grayscale(100%)';
+                    }
+                    // Brief pause to visualize red before next item
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
             } catch (err) {
                 clearInterval(subInterval);
                 console.error(`Error deep scanning prospect #${item.id} (${item.name}):`, err);
+                if (progressBar) {
+                    progressBar.classList.remove('bg-warning', 'bg-success');
+                    progressBar.classList.add('bg-danger');
+                }
+                await new Promise(resolve => setTimeout(resolve, 400));
             }
         }
 
         setSubAgentStep(6);
         if (progressTitle) progressTitle.innerText = `Djupscanning klar för de ${totalCount} turneringarna!`;
-        if (progressBadge) progressBadge.innerText = 'Alla 5 sub-agenter klara!';
-        if (progressSubtext) progressSubtext.innerHTML = `[${totalCount}/${totalCount}] Bearbetning klar. Uppdaterar listan...`;
+        if (progressBadge) {
+            progressBadge.className = 'badge bg-success bg-opacity-20 text-success font-monospace py-1 px-2.5 border border-success border-opacity-30';
+            progressBadge.innerText = `Klart! (${gradeACount} Redo, ${gradeBCount} Ej redo, ${rejectedCount} Avvisade)`;
+        }
+        if (progressSubtext) progressSubtext.innerHTML = `[${totalCount}/${totalCount}] Bearbetning klar (${rejectedCount} avvisade/raderade). Uppdaterar listan...`;
         if (progressBar) {
             progressBar.style.width = '100%';
-            progressBar.classList.remove('bg-warning');
+            progressBar.classList.remove('bg-warning', 'bg-danger');
             progressBar.classList.add('bg-success');
         }
         if (progressPercent) progressPercent.innerText = '100%';
@@ -4262,24 +4297,43 @@ Search and extract upcoming sports tournaments matching:
             const data = await res.json();
             clearInterval(stepInterval);
 
-            if (data.status === 'success' || data.status === 'deleted') {
+            if (data.status === 'success') {
                 setSubAgentStep(6);
                 if (progressTitle) progressTitle.innerText = `Djupscanning klar för ${tournamentName}!`;
-                if (progressBadge) progressBadge.innerText = 'Alla 5 sub-agenter klara!';
+                if (progressBadge) {
+                    progressBadge.className = 'badge bg-success bg-opacity-20 text-success font-monospace py-1 px-2.5 border border-success border-opacity-30';
+                    progressBadge.innerText = 'Alla 5 sub-agenter klara!';
+                }
                 if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetning klar för <strong>${tournamentName}</strong>. Laddar om...`;
                 if (progressBar) {
                     progressBar.style.width = '100%';
-                    progressBar.classList.remove('bg-warning');
+                    progressBar.classList.remove('bg-warning', 'bg-danger');
                     progressBar.classList.add('bg-success');
                 }
                 if (progressPercent) progressPercent.innerText = '100%';
 
                 localStorage.setItem('engineAdminActiveTab', 'scout-tab');
                 setTimeout(() => location.reload(), 600);
+            } else if (data.status === 'deleted') {
+                if (progressTitle) progressTitle.innerText = `Turneringen avvisades och togs bort!`;
+                if (progressBadge) {
+                    progressBadge.className = 'badge bg-danger bg-opacity-25 text-danger font-monospace py-1 px-2.5 border border-danger border-opacity-40';
+                    progressBadge.innerText = 'Avvisad / Raderad';
+                }
+                if (progressSubtext) progressSubtext.innerHTML = `[1/1] <span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>${data.message || 'Ej godkänd enligt villkor'}</span>. Laddar om...`;
+                if (progressBar) {
+                    progressBar.style.width = '100%';
+                    progressBar.classList.remove('bg-warning', 'bg-success');
+                    progressBar.classList.add('bg-danger');
+                }
+                if (progressPercent) progressPercent.innerText = '100%';
+
+                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                setTimeout(() => location.reload(), 800);
             } else {
                 if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
                 if (progressContainer) progressContainer.classList.add('d-none');
-                alert(data.error || 'Djupscanning misslyckades.');
+                alert(data.error || data.message || 'Djupscanning misslyckades.');
             }
         } catch (e) {
             clearInterval(stepInterval);
