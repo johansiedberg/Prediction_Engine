@@ -44,11 +44,43 @@ class StructureRulesAgent:
         cls,
         audit_data: Optional[Dict[str, Any]] = None,
         official_rules_text: Optional[str] = None,
+        tournament_name: str = "",
+        sport: str = "Football",
+        teams_count: Optional[int] = None,
     ) -> StructureAndRulesSegment:
         """
-        Parses audit data and extracted rules text to build a validated StructureAndRulesSegment.
+        Parses audit data and leverages Gemini AI to build a validated StructureAndRulesSegment.
         """
-        audit = audit_data or {}
+        audit = dict(audit_data or {})
+
+        # 0. Gemini AI Intelligence Enrichment
+        from tournament.services.gemini_scout_service import GeminiScoutService
+        if GeminiScoutService.is_available() and tournament_name:
+            try:
+                gemini_rules = GeminiScoutService.scout_structure_and_rules(
+                    tournament_name=tournament_name,
+                    sport=sport,
+                    teams_count=teams_count,
+                    wikipedia_context=str(audit.get("raw_text", ""))[:4000],
+                )
+                if gemini_rules:
+                    if not audit.get("points_system") and gemini_rules.get("points_system"):
+                        audit["points_system"] = gemini_rules["points_system"]
+                    if not audit.get("tiebreakers") and gemini_rules.get("tiebreakers"):
+                        audit["tiebreakers"] = gemini_rules["tiebreakers"]
+                    if not audit.get("advancement_logic") and gemini_rules.get("advancement_logic"):
+                        audit["advancement_logic"] = gemini_rules["advancement_logic"]
+                    if not audit.get("knockout_stages") and gemini_rules.get("knockout_rules", {}).get("starting_round"):
+                        audit["knockout_stages"] = [gemini_rules["knockout_rules"]["starting_round"]]
+                    if not audit.get("draw_date") and gemini_rules.get("draw_date"):
+                        audit["draw_date"] = gemini_rules["draw_date"]
+                    if "draw_completed" not in audit and "draw_completed" in gemini_rules:
+                        audit["draw_completed"] = gemini_rules["draw_completed"]
+                    if not audit.get("official_rules_summary") and gemini_rules.get("official_rules_summary"):
+                        audit["official_rules_summary"] = gemini_rules["official_rules_summary"]
+            except Exception as e:
+                logger.warning("StructureRulesAgent: Gemini rules scout error: %s", e)
+
         bp = audit.get("tournament_blueprint") or {}
         adv_logic = audit.get("advancement_logic") or {}
         match_fmt = audit.get("match_format") or {}

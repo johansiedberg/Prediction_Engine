@@ -52,13 +52,34 @@ class GroupsTeamsAgent:
         audit_data: Optional[Dict[str, Any]] = None,
         default_groups_count: int = 4,
         teams_per_group: int = 4,
+        tournament_name: str = "",
+        sport: str = "Football",
     ) -> GroupsAndTeamsSegment:
         """
-        Extracts real group compositions or generates skeleton placeholders.
+        Extracts real group compositions or leverages Gemini AI to research official groups/teams.
         """
-        audit = audit_data or {}
+        audit = dict(audit_data or {})
         raw_groups = audit.get("groups") or []
         bp = audit.get("tournament_blueprint") or {}
+
+        # 0. Gemini AI Intelligence Enrichment
+        from tournament.services.gemini_scout_service import GeminiScoutService
+        if GeminiScoutService.is_available() and tournament_name and (not raw_groups or len(raw_groups) < 2):
+            try:
+                gemini_groups = GeminiScoutService.scout_groups_and_teams(
+                    tournament_name=tournament_name,
+                    sport=sport,
+                    wikipedia_context=str(audit.get("raw_text", ""))[:4000],
+                )
+                if gemini_groups and gemini_groups.get("groups"):
+                    raw_groups = gemini_groups["groups"]
+                    audit["groups"] = raw_groups
+                    if "draw_completed" in gemini_groups:
+                        audit["draw_completed"] = gemini_groups["draw_completed"]
+                    if gemini_groups.get("draw_date"):
+                        audit["draw_date"] = gemini_groups["draw_date"]
+            except Exception as e:
+                logger.warning("GroupsTeamsAgent: Gemini groups scout error: %s", e)
 
         parsed_groups: List[GroupEntry] = []
         real_teams_found = 0

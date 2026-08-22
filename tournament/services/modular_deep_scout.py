@@ -111,8 +111,21 @@ class ModularDeepScout:
                     active_sources.append(f"Official Site Parser ({official_url})")
 
         if not audit:
+            from tournament.services.gemini_scout_service import GeminiScoutService
+            if GeminiScoutService.is_available():
+                logger.info("ModularDeepScout: Wikipedia unavailable, querying Gemini AI with Google Search Grounding for '%s'", prospect.name)
+                gemini_struct = GeminiScoutService.scout_structure_and_rules(
+                    tournament_name=prospect.name,
+                    sport=prospect.sport or "Football",
+                    teams_count=prospect.teams_count,
+                )
+                if gemini_struct:
+                    audit = gemini_struct
+                    active_sources.append("Google Gemini AI Deep Intelligence")
+
+        if not audit:
             prospect.completeness_grade = 'GRADE_C'
-            prospect.grade_reason = f"Grad C (Ej redo): Kunde inte läsa källsida eller källartikel för '{prospect.name}'."
+            prospect.grade_reason = f"Grad C (Ej redo): Kunde inte hämta data för '{prospect.name}'."
             if prospect.status not in ['WATCHLIST', 'CONVERTED', 'ARCHIVED']:
                 prospect.status = 'NOT_READY'
             prospect.save()
@@ -183,7 +196,7 @@ class ModularDeepScout:
             }
 
         # -----------------------------------------------------------------------
-        # EXECUTE 5 DEDICATED SEGMENT AGENTS
+        # EXECUTE 5 DEDICATED SEGMENT AGENTS (WITH GEMINI AI INTEGRATION)
         # -----------------------------------------------------------------------
 
         # SEGMENT 1: Head Segment
@@ -195,7 +208,7 @@ class ModularDeepScout:
             master_event_code=prospect.master_event_code,
         )
 
-        # SEGMENT 2: General Segment
+        # SEGMENT 2: General Segment (Dates, venues, transparent vector emblems via Gemini & Wikidata)
         general_seg = self.general_agent.build_general_segment(
             tournament_name=prospect.name,
             audit_data=audit,
@@ -204,23 +217,30 @@ class ModularDeepScout:
             existing_logo_url=prospect.logo_url,
         )
 
-        # SEGMENT 3: Structure & Rules Segment
+        # SEGMENT 3: Structure & Rules Segment (Points W/D/L, tiebreakers, qualifying tables via Gemini AI)
         structure_rules_seg = self.structure_agent.build_structure_rules_segment(
             audit_data=audit,
             official_rules_text=audit.get('official_rules') or audit.get('advancement_rules') or "",
+            tournament_name=prospect.name,
+            sport=prospect.sport or "Football",
+            teams_count=prospect.teams_count,
         )
 
-        # SEGMENT 4: Groups & Teams Segment
+        # SEGMENT 4: Groups & Teams Segment (Group matrices, real teams, seeding pots via Gemini AI)
         groups_teams_seg = self.groups_agent.build_groups_teams_segment(
             audit_data=audit,
             default_groups_count=4,
             teams_per_group=4,
+            tournament_name=prospect.name,
+            sport=prospect.sport or "Football",
         )
 
-        # SEGMENT 5: Matches & Knockout Segment
+        # SEGMENT 5: Matches & Knockout Segment (Timetable & knockout trees via Gemini AI)
         matches_ko_seg = self.matches_agent.build_matches_knockout_segment(
             audit_data=audit,
             groups_segment=groups_teams_seg,
+            tournament_name=prospect.name,
+            sport=prospect.sport or "Football",
         )
 
         # Date validation & Auto-Rejection Rules

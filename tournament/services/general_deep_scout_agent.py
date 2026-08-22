@@ -62,6 +62,37 @@ class GeneralDeepScoutAgent:
         if isinstance(venues, str):
             venues = [v.strip() for v in venues.split(",") if v.strip()]
 
+        resolved_official_url = official_url or audit.get("official_source_url") or ""
+        logo_url = existing_logo_url or audit.get("logo_url") or ""
+
+        # 2.5 Gemini AI General Intelligence Enrichment
+        from tournament.services.gemini_scout_service import GeminiScoutService
+        if GeminiScoutService.is_available() and (not start_date or not end_date or not host_country or not resolved_official_url):
+            try:
+                gemini_gen = GeminiScoutService.scout_general_details(
+                    tournament_name=tournament_name,
+                    sport=audit.get("sport", "Football"),
+                    wikipedia_context=str(audit.get("raw_text", ""))[:4000],
+                )
+                if not start_date and gemini_gen.get("start_date"):
+                    start_date = gemini_gen.get("start_date")
+                if not end_date and gemini_gen.get("end_date"):
+                    end_date = gemini_gen.get("end_date")
+                if not host_country and gemini_gen.get("host_country"):
+                    host_country = gemini_gen.get("host_country")
+                if not host_cities and gemini_gen.get("host_cities"):
+                    host_cities = gemini_gen.get("host_cities")
+                if not venues and gemini_gen.get("host_venues"):
+                    venues = gemini_gen.get("host_venues")
+                if not resolved_official_url and gemini_gen.get("official_website_url"):
+                    resolved_official_url = gemini_gen.get("official_website_url")
+                if not audit.get("organizer") and gemini_gen.get("organizer"):
+                    audit["organizer"] = gemini_gen.get("organizer")
+                if not logo_url and gemini_gen.get("logo_url"):
+                    logo_url = gemini_gen.get("logo_url")
+            except Exception as e:
+                logger.warning("GeneralDeepScoutAgent: Gemini enrichment error: %s", e)
+
         loc_info = LocationInfo(
             host_country=str(host_country).strip(),
             host_cities=list(host_cities),
@@ -70,8 +101,6 @@ class GeneralDeepScoutAgent:
 
         # 3. Wikidata & Official Website resolution
         wikidata_qid = audit.get("wikidata_qid")
-        resolved_official_url = official_url or audit.get("official_source_url") or ""
-
         if wikipedia_title and (not wikidata_qid or not resolved_official_url):
             wiki_ent = self.wikidata_scout.fetch_wikidata_entity(wikipedia_title)
             if not wikidata_qid:
@@ -85,7 +114,8 @@ class GeneralDeepScoutAgent:
             ) or ""
 
         # 4. Emblem resolution
-        logo_url = existing_logo_url or audit.get("logo_url") or ""
+        if not logo_url:
+            logo_url = existing_logo_url or audit.get("logo_url") or ""
         if not logo_url:
             logo_url = self.emblem_scout.fetch_tournament_logo(
                 tournament_name=tournament_name,
@@ -101,7 +131,7 @@ class GeneralDeepScoutAgent:
             logo_url=logo_url,
             is_vector=is_vector,
             is_transparent=is_transparent,
-            source="EmblemScout Multi-Channel",
+            source="EmblemScout Multi-Channel & Gemini AI",
         )
 
         # 5. Organizer & Wiki URL

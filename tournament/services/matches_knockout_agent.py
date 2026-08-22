@@ -42,14 +42,38 @@ class MatchesKnockoutAgent:
         cls,
         audit_data: Optional[Dict[str, Any]] = None,
         groups_segment: Optional[GroupsAndTeamsSegment] = None,
+        tournament_name: str = "",
+        sport: str = "Football",
     ) -> MatchesAndKnockoutSegment:
         """
-        Parses confirmed fixtures from audit data or generates skeleton fixtures and knockout brackets.
+        Parses confirmed fixtures from audit data or leverages Gemini AI to research official match schedules & knockout trees.
         """
-        audit = audit_data or {}
+        audit = dict(audit_data or {})
         raw_fixtures = audit.get("fixtures") or audit.get("fixtures_sample") or []
         raw_knockouts = audit.get("knockout_stages") or []
         raw_advancement = audit.get("knockout_mapping_sample") or []
+
+        # 0. Gemini AI Intelligence Enrichment
+        from tournament.services.gemini_scout_service import GeminiScoutService
+        if GeminiScoutService.is_available() and tournament_name and (not raw_fixtures or not raw_knockouts):
+            try:
+                gemini_matches = GeminiScoutService.scout_matches_and_knockout(
+                    tournament_name=tournament_name,
+                    sport=sport,
+                    groups_data=[g.model_dump() for g in groups_segment.groups] if groups_segment else None,
+                    wikipedia_context=str(audit.get("raw_text", ""))[:4000],
+                )
+                if gemini_matches:
+                    if not raw_fixtures and gemini_matches.get("fixtures"):
+                        raw_fixtures = gemini_matches["fixtures"]
+                        audit["fixtures"] = raw_fixtures
+                    if not raw_knockouts and gemini_matches.get("knockout_stages"):
+                        raw_knockouts = gemini_matches["knockout_stages"]
+                        audit["knockout_stages"] = raw_knockouts
+                    if "fixtures_completed" in gemini_matches:
+                        audit["fixtures_completed"] = gemini_matches["fixtures_completed"]
+            except Exception as e:
+                logger.warning("MatchesKnockoutAgent: Gemini matches scout error: %s", e)
 
         # 1. Group Matches Parsing
         group_matches: List[GroupMatchEntry] = []
