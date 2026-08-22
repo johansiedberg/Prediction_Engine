@@ -3509,12 +3509,12 @@
                 progressBar.classList.add('bg-warning');
             }
             if (progressBadge) {
-                progressBadge.className = 'badge bg-warning bg-opacity-20 text-warning font-monospace py-1 px-2.5 border border-warning border-opacity-30';
-                progressBadge.innerText = `Scannar just nu: ${item.name}`;
+                progressBadge.className = 'badge bg-secondary bg-opacity-25 font-monospace py-1 px-2.5 border border-secondary border-opacity-30';
+                progressBadge.innerHTML = `Scannar just nu: <strong class="text-white">${item.name}</strong>`;
             }
 
             if (progressTitle) progressTitle.innerText = `Djupscannar ${totalCount} turneringar (${filterName})...`;
-            if (progressSubtext) progressSubtext.innerHTML = `[${currentNum}/${totalCount}] Bearbetar <strong>${item.name}</strong> via Google/Gemini &amp; AI...`;
+            if (progressSubtext) progressSubtext.innerHTML = `[${currentNum}/${totalCount}] Bearbetar <strong class="text-white">${item.name}</strong> via Google/Gemini &amp; AI...`;
 
             let subStep = 1;
             setSubAgentStep(subStep);
@@ -4256,8 +4256,11 @@ Search and extract upcoming sports tournaments matching:
             progressContainer.classList.remove('d-none');
             progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             if (progressTitle) progressTitle.innerText = 'Djupscannar 1 turnering...';
-            if (progressBadge) progressBadge.innerText = `Scannar just nu: ${tournamentName}`;
-            if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetar <strong>${tournamentName}</strong> via Google/Gemini &amp; AI...`;
+            if (progressBadge) {
+                progressBadge.className = 'badge bg-secondary bg-opacity-25 font-monospace py-1 px-2.5 border border-secondary border-opacity-30';
+                progressBadge.innerHTML = `Scannar just nu: <strong class="text-white">${tournamentName}</strong>`;
+            }
+            if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetar <strong class="text-white">${tournamentName}</strong> via Google/Gemini &amp; AI...`;
             if (progressBar) {
                 progressBar.style.width = '10%';
                 progressBar.classList.remove('bg-success');

@@ -117,9 +117,8 @@ class GeneralDeepScoutAgent:
         if not logo_url:
             logo_url = existing_logo_url or audit.get("logo_url") or ""
         if not logo_url:
-            logo_url = self.emblem_scout.fetch_tournament_logo(
+            logo_url = EmblemScout.discover_official_emblem(
                 tournament_name=tournament_name,
-                wikipedia_title=wikipedia_title,
                 official_url=resolved_official_url,
                 wikidata_qid=wikidata_qid,
             ) or ""

@@ -26,9 +26,10 @@ class GeminiScoutService:
     SUPPORTED_MODELS = [
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
-        "gemini-3.1-flash-lite",
-        "gemini-3.7-flash",
-        "gemini-flash-latest",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-8b",
     ]
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"

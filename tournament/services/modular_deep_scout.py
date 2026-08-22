@@ -117,7 +117,7 @@ class ModularDeepScout:
                 gemini_struct = GeminiScoutService.scout_structure_and_rules(
                     tournament_name=prospect.name,
                     sport=prospect.sport or "Football",
-                    teams_count=prospect.teams_count,
+                    teams_count=getattr(prospect, 'teams_count', None) or payload.get('tournament_config', {}).get('total_teams'),
                 )
                 if gemini_struct:
                     audit = gemini_struct
@@ -223,7 +223,7 @@ class ModularDeepScout:
             official_rules_text=audit.get('official_rules') or audit.get('advancement_rules') or "",
             tournament_name=prospect.name,
             sport=prospect.sport or "Football",
-            teams_count=prospect.teams_count,
+            teams_count=getattr(prospect, 'teams_count', None) or payload.get('tournament_config', {}).get('total_teams'),
         )
 
         # SEGMENT 4: Groups & Teams Segment (Group matrices, real teams, seeding pots via Gemini AI)
