@@ -1049,32 +1049,32 @@
                                     <!-- Right Column: Frame for deepscan (if SHALLOW) OR Expansion headers (Else) -->
                                     <div class="col-12 col-lg-7">
                                         {% if item.scouting_stage == 'SHALLOW' %}
-                                        <!-- Shallow Scanning CTA Frame (Horizontal: Icon | Text | Button) -->
-                                        <div class="p-3 rounded-3 d-flex flex-row align-items-center justify-content-between text-start gap-3 h-100" style="background:rgba(245,158,11,0.06);border:1px dashed rgba(245,158,11,0.3);">
-                                            <div class="d-flex align-items-center gap-3 flex-grow-1 min-w-0">
-                                                <i class="fa-solid fa-microscope text-warning fs-3 flex-shrink-0"></i>
-                                                <div class="min-w-0">
-                                                    <div class="fw-bold text-white fs-6 mb-0.5">Djupscanning krävs</div>
-                                                    <div class="text-secondary small font-monospace" style="font-size:0.82rem;line-height:1.2;">Hämta grupper, spelschema och föreskrifter automatiskt via Wikipedia.</div>
-                                                </div>
+                                        <!-- Shallow Scanning CTA Frame -->
+                                        <div class="d-flex align-items-center justify-content-between mb-3 p-2 rounded-3" style="background:rgba(245,158,11,0.06);border:1px dashed rgba(245,158,11,0.3);">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="fa-solid fa-microscope text-warning"></i>
+                                                <span class="text-white fw-bold small">Djupscanning krävs för att hämta regler, lag och spelschema</span>
                                             </div>
-                                            <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-2 fw-bold shadow-sm text-dark text-nowrap flex-shrink-0" onclick="deepScanProspect({{ item.prospect.id }})">
-                                                <i class="fa-solid fa-microscope me-1.5"></i>Starta djupscanning
+                                            <button class="btn btn-warning btn-sm rounded-pill px-3 py-1 fw-bold shadow-sm text-dark text-nowrap" onclick="deepScanProspect({{ item.prospect.id }})">
+                                                Starta djupscanning
                                             </button>
                                         </div>
-                                        {% else %}
+                                        {% endif %}
+                                        
                                         <!-- Accordion Expansion Headers -->
                                         <div class="accordion scout-accordion" id="prospectAccordion-{{ item.prospect.id }}">
 
-                                            <!-- Turneringsstruktur & Datapunkter Regler & Logik -->
-                                            {% if item.scouting_stage == 'DEEP' %}
+                                            <!-- Turneringsstruktur & Datapunkter -->
                                             <div class="accordion-item">
                                                 <h2 class="accordion-header">
                                                     <button class="accordion-button collapsed" type="button"
                                                             data-bs-toggle="collapse"
                                                             data-bs-target="#collapseStructure-{{ item.prospect.id }}">
                                                         <i class="fa-solid fa-sitemap text-primary me-2" style="font-size:16px;"></i>
-                                                        <strong style="font-size:16px;">Turneringsstruktur & Datapunkter Regler & Logik</strong>
+                                                        <strong style="font-size:16px;">Turneringsstruktur & Datapunkter</strong>
+                                                        {% if item.scouting_stage == 'DEEP' %}
+                                                            <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Regler & Logik</span>
+                                                        {% endif %}
                                                         {% if item.official_rules or item.official_source_url %}
                                                             <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Föreskrifter verifierade"></i>
                                                         {% endif %}
@@ -1082,6 +1082,7 @@
                                                 </h2>
                                                 <div id="collapseStructure-{{ item.prospect.id }}" class="accordion-collapse collapse">
                                                     <div class="accordion-body px-3 py-3">
+                                                        {% if item.scouting_stage == 'DEEP' %}
                                                         <div class="row g-3 mb-3">
                                                             <!-- Tournament Setup -->
                                                             <div class="col-12 col-md-6">
@@ -1144,10 +1145,15 @@
                                                                 <i class="fa-solid fa-pen-to-square me-1"></i>Redigera föreskrifter
                                                             </button>
                                                         </div>
+                                                        {% else %}
+                                                        <div class="text-center py-3 text-secondary font-monospace small">
+                                                            <i class="fa-solid fa-microscope text-warning mb-2 fs-5"></i><br>
+                                                            Data laddas efter djupscanning.
+                                                        </div>
+                                                        {% endif %}
                                                     </div>
                                                 </div>
                                             </div>
-                                            {% endif %}
 
                                             <!-- Groups -->
                                             <div class="accordion-item">
@@ -1157,13 +1163,22 @@
                                                             data-bs-target="#collapseGroups-{{ item.prospect.id }}">
                                                         <i class="fa-solid fa-users me-2 text-warning" style="font-size:16px;"></i>
                                                         <strong style="font-size:16px;">Gruppindelning &amp; Lag</strong>
-                                                        <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag{% if not item.has_real_teams and item.groups_count > 0 %} (Platshållare){% endif %}</span>
-                                                        {% if item.groups_count > 0 and item.teams_count > 0 and item.has_real_teams %}
-                                                            <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Grupper &amp; Reella lag genomförda"></i>
-                                                        {% elif item.groups_count > 0 and item.teams_count > 0 %}
-                                                            <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Väntar lottning av reella lag (Platshållare)"></i>
+                                                        
+                                                        {% if item.scouting_stage == 'DEEP' %}
+                                                            <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag{% if not item.has_real_teams and item.groups_count > 0 %} (Platshållare){% endif %}</span>
+                                                            {% if item.groups_count > 0 and item.teams_count > 0 and item.has_real_teams %}
+                                                                <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Grupper &amp; Reella lag genomförda"></i>
+                                                            {% elif item.groups_count > 0 and item.teams_count > 0 %}
+                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Väntar lottning av reella lag (Platshållare)"></i>
+                                                            {% else %}
+                                                                <i class="fa-solid fa-triangle-exclamation text-danger ms-2" style="margin-left:7px !important;font-size:16px;" title="Saknar grupper/lag"></i>
+                                                            {% endif %}
                                                         {% else %}
-                                                            <i class="fa-solid fa-triangle-exclamation text-danger ms-2" style="margin-left:7px !important;font-size:16px;" title="Saknar grupper/lag"></i>
+                                                            {% if item.draw_date %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Lottning: {{ item.draw_date }}</span>
+                                                            {% else %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Datum för lottning saknas</span>
+                                                            {% endif %}
                                                         {% endif %}
                                                     </button>
                                                 </h2>
@@ -1215,11 +1230,20 @@
                                                             data-bs-target="#collapseFixtures-{{ item.prospect.id }}">
                                                         <i class="fa-solid fa-calendar-days me-2 text-info" style="font-size:16px;"></i>
                                                         <strong style="font-size:16px;">Spelschema &amp; Slutspel</strong>
-                                                        <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher</span>
-                                                        {% if item.matches_count > 0 and item.fixtures_done %}
-                                                            <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställt"></i>
+                                                        
+                                                        {% if item.scouting_stage == 'DEEP' %}
+                                                            <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher</span>
+                                                            {% if item.matches_count > 0 and item.fixtures_done %}
+                                                                <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställt"></i>
+                                                            {% else %}
+                                                                <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema ej slutfört"></i>
+                                                            {% endif %}
                                                         {% else %}
-                                                            <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema ej slutfört"></i>
+                                                            {% if item.draw_date %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Lottning: {{ item.draw_date }}</span>
+                                                            {% else %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Spelschema ej fastställt</span>
+                                                            {% endif %}
                                                         {% endif %}
                                                     </button>
                                                 </h2>
