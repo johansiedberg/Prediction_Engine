@@ -849,6 +849,7 @@
                          data-status="{{ item.prospect.status }}"
                          data-sport="{{ item.sport_key }}"
                          data-stage="{{ item.scouting_stage }}"
+                         data-tournament-name="{{ item.prospect.name|escape }}"
                          id="prospect-card-{{ item.prospect.id }}">
                         <div class="card scout-prospect-card text-white rounded-4 overflow-hidden shadow-sm d-flex flex-row align-items-stretch">
                             <!-- Monochromatic Status Strip -->
@@ -3449,8 +3450,10 @@
         const visibleCards = Array.from(document.querySelectorAll('.scout-prospect-item')).filter(card => card.style.display !== 'none');
         const prospectItems = visibleCards.map(card => {
             const id = card.id.replace('prospect-card-', '');
-            const titleEl = card.querySelector('h4') || card.querySelector('.fw-bold');
-            const name = titleEl ? titleEl.innerText.trim() : `Turnering #${id}`;
+            const name = card.getAttribute('data-tournament-name')
+                || (card.querySelector('h4') ? card.querySelector('h4').innerText.trim() : '')
+                || (card.querySelector('.fw-bold') ? card.querySelector('.fw-bold').innerText.trim() : '')
+                || `Turnering #${id}`;
             return { id: parseInt(id), name: name, element: card };
         }).filter(item => !isNaN(item.id));
 
@@ -3463,7 +3466,7 @@
         const filterNames = { 'all': 'alla', 'NEW': 'nya', 'READY': 'redo', 'WATCHLIST': 'bevakade', 'NOT_READY': 'ej redo', 'ARCHIVED': 'ignorerade', 'CONVERTED': 'aktiverade' };
         const filterName = filterNames[activeFilter] || 'alla';
 
-        if (!confirm(`Vill du djupscanna de ${prospectItems.length} visade (${filterName}) turneringarna mot Wikipedia & AI? Processen visar framsteg live.`)) {
+        if (!confirm(`Vill du djupscanna de ${prospectItems.length} visade (${filterName}) turneringarna med Google/Gemini AI & Wikipedia? Processen visar framsteg live.`)) {
             return;
         }
 
@@ -3504,7 +3507,7 @@
 
             if (progressTitle) progressTitle.innerText = `Djupscannar ${totalCount} turneringar (${filterName})...`;
             if (progressBadge) progressBadge.innerText = `Scannar just nu: ${item.name}`;
-            if (progressSubtext) progressSubtext.innerHTML = `[${currentNum}/${totalCount}] Bearbetar <strong>${item.name}</strong> via Wikipedia &amp; AI...`;
+            if (progressSubtext) progressSubtext.innerHTML = `[${currentNum}/${totalCount}] Bearbetar <strong>${item.name}</strong> via Google/Gemini &amp; AI...`;
 
             let subStep = 1;
             setSubAgentStep(subStep);
@@ -4205,8 +4208,7 @@ Search and extract upcoming sports tournaments matching:
 
     async function deepScanProspect(prospectId) {
         const card = document.getElementById(`prospect-card-${prospectId}`);
-        const titleEl = card ? (card.querySelector('h4') || card.querySelector('.fw-bold')) : null;
-        const tournamentName = titleEl ? titleEl.innerText.trim() : `Turnering #${prospectId}`;
+        const tournamentName = (card ? (card.getAttribute('data-tournament-name') || (card.querySelector('h4') ? card.querySelector('h4').innerText.trim() : '')) : '') || `Turnering #${prospectId}`;
 
         const progressContainer = document.getElementById('scoutBulkProgressContainer');
         const progressTitle     = document.getElementById('scoutBulkProgressTitle');
@@ -4220,7 +4222,7 @@ Search and extract upcoming sports tournaments matching:
             progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             if (progressTitle) progressTitle.innerText = 'Djupscannar 1 turnering...';
             if (progressBadge) progressBadge.innerText = `Scannar just nu: ${tournamentName}`;
-            if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetar <strong>${tournamentName}</strong> via Wikipedia &amp; AI...`;
+            if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetar <strong>${tournamentName}</strong> via Google/Gemini &amp; AI...`;
             if (progressBar) {
                 progressBar.style.width = '10%';
                 progressBar.classList.remove('bg-success');

@@ -64,20 +64,20 @@ class GroupsTeamsAgent:
 
         # 0. Gemini AI Intelligence Enrichment
         from tournament.services.gemini_scout_service import GeminiScoutService
-        if GeminiScoutService.is_available() and tournament_name and (not raw_groups or len(raw_groups) < 2):
+        if GeminiScoutService.is_available() and tournament_name:
             try:
                 gemini_groups = GeminiScoutService.scout_groups_and_teams(
                     tournament_name=tournament_name,
                     sport=sport,
                     wikipedia_context=str(audit.get("raw_text", ""))[:4000],
-                )
-                if gemini_groups and gemini_groups.get("groups"):
+                ) or {}
+                if gemini_groups.get("groups") and (not raw_groups or len(raw_groups) < len(gemini_groups["groups"]) or gemini_groups.get("has_real_teams")):
                     raw_groups = gemini_groups["groups"]
                     audit["groups"] = raw_groups
-                    if "draw_completed" in gemini_groups:
-                        audit["draw_completed"] = gemini_groups["draw_completed"]
-                    if gemini_groups.get("draw_date"):
-                        audit["draw_date"] = gemini_groups["draw_date"]
+                if "draw_completed" in gemini_groups:
+                    audit["draw_completed"] = gemini_groups["draw_completed"]
+                if gemini_groups.get("draw_date"):
+                    audit["draw_date"] = gemini_groups["draw_date"]
             except Exception as e:
                 logger.warning("GroupsTeamsAgent: Gemini groups scout error: %s", e)
 

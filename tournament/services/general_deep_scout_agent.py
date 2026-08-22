@@ -67,28 +67,28 @@ class GeneralDeepScoutAgent:
 
         # 2.5 Gemini AI General Intelligence Enrichment
         from tournament.services.gemini_scout_service import GeminiScoutService
-        if GeminiScoutService.is_available() and (not start_date or not end_date or not host_country or not resolved_official_url):
+        if GeminiScoutService.is_available() and tournament_name:
             try:
                 gemini_gen = GeminiScoutService.scout_general_details(
                     tournament_name=tournament_name,
                     sport=audit.get("sport", "Football"),
                     wikipedia_context=str(audit.get("raw_text", ""))[:4000],
-                )
-                if not start_date and gemini_gen.get("start_date"):
+                ) or {}
+                if gemini_gen.get("start_date") and (not start_date or len(str(start_date)) < 10):
                     start_date = gemini_gen.get("start_date")
-                if not end_date and gemini_gen.get("end_date"):
+                if gemini_gen.get("end_date") and (not end_date or len(str(end_date)) < 10):
                     end_date = gemini_gen.get("end_date")
-                if not host_country and gemini_gen.get("host_country"):
+                if gemini_gen.get("host_country") and not host_country:
                     host_country = gemini_gen.get("host_country")
-                if not host_cities and gemini_gen.get("host_cities"):
+                if gemini_gen.get("host_cities") and not host_cities:
                     host_cities = gemini_gen.get("host_cities")
-                if not venues and gemini_gen.get("host_venues"):
+                if gemini_gen.get("host_venues") and not venues:
                     venues = gemini_gen.get("host_venues")
-                if not resolved_official_url and gemini_gen.get("official_website_url"):
+                if gemini_gen.get("official_website_url") and not resolved_official_url:
                     resolved_official_url = gemini_gen.get("official_website_url")
-                if not audit.get("organizer") and gemini_gen.get("organizer"):
+                if gemini_gen.get("organizer") and not audit.get("organizer"):
                     audit["organizer"] = gemini_gen.get("organizer")
-                if not logo_url and gemini_gen.get("logo_url"):
+                if gemini_gen.get("logo_url") and not logo_url:
                     logo_url = gemini_gen.get("logo_url")
             except Exception as e:
                 logger.warning("GeneralDeepScoutAgent: Gemini enrichment error: %s", e)

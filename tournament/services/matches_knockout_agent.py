@@ -55,23 +55,22 @@ class MatchesKnockoutAgent:
 
         # 0. Gemini AI Intelligence Enrichment
         from tournament.services.gemini_scout_service import GeminiScoutService
-        if GeminiScoutService.is_available() and tournament_name and (not raw_fixtures or not raw_knockouts):
+        if GeminiScoutService.is_available() and tournament_name:
             try:
                 gemini_matches = GeminiScoutService.scout_matches_and_knockout(
                     tournament_name=tournament_name,
                     sport=sport,
                     groups_data=[g.model_dump() for g in groups_segment.groups] if groups_segment else None,
                     wikipedia_context=str(audit.get("raw_text", ""))[:4000],
-                )
-                if gemini_matches:
-                    if not raw_fixtures and gemini_matches.get("fixtures"):
-                        raw_fixtures = gemini_matches["fixtures"]
-                        audit["fixtures"] = raw_fixtures
-                    if not raw_knockouts and gemini_matches.get("knockout_stages"):
-                        raw_knockouts = gemini_matches["knockout_stages"]
-                        audit["knockout_stages"] = raw_knockouts
-                    if "fixtures_completed" in gemini_matches:
-                        audit["fixtures_completed"] = gemini_matches["fixtures_completed"]
+                ) or {}
+                if gemini_matches.get("fixtures") and (not raw_fixtures or len(raw_fixtures) < len(gemini_matches["fixtures"])):
+                    raw_fixtures = gemini_matches["fixtures"]
+                    audit["fixtures"] = raw_fixtures
+                if gemini_matches.get("knockout_stages") and (not raw_knockouts or len(raw_knockouts) < len(gemini_matches["knockout_stages"])):
+                    raw_knockouts = gemini_matches["knockout_stages"]
+                    audit["knockout_stages"] = raw_knockouts
+                if "fixtures_completed" in gemini_matches:
+                    audit["fixtures_completed"] = gemini_matches["fixtures_completed"]
             except Exception as e:
                 logger.warning("MatchesKnockoutAgent: Gemini matches scout error: %s", e)
 

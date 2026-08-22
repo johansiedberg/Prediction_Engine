@@ -55,28 +55,29 @@ class StructureRulesAgent:
 
         # 0. Gemini AI Intelligence Enrichment
         from tournament.services.gemini_scout_service import GeminiScoutService
+        gemini_rules = {}
         if GeminiScoutService.is_available() and tournament_name:
             try:
                 gemini_rules = GeminiScoutService.scout_structure_and_rules(
                     tournament_name=tournament_name,
                     sport=sport,
                     teams_count=teams_count,
-                    wikipedia_context=str(audit.get("raw_text", ""))[:4000],
-                )
+                    wikipedia_context=str(audit.get("raw_text", ""))[:5000],
+                ) or {}
                 if gemini_rules:
-                    if not audit.get("points_system") and gemini_rules.get("points_system"):
+                    if gemini_rules.get("points_system"):
                         audit["points_system"] = gemini_rules["points_system"]
-                    if not audit.get("tiebreakers") and gemini_rules.get("tiebreakers"):
+                    if gemini_rules.get("tiebreakers"):
                         audit["tiebreakers"] = gemini_rules["tiebreakers"]
-                    if not audit.get("advancement_logic") and gemini_rules.get("advancement_logic"):
+                    if gemini_rules.get("advancement_logic"):
                         audit["advancement_logic"] = gemini_rules["advancement_logic"]
-                    if not audit.get("knockout_stages") and gemini_rules.get("knockout_rules", {}).get("starting_round"):
+                    if gemini_rules.get("knockout_rules", {}).get("starting_round"):
                         audit["knockout_stages"] = [gemini_rules["knockout_rules"]["starting_round"]]
-                    if not audit.get("draw_date") and gemini_rules.get("draw_date"):
+                    if gemini_rules.get("draw_date"):
                         audit["draw_date"] = gemini_rules["draw_date"]
-                    if "draw_completed" not in audit and "draw_completed" in gemini_rules:
+                    if "draw_completed" in gemini_rules:
                         audit["draw_completed"] = gemini_rules["draw_completed"]
-                    if not audit.get("official_rules_summary") and gemini_rules.get("official_rules_summary"):
+                    if gemini_rules.get("official_rules_summary"):
                         audit["official_rules_summary"] = gemini_rules["official_rules_summary"]
             except Exception as e:
                 logger.warning("StructureRulesAgent: Gemini rules scout error: %s", e)
@@ -85,6 +86,7 @@ class StructureRulesAgent:
         adv_logic = audit.get("advancement_logic") or {}
         match_fmt = audit.get("match_format") or {}
         pts_sys = audit.get("points_system") or {}
+        ko_rules_data = gemini_rules.get("knockout_rules") or {}
 
         # 1. General Setup (Draw date, seeding, host guarantees)
         draw_date = audit.get("draw_date") or bp.get("draw_date") or None
@@ -147,36 +149,38 @@ class StructureRulesAgent:
         has_ru = bool(adv_logic.get("has_runners_up_table") or bp.get("has_runners_up_table") or False)
         ru_count = int(adv_logic.get("runners_up_advancing") or bp.get("runners_up_advancing") or 0)
 
-        qual_desc = ""
-        if has_b3 and b3_count > 0:
-            qual_desc = f"De {b3_count} bästa 3:orna avancerar till slutspel."
-        elif has_ru and ru_count > 0:
-            qual_desc = f"De {ru_count} bästa tvåorna avancerar till slutspel/playoff."
+        qual_desc = adv_logic.get("description") or ""
+        if not qual_desc:
+            if has_b3 and b3_count > 0:
+                qual_desc = f"De {b3_count} bästa 3:orna avancerar till slutspel."
+            elif has_ru and ru_count > 0:
+                qual_desc = f"De {ru_count} bästa tvåorna avancerar till slutspel/playoff."
 
         qual_rules = QualifyingTablesRules(
             has_best_thirds=has_b3,
             best_thirds_count=b3_count,
             has_runners_up=has_ru,
             runners_up_count=ru_count,
-            ranking_criteria=["Poäng", "Målskillnad", "Gjorda mål", "Disciplinpoäng"],
+            ranking_criteria=adv_logic.get("qualifying_table_ranking_criteria") or ["Poäng", "Målskillnad", "Gjorda mål", "Disciplinpoäng"],
             description=qual_desc,
         )
 
         # 4. Knockout Rules
         ko_stages = audit.get("knockout_stages") or []
-        first_round = ko_stages[0] if ko_stages else "Slutspel"
+        first_round = ko_rules_data.get("starting_round") or (ko_stages[0] if ko_stages else "Slutspel")
         if isinstance(first_round, dict):
             first_round = first_round.get("stage_name", "Slutspel")
 
-        extra_min = match_fmt.get("extra_time_minutes", 30) if match_fmt.get("extra_time_minutes") is not None else 30
-        has_pens = match_fmt.get("has_penalties", True)
+        extra_min = ko_rules_data.get("extra_time_minutes") if ko_rules_data.get("extra_time_minutes") is not None else match_fmt.get("extra_time_minutes", 30)
+        has_pens = ko_rules_data.get("has_penalties") if "has_penalties" in ko_rules_data else match_fmt.get("has_penalties", True)
+        tiebreaker_desc = ko_rules_data.get("tiebreaker_description") or "Vid oavgjort i slutspel tillämpas Förlängning följt av Straffsparksläggning."
 
         ko_rules = KnockoutRules(
             starting_round=str(first_round),
-            total_rounds=len(ko_stages) or 3,
-            extra_time_minutes=int(extra_min),
+            total_rounds=ko_rules_data.get("total_rounds") or len(ko_stages) or 3,
+            extra_time_minutes=int(extra_min or 0),
             has_penalties=bool(has_pens),
-            tiebreaker_description="Vid oavgjort i slutspel tillämpas Förlängning (2x15 min) följt av Straffsparksläggning.",
+            tiebreaker_description=tiebreaker_desc,
         )
 
         rules_summary = official_rules_text or audit.get("official_rules_summary") or bp.get("official_rules_summary") or ""
