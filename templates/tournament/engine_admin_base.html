@@ -30,7 +30,7 @@
                 {% if request.user.is_authenticated %}
                 <div class="d-flex align-items-center gap-3">
                     <span class="badge bg-dark text-warning border border-warning border-opacity-30 px-3 py-2 font-monospace">
-                        <i class="fa-solid fa-user-shield me-1"></i> Admin: <strong>{{ request.user.get_full_name|default:request.user.email }}</strong>
+                        <i class="fa-solid fa-user-shield me-1"></i> Admin: <strong>{% if request.user.get_full_name %}{{ request.user.get_full_name }}{% else %}{{ request.user.email }}{% endif %}</strong>
                     </span>
                     <form action="/logout/" method="post" class="d-inline">
                         {% csrf_token %}

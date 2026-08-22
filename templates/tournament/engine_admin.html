@@ -861,8 +861,11 @@
                                     <!-- Left Info Block: Logo + Title & Status -->
                                     <div class="d-flex align-items-start gap-3">
                                         <div class="d-flex align-items-center justify-content-center rounded-3 flex-shrink-0 p-1" style="width:84px;height:84px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);font-size:2.2rem;">
-                                            {% if item.logo_url or item.prospect.logo_url %}
-                                                <img src="{{ item.logo_url|default:item.prospect.logo_url }}" alt="{{ item.prospect.name }} Logotype" class="img-fluid rounded" style="max-height:74px;max-width:74px;object-fit:contain;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                                            {% if item.logo_url %}
+                                                <img src="{{ item.logo_url }}" alt="{{ item.prospect.name }} Logotype" class="img-fluid rounded" style="max-height:74px;max-width:74px;object-fit:contain;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                                                <span style="display:none;">{{ item.sport_icon }}</span>
+                                            {% elif item.prospect.logo_url %}
+                                                <img src="{{ item.prospect.logo_url }}" alt="{{ item.prospect.name }} Logotype" class="img-fluid rounded" style="max-height:74px;max-width:74px;object-fit:contain;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
                                                 <span style="display:none;">{{ item.sport_icon }}</span>
                                             {% else %}
                                                 {{ item.sport_icon }}
@@ -1123,7 +1126,7 @@
                                                                             <span class="text-secondary mb-1">Slutspelsstruktur (Knockout Stage):</span>
                                                                             <strong class="text-white">
                                                                                 {% if item.knockouts %}
-                                                                                    Startar med <strong>{{ item.knockouts.0.stage_name|default:item.knockouts.0.stage|default:"Slutspel" }}</strong> ({{ item.knockouts|length }} slutspelsomgångar).
+                                                                                    Startar med <strong>{% if item.knockouts.0.stage_name %}{{ item.knockouts.0.stage_name }}{% elif item.knockouts.0.stage %}{{ item.knockouts.0.stage }}{% else %}Slutspel{% endif %}</strong> ({{ item.knockouts|length }} slutspelsomgångar).
                                                                                 {% else %}
                                                                                     {{ item.rules_grid.qualifying.target_stage|default:"Slutspel (Knockout-träd)" }}
                                                                                 {% endif %}
@@ -1142,7 +1145,7 @@
                                                                         <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
                                                                             <span class="text-secondary">Poäng i gruppspel (V/O/F):</span>
                                                                             <strong class="text-white">
-                                                                                {{ item.points_system.win|default:item.rules_grid.group_stage.points_win|default:3 }}p / {{ item.points_system.draw|default:item.rules_grid.group_stage.points_draw|default:1 }}p / {{ item.points_system.loss|default:item.rules_grid.group_stage.points_loss|default:0 }}p
+                                                                                {% if item.points_system.win is not None %}{{ item.points_system.win }}{% elif item.rules_grid.group_stage.points_win is not None %}{{ item.rules_grid.group_stage.points_win }}{% else %}3{% endif %}p / {% if item.points_system.draw is not None %}{{ item.points_system.draw }}{% elif item.rules_grid.group_stage.points_draw is not None %}{{ item.rules_grid.group_stage.points_draw }}{% else %}1{% endif %}p / {% if item.points_system.loss is not None %}{{ item.points_system.loss }}{% elif item.rules_grid.group_stage.points_loss is not None %}{{ item.rules_grid.group_stage.points_loss }}{% else %}0{% endif %}p
                                                                             </strong>
                                                                         </li>
                                                                         <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
@@ -1303,7 +1306,7 @@
                                                             {% for f in item.fixtures %}
                                                             <div class="d-flex align-items-center justify-content-between p-2 rounded-3 font-monospace" style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);font-size:0.82rem;">
                                                                 <div class="d-flex align-items-center gap-2" style="min-width:130px;">
-                                                                    <span class="text-secondary fw-bold">#{{ f.match_number|default:forloop.counter }}</span>
+                                                                    <span class="text-secondary fw-bold">#{% if f.match_number %}{{ f.match_number }}{% else %}{{ forloop.counter }}{% endif %}</span>
                                                                     <span class="badge rounded-pill bg-dark border border-warning border-opacity-40 text-warning px-2 py-0.5" style="font-size:0.75rem;">
                                                                         {{ f.stage_or_group|default:"Gruppspel" }}
                                                                     </span>
