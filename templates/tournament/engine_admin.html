@@ -1092,16 +1092,38 @@
                                                                     </div>
                                                                     <ul class="list-unstyled mb-0 text-light font-monospace" style="font-size:0.82rem;">
                                                                         <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
-                                                                            <span class="text-secondary mb-1">Gruppspel:</span>
-                                                                            <strong class="text-white">{{ item.teams_count }} lag indelade i {{ item.groups_count }} grupper.</strong>
+                                                                            <span class="text-secondary mb-1">Group Stage:</span>
+                                                                            <strong class="text-white">
+                                                                                {{ item.groups_count }} groups with {{ item.teams_count }} teams in total.
+                                                                                {% if item.advancement_logic.teams_per_group_advancing %}
+                                                                                <br><span class="text-info mt-1 d-block"><i class="fa-solid fa-arrow-turn-up me-1.5"></i>Top {{ item.advancement_logic.teams_per_group_advancing }} from each group advances directly.</span>
+                                                                                {% endif %}
+                                                                            </strong>
                                                                         </li>
+                                                                        
                                                                         <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
-                                                                            <span class="text-secondary mb-1">Kvalificeringstabeller & Avancemang:</span>
-                                                                            <strong class="text-white">{{ item.rules_grid.qualifying.advancement_summary }}</strong>
+                                                                            <span class="text-secondary mb-1">Qualifying Tables:</span>
+                                                                            <strong class="text-white">
+                                                                                {% if item.advancement_logic.has_best_thirds_table %}
+                                                                                    The best {{ item.advancement_logic.best_third_placed_advancing|default:"teams" }} third-placed teams advance.
+                                                                                {% elif item.advancement_logic.has_runners_up_table %}
+                                                                                    A runners-up table is used for secondary qualification.
+                                                                                {% else %}
+                                                                                    {{ item.rules_grid.qualifying.advancement_summary|default:"No secondary qualifying tables." }}
+                                                                                {% endif %}
+                                                                            </strong>
                                                                         </li>
+                                                                        
                                                                         <li class="py-2 d-flex flex-column">
-                                                                            <span class="text-secondary mb-1">Slutspel (Knockout stage):</span>
-                                                                            <strong class="text-white">Börjar med {{ item.knockouts.0.stage_name|default:"Slutspel" }} ({{ item.knockouts|length }} omgångar).</strong>
+                                                                            <span class="text-secondary mb-1">Knockout Stage:</span>
+                                                                            <strong class="text-white">
+                                                                                {% if item.knockouts %}
+                                                                                    Starts at <strong>{{ item.knockouts.0.stage_name|default:"Slutspel" }}</strong>.
+                                                                                    ({{ item.knockouts|length }} knockout rounds total)
+                                                                                {% else %}
+                                                                                    No knockout stage identified.
+                                                                                {% endif %}
+                                                                            </strong>
                                                                         </li>
                                                                     </ul>
                                                                 </div>
@@ -1114,21 +1136,40 @@
                                                                     </div>
                                                                     <ul class="list-unstyled mb-0 text-light font-monospace" style="font-size:0.82rem;">
                                                                         <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
-                                                                            <span class="text-secondary">Poäng (V/O/F i grupp):</span>
-                                                                            <strong class="text-white">{{ item.rules_grid.group_stage.points_win }}p / {{ item.rules_grid.group_stage.points_draw }}p / {{ item.rules_grid.group_stage.points_loss }}p</strong>
+                                                                            <span class="text-secondary">Group Match Points (W/D/L):</span>
+                                                                            <strong class="text-white">
+                                                                                {% if item.points_system and 'win' in item.points_system %}
+                                                                                    {{ item.points_system.win }} / {{ item.points_system.draw }} / {{ item.points_system.loss }}
+                                                                                {% else %}
+                                                                                    {{ item.rules_grid.group_stage.points_win }} / {{ item.rules_grid.group_stage.points_draw }} / {{ item.rules_grid.group_stage.points_loss }}
+                                                                                {% endif %}
+                                                                            </strong>
                                                                         </li>
-                                                                        <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
-                                                                            <span class="text-secondary">Slutspel Oavgjort:</span>
-                                                                            <strong class="text-white text-end w-50">{{ item.rules_grid.knockout_stage.summary }}</strong>
+                                                                        <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
+                                                                            <span class="text-secondary mb-1">Knockout Tiebreakers:</span>
+                                                                            <strong class="text-white">
+                                                                                {% if item.match_format.extra_time_minutes or item.match_format.has_penalties %}
+                                                                                    {% if item.match_format.extra_time_minutes %}Extra time: {{ item.match_format.extra_time_minutes }} min.<br>{% endif %}
+                                                                                    {% if item.match_format.has_penalties %}Penalties: Yes.{% endif %}
+                                                                                {% else %}
+                                                                                    {{ item.rules_grid.knockout_stage.summary }}
+                                                                                {% endif %}
+                                                                            </strong>
                                                                         </li>
                                                                         <li class="py-2 d-flex flex-column">
-                                                                            <span class="text-secondary mb-2"><strong>Tiebreakers (Särskiljning):</strong></span>
+                                                                            <span class="text-secondary mb-2"><strong>Group Tiebreakers & Ranking:</strong></span>
                                                                             <ol class="mb-0 ps-3 text-white" style="font-size:0.75rem;line-height:1.6;">
-                                                                                {% for tb in item.tiebreakers_display %}
-                                                                                <li>{{ tb.label }}</li>
-                                                                                {% empty %}
-                                                                                <li>Okänt (Ej specificerat)</li>
-                                                                                {% endfor %}
+                                                                                {% if item.tiebreakers %}
+                                                                                    {% for tb in item.tiebreakers %}
+                                                                                    <li>{{ tb }}</li>
+                                                                                    {% endfor %}
+                                                                                {% elif item.tiebreakers_display %}
+                                                                                    {% for tb in item.tiebreakers_display %}
+                                                                                    <li>{{ tb.label }}</li>
+                                                                                    {% endfor %}
+                                                                                {% else %}
+                                                                                    <li>Okänt (Ej specificerat)</li>
+                                                                                {% endif %}
                                                                             </ol>
                                                                         </li>
                                                                     </ul>
