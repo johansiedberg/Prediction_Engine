@@ -804,7 +804,7 @@
                         </div>
                         <div>
                             <div class="fw-bold text-white fs-6 mb-0.5 d-flex align-items-center flex-wrap gap-2">
-                                <span id="scoutBulkProgressTitle">Djupscanning pågår...</span>
+                                <span id="scoutBulkProgressTitle">Djupscannar...</span>
                                 <span class="badge bg-warning bg-opacity-20 text-warning font-monospace py-1 px-2.5 border border-warning border-opacity-30" id="scoutActiveTournamentBadge" style="font-size:0.78rem;">Scannar just nu: —</span>
                             </div>
                             <div class="text-secondary small font-monospace" id="scoutBulkProgressSubtext" style="font-size:0.83rem;">
@@ -812,25 +812,25 @@
                             </div>
                         </div>
                     </div>
-                    <div class="text-end font-monospace text-warning small fw-bold" id="scoutBulkProgressPercent" style="font-size:0.85rem;">0%</div>
+                    <div class="text-end font-monospace text-warning fs-6 fw-bold" id="scoutBulkProgressPercent">0%</div>
                 </div>
 
-                <!-- Sub-Agent Pipeline Step Badges -->
+                <!-- Sub-Agent Pipeline Step Badges (Dim if not started, regular when completed or in progress) -->
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-2.5" id="scoutSubAgentPills">
-                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill" id="pillAgent1" style="font-size:0.72rem;background:rgba(0,0,0,0.3);">
-                        <i class="fa-solid fa-compass me-1"></i>1. Head Discovery
+                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace sub-agent-pill" id="pillAgent1" style="font-size:0.75rem;opacity:0.35;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;">
+                        <i class="fa-solid fa-compass me-1.5"></i>1. Head Discovery
                     </span>
-                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill" id="pillAgent2" style="font-size:0.72rem;background:rgba(0,0,0,0.3);">
-                        <i class="fa-solid fa-shield-halved me-1"></i>2. General &amp; Emblem
+                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace sub-agent-pill" id="pillAgent2" style="font-size:0.75rem;opacity:0.35;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;">
+                        <i class="fa-solid fa-shield-halved me-1.5"></i>2. General &amp; Emblem
                     </span>
-                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill" id="pillAgent3" style="font-size:0.72rem;background:rgba(0,0,0,0.3);">
-                        <i class="fa-solid fa-gavel me-1"></i>3. Structure &amp; Rules
+                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace sub-agent-pill" id="pillAgent3" style="font-size:0.75rem;opacity:0.35;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;">
+                        <i class="fa-solid fa-gavel me-1.5"></i>3. Structure &amp; Rules
                     </span>
-                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill" id="pillAgent4" style="font-size:0.72rem;background:rgba(0,0,0,0.3);">
-                        <i class="fa-solid fa-users me-1"></i>4. Groups &amp; Teams
+                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace sub-agent-pill" id="pillAgent4" style="font-size:0.75rem;opacity:0.35;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;">
+                        <i class="fa-solid fa-users me-1.5"></i>4. Groups &amp; Teams
                     </span>
-                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill" id="pillAgent5" style="font-size:0.72rem;background:rgba(0,0,0,0.3);">
-                        <i class="fa-solid fa-calendar-days me-1"></i>5. Matches &amp; Knockout
+                    <span class="badge rounded-pill border py-1.5 px-2.5 font-monospace sub-agent-pill" id="pillAgent5" style="font-size:0.75rem;opacity:0.35;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;">
+                        <i class="fa-solid fa-calendar-days me-1.5"></i>5. Matches &amp; Knockout
                     </span>
                 </div>
 
@@ -3461,26 +3461,37 @@
 
         const activeFilter = localStorage.getItem('scoutActiveFilter') || 'all';
         const filterNames = { 'all': 'alla', 'NEW': 'nya', 'READY': 'redo', 'WATCHLIST': 'bevakade', 'NOT_READY': 'ej redo', 'ARCHIVED': 'ignorerade', 'CONVERTED': 'aktiverade' };
-        const filterName = filterNames[activeFilter] || 'filtrerade';
+        const filterName = filterNames[activeFilter] || 'alla';
 
-        if (!confirm(`Vill du djupscanna de ${prospectItems.length} visade (${filterName}) turneringarna mot Wikipedia? Processen visar framsteg live.`)) {
+        if (!confirm(`Vill du djupscanna de ${prospectItems.length} visade (${filterName}) turneringarna mot Wikipedia & AI? Processen visar framsteg live.`)) {
             return;
         }
 
         const progressContainer = document.getElementById('scoutBulkProgressContainer');
         const progressTitle     = document.getElementById('scoutBulkProgressTitle');
+        const progressBadge     = document.getElementById('scoutActiveTournamentBadge');
         const progressSubtext   = document.getElementById('scoutBulkProgressSubtext');
+        const progressPercent   = document.getElementById('scoutBulkProgressPercent');
         const progressBar       = document.getElementById('scoutBulkProgressBar');
 
         if (progressContainer) {
             progressContainer.classList.remove('d-none');
             progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (progressTitle) progressTitle.innerText = `Djupscannar ${prospectItems.length} turneringar (${filterName})...`;
+            if (progressBadge) progressBadge.innerText = 'Scannar just nu: —';
+            if (progressBar) {
+                progressBar.style.width = '0%';
+                progressBar.classList.remove('bg-success');
+                progressBar.classList.add('bg-warning');
+            }
+            if (progressPercent) progressPercent.innerText = '0%';
+            setSubAgentStep(0);
         }
 
         const refreshBtn = document.getElementById('scoutRefreshAllBtn');
         if (refreshBtn) {
             refreshBtn.disabled = true;
-            refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Bearbetar...';
+            refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Scannar...';
         }
 
         const totalCount = prospectItems.length;
@@ -3490,11 +3501,22 @@
         for (let i = 0; i < totalCount; i++) {
             const item = prospectItems[i];
             const currentNum = i + 1;
-            const pct = Math.round((currentNum / totalCount) * 100);
 
             if (progressTitle) progressTitle.innerText = `Djupscannar ${totalCount} turneringar (${filterName})...`;
-            if (progressSubtext) progressSubtext.innerText = `[${currentNum}/${totalCount}] Bearbetar via Wikipedia & AI...`;
-            if (progressBar) progressBar.style.width = `${pct}%`;
+            if (progressBadge) progressBadge.innerText = `Scannar just nu: ${item.name}`;
+            if (progressSubtext) progressSubtext.innerHTML = `[${currentNum}/${totalCount}] Bearbetar <strong>${item.name}</strong> via Wikipedia &amp; AI...`;
+
+            let subStep = 1;
+            setSubAgentStep(subStep);
+            const subInterval = setInterval(() => {
+                if (subStep < 5) {
+                    subStep++;
+                    setSubAgentStep(subStep);
+                    const runningPct = Math.min(99, Math.round(((i + (subStep - 1) / 5) / totalCount) * 100));
+                    if (progressBar) progressBar.style.width = `${runningPct}%`;
+                    if (progressPercent) progressPercent.innerText = `${runningPct}%`;
+                }
+            }, 600);
 
             try {
                 const res = await fetch(`/engine-admin/scout/deep-scan/${item.id}/`, {
@@ -3505,6 +3527,13 @@
                     }
                 });
                 const data = await res.json();
+                clearInterval(subInterval);
+                setSubAgentStep(6);
+
+                const itemDonePct = Math.round(((i + 1) / totalCount) * 100);
+                if (progressBar) progressBar.style.width = `${itemDonePct}%`;
+                if (progressPercent) progressPercent.innerText = `${itemDonePct}%`;
+
                 if (res.ok && data.status === 'success') {
                     if (data.grade === 'GRADE_A') gradeACount++;
                     else if (data.grade === 'GRADE_B') gradeBCount++;
@@ -3516,22 +3545,26 @@
                     }
                 }
             } catch (err) {
+                clearInterval(subInterval);
                 console.error(`Error deep scanning prospect #${item.id} (${item.name}):`, err);
             }
         }
 
+        setSubAgentStep(6);
         if (progressTitle) progressTitle.innerText = `Djupscanning klar för de ${totalCount} turneringarna!`;
-        if (progressSubtext) progressSubtext.innerText = `[${totalCount}/${totalCount}] Bearbetning klar. Uppdaterar listan...`;
+        if (progressBadge) progressBadge.innerText = 'Alla 5 sub-agenter klara!';
+        if (progressSubtext) progressSubtext.innerHTML = `[${totalCount}/${totalCount}] Bearbetning klar. Uppdaterar listan...`;
         if (progressBar) {
             progressBar.style.width = '100%';
             progressBar.classList.remove('bg-warning');
             progressBar.classList.add('bg-success');
         }
+        if (progressPercent) progressPercent.innerText = '100%';
 
         setTimeout(() => {
             localStorage.setItem('engineAdminActiveTab', 'scout-tab');
             location.reload();
-        }, 1200);
+        }, 1000);
     }
 
     async function clearFilteredScoutProspectsList() {
@@ -4107,126 +4140,46 @@ Search and extract upcoming sports tournaments matching:
     }
 
     function setSubAgentStep(stepNum) {
+        const agentMeta = [
+            { num: 1, name: '1. Head Discovery', icon: 'fa-compass' },
+            { num: 2, name: '2. General & Emblem', icon: 'fa-shield-halved' },
+            { num: 3, name: '3. Structure & Rules', icon: 'fa-gavel' },
+            { num: 4, name: '4. Groups & Teams', icon: 'fa-users' },
+            { num: 5, name: '5. Matches & Knockout', icon: 'fa-calendar-days' },
+        ];
+
         for (let i = 1; i <= 5; i++) {
             const pill = document.getElementById(`pillAgent${i}`);
             if (!pill) continue;
-            if (i < stepNum) {
-                // Completed
-                pill.className = 'badge rounded-pill border py-1.5 px-2.5 font-monospace sub-agent-pill';
-                pill.style.background = 'rgba(34, 197, 94, 0.15)';
-                pill.style.borderColor = 'rgba(34, 197, 94, 0.4)';
-                pill.style.color = '#86efac';
+            const meta = agentMeta[i - 1];
+
+            if (stepNum === 6 || (stepNum > 0 && i < stepNum)) {
+                // Completed: regular highlighted with green checkmark
+                pill.style.opacity = '1';
+                pill.style.background = 'rgba(21, 128, 61, 0.22)';
+                pill.style.borderColor = '#15803D';
+                pill.style.color = '#DCFCE7';
+                pill.innerHTML = `<i class="fa-solid fa-circle-check text-success me-1.5"></i>${meta.name}`;
             } else if (i === stepNum) {
-                // Active
-                pill.className = 'badge rounded-pill border py-1.5 px-2.5 font-monospace sub-agent-pill shadow-sm';
-                pill.style.background = 'rgba(245, 158, 11, 0.25)';
-                pill.style.borderColor = 'rgba(245, 158, 11, 0.8)';
-                pill.style.color = '#fef08a';
+                // In progress: regular highlighted with amber spinner
+                pill.style.opacity = '1';
+                pill.style.background = 'rgba(180, 83, 9, 0.22)';
+                pill.style.borderColor = '#B45309';
+                pill.style.color = '#FEF3C7';
+                pill.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-warning me-1.5"></i>${meta.name}`;
             } else {
-                // Pending
-                pill.className = 'badge rounded-pill border py-1.5 px-2.5 font-monospace text-secondary border-secondary border-opacity-30 sub-agent-pill';
-                pill.style.background = 'rgba(0,0,0,0.3)';
-                pill.style.borderColor = 'rgba(255,255,255,0.1)';
+                // Dim (not started)
+                pill.style.opacity = '0.35';
+                pill.style.background = 'rgba(0,0,0,0.25)';
+                pill.style.borderColor = 'rgba(255,255,255,0.08)';
                 pill.style.color = '#94a3b8';
+                pill.innerHTML = `<i class="fa-solid ${meta.icon} me-1.5"></i>${meta.name}`;
             }
         }
     }
 
     async function refreshAllScoutProspects() {
-        const cards = Array.from(document.querySelectorAll('.scout-prospect-item'));
-        const prospectItems = cards.map(card => {
-            const id = card.id.replace('prospect-card-', '');
-            const titleEl = card.querySelector('h4') || card.querySelector('.fw-bold');
-            const name = titleEl ? titleEl.innerText.trim() : `Turnering #${id}`;
-            return { id: parseInt(id), name: name, element: card };
-        }).filter(item => !isNaN(item.id));
-
-        if (prospectItems.length === 0) {
-            alert('Inga turneringar finns i scout-listan att djupscanna.');
-            return;
-        }
-
-        if (!confirm(`Vill du djupscanna ALLA ${prospectItems.length} turneringar i listan mot Wikipedia? Processen visar framsteg live och alla turneringar granskas.`)) {
-            return;
-        }
-
-        const progressContainer = document.getElementById('scoutBulkProgressContainer');
-        const progressTitle     = document.getElementById('scoutBulkProgressTitle');
-        const progressBadge     = document.getElementById('scoutActiveTournamentBadge');
-        const progressSubtext   = document.getElementById('scoutBulkProgressSubtext');
-        const progressPercent   = document.getElementById('scoutBulkProgressPercent');
-        const progressBar       = document.getElementById('scoutBulkProgressBar');
-
-        if (progressContainer) {
-            progressContainer.classList.remove('d-none');
-            progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        const refreshBtn = document.getElementById('scoutRefreshAllBtn');
-        if (refreshBtn) {
-            refreshBtn.disabled = true;
-            refreshBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Scannar alla...';
-        }
-
-        const totalCount = prospectItems.length;
-        let gradeACount = 0;
-        let gradeBCount = 0;
-        let gradeCCount = 0;
-
-        const csrfToken = getCSRFToken();
-
-        for (let i = 0; i < totalCount; i++) {
-            const item = prospectItems[i];
-            const currentNum = i + 1;
-            const pct = Math.round((currentNum / totalCount) * 100);
-
-            if (progressTitle) progressTitle.innerText = `Djupscannar alla turneringar (${currentNum}/${totalCount})...`;
-            if (progressBadge) progressBadge.innerText = `Scannar just nu: ${item.name}`;
-            if (progressSubtext) progressSubtext.innerText = `Kör 5 sub-agenter för ${item.name}...`;
-            if (progressBar) progressBar.style.width = `${pct}%`;
-            if (progressPercent) progressPercent.innerText = `${pct}%`;
-
-            setSubAgentStep((i % 5) + 1);
-
-            try {
-                const res = await fetch(`/engine-admin/scout/deep-scan/${item.id}/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                const data = await res.json();
-                if (res.ok && data.status === 'success') {
-                    if (data.grade === 'GRADE_A') gradeACount++;
-                    else if (data.grade === 'GRADE_B') gradeBCount++;
-                    else gradeCCount++;
-
-                    if (item.element) {
-                        item.element.setAttribute('data-stage', 'DEEP');
-                        item.element.setAttribute('data-grade', data.grade);
-                    }
-                }
-            } catch (err) {
-                console.error(`Error deep scanning prospect #${item.id} (${item.name}):`, err);
-            }
-        }
-
-        setSubAgentStep(6);
-        if (progressTitle) progressTitle.innerText = `Djupscanning klar för alla ${totalCount} turneringar!`;
-        if (progressBadge) progressBadge.innerText = 'Alla sub-agenter slutförda!';
-        if (progressSubtext) progressSubtext.innerText = `[${totalCount}/${totalCount}] Bearbetning klar. Uppdaterar listan...`;
-        if (progressBar) {
-            progressBar.style.width = '100%';
-            progressBar.classList.remove('bg-warning');
-            progressBar.classList.add('bg-success');
-        }
-        if (progressPercent) progressPercent.innerText = '100%';
-
-        setTimeout(() => {
-            localStorage.setItem('engineAdminActiveTab', 'scout-tab');
-            location.reload();
-        }, 1200);
+        return refreshFilteredScoutProspects();
     }
 
     function clearScoutProspectsList() {
@@ -4265,14 +4218,15 @@ Search and extract upcoming sports tournaments matching:
         if (progressContainer) {
             progressContainer.classList.remove('d-none');
             progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            if (progressTitle) progressTitle.innerText = 'Djupscannar turnering...';
+            if (progressTitle) progressTitle.innerText = 'Djupscannar 1 turnering...';
             if (progressBadge) progressBadge.innerText = `Scannar just nu: ${tournamentName}`;
+            if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetar <strong>${tournamentName}</strong> via Wikipedia &amp; AI...`;
             if (progressBar) {
-                progressBar.style.width = '20%';
+                progressBar.style.width = '10%';
                 progressBar.classList.remove('bg-success');
                 progressBar.classList.add('bg-warning');
             }
-            if (progressPercent) progressPercent.innerText = '20%';
+            if (progressPercent) progressPercent.innerText = '10%';
             setSubAgentStep(1);
         }
 
@@ -4284,23 +4238,14 @@ Search and extract upcoming sports tournaments matching:
         }
 
         let currentStep = 1;
-        const subtextMessages = [
-            '1/5 Head Discovery: Validerar H2H-sport och master-kod...',
-            '2/5 General & Emblem: Hämtar officiella datum, spelorter och transparent SVG-emblem...',
-            '3/5 Structure & Rules: Extraherar poängsystem, särskiljningsregler och kvalificeringstabeller...',
-            '4/5 Groups & Teams: Läser in gruppmatris, seedningspotter och reella lag...',
-            '5/5 Matches & Knockout: Skapar fullständigt spelschema och slutspelsträd...'
-        ];
-
         const stepInterval = setInterval(() => {
             if (currentStep < 5) {
                 currentStep++;
                 setSubAgentStep(currentStep);
-                if (progressSubtext) progressSubtext.innerText = subtextMessages[currentStep - 1];
                 if (progressBar) progressBar.style.width = `${currentStep * 18}%`;
                 if (progressPercent) progressPercent.innerText = `${currentStep * 18}%`;
             }
-        }, 900);
+        }, 800);
 
         try {
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
@@ -4319,7 +4264,7 @@ Search and extract upcoming sports tournaments matching:
                 setSubAgentStep(6);
                 if (progressTitle) progressTitle.innerText = `Djupscanning klar för ${tournamentName}!`;
                 if (progressBadge) progressBadge.innerText = 'Alla 5 sub-agenter klara!';
-                if (progressSubtext) progressSubtext.innerText = 'Alla 5 sub-agenter genomförda med framgång. Laddar om...';
+                if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetning klar för <strong>${tournamentName}</strong>. Laddar om...`;
                 if (progressBar) {
                     progressBar.style.width = '100%';
                     progressBar.classList.remove('bg-warning');
