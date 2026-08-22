@@ -17,7 +17,7 @@ class LLMWebScout:
             genai.configure(api_key=api_key)
         # Initialize model with Google Search Grounding enabled
         # Try models in order of available quota (Flash-Lite has 500 RPD)
-        target_models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash']
+        target_models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-flash-lite-latest']
         self.model = None
         for m in target_models:
             try:
@@ -30,7 +30,7 @@ class LLMWebScout:
                 except Exception:
                     continue
         if self.model is None:
-            self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
+            self.model = genai.GenerativeModel('gemini-3.5-flash-lite')
 
     def search_official_rules(self, tournament_name: str, whitelisted_domains: list) -> dict:
         """

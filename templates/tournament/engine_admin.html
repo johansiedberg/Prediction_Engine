@@ -803,9 +803,8 @@
                             <span class="visually-hidden">Scannar...</span>
                         </div>
                         <div>
-                            <div class="fw-bold text-white fs-6 mb-0.5 d-flex align-items-center flex-wrap gap-2">
+                            <div class="fw-bold text-white fs-6 mb-0.5">
                                 <span id="scoutBulkProgressTitle">Djupscannar...</span>
-                                <span class="badge bg-warning bg-opacity-20 text-warning font-monospace py-1 px-2.5 border border-warning border-opacity-30" id="scoutActiveTournamentBadge" style="font-size:0.78rem;">Scannar just nu: —</span>
                             </div>
                             <div class="text-secondary small font-monospace" id="scoutBulkProgressSubtext" style="font-size:0.83rem;">
                                 Initierar sub-agenter...
@@ -1213,18 +1212,22 @@
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag</span>
                                                                 <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Grupper &amp; Reella lag klara"></i>
                                                             {% elif item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottas {{ item.draw_date }}</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag (Platshållare)</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1.5"></i>Lottas {{ item.draw_date }}</span>
                                                                 <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Lottas {{ item.draw_date }}"></i>
                                                             {% elif item.groups_count > 0 and item.teams_count > 0 %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag (Platshållare)</span>
-                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Väntar lottning av reella lag (Platshållare)"></i>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(15,23,42,0.85);border:1px solid #475569;color:#94a3b8;"><i class="fa-solid fa-circle-question me-1.5 text-secondary"></i>Lottningsdatum ej fastställt</span>
+                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Väntar lottning (Lottningsdatum ej fastställt ännu)"></i>
                                                             {% else %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Datum för lottning saknas</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(15,23,42,0.85);border:1px solid #475569;color:#94a3b8;"><i class="fa-solid fa-circle-question me-1.5 text-secondary"></i>Lottningsdatum ej fastställt</span>
                                                                 <i class="fa-solid fa-triangle-exclamation text-danger ms-2" style="margin-left:7px !important;font-size:16px;" title="Saknar grupper/lag"></i>
                                                             {% endif %}
                                                         {% else %}
                                                             {% if item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottas {{ item.draw_date }}</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1.5"></i>Lottas {{ item.draw_date }}</span>
+                                                            {% else %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(15,23,42,0.85);border:1px solid #475569;color:#94a3b8;"><i class="fa-solid fa-circle-question me-1.5 text-secondary"></i>Lottningsdatum ej fastställt</span>
                                                             {% endif %}
                                                         {% endif %}
                                                     </button>
@@ -1260,7 +1263,9 @@
                                                                  <div class="fw-bold text-white fs-6">Lottning ej genomförd ännu</div>
                                                                  <div class="small text-secondary" style="font-size:0.82rem;">Officiell lottning väntas. Gruppindelning och spelschema laddas automatiskt när lottningen har genomförts.</div>
                                                                  {% if item.draw_date %}
-                                                                 <div class="mt-1.5 small text-info fw-bold"><i class="fa-regular fa-calendar-check me-1.5"></i>Lottningsdatum: {{ item.draw_date }}</div>
+                                                                 <div class="mt-1.5 small text-warning fw-bold"><i class="fa-regular fa-calendar-check me-1.5"></i>Fastställt lottningsdatum: {{ item.draw_date }}</div>
+                                                                 {% else %}
+                                                                 <div class="mt-1.5 small text-secondary fw-semibold"><i class="fa-solid fa-circle-question me-1.5 text-info"></i>Lottningsdatum: Inget officiellt datum annonserat ännu (TBD)</div>
                                                                  {% endif %}
                                                              </div>
                                                          </div>
@@ -1283,18 +1288,18 @@
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher</span>
                                                                 <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställt"></i>
                                                             {% elif item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottas {{ item.draw_date }}</span>
-                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Lottas {{ item.draw_date }}"></i>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1.5"></i>Lottas {{ item.draw_date }}</span>
+                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställs vid lottningen {{ item.draw_date }}"></i>
                                                             {% elif item.matches_count > 0 %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher (Preliminärt)</span>
-                                                                <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema ej slutfört"></i>
+                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema ej fastställt"></i>
                                                             {% else %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">Spelschema ej fastställt</span>
-                                                                <i class="fa-solid fa-triangle-exclamation text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema ej slutfört"></i>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(15,23,42,0.85);border:1px solid #475569;color:#94a3b8;"><i class="fa-solid fa-circle-question me-1.5 text-secondary"></i>Spelschema ej fastställt</span>
+                                                                <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställs i samband med lottning"></i>
                                                             {% endif %}
                                                         {% else %}
                                                             {% if item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1"></i>Lottas {{ item.draw_date }}</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1.5"></i>Lottas {{ item.draw_date }}</span>
                                                             {% endif %}
                                                         {% endif %}
                                                     </button>
@@ -1330,7 +1335,7 @@
                                                                 {% if item.draw_date %}
                                                                 <div class="small text-info fw-bold mt-0.5"><i class="fa-regular fa-calendar-check me-1.5"></i>Förväntat lottningsdatum: {{ item.draw_date }}</div>
                                                                 {% else %}
-                                                                <div class="small text-secondary" style="font-size:0.82rem;">Inga matcher publicerade ännu. Officiella spelscheman läses in automatiskt när lottningen genomförts.</div>
+                                                                <div class="small text-secondary mt-0.5" style="font-size:0.82rem;"><i class="fa-solid fa-circle-question me-1.5 text-info"></i>Lottningsdatum ej annonserat &bull; Officiella spelscheman läses in automatiskt när lottningen genomförts.</div>
                                                                 {% endif %}
                                                             </div>
                                                         </div>
@@ -3460,7 +3465,9 @@
             return { id: parseInt(id), name: name, element: card };
         }).filter(item => !isNaN(item.id));
 
-        if (prospectItems.length === 0) {
+        const totalCount = prospectItems.length;
+
+        if (totalCount === 0) {
             alert('Inga turneringar visas i det valda filtret att djupscanna.');
             return;
         }
@@ -3469,13 +3476,12 @@
         const filterNames = { 'all': 'alla', 'NEW': 'nya', 'READY': 'redo', 'WATCHLIST': 'bevakade', 'NOT_READY': 'ej redo', 'ARCHIVED': 'ignorerade', 'CONVERTED': 'aktiverade' };
         const filterName = filterNames[activeFilter] || 'alla';
 
-        if (!confirm(`Vill du djupscanna de ${prospectItems.length} visade (${filterName}) turneringarna med Google/Gemini AI & Wikipedia? Processen visar framsteg live.`)) {
+        if (!confirm(`Vill du djupscanna de ${totalCount} visade (${filterName}) turneringarna med Google/Gemini AI & Wikipedia? Processen visar framsteg live.`)) {
             return;
         }
 
         const progressContainer = document.getElementById('scoutBulkProgressContainer');
         const progressTitle     = document.getElementById('scoutBulkProgressTitle');
-        const progressBadge     = document.getElementById('scoutActiveTournamentBadge');
         const progressSubtext   = document.getElementById('scoutBulkProgressSubtext');
         const progressPercent   = document.getElementById('scoutBulkProgressPercent');
         const progressBar       = document.getElementById('scoutBulkProgressBar');
@@ -3483,11 +3489,11 @@
         if (progressContainer) {
             progressContainer.classList.remove('d-none');
             progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            if (progressTitle) progressTitle.innerText = `Djupscannar ${prospectItems.length} turneringar (${filterName})...`;
-            if (progressBadge) progressBadge.innerText = 'Scannar just nu: —';
+            if (progressTitle) progressTitle.innerText = `Djupscannar ${totalCount} turneringar (${filterName})...`;
+            if (progressSubtext) progressSubtext.innerText = 'Initierar sub-agenter...';
             if (progressBar) {
                 progressBar.style.width = '0%';
-                progressBar.classList.remove('bg-success');
+                progressBar.classList.remove('bg-success', 'bg-danger');
                 progressBar.classList.add('bg-warning');
             }
             if (progressPercent) progressPercent.innerText = '0%';
@@ -3510,10 +3516,6 @@
             if (progressBar) {
                 progressBar.classList.remove('bg-danger', 'bg-success');
                 progressBar.classList.add('bg-warning');
-            }
-            if (progressBadge) {
-                progressBadge.className = 'badge bg-secondary bg-opacity-25 font-monospace py-1 px-2.5 border border-secondary border-opacity-30';
-                progressBadge.innerHTML = `Scannar just nu: <strong class="text-white">${item.name}</strong>`;
             }
 
             if (progressTitle) progressTitle.innerText = `Djupscannar ${totalCount} turneringar (${filterName})...`;
@@ -3563,12 +3565,8 @@
                         progressBar.classList.remove('bg-warning', 'bg-success');
                         progressBar.classList.add('bg-danger');
                     }
-                    if (progressBadge) {
-                        progressBadge.className = 'badge bg-danger bg-opacity-25 text-danger font-monospace py-1 px-2.5 border border-danger border-opacity-40';
-                        progressBadge.innerText = `Avvisad / Raderad: ${item.name}`;
-                    }
                     if (progressSubtext) {
-                        progressSubtext.innerHTML = `[${currentNum}/${totalCount}] <span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>Avvisades (${data.message || data.error || 'Ej godkänd'})</span> — Fortsätter till nästa...`;
+                        progressSubtext.innerHTML = `[${currentNum}/${totalCount}] <span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>${item.name} avvisades (${data.message || data.error || 'Ej godkänd'})</span> — Fortsätter till nästa...`;
                     }
                     if (item.element) {
                         item.element.style.opacity = '0.25';
@@ -3590,11 +3588,7 @@
 
         setSubAgentStep(6);
         if (progressTitle) progressTitle.innerText = `Djupscanning klar för de ${totalCount} turneringarna!`;
-        if (progressBadge) {
-            progressBadge.className = 'badge bg-success bg-opacity-20 text-success font-monospace py-1 px-2.5 border border-success border-opacity-30';
-            progressBadge.innerText = `Klart! (${gradeACount} Redo, ${gradeBCount} Ej redo, ${rejectedCount} Avvisade)`;
-        }
-        if (progressSubtext) progressSubtext.innerHTML = `[${totalCount}/${totalCount}] Bearbetning klar (${rejectedCount} avvisade/raderade). Uppdaterar listan...`;
+        if (progressSubtext) progressSubtext.innerHTML = `[${totalCount}/${totalCount}] Bearbetning klar: ${gradeACount} Redo, ${gradeBCount} Ej redo, ${rejectedCount} avvisade. Uppdaterar listan...`;
         if (progressBar) {
             progressBar.style.width = '100%';
             progressBar.classList.remove('bg-warning', 'bg-danger');
@@ -4250,7 +4244,6 @@ Search and extract upcoming sports tournaments matching:
 
         const progressContainer = document.getElementById('scoutBulkProgressContainer');
         const progressTitle     = document.getElementById('scoutBulkProgressTitle');
-        const progressBadge     = document.getElementById('scoutActiveTournamentBadge');
         const progressSubtext   = document.getElementById('scoutBulkProgressSubtext');
         const progressPercent   = document.getElementById('scoutBulkProgressPercent');
         const progressBar       = document.getElementById('scoutBulkProgressBar');
@@ -4258,15 +4251,11 @@ Search and extract upcoming sports tournaments matching:
         if (progressContainer) {
             progressContainer.classList.remove('d-none');
             progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            if (progressTitle) progressTitle.innerText = 'Djupscannar 1 turnering...';
-            if (progressBadge) {
-                progressBadge.className = 'badge bg-secondary bg-opacity-25 font-monospace py-1 px-2.5 border border-secondary border-opacity-30';
-                progressBadge.innerHTML = `Scannar just nu: <strong class="text-white">${tournamentName}</strong>`;
-            }
+            if (progressTitle) progressTitle.innerText = `Djupscannar ${tournamentName}...`;
             if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetar <strong class="text-white">${tournamentName}</strong> via Google/Gemini &amp; AI...`;
             if (progressBar) {
                 progressBar.style.width = '10%';
-                progressBar.classList.remove('bg-success');
+                progressBar.classList.remove('bg-success', 'bg-danger');
                 progressBar.classList.add('bg-warning');
             }
             if (progressPercent) progressPercent.innerText = '10%';
@@ -4306,10 +4295,6 @@ Search and extract upcoming sports tournaments matching:
             if (data.status === 'success') {
                 setSubAgentStep(6);
                 if (progressTitle) progressTitle.innerText = `Djupscanning klar för ${tournamentName}!`;
-                if (progressBadge) {
-                    progressBadge.className = 'badge bg-success bg-opacity-20 text-success font-monospace py-1 px-2.5 border border-success border-opacity-30';
-                    progressBadge.innerText = 'Alla 5 sub-agenter klara!';
-                }
                 if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetning klar för <strong>${tournamentName}</strong>. Laddar om...`;
                 if (progressBar) {
                     progressBar.style.width = '100%';
@@ -4322,10 +4307,6 @@ Search and extract upcoming sports tournaments matching:
                 setTimeout(() => location.reload(), 600);
             } else if (data.status === 'deleted') {
                 if (progressTitle) progressTitle.innerText = `Turneringen avvisades och togs bort!`;
-                if (progressBadge) {
-                    progressBadge.className = 'badge bg-danger bg-opacity-25 text-danger font-monospace py-1 px-2.5 border border-danger border-opacity-40';
-                    progressBadge.innerText = 'Avvisad / Raderad';
-                }
                 if (progressSubtext) progressSubtext.innerHTML = `[1/1] <span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>${data.message || 'Ej godkänd enligt villkor'}</span>. Laddar om...`;
                 if (progressBar) {
                     progressBar.style.width = '100%';
