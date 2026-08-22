@@ -570,21 +570,27 @@ def engine_admin_dashboard_view(request):
             or ''
         )
 
-        pts_system_dict = payload.get('points_system') or audit.get('points_system') or {
-            'win': pts_win,
-            'draw': pts_draw,
-            'loss': pts_loss,
+        raw_pts = payload.get('points_system') or audit.get('points_system') or {}
+        pts_system_dict = {
+            'win': raw_pts.get('win') or struct_seg.get('group_stage_rules', {}).get('points_win') or 3,
+            'draw': raw_pts.get('draw') if raw_pts.get('draw') is not None else (struct_seg.get('group_stage_rules', {}).get('points_draw') if struct_seg.get('group_stage_rules', {}).get('points_draw') is not None else 1),
+            'loss': raw_pts.get('loss') if raw_pts.get('loss') is not None else (struct_seg.get('group_stage_rules', {}).get('points_loss') if struct_seg.get('group_stage_rules', {}).get('points_loss') is not None else 0),
         }
-        adv_logic_dict = payload.get('advancement_logic') or audit.get('advancement_logic') or {
-            'teams_per_group_advancing': struct_seg.get('group_stage_rules', {}).get('teams_per_group_advancing', 2),
-            'best_third_placed_advancing': struct_seg.get('qualifying_tables_rules', {}).get('best_thirds_count', 0),
-            'has_best_thirds_table': struct_seg.get('qualifying_tables_rules', {}).get('has_best_thirds', False),
-            'has_runners_up_table': struct_seg.get('qualifying_tables_rules', {}).get('has_runners_up', False),
+
+        raw_adv = payload.get('advancement_logic') or audit.get('advancement_logic') or {}
+        adv_logic_dict = {
+            'teams_per_group_advancing': raw_adv.get('teams_per_group_advancing') or struct_seg.get('group_stage_rules', {}).get('teams_per_group_advancing') or 2,
+            'best_third_placed_advancing': raw_adv.get('best_third_placed_advancing') or struct_seg.get('qualifying_tables_rules', {}).get('best_thirds_count', 0),
+            'has_best_thirds_table': bool(raw_adv.get('has_best_thirds_table') or struct_seg.get('qualifying_tables_rules', {}).get('has_best_thirds', False)),
+            'has_runners_up_table': bool(raw_adv.get('has_runners_up_table') or struct_seg.get('qualifying_tables_rules', {}).get('has_runners_up', False)),
+            'runners_up_advancing': raw_adv.get('runners_up_advancing') or struct_seg.get('qualifying_tables_rules', {}).get('runners_up_count', 0),
         }
-        match_format_dict = payload.get('match_format') or audit.get('match_format') or {
-            'regular_time_minutes': 90,
-            'extra_time_minutes': struct_seg.get('knockout_rules', {}).get('extra_time_minutes', 30),
-            'has_penalties': struct_seg.get('knockout_rules', {}).get('has_penalties', True),
+
+        raw_mf = payload.get('match_format') or audit.get('match_format') or {}
+        match_format_dict = {
+            'regular_time_minutes': raw_mf.get('regular_time_minutes') or 90,
+            'extra_time_minutes': raw_mf.get('extra_time_minutes') if raw_mf.get('extra_time_minutes') is not None else struct_seg.get('knockout_rules', {}).get('extra_time_minutes', 30),
+            'has_penalties': raw_mf.get('has_penalties') if raw_mf.get('has_penalties') is not None else struct_seg.get('knockout_rules', {}).get('has_penalties', True),
         }
 
         scanned_data.append({

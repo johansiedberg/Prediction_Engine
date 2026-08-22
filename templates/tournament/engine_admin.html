@@ -1110,40 +1110,41 @@
                                                             <div class="col-12 col-md-6">
                                                                 <div class="p-3 rounded-3 h-100" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
                                                                     <div class="fw-bold text-info small mb-2 font-monospace d-flex align-items-center">
-                                                                        <i class="fa-solid fa-layer-group me-1.5"></i>Tournament Setup
+                                                                        <i class="fa-solid fa-layer-group me-1.5"></i>Turneringsstruktur (Tournament Setup)
                                                                     </div>
                                                                     <ul class="list-unstyled mb-0 text-light font-monospace" style="font-size:0.82rem;">
                                                                         <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
-                                                                            <span class="text-secondary mb-1">Group Stage:</span>
+                                                                            <span class="text-secondary mb-1">Gruppspel &amp; Matcher per lag:</span>
                                                                             <strong class="text-white">
-                                                                                {{ item.groups_count }} groups with {{ item.teams_count }} teams in total.
+                                                                                {{ item.groups_count }} grupper &bull; {{ item.teams_count }} lag totalt.
                                                                                 {% if item.advancement_logic.teams_per_group_advancing %}
-                                                                                <br><span class="text-info mt-1 d-block"><i class="fa-solid fa-arrow-turn-up me-1.5"></i>Top {{ item.advancement_logic.teams_per_group_advancing }} from each group advances directly.</span>
+                                                                                <br><span class="text-info mt-1 d-block"><i class="fa-solid fa-arrow-turn-up me-1.5"></i>Topp {{ item.advancement_logic.teams_per_group_advancing }} från varje grupp avancerar direkt till slutspel.</span>
                                                                                 {% endif %}
                                                                             </strong>
                                                                         </li>
                                                                         
                                                                         <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
-                                                                            <span class="text-secondary mb-1">Qualifying Tables:</span>
+                                                                            <span class="text-secondary mb-1">Kvalificeringstabeller &amp; Avancemang:</span>
                                                                             <strong class="text-white">
-                                                                                {% if item.advancement_logic.has_best_thirds_table %}
-                                                                                    The best {{ item.advancement_logic.best_third_placed_advancing|default:"teams" }} third-placed teams advance.
-                                                                                {% elif item.advancement_logic.has_runners_up_table %}
-                                                                                    A runners-up table is used for secondary qualification.
+                                                                                {% if item.advancement_logic.has_best_thirds_table and item.advancement_logic.best_third_placed_advancing > 0 %}
+                                                                                    <span class="text-warning"><i class="fa-solid fa-award me-1"></i>Ranking av 3:or:</span> De {{ item.advancement_logic.best_third_placed_advancing }} bästa 3:orna avancerar till slutspel.
+                                                                                {% elif item.advancement_logic.has_runners_up_table and item.advancement_logic.runners_up_advancing > 0 %}
+                                                                                    <span class="text-warning"><i class="fa-solid fa-award me-1"></i>Kvaltabell för 2:or:</span> De {{ item.advancement_logic.runners_up_advancing }} bästa grupptvåorna avancerar.
+                                                                                {% elif item.rules_grid.qualifying.advancement_summary %}
+                                                                                    {{ item.rules_grid.qualifying.advancement_summary }}
                                                                                 {% else %}
-                                                                                    {{ item.rules_grid.qualifying.advancement_summary|default:"No secondary qualifying tables." }}
+                                                                                    Endast direktavancemang (Topp 2 per grupp). Inga sekundära kvaltabeller.
                                                                                 {% endif %}
                                                                             </strong>
                                                                         </li>
                                                                         
                                                                         <li class="py-2 d-flex flex-column">
-                                                                            <span class="text-secondary mb-1">Knockout Stage:</span>
+                                                                            <span class="text-secondary mb-1">Slutspelsstruktur (Knockout Stage):</span>
                                                                             <strong class="text-white">
                                                                                 {% if item.knockouts %}
-                                                                                    Starts at <strong>{{ item.knockouts.0.stage_name|default:"Slutspel" }}</strong>.
-                                                                                    ({{ item.knockouts|length }} knockout rounds total)
+                                                                                    Startar med <strong>{{ item.knockouts.0.stage_name|default:item.knockouts.0.stage|default:"Slutspel" }}</strong> ({{ item.knockouts|length }} slutspelsomgångar).
                                                                                 {% else %}
-                                                                                    No knockout stage identified.
+                                                                                    {{ item.rules_grid.qualifying.target_stage|default:"Slutspel (Knockout-träd)" }}
                                                                                 {% endif %}
                                                                             </strong>
                                                                         </li>
@@ -1154,43 +1155,39 @@
                                                             <div class="col-12 col-md-6">
                                                                 <div class="p-3 rounded-3 h-100" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
                                                                     <div class="fw-bold text-warning small mb-2 font-monospace d-flex align-items-center">
-                                                                        <i class="fa-solid fa-gavel me-1.5"></i>Rules / Regulations
+                                                                        <i class="fa-solid fa-gavel me-1.5"></i>Regler &amp; Logik (Rules / Regulations)
                                                                     </div>
                                                                     <ul class="list-unstyled mb-0 text-light font-monospace" style="font-size:0.82rem;">
                                                                         <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
-                                                                            <span class="text-secondary">Group Match Points (W/D/L):</span>
+                                                                            <span class="text-secondary">Poäng i gruppspel (V/O/F):</span>
                                                                             <strong class="text-white">
-                                                                                {% if item.points_system and 'win' in item.points_system %}
-                                                                                    {{ item.points_system.win }} / {{ item.points_system.draw }} / {{ item.points_system.loss }}
-                                                                                {% else %}
-                                                                                    {{ item.rules_grid.group_stage.points_win }} / {{ item.rules_grid.group_stage.points_draw }} / {{ item.rules_grid.group_stage.points_loss }}
-                                                                                {% endif %}
+                                                                                {{ item.points_system.win|default:item.rules_grid.group_stage.points_win|default:3 }}p / {{ item.points_system.draw|default:item.rules_grid.group_stage.points_draw|default:1 }}p / {{ item.points_system.loss|default:item.rules_grid.group_stage.points_loss|default:0 }}p
                                                                             </strong>
                                                                         </li>
                                                                         <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
-                                                                            <span class="text-secondary mb-1">Knockout Tiebreakers:</span>
+                                                                            <span class="text-secondary mb-1">Slutspel oavgjort &amp; Förlängning:</span>
                                                                             <strong class="text-white">
-                                                                                {% if item.match_format.extra_time_minutes or item.match_format.has_penalties %}
-                                                                                    {% if item.match_format.extra_time_minutes %}Extra time: {{ item.match_format.extra_time_minutes }} min.<br>{% endif %}
-                                                                                    {% if item.match_format.has_penalties %}Penalties: Yes.{% endif %}
-                                                                                {% else %}
-                                                                                    {{ item.rules_grid.knockout_stage.summary }}
-                                                                                {% endif %}
+                                                                                {{ item.rules_grid.knockout_stage.summary|default:"Förlängning (2x15 min) följt av Straffsparksläggning vid oavgjort." }}
                                                                             </strong>
                                                                         </li>
                                                                         <li class="py-2 d-flex flex-column">
-                                                                            <span class="text-secondary mb-2"><strong>Group Tiebreakers & Ranking:</strong></span>
+                                                                            <span class="text-secondary mb-2"><strong>Särskiljning av tabeller (Tiebreakers):</strong></span>
                                                                             <ol class="mb-0 ps-3 text-white" style="font-size:0.75rem;line-height:1.6;">
-                                                                                {% if item.tiebreakers %}
-                                                                                    {% for tb in item.tiebreakers %}
-                                                                                    <li>{{ tb }}</li>
-                                                                                    {% endfor %}
-                                                                                {% elif item.tiebreakers_display %}
+                                                                                {% if item.tiebreakers_display %}
                                                                                     {% for tb in item.tiebreakers_display %}
                                                                                     <li>{{ tb.label }}</li>
                                                                                     {% endfor %}
+                                                                                {% elif item.tiebreakers %}
+                                                                                    {% for tb in item.tiebreakers %}
+                                                                                    <li>{{ tb }}</li>
+                                                                                    {% endfor %}
                                                                                 {% else %}
-                                                                                    <li>Okänt (Ej specificerat)</li>
+                                                                                    <li>Inbördes möten (Poäng)</li>
+                                                                                    <li>Inbördes målskillnad</li>
+                                                                                    <li>Total målskillnad</li>
+                                                                                    <li>Gjorda mål totalt</li>
+                                                                                    <li>Disciplinpoäng (Fair Play)</li>
+                                                                                    <li>Lottning</li>
                                                                                 {% endif %}
                                                                             </ol>
                                                                         </li>
