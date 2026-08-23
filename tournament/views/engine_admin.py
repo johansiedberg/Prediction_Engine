@@ -1265,98 +1265,142 @@ def scout_import_json_view(request):
 
 @superuser_or_staff_required
 @require_POST
-def scout_import_wikipedia_view(request):
+def scout_search_specific_view(request):
     """
-    Stage 1 Shallow Import: imports a tournament prospect from a Wikipedia URL,
-    extracting ONLY the infobox metadata (name, host, team count, dates) WITHOUT
-    running the full deep Wikipedia audit. Saves with scouting_stage='SHALLOW'
-    and grade GRADE_C. User triggers Stage 2 via the per-card 'Djupscanna' button.
+    Stage 1 Shallow Search / Ingestion: Searches the web, Wikipedia, and Google/Gemini
+    for a specific tournament by name or URL, extracting metadata and creating/updating
+    a ScannedTournament prospect.
     """
+    query = ""
     try:
-        wiki_url = request.POST.get('wikipedia_url', '').strip()
-        if not wiki_url:
-            return JsonResponse({'status': 'error', 'message': 'Ange en giltig Wikipedia URL.'}, status=400)
+        query = (request.POST.get('tournament_query') or request.POST.get('query') or request.POST.get('wikipedia_url') or '').strip()
+        if not query and request.body:
+            try:
+                b_data = json.loads(request.body.decode('utf-8'))
+                if isinstance(b_data, dict):
+                    query = (b_data.get('tournament_query') or b_data.get('query') or b_data.get('wikipedia_url') or '').strip()
+            except Exception:
+                pass
+
+        if not query:
+            return JsonResponse({'status': 'error', 'message': 'Ange ett turneringsnamn eller en webbadress att söka efter.'}, status=400)
 
         from tournament.services.wikipedia_scout import WikipediaScout
         from tournament.services.scout_service import parse_and_save_scouted_json
+        from tournament.services.gemini_scout_service import GeminiScoutService
+        from tournament.services.emblem_scout import EmblemScout
         import datetime
+        import urllib.parse
 
         wiki_scout = WikipediaScout()
-        page_title = wiki_scout.get_article_title_from_url(wiki_url)
-        if not page_title:
-            page_title = wiki_scout.search_wikipedia_article(wiki_url)
+        is_url = query.startswith(('http://', 'https://'))
+        resolved_url = query if is_url else ''
+        page_title = ''
 
-        if not page_title:
-            return JsonResponse({'status': 'error', 'message': f'Kunde inte hittas någon Wikipedia-artikel för "{wiki_url}".'}, status=404)
+        if is_url:
+            page_title = wiki_scout.get_article_title_from_url(query)
+            if not page_title:
+                page_title = wiki_scout.search_wikipedia_article(query)
+        else:
+            page_title = wiki_scout.search_wikipedia_article(query)
 
-        # Stage 1: Shallow infobox parse only (fast, < 1s)
-        infobox = wiki_scout.audit_infobox_only(page_title)
-        if not infobox:
-            return JsonResponse({'status': 'error', 'message': f'Kunde inte läsa Wikipedia-infobox för "{page_title}".'}, status=400)
+        infobox = wiki_scout.audit_infobox_only(page_title) if page_title else None
 
-        title       = infobox['page_title']
-        resolved_url = infobox['wiki_url']
-        master_code  = title.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
+        title = (infobox.get('page_title') if infobox else page_title) or query
+        if not resolved_url and infobox and infobox.get('wiki_url'):
+            resolved_url = infobox['wiki_url']
+        elif not resolved_url and page_title:
+            resolved_url = f"https://en.wikipedia.org/wiki/{urllib.parse.quote(page_title.replace(' ', '_'))}"
 
-        final_grade     = 'GRADE_C'
-        grade_reason_str = f"Grad C (Inväntar djupscanning): Wikipedia-länk hittad för '{title}'. Klicka 'Djupscanna' för fullständig analys."
+        # Gemini General Intelligence fallback/enrichment for name, sport, host
+        gemini_meta = {}
+        if GeminiScoutService.is_available():
+            try:
+                gemini_meta = GeminiScoutService.scout_general_details(tournament_name=title) or {}
+            except Exception:
+                pass
 
-        today_date       = datetime.date.today()
+        sport = gemini_meta.get('sport') or 'Championship'
+        host_country = (infobox.get('host_country') if infobox else None) or gemini_meta.get('host_country') or 'Värdnation'
+        start_date = gemini_meta.get('start_date') or ''
+        end_date = gemini_meta.get('end_date') or ''
+        logo_url = gemini_meta.get('logo_url') or EmblemScout.discover_official_emblem(title, official_url=resolved_url)
+
+        master_code = title.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
+        final_grade = 'GRADE_C'
+        grade_reason_str = f"Grad C (Inväntar djupscanning): Prospektet hittades via webbsökning för '{title}'. Klicka 'Djupscanna' för fullständig analys."
+
+        today_date = datetime.date.today()
         next_rescan_date = today_date + datetime.timedelta(days=7)
 
         scout_payload = {
             "scouting_audit": {
-                "scan_timestamp":     datetime.datetime.now().isoformat(),
-                "scouting_stage":     "SHALLOW",
+                "scan_timestamp": datetime.datetime.now().isoformat(),
+                "scouting_stage": "SHALLOW",
                 "completeness_grade": final_grade,
-                "grade_reason":       grade_reason_str,
+                "grade_reason": grade_reason_str,
                 "official_source_url": resolved_url,
-                "wikipedia_url":      resolved_url,
-                "wikipedia_title":    title,
+                "wikipedia_url": resolved_url,
+                "wikipedia_title": page_title or title,
                 "is_compatible_sport": True,
-                "draw_date":          "",
-                "next_rescan_date":   next_rescan_date.isoformat(),
-                "advancement_rules":  "",
-                "wikipedia_audit":    None,
+                "draw_date": "",
+                "next_rescan_date": next_rescan_date.isoformat(),
+                "advancement_rules": "",
+                "wikipedia_audit": None,
             },
             "master_event": {
-                "name":               title,
-                "code":               master_code,
-                "sport":              "Championship",
-                "organizer":          "International Federation",
-                "host_country":       infobox.get('host_country') or "Värdnation",
+                "name": title,
+                "code": master_code,
+                "sport": sport,
+                "organizer": gemini_meta.get('organizer') or "International Federation",
+                "host_country": host_country,
                 "official_source_url": resolved_url,
-                "wikipedia_url":      resolved_url,
-                "start_date":         "",
-                "end_date":           "",
+                "wikipedia_url": resolved_url,
+                "start_date": start_date,
+                "end_date": end_date,
+                "logo_url": logo_url,
             },
             "tournament_config": {
-                "name":           title,
-                "total_teams":    infobox.get('teams_count') or 16,
+                "name": title,
+                "total_teams": (infobox.get('teams_count') if infobox else None) or 16,
                 "knockout_stages": ["Quarterfinals", "Semifinals", "Final"],
             },
-            "groups":          [],
+            "groups": [],
             "fixtures_sample": [],
-            "raw_allsportdb":  {"source": "Wikipedia Direct Import", "wiki_url": resolved_url},
+            "raw_allsportdb": {"source": "Web / Specific Search", "wiki_url": resolved_url},
         }
 
         scanned_obj, created, error = parse_and_save_scouted_json(scout_payload)
         if error:
             return JsonResponse({'status': 'error', 'message': error}, status=400)
 
-        verb = 'importerades som nytt prospekt' if created else 'uppdaterades'
+        if logo_url and not scanned_obj.logo_url:
+            scanned_obj.logo_url = logo_url
+            scanned_obj.save(update_fields=['logo_url'])
+
+        verb = 'hittades och lades till' if created else 'uppdaterades'
         return JsonResponse({
-            'status':  'success',
-            'message': f'Turnering "{scanned_obj.name}" {verb} från Wikipedia! Klicka "Djupscanna" för fullständig analys.',
+            'status': 'success',
+            'message': f'Turneringen "{scanned_obj.name}" {verb}! Klicka "Djupscanna" för fullständig analys.',
             'prospect': {
-                'id':     scanned_obj.id,
-                'name':   scanned_obj.name,
-                'grade':  scanned_obj.completeness_grade,
+                'id': scanned_obj.id,
+                'name': scanned_obj.name,
+                'grade': scanned_obj.completeness_grade,
                 'status': scanned_obj.status,
+                'sport': scanned_obj.sport,
+                'logo_url': scanned_obj.logo_url,
             }
         })
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': f'Ett fel uppstod vid Wikipedia-import: {str(e)}'}, status=500)
+        logger.error(f"Error in scout_search_specific_view for query '{query}': {e}", exc_info=True)
+        return JsonResponse({'status': 'error', 'message': f'Ett fel uppstod vid sökningen: {str(e)}'}, status=500)
+
+
+@superuser_or_staff_required
+@require_POST
+def scout_import_wikipedia_view(request):
+    """Legacy alias routing to scout_search_specific_view."""
+    return scout_search_specific_view(request)
 
 
 @superuser_or_staff_required

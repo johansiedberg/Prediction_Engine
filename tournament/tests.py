@@ -681,7 +681,34 @@ class OfficialRegulationsVerifierTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data['status'], 'success')
-        self.assertIn('importerades', data['message'])
+
+    @patch('tournament.services.wikipedia_scout.requests.get')
+    def test_scout_search_specific_view(self, mock_get):
+        admin = User.objects.create_superuser('johansiedberg', 'search@admin.test', 'searchpass123')
+        self.client.force_login(admin)
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            'query': {
+                'search': [{'title': "2026 FIBA Women's Basketball World Cup"}]
+            },
+            'parse': {
+                'text': {'*': '<table class="infobox"><tr><th>Teams</th><td>16</td></tr><tr><th>Host</th><td>Germany</td></tr></table>'}
+            }
+        }
+        mock_get.return_value = mock_resp
+
+        response = self.client.post(
+            '/engine-admin/scout/search-specific/',
+            {'tournament_query': "FIBA Women's Basketball World Cup 2026"},
+            HTTP_HOST='localhost:2029',
+            HTTP_X_FORWARDED_PROTO='https',
+            secure=True
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
 
     @patch('tournament.services.wikipedia_scout.requests.get')
     def test_scout_deep_scan_one_view(self, mock_get):

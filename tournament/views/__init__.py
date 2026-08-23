@@ -28,6 +28,7 @@ from tournament.views.engine_admin import (
     scout_prospect_json_view,
     scout_scrape_web_view,
     scout_import_wikipedia_view,
+    scout_search_specific_view,
     scout_clear_list_view,
     scout_refresh_all_view,
     scout_deep_scan_one_view,

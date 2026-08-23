@@ -13,7 +13,7 @@ from .views import (
     tournament_points_sidebets_get_view, tournament_points_save_view,
 
     tournament_sidebet_save_view, tournament_sidebet_delete_view,
-    scout_import_json_view, scout_import_wikipedia_view, scout_convert_view, scout_update_status_view,
+    scout_import_json_view, scout_import_wikipedia_view, scout_search_specific_view, scout_convert_view, scout_update_status_view,
     scout_delete_view, scout_prospect_json_view, scout_scrape_web_view,
     scout_clear_list_view, scout_refresh_all_view, scout_deep_scan_one_view, scout_update_official_url_view,
     scout_update_official_rules_view, save_gemini_api_key_view,
@@ -84,6 +84,7 @@ urlpatterns = [
     # AI Tournament Scout Routes
     path('engine-admin/scout/import-json/', scout_import_json_view, name='scout_import_json'),
     path('engine-admin/scout/import-wikipedia/', scout_import_wikipedia_view, name='scout_import_wikipedia'),
+    path('engine-admin/scout/search-specific/', scout_search_specific_view, name='scout_search_specific'),
     path('engine-admin/scout/scrape-now/', scout_scrape_web_view, name='scout_scrape_web'),
     path('engine-admin/scout/refresh-all/', scout_refresh_all_view, name='scout_refresh_all'),
     path('engine-admin/scout/clear-list/', scout_clear_list_view, name='scout_clear_list'),

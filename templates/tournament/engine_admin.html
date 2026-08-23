@@ -762,10 +762,10 @@
                             <!-- Right Column: Header Action Buttons -->
                             <div class="d-flex flex-wrap align-items-center gap-2">
                                 <button class="btn btn-info btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
-                                    Scanna webben nu
+                                    <i class="fa-solid fa-globe me-1.5"></i>Sök web
                                 </button>
-                                <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#importWikipediaModal">
-                                    Importera via Wikipedia
+                                <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#searchSpecificModal">
+                                    <i class="fa-solid fa-magnifying-glass me-1.5"></i>Sök specifik
                                 </button>
                                 <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold" id="scoutRefreshAllBtn" onclick="refreshFilteredScoutProspects()">
                                     <i class="fa-solid fa-rotate me-1.5"></i><span id="scoutBulkActionLabel">Djupscanna alla ({{ scout_counts.total }})</span>
@@ -1479,40 +1479,40 @@
 
 </div>
 
-<!-- MODAL 0: IMPORT WIKIPEDIA MODAL -->
-<div class="modal fade" id="importWikipediaModal" tabindex="-1" aria-labelledby="importWikipediaModalLabel" aria-hidden="true">
+<!-- MODAL 0: SPECIFIC TOURNAMENT SEARCH MODAL -->
+<div class="modal fade" id="searchSpecificModal" tabindex="-1" aria-labelledby="searchSpecificModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border border-warning border-opacity-40 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
             <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
                 <div class="d-flex align-items-center gap-2">
                     <div class="p-2 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 text-warning">
-                        <i class="fa-brands fa-wikipedia-w fs-4"></i>
+                        <i class="fa-solid fa-magnifying-glass fs-4"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-extrabold text-white mb-0" id="importWikipediaModalLabel">Importera via Wikipedia</h5>
-                        <span class="text-secondary small">Direktimportera om turneringen saknas i AllSportDB</span>
+                        <h5 class="modal-title fw-extrabold text-white mb-0" id="searchSpecificModalLabel">Sök specifik turnering</h5>
+                        <span class="text-secondary small">Sök på webben, Wikipedia och Google efter ett specifikt mästerskap</span>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
             </div>
             
             <div class="modal-body p-4">
-                <p class="text-secondary small mb-3">Klistra in en Wikipedia-länk eller turneringsnamn. Systemet läser in lag, grupper, spelschema och föreskrifter direkt från Wikipedia.</p>
+                <p class="text-secondary small mb-3">Ange turneringsnamnet eller klistra in en webbadress. Systemet söker på webben, Wikipedia och Google/Gemini och lägger till turneringen i scoutlistan.</p>
                 
                 <div class="mb-3">
-                    <label for="wikipediaUrlInput" class="form-label text-warning small font-monospace fw-bold text-uppercase mb-1">Wikipedia URL / Turneringsnamn</label>
-                    <input type="text" class="form-control bg-dark text-white border-secondary border-opacity-40 rounded-3 p-2.5 font-monospace small" id="wikipediaUrlInput" placeholder="https://en.wikipedia.org/wiki/2026_FIBA_Women's_Basketball_World_Cup">
+                    <label for="searchSpecificInput" class="form-label text-warning small font-monospace fw-bold text-uppercase mb-1">Turneringsnamn eller Webbadress</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary border-opacity-40 rounded-3 p-2.5 font-monospace small" id="searchSpecificInput" placeholder="t.ex. 2027 AFC Asian Cup eller FIVB Volleyball Boys' U17 World Championship">
                 </div>
 
                 <div class="p-3 rounded-3 bg-dark bg-opacity-60 border border-warning border-opacity-20 text-warning small">
-                    <i class="fa-solid fa-lightbulb me-1.5"></i>Exempel: <code>https://en.wikipedia.org/wiki/2026_Men's_World_Floorball_Championships</code>
+                    <i class="fa-solid fa-lightbulb me-1.5"></i>Exempel: <code>2027 AFC Asian Cup</code>, <code>FIVB Volleyball Boys' U17 World Championship</code>, eller <code>https://en.wikipedia.org/wiki/2026_Men's_World_Floorball_Championships</code>
                 </div>
             </div>
             
             <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 justify-content-between">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Avbryt</button>
-                <button type="button" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" id="confirmWikipediaImportBtn" onclick="importFromWikipediaUrl()">
-                    <i class="fa-solid fa-cloud-arrow-down me-1.5"></i>Importera Prospekt
+                <button type="button" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" id="confirmSearchSpecificBtn" onclick="searchSpecificTournament()">
+                    <i class="fa-solid fa-magnifying-glass me-1.5"></i>Sök och Lägg till
                 </button>
             </div>
         </div>
@@ -3896,24 +3896,27 @@
         });
     }
 
-    function importFromWikipediaUrl() {
-        const input = document.getElementById('wikipediaUrlInput');
-        const wikiUrl = input ? input.value.trim() : '';
-        if (!wikiUrl) {
-            alert('Vänligen ange en giltig Wikipedia URL eller sökterm.');
+    function searchSpecificTournament() {
+        const input = document.getElementById('searchSpecificInput') || document.getElementById('wikipediaUrlInput');
+        const query = input ? input.value.trim() : '';
+        if (!query) {
+            alert('Vänligen ange ett turneringsnamn eller en webbadress.');
             return;
         }
 
-        const btn = document.getElementById('confirmWikipediaImportBtn');
-        const originalHtml = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Importerar från Wikipedia...';
+        const btn = document.getElementById('confirmSearchSpecificBtn') || document.getElementById('confirmWikipediaImportBtn');
+        const originalHtml = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Söker på webben &amp; Wikipedia...';
+        }
 
         const csrfToken = getCSRFToken();
         const formData = new FormData();
-        formData.append('wikipedia_url', wikiUrl);
+        formData.append('tournament_query', query);
+        formData.append('wikipedia_url', query);
 
-        fetch('/engine-admin/scout/import-wikipedia/', {
+        fetch('/engine-admin/scout/search-specific/', {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrfToken,
@@ -3924,21 +3927,30 @@
         .then(r => r.json())
         .then(data => {
             if (data.status === 'success') {
+                hideModalSafe('searchSpecificModal');
                 hideModalSafe('importWikipediaModal');
                 alert('🚀 ' + data.message);
                 localStorage.setItem('engineAdminActiveTab', 'scout-tab');
                 location.reload();
             } else {
-                alert('Fel vid Wikipedia-import: ' + data.message);
-                btn.disabled = false;
-                btn.innerHTML = originalHtml;
+                alert('Fel vid sökning: ' + data.message);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
             }
         })
         .catch(err => {
-            alert('Nätverksfel vid Wikipedia-import: ' + err.message);
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
+            alert('Nätverksfel vid sökning: ' + err.message);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
         });
+    }
+
+    function importFromWikipediaUrl() {
+        searchSpecificTournament();
     }
 
 
