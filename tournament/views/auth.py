@@ -29,6 +29,15 @@ class CustomLoginView(LoginView):
     form_class = CustomLoginForm
     redirect_authenticated_user = True
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        role = self.request.GET.get('role', '')
+        if 'pool-admin' in self.request.path or role == 'pool_admin':
+            context['active_role'] = 'pool_admin'
+        else:
+            context['active_role'] = 'player'
+        return context
+
     def form_valid(self, form):
         response = super().form_valid(form)
         user = self.request.user
@@ -44,6 +53,22 @@ class CustomLoginView(LoginView):
         return response
 
     def get_success_url(self):
+        next_url = self.request.POST.get('next', self.request.GET.get('next', ''))
+        if next_url:
+            return next_url
+
+        role = self.request.POST.get('role', self.request.GET.get('role', ''))
+        user = self.request.user
+
+        if role == 'pool_admin':
+            return '/pool-admin/'
+
+        # Check if user is primarily a pool admin without active player leagues
+        is_pool_admin = League.objects.filter(admin=user).exists()
+        has_player_leagues = LeagueMember.objects.filter(player=user).exists()
+        if is_pool_admin and not has_player_leagues:
+            return '/pool-admin/'
+
         return '/dashboard/?tab=predictions'
 
 

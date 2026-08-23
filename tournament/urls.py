@@ -47,6 +47,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
 
     # Pool Admin Portal (Port 2028)
+    path('pool-admin/login/', CustomLoginView.as_view(), name='pool_admin_login'),
     path('pool-admin/', pool_admin_hub_view, name='pool_admin_hub'),
     path('pool-admin/create/', create_pool_direct_view, name='create_pool_direct'),
     path('pool-admin/update-email/', update_pool_admin_email_view, name='update_pool_admin_email'),
