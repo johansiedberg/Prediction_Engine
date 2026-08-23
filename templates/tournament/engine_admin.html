@@ -20,11 +20,101 @@
     border-color: rgba(255, 255, 255, 0.2) !important;
 }
 #adminMainSections .nav-link.active {
-    color: #f0f9ff !important;
-    background: #0369a1 !important;
+    color: #ffffff !important;
+    background: #0284c7 !important;
     border-color: #38bdf8 !important;
     font-weight: 700 !important;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* --- High Contrast Modal Nav Tabs (WCAG AAA) --- */
+.modal .nav-tabs {
+    border-bottom: 2px solid rgba(148, 163, 184, 0.25) !important;
+    gap: 0.35rem;
+}
+.modal .nav-tabs .nav-item {
+    margin-bottom: -2px;
+}
+.modal .nav-tabs .nav-link {
+    color: #94a3b8 !important; /* Slate-400 */
+    background: rgba(15, 23, 42, 0.7) !important;
+    border: 1px solid rgba(148, 163, 184, 0.2) !important;
+    border-bottom: 2px solid transparent !important;
+    font-size: 0.88rem !important;
+    padding: 0.65rem 1.25rem !important;
+    border-radius: 10px 10px 0 0 !important;
+    transition: all 0.15s ease-in-out;
+    font-weight: 700 !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.modal .nav-tabs .nav-link:hover {
+    color: #f8fafc !important;
+    background: rgba(30, 41, 59, 0.9) !important;
+    border-color: rgba(148, 163, 184, 0.4) !important;
+}
+.modal .nav-tabs .nav-link.active {
+    color: #ffffff !important;
+    background: #0284c7 !important; /* Sky-600 vivid contrast */
+    border-color: #38bdf8 #38bdf8 #0284c7 !important;
+    border-bottom: 2px solid #0284c7 !important;
+    font-weight: 800 !important;
+    box-shadow: 0 -2px 10px rgba(2, 132, 199, 0.35) !important;
+}
+.modal .nav-tabs .nav-link.active i {
+    color: #ffffff !important;
+}
+.modal .nav-tabs .nav-link.active .badge {
+    background: #ffffff !important;
+    color: #0369a1 !important;
+    font-weight: 800 !important;
+}
+.modal .nav-tabs .nav-link:not(.active) .badge {
+    background: rgba(148, 163, 184, 0.25) !important;
+    color: #cbd5e1 !important;
+}
+
+/* --- Section 1 Action Buttons Contrast --- */
+.tour-action-btn {
+    border: 1px solid rgba(148, 163, 184, 0.25) !important;
+    background: rgba(15, 23, 42, 0.65) !important;
+    color: #f1f5f9 !important;
+    font-size: 0.82rem !important;
+    transition: all 0.15s ease-in-out;
+}
+.tour-action-btn:hover {
+    background: rgba(30, 41, 59, 0.9) !important;
+    color: #ffffff !important;
+    border-color: rgba(148, 163, 184, 0.5) !important;
+    transform: translateY(-1px);
+}
+.tour-action-btn-info {
+    border-color: rgba(56, 189, 248, 0.35) !important;
+    color: #bae6fd !important;
+}
+.tour-action-btn-info:hover {
+    background: rgba(2, 132, 199, 0.25) !important;
+    border-color: #38bdf8 !important;
+    color: #ffffff !important;
+}
+.tour-action-btn-warning {
+    border-color: rgba(251, 191, 36, 0.35) !important;
+    color: #fef08a !important;
+}
+.tour-action-btn-warning:hover {
+    background: rgba(217, 119, 6, 0.25) !important;
+    border-color: #fbbf24 !important;
+    color: #ffffff !important;
+}
+.tour-action-btn-emerald {
+    border-color: rgba(52, 211, 153, 0.35) !important;
+    color: #a7f3d0 !important;
+}
+.tour-action-btn-emerald:hover {
+    background: rgba(16, 185, 129, 0.25) !important;
+    border-color: #34d399 !important;
+    color: #ffffff !important;
 }
 </style>
 <ul class="nav nav-pills gap-2 align-items-center border-0 mb-0" id="adminMainSections" role="tablist">
@@ -104,13 +194,13 @@
                                                 {% else %}⚽ {{ item.tournament.sport|default:"Fotboll" }}{% endif %}
                                             </span>
                                             {% if item.tournament.start_date %}
-                                            <span class="text-white-50"><i class="fa-regular fa-calendar me-1 text-warning"></i>{{ item.tournament.start_date|date:"Y-m-d" }}{% if item.tournament.end_date %} – {{ item.tournament.end_date|date:"Y-m-d" }}{% endif %}</span>
+                                            <span class="text-white-50"><i class="fa-regular fa-calendar me-1.5 text-warning"></i>{{ item.tournament.start_date|date:"Y-m-d" }}{% if item.tournament.end_date %} – {{ item.tournament.end_date|date:"Y-m-d" }}{% endif %}</span>
                                             {% endif %}
                                             {% if item.tournament.host_country %}
-                                            <span class="text-white-50">• <i class="fa-solid fa-location-dot me-1 text-danger"></i>{{ item.tournament.host_country }}</span>
+                                            <span class="text-white-50">• <i class="fa-solid fa-location-dot me-1.5 text-danger"></i>{{ item.tournament.host_country }}</span>
                                             {% endif %}
                                             {% if item.pools_count > 0 %}
-                                            <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-30 rounded-pill px-2 py-0.5"><i class="fa-solid fa-users me-1"></i>{{ item.pools_count }} pool{% if item.pools_count > 1 %}er{% endif %}</span>
+                                            <span class="badge bg-info bg-opacity-20 text-info border border-info border-opacity-30 rounded-pill px-2 py-0.5"><i class="fa-solid fa-users me-1.5"></i>{{ item.pools_count }} pool{% if item.pools_count > 1 %}er{% endif %}</span>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -118,24 +208,24 @@
 
                                 <!-- Middle Metrics Chips -->
                                 <div class="d-none d-lg-flex align-items-center gap-2 font-monospace small">
-                                    <span class="badge bg-dark border border-secondary border-opacity-30 text-warning px-3 py-2 rounded-pill">
-                                        <i class="fa-solid fa-shield-halved me-1"></i>{{ item.teams_count }} Lag
+                                    <span class="badge bg-dark bg-opacity-75 border border-warning border-opacity-30 text-warning px-3 py-2 rounded-pill shadow-sm">
+                                        <i class="fa-solid fa-shield-halved me-1.5"></i>{{ item.teams_count }} Lag
                                     </span>
-                                    <span class="badge bg-dark border border-secondary border-opacity-30 text-info px-3 py-2 rounded-pill">
-                                        <i class="fa-solid fa-table-cells-large me-1"></i>{{ item.groups_count }} Grupper
+                                    <span class="badge bg-dark bg-opacity-75 border border-info border-opacity-30 text-info px-3 py-2 rounded-pill shadow-sm">
+                                        <i class="fa-solid fa-table-cells-large me-1.5"></i>{{ item.groups_count }} Grupper
                                     </span>
-                                    <span class="badge bg-dark border border-secondary border-opacity-30 text-emerald px-3 py-2 rounded-pill">
-                                        <i class="fa-solid fa-futbol me-1"></i>{{ item.matches_count }} Matcher
+                                    <span class="badge bg-dark bg-opacity-75 border border-emerald border-opacity-30 text-emerald px-3 py-2 rounded-pill shadow-sm">
+                                        <i class="fa-solid fa-futbol me-1.5"></i>{{ item.matches_count }} Matcher
                                     </span>
-                                    <span class="badge bg-dark border border-secondary border-opacity-30 text-danger px-3 py-2 rounded-pill">
-                                        <i class="fa-solid fa-trophy me-1"></i>{{ item.knockout_count }} Slutspel
+                                    <span class="badge bg-dark bg-opacity-75 border border-danger border-opacity-30 text-danger px-3 py-2 rounded-pill shadow-sm">
+                                        <i class="fa-solid fa-trophy me-1.5"></i>{{ item.knockout_count }} Slutspel
                                     </span>
                                 </div>
 
                                 <!-- Right Action Buttons -->
                                 <div class="d-flex flex-wrap align-items-center gap-2">
                                     <!-- LAG & SCHEMA BUTTON -->
-                                    <button type="button" class="btn btn-outline-light btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5"
+                                    <button type="button" class="btn btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5 tour-action-btn tour-action-btn-info"
                                             id="tour-roster-btn-{{ item.tournament.id }}"
                                             onclick="openGroupsMatchesModal({{ item.tournament.id }})"
                                             title="Hantera laguppställningar och spelschema">
@@ -143,7 +233,7 @@
                                     </button>
 
                                     <!-- POÄNG & SIDEBETS BUTTON -->
-                                    <button type="button" class="btn btn-outline-light btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5"
+                                    <button type="button" class="btn btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5 tour-action-btn tour-action-btn-warning"
                                             id="tour-points-btn-{{ item.tournament.id }}"
                                             onclick="openPointsSidebetsModal({{ item.tournament.id }})"
                                             title="Konfigurera poängsystem och bonusfrågor">
@@ -151,7 +241,7 @@
                                     </button>
 
                                     <!-- EDIT SETTINGS & BRANDING BUTTON -->
-                                    <button type="button" class="btn btn-outline-light btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5"
+                                    <button type="button" class="btn btn-sm rounded-pill fw-bold px-3 py-1.5 shadow-sm d-inline-flex align-items-center gap-1.5 tour-action-btn tour-action-btn-emerald"
                                             id="tour-edit-btn-{{ item.tournament.id }}"
                                             onclick="openEditTournamentModal({{ item.tournament.id }})"
                                             title="Redigera datum, sport, regler och branding">
@@ -159,51 +249,52 @@
                                     </button>
 
                                     <!-- SEE TOURNAMENT BUTTON -->
-                                    <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5" 
+                                    <button type="button" class="btn btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5 tour-action-btn" 
                                             onclick="openSeeTournament({{ item.tournament.id }})">
-                                        <i class="fa-solid fa-eye"></i><span>Granska</span>
+                                        <i class="fa-solid fa-eye text-light"></i><span>Granska</span>
                                     </button>
                                     
                                     <!-- CHECKLIST BUTTON -->
-                                    <button class="btn btn-outline-light btn-sm rounded-pill fw-bold px-3 py-1.5 position-relative d-inline-flex align-items-center gap-1.5" onclick="validateTournament({{ item.tournament.id }})" title="{{ item.checklist_status.title }}">
-                                        <i class="fa-solid fa-clipboard-check"></i><span>Checklist</span>
+                                    <button class="btn btn-sm rounded-pill fw-bold px-3 py-1.5 position-relative d-inline-flex align-items-center gap-1.5 tour-action-btn" onclick="validateTournament({{ item.tournament.id }})" title="{{ item.checklist_status.title }}">
+                                        <i class="fa-solid fa-clipboard-check text-info"></i><span>Checklist</span>
                                         <span id="chk-indicator-{{ item.tournament.id }}" class="ms-1" style="font-size: 0.95rem; line-height: 1;">
                                             {{ item.checklist_status.emoji }}
                                         </span>
                                     </button>
                                     
                                     <!-- KÖR SIMULATOR BUTTON -->
-                                    <button class="btn btn-outline-light btn-sm rounded-pill fw-bold px-3 py-1.5 position-relative d-inline-flex align-items-center gap-1.5" onclick="simulateTournament({{ item.tournament.id }})">
-                                        <i class="fa-solid fa-gamepad"></i><span>Simulator</span>
+                                    <button class="btn btn-sm rounded-pill fw-bold px-3 py-1.5 position-relative d-inline-flex align-items-center gap-1.5 tour-action-btn" onclick="simulateTournament({{ item.tournament.id }})">
+                                        <i class="fa-solid fa-gamepad text-warning"></i><span>Simulator</span>
                                         <span id="sim-emoji-{{ item.tournament.id }}" class="ms-1 {% if item.scored_matches_count == 0 %}d-none{% endif %}" style="font-size: 0.95rem; line-height: 1;">
                                             ✅
                                         </span>
                                     </button>
                                     
                                     <!-- ÅTERSTÄLL BUTTON -->
-                                    <button class="btn btn-outline-light btn-sm rounded-pill fw-bold px-2.5 py-1.5 d-inline-flex align-items-center gap-1.5" onclick="resetSimulation({{ item.tournament.id }})" title="Nollställ alla simulerade resultat">
-                                        <i class="fa-solid fa-rotate-left"></i><span>Nollställ</span>
+                                    <button class="btn btn-sm rounded-pill fw-bold px-2.5 py-1.5 d-inline-flex align-items-center gap-1.5 tour-action-btn" onclick="resetSimulation({{ item.tournament.id }})" title="Nollställ alla simulerade resultat">
+                                        <i class="fa-solid fa-rotate-left text-secondary"></i><span>Nollställ</span>
                                     </button>
 
                                     <!-- Activation / Deactivation Toggle Button -->
                                     {% if item.total_status.code == 'BLOCKED' %}
-                                    <button class="btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold opacity-50 d-inline-flex align-items-center gap-1.5" 
+                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold opacity-50 d-inline-flex align-items-center gap-1.5" 
                                             id="pub-btn-{{ item.tournament.id }}" 
                                             disabled 
                                             title="🚨 Kan ej aktiveras: Åtgärda Checklist först!">
-                                        <i class="fa-solid fa-ban" id="pub-btn-icon-{{ item.tournament.id }}"></i>
+                                        <i class="fa-solid fa-ban text-danger" id="pub-btn-icon-{{ item.tournament.id }}"></i>
                                         <span id="pub-btn-text-{{ item.tournament.id }}">Aktivera</span>
                                     </button>
                                     {% elif item.total_status.code == 'ACTIVE' %}
-                                    <button class="btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold d-inline-flex align-items-center gap-1.5" 
+                                    <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold d-inline-flex align-items-center gap-1.5" 
                                             id="pub-btn-{{ item.tournament.id }}" 
                                             onclick="togglePublish({{ item.tournament.id }})">
                                         <i class="fa-solid fa-power-off" id="pub-btn-icon-{{ item.tournament.id }}"></i>
                                         <span id="pub-btn-text-{{ item.tournament.id }}">Avaktivera</span>
                                     </button>
                                     {% else %}
-                                    <button class="btn btn-outline-light btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold d-inline-flex align-items-center gap-1.5" 
+                                    <button class="btn btn-emerald btn-sm rounded-pill px-3.5 py-1.5 shadow-sm fw-bold d-inline-flex align-items-center gap-1.5" 
                                             id="pub-btn-{{ item.tournament.id }}" 
+                                            style="background: #10b981; color: #ffffff;"
                                             onclick="togglePublish({{ item.tournament.id }})">
                                         <i class="fa-solid fa-power-off" id="pub-btn-icon-{{ item.tournament.id }}"></i>
                                         <span id="pub-btn-text-{{ item.tournament.id }}">Publicera</span>
@@ -1715,20 +1806,20 @@
 
             <!-- Modal Nav Tabs Header -->
             <div class="px-4 pt-3 pb-0 border-bottom border-secondary border-opacity-20" style="background: rgba(15, 23, 42, 0.6);">
-                <ul class="nav nav-tabs border-0 gap-2" id="editTournamentTab" role="tablist">
+                <ul class="nav nav-tabs border-0" id="editTournamentTab" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-bold text-white border-0 rounded-top-3 px-3.5 py-2.5" id="edit-general-tab" data-bs-toggle="tab" data-bs-target="#edit-general-pane" type="button" role="tab">
-                            <i class="fa-solid fa-circle-info text-warning me-2"></i>1. Grunduppgifter &amp; Schema
+                        <button class="nav-link active" id="edit-general-tab" data-bs-toggle="tab" data-bs-target="#edit-general-pane" type="button" role="tab">
+                            <i class="fa-solid fa-circle-info text-warning me-1.5"></i>1. Grunduppgifter &amp; Schema
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold text-white border-0 rounded-top-3 px-3.5 py-2.5" id="edit-branding-tab" data-bs-toggle="tab" data-bs-target="#edit-branding-pane" type="button" role="tab">
-                            <i class="fa-solid fa-paintbrush text-info me-2"></i>2. Branding &amp; Profil
+                        <button class="nav-link" id="edit-branding-tab" data-bs-toggle="tab" data-bs-target="#edit-branding-pane" type="button" role="tab">
+                            <i class="fa-solid fa-paintbrush text-info me-1.5"></i>2. Branding &amp; Profil
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold text-white border-0 rounded-top-3 px-3.5 py-2.5" id="edit-rules-tab" data-bs-toggle="tab" data-bs-target="#edit-rules-pane" type="button" role="tab">
-                            <i class="fa-solid fa-scale-balanced text-emerald me-2"></i>3. Regler &amp; Specialtabeller
+                        <button class="nav-link" id="edit-rules-tab" data-bs-toggle="tab" data-bs-target="#edit-rules-pane" type="button" role="tab">
+                            <i class="fa-solid fa-scale-balanced text-emerald me-1.5"></i>3. Regler &amp; Specialtabeller
                         </button>
                     </li>
                 </ul>
@@ -1965,15 +2056,15 @@
 
             <!-- Modal Nav Tabs Header -->
             <div class="px-4 pt-3 pb-0 border-bottom border-secondary border-opacity-20" style="background: rgba(15, 23, 42, 0.6);">
-                <ul class="nav nav-tabs border-0 gap-2" id="groupsMatchesTab" role="tablist">
+                <ul class="nav nav-tabs border-0" id="groupsMatchesTab" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-bold text-white border-0 rounded-top-3 px-3.5 py-2.5" id="gm-teams-tab" data-bs-toggle="tab" data-bs-target="#gm-teams-pane" type="button" role="tab">
-                            <i class="fa-solid fa-shield-halved text-warning me-2"></i>1. Grupper &amp; Lag (<span id="gmTeamsCountBadge">0</span>)
+                        <button class="nav-link active" id="gm-teams-tab" data-bs-toggle="tab" data-bs-target="#gm-teams-pane" type="button" role="tab">
+                            <i class="fa-solid fa-shield-halved text-warning me-1.5"></i>1. Grupper &amp; Lag <span id="gmTeamsCountBadge" class="badge rounded-pill ms-1 font-monospace">0</span>
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold text-white border-0 rounded-top-3 px-3.5 py-2.5" id="gm-matches-tab" data-bs-toggle="tab" data-bs-target="#gm-matches-pane" type="button" role="tab">
-                            <i class="fa-solid fa-futbol text-emerald me-2"></i>2. Spelschema &amp; Arenor (<span id="gmMatchesCountBadge">0</span>)
+                        <button class="nav-link" id="gm-matches-tab" data-bs-toggle="tab" data-bs-target="#gm-matches-pane" type="button" role="tab">
+                            <i class="fa-solid fa-futbol text-emerald me-1.5"></i>2. Spelschema &amp; Arenor <span id="gmMatchesCountBadge" class="badge rounded-pill ms-1 font-monospace">0</span>
                         </button>
                     </li>
                 </ul>
@@ -2045,15 +2136,15 @@
 
             <!-- Modal Nav Tabs Header -->
             <div class="px-4 pt-3 pb-0 border-bottom border-secondary border-opacity-20" style="background: rgba(15, 23, 42, 0.6);">
-                <ul class="nav nav-tabs border-0 gap-2" id="pointsSidebetsTab" role="tablist">
+                <ul class="nav nav-tabs border-0" id="pointsSidebetsTab" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-bold text-white border-0 rounded-top-3 px-3.5 py-2.5" id="ps-points-tab" data-bs-toggle="tab" data-bs-target="#ps-points-pane" type="button" role="tab">
-                            <i class="fa-solid fa-calculator text-warning me-2"></i>1. Poängsystem (Match & Slutspel)
+                        <button class="nav-link active" id="ps-points-tab" data-bs-toggle="tab" data-bs-target="#ps-points-pane" type="button" role="tab">
+                            <i class="fa-solid fa-calculator text-warning me-1.5"></i>1. Poängsystem (Match &amp; Slutspel)
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold text-white border-0 rounded-top-3 px-3.5 py-2.5" id="ps-sidebets-tab" data-bs-toggle="tab" data-bs-target="#ps-sidebets-pane" type="button" role="tab">
-                            <i class="fa-solid fa-bullseye text-info me-2"></i>2. Sidebets & Bonusfrågor <span id="psModalSidebetCountBadge" class="badge bg-info text-dark rounded-pill ms-1 font-monospace">0</span>
+                        <button class="nav-link" id="ps-sidebets-tab" data-bs-toggle="tab" data-bs-target="#ps-sidebets-pane" type="button" role="tab">
+                            <i class="fa-solid fa-bullseye text-info me-1.5"></i>2. Sidebets &amp; Bonusfrågor <span id="psModalSidebetCountBadge" class="badge rounded-pill ms-1 font-monospace">0</span>
                         </button>
                     </li>
                 </ul>
@@ -2064,21 +2155,16 @@
                 <div class="tab-pane fade show active" id="ps-points-pane" role="tabpanel">
                     <div id="psPointsAlert" class="alert d-none mb-3 py-2 px-3 small rounded-3" role="alert"></div>
 
-                    <!-- Presets Quick Bar -->
-                    <div class="p-3 mb-4 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-40 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <!-- Presets Quick Bar (Single Default Template) -->
+                    <div class="p-3 mb-4 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-40 d-flex flex-wrap align-items-center justify-content-between gap-3">
                         <div>
-                            <strong class="text-white small d-block"><i class="fa-solid fa-wand-magic-sparkles text-warning me-1.5"></i>Snabbmallar (Presets):</strong>
-                            <span class="text-secondary fs-8">Fyll i beprövade poängregler med ett klick</span>
+                            <strong class="text-white small d-block"><i class="fa-solid fa-wand-magic-sparkles text-warning me-1.5"></i>Standardmall för poäng (Default):</strong>
+                            <span class="text-secondary fs-8">Standardpoäng för matchtippning (4/2/2), gruppspel och slutspelssteg</span>
                         </div>
-                        <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="applyPointsPreset('standard')">
-                                ⚽ Standard (3/5/2)
-                            </button>
-                            <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-3" onclick="applyPointsPreset('hockey')">
-                                🏒 Ishockey / Hög-poäng
-                            </button>
-                            <button type="button" class="btn btn-outline-warning btn-sm rounded-pill px-3" onclick="applyPointsPreset('knockout')">
-                                ⚡ Slutspelsfokus
+                        <div>
+                            <button type="button" class="btn btn-outline-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" onclick="applyPointsPreset('standard')">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                <span>Återställ standardmall</span>
                             </button>
                         </div>
                     </div>
@@ -3165,73 +3251,31 @@
         });
     }
 
-    function applyPointsPreset(preset) {
-        if (preset === 'standard') {
-            // Standard Football/Handball Proposal
-            document.getElementById('f_match_correct_1x2').value = 4;
-            document.getElementById('f_match_correct_goals_per_team').value = 2;
-            document.getElementById('f_match_correct_total_goals').value = 2;
-            document.getElementById('f_group_correct_placement').value = 3;
-            document.getElementById('f_group_correct_points').value = 2;
-            document.getElementById('f_group_correct_goals_scored').value = 1;
-            document.getElementById('f_group_correct_goals_conceded').value = 1;
-            document.getElementById('f_group_correct_goal_diff').value = 1;
-            document.getElementById('f_group_team_qualified').value = 0;
-            document.getElementById('f_qualifying_table_team_qualified').value = 5;
-            document.getElementById('f_qualifying_table_exact_rank').value = 0;
-            document.getElementById('f_qualifying_table_points').value = 0;
-            document.getElementById('f_qualifying_table_goal_diff').value = 0;
-            if (document.getElementById('f_knockout_round_of_32')) document.getElementById('f_knockout_round_of_32').value = 2;
-            document.getElementById('f_knockout_round_of_16').value = 4;
-            document.getElementById('f_knockout_quarterfinal').value = 6;
-            document.getElementById('f_knockout_semifinal').value = 8;
-            document.getElementById('f_knockout_bronze_match').value = 10;
-            document.getElementById('f_knockout_final').value = 10;
-        } else if (preset === 'hockey') {
-            // Ice hockey / high goals
-            document.getElementById('f_match_correct_1x2').value = 3;
-            document.getElementById('f_match_correct_goals_per_team').value = 4;
-            document.getElementById('f_match_correct_total_goals').value = 2;
-            document.getElementById('f_group_correct_placement').value = 3;
-            document.getElementById('f_group_correct_points').value = 1;
-            document.getElementById('f_group_correct_goals_scored').value = 1;
-            document.getElementById('f_group_correct_goals_conceded').value = 1;
-            document.getElementById('f_group_correct_goal_diff').value = 2;
-            document.getElementById('f_group_team_qualified').value = 1;
-            document.getElementById('f_qualifying_table_team_qualified').value = 5;
-            document.getElementById('f_qualifying_table_exact_rank').value = 2;
-            document.getElementById('f_qualifying_table_points').value = 1;
-            document.getElementById('f_qualifying_table_goal_diff').value = 1;
-            document.getElementById('f_knockout_round_of_16').value = 3;
-            document.getElementById('f_knockout_quarterfinal').value = 5;
-            document.getElementById('f_knockout_semifinal').value = 7;
-            document.getElementById('f_knockout_bronze_match').value = 3;
-            document.getElementById('f_knockout_final').value = 10;
-        } else if (preset === 'knockout') {
-            // Knockout heavy
-            document.getElementById('f_match_correct_1x2').value = 2;
-            document.getElementById('f_match_correct_goals_per_team').value = 3;
-            document.getElementById('f_match_correct_total_goals').value = 1;
-            document.getElementById('f_group_correct_placement').value = 1;
-            document.getElementById('f_group_correct_points').value = 0;
-            document.getElementById('f_group_correct_goals_scored').value = 0;
-            document.getElementById('f_group_correct_goals_conceded').value = 0;
-            document.getElementById('f_group_correct_goal_diff').value = 0;
-            document.getElementById('f_group_team_qualified').value = 2;
-            document.getElementById('f_qualifying_table_team_qualified').value = 4;
-            document.getElementById('f_qualifying_table_exact_rank').value = 0;
-            document.getElementById('f_qualifying_table_points').value = 0;
-            document.getElementById('f_qualifying_table_goal_diff').value = 0;
-            document.getElementById('f_knockout_round_of_16').value = 4;
-            document.getElementById('f_knockout_quarterfinal').value = 6;
-            document.getElementById('f_knockout_semifinal').value = 8;
-            document.getElementById('f_knockout_bronze_match').value = 4;
-            document.getElementById('f_knockout_final').value = 12;
-        }
+    function applyPointsPreset(preset = 'standard') {
+        // Standard / Default Points System
+        document.getElementById('f_match_correct_1x2').value = 4;
+        document.getElementById('f_match_correct_goals_per_team').value = 2;
+        document.getElementById('f_match_correct_total_goals').value = 2;
+        document.getElementById('f_group_correct_placement').value = 3;
+        document.getElementById('f_group_correct_points').value = 2;
+        document.getElementById('f_group_correct_goals_scored').value = 1;
+        document.getElementById('f_group_correct_goals_conceded').value = 1;
+        document.getElementById('f_group_correct_goal_diff').value = 1;
+        document.getElementById('f_group_team_qualified').value = 0;
+        document.getElementById('f_qualifying_table_team_qualified').value = 5;
+        document.getElementById('f_qualifying_table_exact_rank').value = 0;
+        document.getElementById('f_qualifying_table_points').value = 0;
+        document.getElementById('f_qualifying_table_goal_diff').value = 0;
+        if (document.getElementById('f_knockout_round_of_32')) document.getElementById('f_knockout_round_of_32').value = 2;
+        document.getElementById('f_knockout_round_of_16').value = 4;
+        document.getElementById('f_knockout_quarterfinal').value = 6;
+        document.getElementById('f_knockout_semifinal').value = 8;
+        document.getElementById('f_knockout_bronze_match').value = 10;
+        document.getElementById('f_knockout_final').value = 10;
         
         const alertEl = document.getElementById('psPointsAlert');
         alertEl.className = 'alert alert-info py-2 px-3 small rounded-3 mb-3';
-        alertEl.innerText = `Snabbmall "${preset.toUpperCase()}" applicerades på formuläret. Klicka på "Spara Poängsystem" för att spara.`;
+        alertEl.innerText = `Standardmallen för poäng applicerades. Klicka på "Spara Poängsystem" för att bekräfta ändringen.`;
         alertEl.classList.remove('d-none');
     }
 
