@@ -63,20 +63,27 @@ class GroupsTeamsAgent:
         bp = audit.get("tournament_blueprint") or {}
 
         # 0. Gemini AI Intelligence Enrichment
+        from tournament.services.scout_service import has_real_teams as check_real_teams
+        prior_has_real = check_real_teams(raw_groups) if raw_groups else False
+        prior_draw_completed = bool(audit.get("draw_completed") or bp.get("draw_completed"))
+        is_empty_prospect = (audit.get("teams_count") == 0 and audit.get("groups_count") == 0 and not raw_groups)
+
         from tournament.services.gemini_scout_service import GeminiScoutService
-        if GeminiScoutService.is_available() and tournament_name:
+        if GeminiScoutService.is_available() and tournament_name and not is_empty_prospect:
             try:
                 gemini_groups = GeminiScoutService.scout_groups_and_teams(
                     tournament_name=tournament_name,
                     sport=sport,
                     wikipedia_context=str(audit.get("raw_text", ""))[:4000],
                 ) or {}
-                if gemini_groups.get("groups") and (not raw_groups or len(raw_groups) < len(gemini_groups["groups"]) or gemini_groups.get("has_real_teams")):
-                    raw_groups = gemini_groups["groups"]
-                    audit["groups"] = raw_groups
+                if gemini_groups.get("groups"):
+                    if not raw_groups or (not prior_has_real and gemini_groups.get("has_real_teams")) or (len(raw_groups) < len(gemini_groups["groups"]) and not prior_has_real):
+                        raw_groups = gemini_groups["groups"]
+                        audit["groups"] = raw_groups
                 if "draw_completed" in gemini_groups:
-                    audit["draw_completed"] = gemini_groups["draw_completed"]
-                if gemini_groups.get("draw_date"):
+                    if not prior_draw_completed and not prior_has_real:
+                        audit["draw_completed"] = gemini_groups["draw_completed"]
+                if gemini_groups.get("draw_date") and not audit.get("draw_date"):
                     audit["draw_date"] = gemini_groups["draw_date"]
             except Exception as e:
                 logger.warning("GroupsTeamsAgent: Gemini groups scout error: %s", e)
@@ -124,8 +131,8 @@ class GroupsTeamsAgent:
                     advancement_description=g.get("advancement_description", "") if isinstance(g, dict) else "",
                 ))
 
-        # Fallback: Generate skeleton placeholder groups if empty
-        if not parsed_groups:
+        # Fallback: Generate skeleton placeholder groups if empty and prospect is not explicitly empty
+        if not parsed_groups and audit.get("teams_count") != 0 and audit.get("groups_count") != 0:
             g_count = audit.get("groups_count") or bp.get("groups_count") or default_groups_count
             group_letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]
 

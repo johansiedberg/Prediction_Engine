@@ -58,6 +58,9 @@ class HeadSegment(BaseModel):
     sport: str = Field(default="Football", description="Sport discipline")
     is_h2h_team_sport: bool = Field(default=True, description="True if H2H team sport with group/knockout mechanics")
     start_date: Optional[str] = Field(default=None, description="Expected start date YYYY-MM-DD")
+    end_date: Optional[str] = Field(default=None, description="Expected end date YYYY-MM-DD")
+    organizer: str = Field(default="", description="Governing body e.g. FIFA, UEFA, IIHF")
+    host_country: str = Field(default="", description="Host country")
     discovery_source: str = Field(default="", description="Source of shallow discovery e.g. AllSportDB, WikiPortal")
 
 
@@ -197,6 +200,12 @@ class GroupMatchEntry(BaseModel):
     stage_or_group: str = Field(default="Group Stage")
     home_team: str = Field(default="")
     away_team: str = Field(default="")
+    home_team_code: str = Field(default="")
+    home_team_flag_url: str = Field(default="")
+    home_team_emblem_url: str = Field(default="")
+    away_team_code: str = Field(default="")
+    away_team_flag_url: str = Field(default="")
+    away_team_emblem_url: str = Field(default="")
     date_time: Optional[str] = Field(default=None)
     venue: str = Field(default="")
     is_placeholder: bool = Field(default=False)
@@ -214,6 +223,12 @@ class KnockoutMatchEntry(BaseModel):
     stage_name: str = Field(default="Quarterfinals")
     home_team: str = Field(default="")
     away_team: str = Field(default="")
+    home_team_code: str = Field(default="")
+    home_team_flag_url: str = Field(default="")
+    home_team_emblem_url: str = Field(default="")
+    away_team_code: str = Field(default="")
+    away_team_flag_url: str = Field(default="")
+    away_team_emblem_url: str = Field(default="")
     winner_to: Optional[str] = Field(default=None)
     date_time: Optional[str] = Field(default=None)
     venue: str = Field(default="")
@@ -254,32 +269,74 @@ class TournamentProspectBlueprint(BaseModel):
     """
     Unified 5-Segment Tournament Prospect Blueprint Model.
     """
-    head_segment: HeadSegment
+    head_segment: Optional[HeadSegment] = None
+    metadata: Optional[HeadSegment] = Field(default=None, exclude=True)
     general_segment: GeneralSegment = Field(default_factory=GeneralSegment)
     structure_and_rules_segment: StructureAndRulesSegment = Field(default_factory=StructureAndRulesSegment)
     groups_and_teams_segment: GroupsAndTeamsSegment = Field(default_factory=GroupsAndTeamsSegment)
     matches_and_knockout_segment: MatchesAndKnockoutSegment = Field(default_factory=MatchesAndKnockoutSegment)
     scouting_audit: ScoutingAudit = Field(default_factory=ScoutingAudit)
+    groups_init: Optional[List[GroupEntry]] = Field(default=None, alias="groups", exclude=True)
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.head_segment is None and self.metadata is not None:
+            self.head_segment = self.metadata
+        elif self.head_segment is None:
+            self.head_segment = HeadSegment(name="Tournament Prospect", master_event_code="prospect")
+
+        if self.groups_init is not None:
+            self.groups_and_teams_segment.groups = self.groups_init
+            self.groups_and_teams_segment.groups_count = len(self.groups_init)
+            self.groups_and_teams_segment.teams_count = sum(len(g.teams) for g in self.groups_init)
+
+    @property
+    def groups(self) -> List[GroupEntry]:
+        return self.groups_and_teams_segment.groups
+
+    @property
+    def fixtures(self) -> List[GroupMatchEntry]:
+        return self.matches_and_knockout_segment.group_matches
+
+    def to_legacy_dict(self) -> Dict[str, Any]:
+        return self.to_payload_dict()
 
     def to_payload_dict(self) -> Dict[str, Any]:
         """
         Exports full 5-segment schema as a persistent dictionary with backward-compatible accessors.
         """
+        head_dict = self.head_segment.model_dump() if self.head_segment else {}
+        gen_dict = self.general_segment.model_dump()
+        struct_dict = self.structure_and_rules_segment.model_dump()
+        groups_dict = self.groups_and_teams_segment.model_dump()
+        matches_dict = self.matches_and_knockout_segment.model_dump()
+        audit_dict = self.scouting_audit.model_dump()
+        audit_dict["scouting_stage"] = self.scouting_audit.stage.value if hasattr(self.scouting_audit.stage, 'value') else str(self.scouting_audit.stage)
+
+        blueprint_dict = {
+            "head_segment": head_dict,
+            "general_segment": gen_dict,
+            "structure_and_rules_segment": struct_dict,
+            "groups_and_teams_segment": groups_dict,
+            "matches_and_knockout_segment": matches_dict,
+            "scouting_audit": audit_dict,
+        }
+
         return {
-            "head_segment": self.head_segment.model_dump(),
-            "general_segment": self.general_segment.model_dump(),
-            "structure_and_rules_segment": self.structure_and_rules_segment.model_dump(),
-            "groups_and_teams_segment": self.groups_and_teams_segment.model_dump(),
-            "matches_and_knockout_segment": self.matches_and_knockout_segment.model_dump(),
-            "scouting_audit": self.scouting_audit.model_dump(),
+            "head_segment": head_dict,
+            "general_segment": gen_dict,
+            "structure_and_rules_segment": struct_dict,
+            "groups_and_teams_segment": groups_dict,
+            "matches_and_knockout_segment": matches_dict,
+            "scouting_audit": audit_dict,
+            "tournament_blueprint": blueprint_dict,
             # Legacy aliases for existing view layers & templates
             "master_event": {
-                "name": self.head_segment.name,
-                "code": self.head_segment.master_event_code,
-                "sport": self.head_segment.sport,
+                "name": self.head_segment.name if self.head_segment else "",
+                "code": self.head_segment.master_event_code if self.head_segment else "",
+                "sport": self.head_segment.sport if self.head_segment else "Football",
                 "organizer": self.general_segment.organizer,
                 "host_country": self.general_segment.location.host_country,
-                "start_date": self.general_segment.start_date or self.head_segment.start_date or "",
+                "start_date": self.general_segment.start_date or (self.head_segment.start_date if self.head_segment else "") or "",
                 "end_date": self.general_segment.end_date or "",
                 "official_source_url": self.general_segment.official_website_url,
                 "wikipedia_url": self.general_segment.wikipedia_url,
@@ -287,7 +344,7 @@ class TournamentProspectBlueprint(BaseModel):
                 "logo_url": self.general_segment.emblem.logo_url,
             },
             "tournament_config": {
-                "name": self.head_segment.name,
+                "name": self.head_segment.name if self.head_segment else "",
                 "total_teams": self.groups_and_teams_segment.teams_count or 16,
                 "knockout_stages": [ks.stage_name for ks in self.matches_and_knockout_segment.knockout_bracket],
             },

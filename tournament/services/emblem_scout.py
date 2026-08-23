@@ -61,8 +61,18 @@ class EmblemScout:
     }
 
     CANONICAL_EMBLEM_MAP = {
+        '2027 afc asian cup': 'https://upload.wikimedia.org/wikipedia/en/5/50/2027_AFC_Asian_Cup_logo.svg',
+        'afc asian cup': 'https://commons.wikimedia.org/wiki/Special:FilePath/AFC_Asian_Cup_logo.svg',
+        'asian cup': 'https://commons.wikimedia.org/wiki/Special:FilePath/AFC_Asian_Cup_logo.svg',
         'uefa nations league': 'https://commons.wikimedia.org/wiki/Special:FilePath/UEFA_Nations_League_logo.svg',
         'concacaf nations league': 'https://commons.wikimedia.org/wiki/Special:FilePath/Concacaf_Nations_League_logo.svg',
+        'copa américa': 'https://commons.wikimedia.org/wiki/Special:FilePath/Copa_Am%C3%A9rica_logo.svg',
+        'copa america': 'https://commons.wikimedia.org/wiki/Special:FilePath/Copa_Am%C3%A9rica_logo.svg',
+        'africa cup of nations': 'https://commons.wikimedia.org/wiki/Special:FilePath/Africa_Cup_of_Nations_logo.svg',
+        'afcon': 'https://commons.wikimedia.org/wiki/Special:FilePath/Africa_Cup_of_Nations_logo.svg',
+        'uefa euro 2028': 'https://commons.wikimedia.org/wiki/Special:FilePath/UEFA_Euro_2028_Logo.svg',
+        '2026 fifa world cup': 'https://commons.wikimedia.org/wiki/Special:FilePath/2026_FIFA_World_Cup_emblem.svg',
+        'fifa world cup 2026': 'https://commons.wikimedia.org/wiki/Special:FilePath/2026_FIFA_World_Cup_emblem.svg',
     }
 
     @classmethod
@@ -241,30 +251,34 @@ class EmblemScout:
     @classmethod
     def _fetch_from_gemini_ai(cls, tournament_name: str, official_url: Optional[str] = None) -> Optional[str]:
         """
-        Uses Gemini LLM with a 2-step visual prompt strategy:
-        1. Articulates the visual brand features of the official competition emblem/logo.
-        2. Resolves the exact direct image URL (SVG/PNG/WebP) matching that visual description.
+        Uses Gemini LLM with Google Search Grounding to discover direct official tournament emblem URLs.
         """
         try:
-            from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
-            llm_scout = LLMWikipediaScout()
+            from tournament.services.gemini_scout_service import GeminiScoutService
             prompt = (
-                "You are an expert sports graphic designer and brand auditor.\n"
-                f"Your task is to identify the official emblem / logotype for '{tournament_name}'.\n"
+                "You are an expert sports graphic designer, brand auditor, and tournament scout.\n"
+                f"Your task is to identify the official emblem / logotype image URL for '{tournament_name}'.\n"
                 f"Official website context: {official_url or 'N/A'}\n\n"
+                "Search Google for the official tournament emblem / logo / logotype.\n"
                 "Step 1: Briefly describe the visual features of the official competition emblem (colors, shapes, icons, text).\n"
-                "Step 2: Provide the direct Wikimedia Commons or official site image URL matching this visual description.\n\n"
+                "Step 2: Provide the direct Wikimedia Commons, official federation website, or search-grounded high-resolution image URL (SVG/PNG/WebP/JPG) matching this visual description.\n\n"
                 "CRITICAL REQUIREMENTS:\n"
-                "- The image MUST be an isolated, unmasked version with a transparent background.\n"
-                "- SVG format is highly preferred. PNG is acceptable if no SVG exists. Avoid JPG/JPEG.\n"
-                "- Do NOT return geographical maps, national flags, trophies without logo styling, or stadium photos.\n"
+                "- The image MUST be an isolated logo/emblem version.\n"
+                "- SVG format or transparent PNG is highly preferred.\n"
+                "- Do NOT return generic geographical maps, standalone country flags, raw stadium photos, or generic banners.\n"
                 "Return ONLY valid JSON:\n"
                 "{\n"
                 "  \"emblem_visual_description\": \"<description>\",\n"
                 "  \"logo_url\": \"<direct_image_url>\"\n"
                 "}"
             )
-            audit = llm_scout._call_gemini(prompt, custom_prompt=True)
+            audit = None
+            if GeminiScoutService.is_available():
+                audit = GeminiScoutService.generate_json(prompt, search_grounding=True)
+            if not audit:
+                from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                llm_scout = LLMWikipediaScout()
+                audit = llm_scout._call_gemini(prompt, custom_prompt=True)
             if audit and isinstance(audit, dict):
                 logo = audit.get('logo_url')
                 if logo and is_valid_tournament_logo(logo):

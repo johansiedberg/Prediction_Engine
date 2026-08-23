@@ -56,6 +56,7 @@ class StructureRulesAgent:
         # 0. Gemini AI Intelligence Enrichment
         from tournament.services.gemini_scout_service import GeminiScoutService
         gemini_rules = {}
+        prior_draw_completed = bool(audit.get("draw_completed") or (audit.get("tournament_blueprint") or {}).get("draw_completed"))
         if GeminiScoutService.is_available() and tournament_name:
             try:
                 gemini_rules = GeminiScoutService.scout_structure_and_rules(
@@ -73,10 +74,12 @@ class StructureRulesAgent:
                         audit["advancement_logic"] = gemini_rules["advancement_logic"]
                     if gemini_rules.get("knockout_rules", {}).get("starting_round"):
                         audit["knockout_stages"] = [gemini_rules["knockout_rules"]["starting_round"]]
-                    if gemini_rules.get("draw_date"):
+                    if gemini_rules.get("draw_date") and not audit.get("draw_date"):
                         audit["draw_date"] = gemini_rules["draw_date"]
                     if "draw_completed" in gemini_rules:
-                        audit["draw_completed"] = gemini_rules["draw_completed"]
+                        # Do not overwrite confirmed draw_completed=True with False
+                        if not prior_draw_completed:
+                            audit["draw_completed"] = gemini_rules["draw_completed"]
                     if gemini_rules.get("official_rules_summary"):
                         audit["official_rules_summary"] = gemini_rules["official_rules_summary"]
             except Exception as e:
@@ -91,6 +94,18 @@ class StructureRulesAgent:
         # 1. General Setup (Draw date, seeding, host guarantees)
         draw_date = audit.get("draw_date") or bp.get("draw_date") or None
         draw_completed = bool(audit.get("draw_completed") or bp.get("draw_completed") or False)
+
+        # Check if draw_date is in the past
+        if draw_date:
+            try:
+                import datetime
+                from dateutil import parser
+                parsed_draw = parser.parse(str(draw_date), fuzzy=True).date()
+                if parsed_draw <= datetime.date.today():
+                    draw_completed = True
+            except Exception:
+                pass
+
         seeding = audit.get("seeding_elements") or bp.get("seeding_elements") or []
         if isinstance(seeding, str):
             seeding = [s.strip() for s in seeding.split(",") if s.strip()]

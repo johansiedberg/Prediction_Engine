@@ -49,6 +49,8 @@ class GeneralDeepScoutAgent:
         dates_dict = audit.get("dates") or {}
 
         # 1. Dates resolution
+        has_audit_start = ("start_date" in audit) or ("dates" in audit and "start_date" in dates_dict)
+        has_audit_end = ("end_date" in audit) or ("dates" in audit and "end_date" in dates_dict)
         start_date = audit.get("start_date") or dates_dict.get("start_date") or None
         end_date = audit.get("end_date") or dates_dict.get("end_date") or None
 
@@ -74,9 +76,9 @@ class GeneralDeepScoutAgent:
                     sport=audit.get("sport", "Football"),
                     wikipedia_context=str(audit.get("raw_text", ""))[:4000],
                 ) or {}
-                if gemini_gen.get("start_date") and (not start_date or len(str(start_date)) < 10):
+                if gemini_gen.get("start_date") and (start_date is None) and not has_audit_start:
                     start_date = gemini_gen.get("start_date")
-                if gemini_gen.get("end_date") and (not end_date or len(str(end_date)) < 10):
+                if gemini_gen.get("end_date") and (end_date is None) and not has_audit_end:
                     end_date = gemini_gen.get("end_date")
                 if gemini_gen.get("host_country") and not host_country:
                     host_country = gemini_gen.get("host_country")

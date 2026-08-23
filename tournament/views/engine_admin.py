@@ -339,9 +339,99 @@ def engine_admin_dashboard_view(request):
         general_seg = payload.get('general_segment', {})
 
         groups = groups_seg.get('groups') or payload.get('groups', [])
-        fixtures = matches_seg.get('group_matches') or payload.get('fixtures_sample', [])
-        knockouts = matches_seg.get('knockout_bracket') or payload.get('knockout_mapping_sample', [])
+        raw_fixtures = matches_seg.get('group_matches') or payload.get('fixtures_sample', [])
+        raw_knockouts = matches_seg.get('knockout_bracket') or payload.get('knockout_mapping_sample', [])
         sidebets = payload.get('sidebets_suggestions', [])
+
+        # Build team badge lookup map from groups
+        team_badge_map = {}
+        for g in groups:
+            for t in g.get('teams', []):
+                if isinstance(t, dict):
+                    t_n = (t.get('name') or '').strip()
+                    if t_n:
+                        team_badge_map[t_n] = {
+                            'code': t.get('code') or '',
+                            'flag_url': t.get('flag_url') or '',
+                            'emblem_url': t.get('emblem_url') or '',
+                        }
+
+        # Enrich fixtures with badge data if missing
+        fixtures = []
+        for f in raw_fixtures:
+            if isinstance(f, dict):
+                f_copy = dict(f)
+                h_name = (f_copy.get('home_team') or f_copy.get('home') or '').strip()
+                a_name = (f_copy.get('away_team') or f_copy.get('away') or '').strip()
+                if h_name in team_badge_map:
+                    if not f_copy.get('home_team_flag_url'): f_copy['home_team_flag_url'] = team_badge_map[h_name]['flag_url']
+                    if not f_copy.get('home_team_emblem_url'): f_copy['home_team_emblem_url'] = team_badge_map[h_name]['emblem_url']
+                    if not f_copy.get('home_team_code'): f_copy['home_team_code'] = team_badge_map[h_name]['code']
+                elif h_name and not f_copy.get('home_team_flag_url') and not f_copy.get('home_team_emblem_url'):
+                    from tournament.services.team_badge_service import TeamBadgeService
+                    b = TeamBadgeService.resolve_team_badge(h_name, sport=p.sport or 'Football', tournament_name=p.name, use_gemini_fallback=False)
+                    if b.flag_url: f_copy['home_team_flag_url'] = b.flag_url
+                    if b.emblem_url: f_copy['home_team_emblem_url'] = b.emblem_url
+                    if b.code: f_copy['home_team_code'] = b.code
+
+                if a_name in team_badge_map:
+                    if not f_copy.get('away_team_flag_url'): f_copy['away_team_flag_url'] = team_badge_map[a_name]['flag_url']
+                    if not f_copy.get('away_team_emblem_url'): f_copy['away_team_emblem_url'] = team_badge_map[a_name]['emblem_url']
+                    if not f_copy.get('away_team_code'): f_copy['away_team_code'] = team_badge_map[a_name]['code']
+                elif a_name and not f_copy.get('away_team_flag_url') and not f_copy.get('away_team_emblem_url'):
+                    from tournament.services.team_badge_service import TeamBadgeService
+                    b = TeamBadgeService.resolve_team_badge(a_name, sport=p.sport or 'Football', tournament_name=p.name, use_gemini_fallback=False)
+                    if b.flag_url: f_copy['away_team_flag_url'] = b.flag_url
+                    if b.emblem_url: f_copy['away_team_emblem_url'] = b.emblem_url
+                    if b.code: f_copy['away_team_code'] = b.code
+
+                fixtures.append(f_copy)
+            else:
+                fixtures.append(f)
+
+        # Enrich knockout matches with badge data if missing
+        knockouts = []
+        for stage in raw_knockouts:
+            if isinstance(stage, dict):
+                st_copy = dict(stage)
+                m_list = st_copy.get('matches', [])
+                enriched_matches = []
+                for m in m_list:
+                    if isinstance(m, dict):
+                        m_copy = dict(m)
+                        h_name = (m_copy.get('home_team') or m_copy.get('home_source') or '').strip()
+                        a_name = (m_copy.get('away_team') or m_copy.get('away_source') or '').strip()
+                        if h_name in team_badge_map:
+                            if not m_copy.get('home_team_flag_url'): m_copy['home_team_flag_url'] = team_badge_map[h_name]['flag_url']
+                            if not m_copy.get('home_team_emblem_url'): m_copy['home_team_emblem_url'] = team_badge_map[h_name]['emblem_url']
+                            if not m_copy.get('home_team_code'): m_copy['home_team_code'] = team_badge_map[h_name]['code']
+                        elif h_name and not m_copy.get('home_team_flag_url') and not m_copy.get('home_team_emblem_url'):
+                            from tournament.services.team_badge_service import TeamBadgeService
+                            if not TeamBadgeService.is_placeholder(h_name):
+                                b = TeamBadgeService.resolve_team_badge(h_name, sport=p.sport or 'Football', tournament_name=p.name, use_gemini_fallback=False)
+                                if b.flag_url: m_copy['home_team_flag_url'] = b.flag_url
+                                if b.emblem_url: m_copy['home_team_emblem_url'] = b.emblem_url
+                                if b.code: m_copy['home_team_code'] = b.code
+
+                        if a_name in team_badge_map:
+                            if not m_copy.get('away_team_flag_url'): m_copy['away_team_flag_url'] = team_badge_map[a_name]['flag_url']
+                            if not m_copy.get('away_team_emblem_url'): m_copy['away_team_emblem_url'] = team_badge_map[a_name]['emblem_url']
+                            if not m_copy.get('away_team_code'): m_copy['away_team_code'] = team_badge_map[a_name]['code']
+                        elif a_name and not m_copy.get('away_team_flag_url') and not m_copy.get('away_team_emblem_url'):
+                            from tournament.services.team_badge_service import TeamBadgeService
+                            if not TeamBadgeService.is_placeholder(a_name):
+                                b = TeamBadgeService.resolve_team_badge(a_name, sport=p.sport or 'Football', tournament_name=p.name, use_gemini_fallback=False)
+                                if b.flag_url: m_copy['away_team_flag_url'] = b.flag_url
+                                if b.emblem_url: m_copy['away_team_emblem_url'] = b.emblem_url
+                                if b.code: m_copy['away_team_code'] = b.code
+
+                        enriched_matches.append(m_copy)
+                    else:
+                        enriched_matches.append(m)
+                st_copy['matches'] = enriched_matches
+                knockouts.append(st_copy)
+            else:
+                knockouts.append(stage)
         
         teams_count = groups_seg.get('teams_count') or sum(len(g.get('teams', [])) for g in groups) or payload.get('tournament_config', {}).get('total_teams', 0)
         groups_count = groups_seg.get('groups_count') or len(groups)

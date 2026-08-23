@@ -74,19 +74,62 @@ class MatchesKnockoutAgent:
             except Exception as e:
                 logger.warning("MatchesKnockoutAgent: Gemini matches scout error: %s", e)
 
+        # Build team badge lookup cache from groups segment
+        team_cache: Dict[str, Dict[str, Any]] = {}
+        if groups_segment and groups_segment.groups:
+            for g in groups_segment.groups:
+                for t in g.teams:
+                    team_cache[t.name.strip()] = {
+                        "code": t.code or "",
+                        "flag_url": t.flag_url or "",
+                        "emblem_url": t.emblem_url or "",
+                        "is_placeholder": t.is_placeholder,
+                    }
+
+        def _resolve_team_meta(name_str: str) -> Dict[str, Any]:
+            if not name_str or not isinstance(name_str, str):
+                return {"code": "", "flag_url": "", "emblem_url": "", "is_placeholder": True}
+            clean = name_str.strip()
+            if clean in team_cache:
+                return team_cache[clean]
+            from tournament.services.team_badge_service import TeamBadgeService
+            badge_res = TeamBadgeService.resolve_team_badge(
+                clean, sport=sport, tournament_name=tournament_name, use_gemini_fallback=False
+            )
+            is_ph = badge_res.is_placeholder or TeamBadgeService.is_placeholder(clean)
+            meta = {
+                "code": badge_res.code or "",
+                "flag_url": badge_res.flag_url or "",
+                "emblem_url": badge_res.emblem_url or "",
+                "is_placeholder": is_ph,
+            }
+            team_cache[clean] = meta
+            return meta
+
         # 1. Group Matches Parsing
         group_matches: List[GroupMatchEntry] = []
         if raw_fixtures:
             for idx, f in enumerate(raw_fixtures, start=1):
                 if isinstance(f, dict):
+                    h_team = f.get("home_team") or f.get("home") or ""
+                    a_team = f.get("away_team") or f.get("away") or ""
+                    h_meta = _resolve_team_meta(h_team)
+                    a_meta = _resolve_team_meta(a_team)
+
                     group_matches.append(GroupMatchEntry(
                         match_number=f.get("match_number", idx),
                         stage_or_group=f.get("stage_or_group") or f.get("group") or "Group Stage",
-                        home_team=f.get("home_team") or f.get("home") or "",
-                        away_team=f.get("away_team") or f.get("away") or "",
+                        home_team=h_team,
+                        away_team=a_team,
+                        home_team_code=f.get("home_team_code") or h_meta["code"],
+                        home_team_flag_url=f.get("home_team_flag_url") or h_meta["flag_url"],
+                        home_team_emblem_url=f.get("home_team_emblem_url") or h_meta["emblem_url"],
+                        away_team_code=f.get("away_team_code") or a_meta["code"],
+                        away_team_flag_url=f.get("away_team_flag_url") or a_meta["flag_url"],
+                        away_team_emblem_url=f.get("away_team_emblem_url") or a_meta["emblem_url"],
                         date_time=f.get("date_time") or f.get("date"),
                         venue=f.get("venue") or "",
-                        is_placeholder=bool(f.get("is_placeholder", False)),
+                        is_placeholder=bool(f.get("is_placeholder", False)) or h_meta["is_placeholder"] or a_meta["is_placeholder"],
                     ))
 
         # Fallback: Generate round-robin match fixtures from groups if fixtures empty
@@ -97,12 +140,23 @@ class MatchesKnockoutAgent:
                 n_teams = len(t_list)
                 for i in range(n_teams):
                     for j in range(i + 1, n_teams):
+                        h_team = t_list[i].name
+                        a_team = t_list[j].name
+                        h_meta = _resolve_team_meta(h_team)
+                        a_meta = _resolve_team_meta(a_team)
+
                         group_matches.append(GroupMatchEntry(
                             match_number=match_num,
                             stage_or_group=g.name,
-                            home_team=t_list[i].name,
-                            away_team=t_list[j].name,
-                            is_placeholder=t_list[i].is_placeholder or t_list[j].is_placeholder,
+                            home_team=h_team,
+                            away_team=a_team,
+                            home_team_code=t_list[i].code or h_meta["code"],
+                            home_team_flag_url=t_list[i].flag_url or h_meta["flag_url"],
+                            home_team_emblem_url=t_list[i].emblem_url or h_meta["emblem_url"],
+                            away_team_code=t_list[j].code or a_meta["code"],
+                            away_team_flag_url=t_list[j].flag_url or a_meta["flag_url"],
+                            away_team_emblem_url=t_list[j].emblem_url or a_meta["emblem_url"],
+                            is_placeholder=t_list[i].is_placeholder or t_list[j].is_placeholder or h_meta["is_placeholder"] or a_meta["is_placeholder"],
                         ))
                         match_num += 1
 
@@ -128,11 +182,22 @@ class MatchesKnockoutAgent:
                 match_entries: List[KnockoutMatchEntry] = []
                 for m in m_list:
                     if isinstance(m, dict):
+                        h_team = m.get("home_team") or m.get("home_source") or ""
+                        a_team = m.get("away_team") or m.get("away_source") or ""
+                        h_meta = _resolve_team_meta(h_team)
+                        a_meta = _resolve_team_meta(a_team)
+
                         match_entries.append(KnockoutMatchEntry(
                             match_code=m.get("match_code", ""),
                             stage_name=s_name,
-                            home_team=m.get("home_team") or m.get("home_source") or "",
-                            away_team=m.get("away_team") or m.get("away_source") or "",
+                            home_team=h_team,
+                            away_team=a_team,
+                            home_team_code=m.get("home_team_code") or h_meta["code"],
+                            home_team_flag_url=m.get("home_team_flag_url") or h_meta["flag_url"],
+                            home_team_emblem_url=m.get("home_team_emblem_url") or h_meta["emblem_url"],
+                            away_team_code=m.get("away_team_code") or a_meta["code"],
+                            away_team_flag_url=m.get("away_team_flag_url") or a_meta["flag_url"],
+                            away_team_emblem_url=m.get("away_team_emblem_url") or a_meta["emblem_url"],
                             winner_to=m.get("winner_to"),
                             date_time=m.get("date_time"),
                             venue=m.get("venue", ""),
@@ -213,9 +278,10 @@ class MatchesKnockoutAgent:
                     ))
                 stage.matches = match_entries
 
+        has_real_teams = bool(groups_segment and groups_segment.has_real_teams)
         draw_is_done = bool(
-            audit.get("draw_completed")
-            and (groups_segment and groups_segment.has_real_teams)
+            (audit.get("draw_completed") or has_real_teams)
+            and has_real_teams
         )
         fixtures_completed = bool(
             draw_is_done

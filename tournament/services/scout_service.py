@@ -1279,7 +1279,7 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
 
                 from tournament.services.team_badge_service import TeamBadgeService
                 badge_res = TeamBadgeService.resolve_team_badge(
-                    t_name, sport=sport, tournament_name=tournament.name
+                    t_name, sport=getattr(tournament, 'sport', 'Football') or 'Football', tournament_name=tournament.name
                 )
                 final_code = t_code or badge_res.code or ''
                 final_emblem = t_emblem or badge_res.emblem_url or ''

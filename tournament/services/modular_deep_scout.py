@@ -110,7 +110,7 @@ class ModularDeepScout:
                 if audit:
                     active_sources.append(f"Official Site Parser ({official_url})")
 
-        if not audit:
+        if not audit and (page_title or official_url):
             from tournament.services.gemini_scout_service import GeminiScoutService
             if GeminiScoutService.is_available():
                 logger.info("ModularDeepScout: Wikipedia unavailable, querying Gemini AI with Google Search Grounding for '%s'", prospect.name)
@@ -295,6 +295,21 @@ class ModularDeepScout:
         # Grade Evaluation
         has_full_dates = bool(start_date_obj and end_date_obj)
         has_start_date = bool(start_date_obj)
+
+        draw_date_str = structure_rules_seg.general_setup.draw_date or ''
+        draw_has_passed = False
+        if draw_date_str:
+            try:
+                from dateutil import parser
+                parsed_draw = parser.parse(str(draw_date_str), fuzzy=True).date()
+                if parsed_draw <= today_date:
+                    draw_has_passed = True
+            except Exception:
+                pass
+
+        if draw_has_passed or (groups_teams_seg.has_real_teams and groups_teams_seg.groups_count >= 2):
+            structure_rules_seg.general_setup.draw_completed = True
+
         draw_ok = bool(
             structure_rules_seg.general_setup.draw_completed
             and groups_teams_seg.groups_count >= 2

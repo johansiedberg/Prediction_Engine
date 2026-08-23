@@ -1348,9 +1348,27 @@
                                                                             </span>
                                                                         </div>
                                                                         <div class="d-flex align-items-center justify-content-center gap-2 flex-grow-1 mx-2">
-                                                                            <span class="fw-bold text-white text-end flex-fill">{{ f.home_team }}</span>
+                                                                            <span class="fw-bold text-white text-end flex-fill d-inline-flex align-items-center justify-content-end gap-1.5">
+                                                                                <span>{{ f.home_team }}</span>
+                                                                                {% if f.home_team_emblem_url %}
+                                                                                    <img src="{{ f.home_team_emblem_url }}" style="width:16px;height:16px;object-fit:contain;" class="rounded-1 ms-1.5 border border-secondary border-opacity-30" alt="">
+                                                                                {% elif f.home_team_flag_url %}
+                                                                                    <img src="{{ f.home_team_flag_url }}" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 ms-1.5 border border-secondary border-opacity-30" alt="">
+                                                                                {% elif f.home_team_code and f.home_team_code|length <= 6 %}
+                                                                                    <img src="https://flagcdn.com/w40/{{ f.home_team_code|lower }}.png" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 ms-1.5 border border-secondary border-opacity-30" alt="">
+                                                                                {% endif %}
+                                                                            </span>
                                                                             <span class="text-info px-1">vs</span>
-                                                                            <span class="fw-bold text-white text-start flex-fill">{{ f.away_team }}</span>
+                                                                            <span class="fw-bold text-white text-start flex-fill d-inline-flex align-items-center justify-content-start gap-1.5">
+                                                                                {% if f.away_team_emblem_url %}
+                                                                                    <img src="{{ f.away_team_emblem_url }}" style="width:16px;height:16px;object-fit:contain;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">
+                                                                                {% elif f.away_team_flag_url %}
+                                                                                    <img src="{{ f.away_team_flag_url }}" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">
+                                                                                {% elif f.away_team_code and f.away_team_code|length <= 6 %}
+                                                                                    <img src="https://flagcdn.com/w40/{{ f.away_team_code|lower }}.png" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">
+                                                                                {% endif %}
+                                                                                <span>{{ f.away_team }}</span>
+                                                                            </span>
                                                                         </div>
                                                                         <span class="text-secondary small ms-2 font-monospace" style="font-size:0.78rem;">
                                                                             <i class="fa-regular fa-clock me-1"></i>{{ f.date_time|default:"TBD" }}
@@ -1385,7 +1403,25 @@
                                                                                 <div class="p-1.5 rounded-2 font-monospace" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);font-size:0.78rem;">
                                                                                     <div class="d-flex align-items-center justify-content-between">
                                                                                         <span class="text-secondary small fw-bold">#{{ m.match_code|default:forloop.counter }}</span>
-                                                                                        <span class="text-white fw-bold">{{ m.home_team }} <span class="text-info">vs</span> {{ m.away_team }}</span>
+                                                                                        <span class="text-white fw-bold d-inline-flex align-items-center gap-1.5">
+                                                                                            {% if m.home_team_emblem_url %}
+                                                                                                <img src="{{ m.home_team_emblem_url }}" style="width:14px;height:14px;object-fit:contain;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
+                                                                                            {% elif m.home_team_flag_url %}
+                                                                                                <img src="{{ m.home_team_flag_url }}" style="width:14px;height:10px;object-fit:cover;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
+                                                                                            {% elif m.home_team_code and m.home_team_code|length <= 6 %}
+                                                                                                <img src="https://flagcdn.com/w40/{{ m.home_team_code|lower }}.png" style="width:14px;height:10px;object-fit:cover;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
+                                                                                            {% endif %}
+                                                                                            <span>{{ m.home_team }}</span>
+                                                                                            <span class="text-info mx-1">vs</span>
+                                                                                            {% if m.away_team_emblem_url %}
+                                                                                                <img src="{{ m.away_team_emblem_url }}" style="width:14px;height:14px;object-fit:contain;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
+                                                                                            {% elif m.away_team_flag_url %}
+                                                                                                <img src="{{ m.away_team_flag_url }}" style="width:14px;height:10px;object-fit:cover;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
+                                                                                            {% elif m.away_team_code and m.away_team_code|length <= 6 %}
+                                                                                                <img src="https://flagcdn.com/w40/{{ m.away_team_code|lower }}.png" style="width:14px;height:10px;object-fit:cover;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
+                                                                                            {% endif %}
+                                                                                            <span>{{ m.away_team }}</span>
+                                                                                        </span>
                                                                                         {% if m.winner_to %}
                                                                                         <span class="text-warning small" title="Vinnare avancerar"><i class="fa-solid fa-arrow-right me-0.5"></i>{{ m.winner_to }}</span>
                                                                                         {% endif %}
@@ -4019,14 +4055,38 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${fixtures.map(f => `
-                                        <tr class="border-bottom border-secondary border-opacity-10">
-                                            <td class="font-monospace text-secondary">${f.match_number}</td>
-                                            <td><span class="badge bg-secondary bg-opacity-30">${f.stage_or_group}</span></td>
-                                            <td class="text-info font-monospace">${(f.date_time || '').slice(0, 16)}</td>
-                                            <td class="fw-bold text-white">${f.home_team} vs ${f.away_team}</td>
-                                        </tr>
-                                    `).join('')}
+                                    ${fixtures.map(f => {
+                                        let hBadge = '';
+                                        if (f.home_team_emblem_url) {
+                                            hBadge = `<img src="${f.home_team_emblem_url}" style="width:16px;height:16px;object-fit:contain;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
+                                        } else if (f.home_team_flag_url) {
+                                            hBadge = `<img src="${f.home_team_flag_url}" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
+                                        } else if (f.home_team_code && f.home_team_code.length <= 6) {
+                                            hBadge = `<img src="https://flagcdn.com/w40/${f.home_team_code.toLowerCase()}.png" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
+                                        }
+
+                                        let aBadge = '';
+                                        if (f.away_team_emblem_url) {
+                                            aBadge = `<img src="${f.away_team_emblem_url}" style="width:16px;height:16px;object-fit:contain;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
+                                        } else if (f.away_team_flag_url) {
+                                            aBadge = `<img src="${f.away_team_flag_url}" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
+                                        } else if (f.away_team_code && f.away_team_code.length <= 6) {
+                                            aBadge = `<img src="https://flagcdn.com/w40/${f.away_team_code.toLowerCase()}.png" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
+                                        }
+
+                                        return `
+                                            <tr class="border-bottom border-secondary border-opacity-10">
+                                                <td class="font-monospace text-secondary">${f.match_number}</td>
+                                                <td><span class="badge bg-secondary bg-opacity-30">${f.stage_or_group}</span></td>
+                                                <td class="text-info font-monospace">${(f.date_time || '').slice(0, 16)}</td>
+                                                <td class="fw-bold text-white">
+                                                    <span class="d-inline-flex align-items-center">${hBadge}<span>${f.home_team}</span></span>
+                                                    <span class="text-info px-1.5">vs</span>
+                                                    <span class="d-inline-flex align-items-center">${aBadge}<span>${f.away_team}</span></span>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
                                 </tbody>
                             </table>
                         </div>
