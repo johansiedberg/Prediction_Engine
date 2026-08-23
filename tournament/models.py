@@ -1168,7 +1168,7 @@ class ScannedTournament(models.Model):
     )
 
     STATUS_CHOICES = (
-        ('NEW', 'Nytt prospekt'),
+        ('NEW', 'Ej skannad (Not Scanned)'),
         ('WATCHLIST', 'Bevakningslista'),
         ('CONVERTED', 'Konverterad till Turnering'),
         ('ARCHIVED', 'Arkiverad / Ignorerad'),

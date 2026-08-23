@@ -469,7 +469,7 @@ def engine_admin_dashboard_view(request):
         }
 
         status_meta = {
-            'NEW': {'label': 'Nytt Prospekt', 'badge_class': 'bg-primary text-white', 'icon': 'fa-sparkles'},
+            'NEW': {'label': 'Ej skannad', 'badge_class': 'bg-secondary text-white', 'icon': 'fa-hourglass-start'},
             'WATCHLIST': {'label': 'Bevakas (Survey)', 'badge_class': 'bg-info text-dark', 'icon': 'fa-eye'},
             'CONVERTED': {'label': 'Skapad / Live', 'badge_class': 'bg-success text-white', 'icon': 'fa-circle-check'},
             'ARCHIVED': {'label': 'Ignorerad', 'badge_class': 'bg-secondary text-white', 'icon': 'fa-ban'},

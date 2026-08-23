@@ -734,7 +734,7 @@
                                 </div>
                                 <div class="d-flex flex-wrap align-items-center gap-2">
                                     <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="NEW" onclick="filterScoutProspects('NEW', this)" style="background:#1e293b;border:1px solid #475569;color:#cbd5e1;">
-                                        Nya (<span id="count-scout-new">{{ scout_counts.new }}</span>)
+                                        <i class="fa-solid fa-hourglass-start me-1 text-secondary"></i>Ej skannade (<span id="count-scout-new">{{ scout_counts.new }}</span>)
                                     </button>
                                     <button class="btn btn-sm rounded-pill fw-bold px-3 py-1 scout-filter-pill scout-filter-btn" data-filter="READY" onclick="filterScoutProspects('READY', this)" style="background:#052E16;border:1px solid #15803D;color:#DCFCE7;">
                                         <i class="fa-solid fa-shield-check me-1 text-success"></i>Redo (<span id="count-scout-ready">{{ scout_counts.ready }}</span>)
@@ -896,7 +896,7 @@
                                                     </span>
                                                 {% else %}
                                                     <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#1e293b;border:1px solid #475569;color:#cbd5e1;font-size:14px;">
-                                                        Ny
+                                                        <i class="fa-solid fa-hourglass-start me-1 text-secondary"></i>Ej skannad
                                                     </span>
                                                 {% endif %}
                                                 
@@ -3532,7 +3532,7 @@
         if (actionLabelEl) {
             const filterNames = {
                 'all': 'alla',
-                'NEW': 'nya',
+                'NEW': 'ej skannade',
                 'READY': 'redo',
                 'WATCHLIST': 'bevakade',
                 'NOT_READY': 'ej redo',
@@ -3586,7 +3586,7 @@
         }
 
         const activeFilter = localStorage.getItem('scoutActiveFilter') || 'all';
-        const filterNames = { 'all': 'alla', 'NEW': 'nya', 'READY': 'redo', 'WATCHLIST': 'bevakade', 'NOT_READY': 'ej redo', 'ARCHIVED': 'ignorerade', 'CONVERTED': 'aktiverade' };
+        const filterNames = { 'all': 'alla', 'NEW': 'ej skannade', 'READY': 'redo', 'WATCHLIST': 'bevakade', 'NOT_READY': 'ej redo', 'ARCHIVED': 'ignorerade', 'CONVERTED': 'aktiverade' };
         const filterName = filterNames[activeFilter] || 'alla';
 
         if (!confirm(`Vill du djupscanna de ${totalCount} visade (${filterName}) turneringarna med Google/Gemini AI & Wikipedia? Processen visar framsteg live.`)) {
