@@ -10,6 +10,7 @@ Agnostic Deepscan Agent that parses and constructs group matrices and team roste
 """
 
 import logging
+import re
 from typing import Optional, Dict, Any, List
 
 from tournament.schemas.tournament_prospect_schema import (
@@ -70,7 +71,10 @@ class GroupsTeamsAgent:
             fixtures_by_group: Dict[str, List[str]] = {}
             for f in fixtures:
                 if isinstance(f, dict):
-                    g_name = f.get("stage_or_group") or "Group A"
+                    g_name = (f.get("stage_or_group") or "Group A").strip()
+                    # Only consider actual group/pool stages, not knockout stages
+                    if re.search(r'\b(?:final|semi|quarter|round\s+of|playoff|bracket|knockout|3rd\s+place|third\s+place)\b', g_name, re.I):
+                        continue
                     h = (f.get("home_team") or f.get("home") or "").strip()
                     a = (f.get("away_team") or f.get("away") or "").strip()
                     if g_name not in fixtures_by_group:
@@ -121,14 +125,40 @@ class GroupsTeamsAgent:
         total_teams_count = 0
 
         if raw_groups:
+            from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+            from tournament.services.team_badge_service import TeamBadgeService
+
+            # Check if preliminary groups (Group A-F) exist and have real teams
+            prelim_groups = [g for g in raw_groups if re.match(r'^(?:Group|Pool|Division)\s+[A-Z]$', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)]
+            if len(prelim_groups) >= 2:
+                # If prelim groups exist, exclude roman numeral main round placeholder groups (e.g. Group I, Group II)
+                filtered_raw_groups = [
+                    g for g in raw_groups
+                    if not re.match(r'^(?:Group|Pool)\s+(?:I|II|III|IV|V|VI)\b', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)
+                ]
+                if filtered_raw_groups:
+                    raw_groups = filtered_raw_groups
+
             for g in raw_groups:
                 g_name = g.get("name") if isinstance(g, dict) else str(g)
+                if re.search(r'\b(?:final|semi|quarter|round\s+of|playoff|bracket|knockout|3rd\s+place|third\s+place)\b', g_name, re.I):
+                    continue
                 raw_team_list = g.get("teams", []) if isinstance(g, dict) else []
 
-                from tournament.services.team_badge_service import TeamBadgeService
                 team_entries: List[TeamEntry] = []
+                seen_in_group = set()
                 for t in raw_team_list:
-                    t_name = t.get("name") if isinstance(t, dict) else str(t)
+                    raw_t_name = t.get("name") if isinstance(t, dict) else str(t)
+                    t_name = LLMWikipediaScout._clean_team_name(raw_t_name)
+                    if not t_name:
+                        continue
+
+                    # Deduplicate teams within the same group
+                    norm_t = t_name.lower().strip()
+                    if norm_t in seen_in_group:
+                        continue
+                    seen_in_group.add(norm_t)
+
                     t_code = t.get("code", "") if isinstance(t, dict) else ""
                     t_seed = t.get("seed", "") if isinstance(t, dict) else ""
                     t_flag_url = t.get("flag_url", "") if isinstance(t, dict) else ""

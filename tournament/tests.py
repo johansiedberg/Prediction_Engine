@@ -928,7 +928,7 @@ class LLMWikipediaScoutTestCase(TestCase):
             name="No Date Cup 2027",
             master_event_code="no-date-cup-2027",
             start_date=None,
-            payload={}
+            payload={'scouting_audit': {'wikipedia_title': 'No Date Cup 2027'}}
         )
 
         mock_audit.return_value = {

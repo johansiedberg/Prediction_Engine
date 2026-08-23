@@ -522,9 +522,33 @@ class WikipediaScout:
 
             # --- Strategy 3: NLP Table & Row Pattern Mining ---
             for row in soup.find_all('tr'):
-                cells  = [c.get_text().strip() for c in row.find_all(['td', 'th'])]
-                txt    = ' '.join(cells) if cells else ' '.join(row.get_text().split())
-                m_vs   = re.search(r'([A-Z][a-zA-Z\s]{2,20})\s+(?:v|vs|\u2013|\-)\s+([A-Z][a-zA-Z\s]{2,20})', txt)
+                cells = [c.get_text().strip() for c in row.find_all(['td', 'th'])]
+                if len(cells) >= 3:
+                    found_cell_fixture = False
+                    for idx, cell_txt in enumerate(cells[1:-1], start=1):
+                        c_strip = cell_txt.strip()
+                        if c_strip in ['v', 'vs', '–', '-', '–\n', 'v\n', 'vs\n'] or re.match(r'^\d+\s*[\-–]\s*\d+$', c_strip):
+                            home_c = cells[idx - 1].replace('\xa0', ' ').strip()
+                            away_c = cells[idx + 1].replace('\xa0', ' ').strip()
+                            venue_c = cells[idx + 2].replace('\xa0', ' ').strip() if len(cells) > idx + 2 else ''
+                            datetime_c = cells[idx - 2].replace('\xa0', ' ').strip() if idx >= 2 else ''
+
+                            date_m = re.search(DATE_RE, datetime_c) or re.search(DATE_RE, ' '.join(cells))
+                            time_m = re.search(TIME_RE, datetime_c) or re.search(TIME_RE, ' '.join(cells))
+
+                            add_fixture(row,
+                                        home_c,
+                                        away_c,
+                                        date_m.group(1) if date_m else '',
+                                        time_m.group(1) if time_m else '',
+                                        venue_c, 'Strategy_3a_CellMining')
+                            found_cell_fixture = True
+                            break
+                    if found_cell_fixture:
+                        continue
+
+                txt = ' '.join(cells) if cells else ' '.join(row.get_text().split())
+                m_vs = re.search(r'([A-Z][a-zA-Z\s]{2,20})\s+(?:v|vs|\u2013|\-)\s+([A-Z][a-zA-Z\s]{2,20})', txt)
                 date_m = re.search(DATE_RE, txt)
                 time_m = re.search(TIME_RE, txt)
 
@@ -535,7 +559,7 @@ class WikipediaScout:
                                 m_vs.group(2).strip(),
                                 date_m.group(1) if date_m else '',
                                 time_m.group(1) if time_m else '',
-                                venue_t, 'Strategy_3_NLP_TableMining')
+                                venue_t, 'Strategy_3b_NLP_TableMining')
 
             # --- Strategy 5: Cross-Table & Group-Adjacent Match Matrix Mining ---
             # Supports round-robin & Nations League group tables where home/away fixture dates or scores

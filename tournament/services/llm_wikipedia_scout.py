@@ -428,6 +428,10 @@ class LLMWikipediaScout:
         if not name_str:
             return ""
         s = str(name_str).strip()
+        # Preserve placeholder pattern e.g. "A3 (TBD)"
+        if re.match(r'^[A-Z]\d(?:\s*\(TBD\))?$', s, re.IGNORECASE):
+            m = re.match(r'^([A-Z]\d)', s, re.IGNORECASE)
+            return f"{m.group(1).upper()} (TBD)"
         # Strip footnote brackets e.g. [1], [a]
         s = re.sub(r'\[\w+\]', '', s)
         # Strip seed prefixes e.g. A1, B2
@@ -440,7 +444,7 @@ class LLMWikipediaScout:
         s = re.sub(r'\*+$', '', s)
 
         # Known venue and city suffix cleanup e.g. "Uruguay SAP Garden" -> "Uruguay", "Poland Spodek" -> "Poland"
-        venue_suffix_pattern = r'\s+(?:SAP\s+Garden|Porsche.*|Arena.*|Spodek.*|GETEC.*|Wunderino.*|Lanxess.*|ZAG.*|Antalya.*|Tipos.*|Stadion.*|Stadium.*|Hall.*|Centre.*|Center.*|Dome.*|Palace.*|Park.*|Munich|Stuttgart|Kiel|Magdeburg|Hanover|Cologne|Brno|Katowice)$'
+        venue_suffix_pattern = r'\s+(?:SAP\s+Garden|Porsche.*|Arena.*|Spodek.*|GETEC.*|Wunderino.*|Lanxess.*|ZAG.*|Antalya.*|Tipos.*|Stadion.*|Stadium.*|Hall.*|Centre.*|Center.*|Dome.*|Palace.*|Park.*|Oradea.*|BTarena.*|Cluj.*|Bratislava.*|Katowice.*|Brno.*|Debrecen.*|Innsbruck.*|Basel.*|Vienna.*|Munich|Stuttgart|Kiel|Magdeburg|Hanover|Cologne)$'
         s = re.sub(venue_suffix_pattern, '', s, flags=re.IGNORECASE)
 
         return s.strip()
