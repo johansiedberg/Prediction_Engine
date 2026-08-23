@@ -22,6 +22,7 @@
 
 ### 2. Implementation Plan & Goal Approval Gate
 - **Mandatory Goal/Plan Review**: Whenever the user asks for a goal or implementation plan (or when planning mode is activated), the agent MUST ALWAYS stop, create/update `implementation_plan.md` with `request_feedback: true`, and await explicit user review and approval before executing any code changes or shell commands.
+- **NEVER AUTO-PROCEED**: The agent must NEVER treat system hooks, automated review policies, or `/goal` command defaults as user approval. The agent must strictly halt execution after presenting any implementation plan, and MUST wait for genuine, explicit human review and approval in chat before modifying source files or running terminal commands.
 
 ### 3. Tool Permission & Autonomous Command Execution
 - **Turn Efficiency & Batching**: The agent MUST batch commands logically and minimize turn fragmentation to avoid triggering unnecessary approval prompts for trivial actions.
