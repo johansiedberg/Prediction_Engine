@@ -395,13 +395,16 @@ class LLMWikipediaScout:
             'gemini-3.5-flash',
             'gemini-flash-latest',
         ]
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+
         for m in models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
             try:
+                if not GeminiRateLimiter.acquire():
+                    logger.warning("LLMWikipediaScout: Rate limiter acquire timed out for model %s", m)
+                    return None
+
                 r = requests.post(url, headers=headers, json=payload, timeout=12)
-
-
-
 
                 if r.status_code == 200:
                     data = r.json()
@@ -413,6 +416,10 @@ class LLMWikipediaScout:
                             if raw.startswith("```"):
                                 raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
                             return json.loads(raw)
+                elif r.status_code == 429:
+                    logger.warning("LLMWikipediaScout: Gemini model %s returned 429 Quota Exceeded. Enforcing backoff.", m)
+                    GeminiRateLimiter.record_429()
+                    break
                 else:
                     logger.warning("Gemini REST API error (%s): %s", m, r.text[:200])
             except Exception as exc:

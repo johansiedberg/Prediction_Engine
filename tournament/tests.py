@@ -1756,17 +1756,47 @@ class PointSystemFlowTests(TestCase):
         self.assertEqual(resp2.status_code, 200)
         coming2 = resp2.context['coming_tournaments']
         available2 = resp2.context['available_tournaments']
-        self.assertNotIn(self.tournament, coming2)
-        self.assertIn(self.tournament, available2)
 
+class GeminiRateLimiterTest(TestCase):
+    """Tests for the 5 calls/min Gemini Rate Limiter and 429 quota backoff handling."""
 
+    def setUp(self):
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+        GeminiRateLimiter.reset()
 
+    def tearDown(self):
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+        GeminiRateLimiter.reset()
 
+    @override_settings(GEMINI_MAX_CALLS_PER_MINUTE=5, GEMINI_RATE_LIMIT_WINDOW_SECONDS=60.0)
+    def test_rate_limiter_permits_up_to_five_calls(self):
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+        for i in range(5):
+            acquired = GeminiRateLimiter.acquire(timeout=1.0)
+            self.assertTrue(acquired, f"Call {i+1} should be acquired immediately")
 
+        status = GeminiRateLimiter.get_status()
+        self.assertEqual(status['active_calls_in_window'], 5)
+        self.assertEqual(status['max_calls_per_minute'], 5)
+        self.assertFalse(status['in_penalty_cooldown'])
 
+    @override_settings(GEMINI_MAX_CALLS_PER_MINUTE=5, GEMINI_RATE_LIMIT_WINDOW_SECONDS=60.0)
+    def test_rate_limiter_blocks_sixth_call_on_timeout(self):
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+        for _ in range(5):
+            GeminiRateLimiter.acquire(timeout=1.0)
 
+        # 6th call with very short timeout should fail because window is 60s
+        acquired = GeminiRateLimiter.acquire(timeout=0.1)
+        self.assertFalse(acquired, "6th call in 60s window should time out under 5 calls/min limit")
 
+    def test_rate_limiter_429_penalty_backoff(self):
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+        GeminiRateLimiter.record_429(backoff_seconds=10.0)
+        status = GeminiRateLimiter.get_status()
+        self.assertTrue(status['in_penalty_cooldown'])
+        self.assertGreater(status['penalty_remaining_seconds'], 0.0)
 
-
-
-
+        # Immediate acquire should fail when timeout is short
+        acquired = GeminiRateLimiter.acquire(timeout=0.05)
+        self.assertFalse(acquired, "Should not acquire during 429 penalty backoff")

@@ -79,6 +79,8 @@ class GeminiScoutService:
                 "parts": [{"text": prompt}]
             })
 
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+
         for model_name in cls.SUPPORTED_MODELS:
             url = f"{cls.BASE_URL}/{model_name}:generateContent?key={api_key}"
 
@@ -96,6 +98,10 @@ class GeminiScoutService:
                 payload["generationConfig"]["response_mime_type"] = "application/json"
 
             try:
+                if not GeminiRateLimiter.acquire():
+                    logger.warning("GeminiScoutService: Rate limiter acquire timed out for model %s", model_name)
+                    return None
+
                 res = requests.post(url, headers=headers, json=payload, timeout=20)
                 if res.status_code == 200:
                     data = res.json()
@@ -107,12 +113,18 @@ class GeminiScoutService:
                             clean_json = cls._extract_json_block(raw_text)
                             if clean_json:
                                 return json.loads(clean_json)
+                elif res.status_code == 429:
+                    logger.warning("GeminiScoutService: Gemini model %s returned 429 Quota Exceeded. Enforcing backoff.", model_name)
+                    GeminiRateLimiter.record_429()
+                    break
                 else:
                     logger.debug("Gemini model %s returned status %d: %s", model_name, res.status_code, res.text[:150])
                     # If search grounding failed with schema, retry without search grounding
                     if search_grounding:
                         payload.pop("tools", None)
                         payload["generationConfig"]["response_mime_type"] = "application/json"
+                        if not GeminiRateLimiter.acquire():
+                            return None
                         retry_res = requests.post(url, headers=headers, json=payload, timeout=20)
                         if retry_res.status_code == 200:
                             data = retry_res.json()
@@ -124,6 +136,10 @@ class GeminiScoutService:
                                     clean_json = cls._extract_json_block(raw_text)
                                     if clean_json:
                                         return json.loads(clean_json)
+                        elif retry_res.status_code == 429:
+                            logger.warning("GeminiScoutService: Retry for %s returned 429 Quota Exceeded.", model_name)
+                            GeminiRateLimiter.record_429()
+                            break
 
             except Exception as exc:
                 logger.warning("GeminiScoutService: Error calling %s: %s", model_name, exc)

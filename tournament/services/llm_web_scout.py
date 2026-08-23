@@ -50,7 +50,6 @@ class LLMWebScout:
         Executes a web search to find official rules on the whitelisted domains.
         Returns a dictionary with extracted rules and provenance metadata.
         """
-        domains_str = " OR ".join([f"site:{d}" for d in whitelisted_domains]) if whitelisted_domains else ""
         prompt = f"""
 You are an expert sports data analyst. Your task is to find the official tiebreaker rules and points system for "{tournament_name}".
 
@@ -68,23 +67,35 @@ Return a JSON object with this exact structure:
 }}
 If you cannot find the data on an official domain, set domain_verified to false and confidence to low.
 """
-        
         try:
-            response = self.model.generate_content(prompt)
-            json_str = response.text
-            match = re.search(r'```(?:json)?\n(.*?)\n```', json_str, re.DOTALL | re.IGNORECASE)
-            if match:
-                json_str = match.group(1)
-            
-            data = json.loads(json_str)
-            return data
+            from tournament.services.gemini_scout_service import GeminiScoutService
+            if GeminiScoutService.is_available():
+                data = GeminiScoutService.generate_json(prompt, search_grounding=True)
+                if data and isinstance(data, dict) and "official_rules" in data:
+                    return data
+
+            if self.model:
+                from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+                if not GeminiRateLimiter.acquire():
+                    logger.warning("LLMWebScout: Rate limiter acquire timed out.")
+                    return {"official_rules": "", "provenance": {"source_url": "", "domain_verified": False, "confidence": "error"}}
+
+                response = self.model.generate_content(prompt)
+                json_str = response.text
+                match = re.search(r'```(?:json)?\n(.*?)\n```', json_str, re.DOTALL | re.IGNORECASE)
+                if match:
+                    json_str = match.group(1)
+                
+                data = json.loads(json_str)
+                return data
         except Exception as e:
             logger.error(f"LLMWebScout error: {e}")
-            return {
-                "official_rules": "",
-                "provenance": {
-                    "source_url": "",
-                    "domain_verified": False,
-                    "confidence": "error"
-                }
+
+        return {
+            "official_rules": "",
+            "provenance": {
+                "source_url": "",
+                "domain_verified": False,
+                "confidence": "error"
             }
+        }
