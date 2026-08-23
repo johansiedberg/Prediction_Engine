@@ -357,11 +357,30 @@ class WikipediaScout:
                 return bool(PLACEHOLDER_RE.match(name.strip()))
 
             def get_preceding_stage(elem):
-                h = elem.find_previous(re.compile(r'^h[2-4]$'))
-                if h:
-                    htxt = h.get_text().strip()
-                    if re.search(r'group|pool|quarter|semi|final|round|playoff', htxt, re.IGNORECASE):
-                        return htxt
+                headings = []
+                curr = elem
+                for _ in range(5):
+                    h = curr.find_previous(re.compile(r'^h[2-4]$'))
+                    if not h or h in headings:
+                        break
+                    headings.append(h)
+                    curr = h
+
+                league_part = ""
+                group_part = ""
+                for h in headings:
+                    t = re.sub(r'\[edit\]', '', h.get_text().strip(), flags=re.I).strip()
+                    if re.search(r'\b(?:league|division)\s+[A-D]\b', t, re.IGNORECASE) and not league_part:
+                        league_part = t
+                    if re.search(r'\b(?:group|pool)\s+[A-Z0-9]\b|quarter|semi|final|round|playoff', t, re.IGNORECASE) and not group_part:
+                        group_part = t
+
+                if league_part and group_part and league_part.lower() not in group_part.lower():
+                    return f"{league_part} - {group_part}"
+                elif group_part:
+                    return group_part
+                elif league_part:
+                    return league_part
                 return 'Gruppspel'
 
             def add_fixture(elem, home, away, date_str, time_str, venue_str, strategy_name,

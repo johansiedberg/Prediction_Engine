@@ -60,11 +60,39 @@ class GroupsTeamsAgent:
         """
         audit = dict(audit_data or {})
         raw_groups = audit.get("groups") or []
-        bp = audit.get("tournament_blueprint") or {}
-
-        # 0. Gemini AI Intelligence Enrichment
+        # 0. Fixtures Fallback: Reconstruct groups from audited match fixtures if available
+        fixtures = audit.get("fixtures") or audit.get("group_matches") or audit.get("fixtures_sample") or []
         from tournament.services.scout_service import has_real_teams as check_real_teams
         prior_has_real = check_real_teams(raw_groups) if raw_groups else False
+
+        if fixtures and (not raw_groups or not prior_has_real):
+            from tournament.services.team_badge_service import TeamBadgeService
+            fixtures_by_group: Dict[str, List[str]] = {}
+            for f in fixtures:
+                if isinstance(f, dict):
+                    g_name = f.get("stage_or_group") or "Group A"
+                    h = (f.get("home_team") or f.get("home") or "").strip()
+                    a = (f.get("away_team") or f.get("away") or "").strip()
+                    if g_name not in fixtures_by_group:
+                        fixtures_by_group[g_name] = []
+                    if h and not TeamBadgeService.is_placeholder(h) and h not in fixtures_by_group[g_name]:
+                        fixtures_by_group[g_name].append(h)
+                    if a and not TeamBadgeService.is_placeholder(a) and a not in fixtures_by_group[g_name]:
+                        fixtures_by_group[g_name].append(a)
+
+            total_real_in_fixtures = sum(len(teams) for teams in fixtures_by_group.values())
+            if total_real_in_fixtures >= 4 and len(fixtures_by_group) >= 1:
+                extracted_groups = []
+                for g_n, t_list in fixtures_by_group.items():
+                    extracted_groups.append({
+                        "name": g_n,
+                        "teams": [{"name": t_name} for t_name in t_list]
+                    })
+                raw_groups = extracted_groups
+                prior_has_real = True
+                audit["groups"] = raw_groups
+
+        bp = audit.get("tournament_blueprint") or {}
         prior_draw_completed = bool(audit.get("draw_completed") or bp.get("draw_completed"))
         is_empty_prospect = (audit.get("teams_count") == 0 and audit.get("groups_count") == 0 and not raw_groups)
 
