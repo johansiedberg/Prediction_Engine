@@ -1995,26 +1995,16 @@
                             </div>
 
                             <div class="col-12 mt-3">
-                                <h6 class="fw-bold text-white small text-uppercase font-monospace mb-2"><i class="fa-solid fa-table-list text-warning me-1.5"></i>Aktivera Deklarativa Specialtabeller</h6>
-                                <div class="d-flex flex-column gap-2 p-3 rounded-3 bg-dark bg-opacity-40 border border-secondary border-opacity-25">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="editHasBestThirds" name="has_best_thirds_table" value="1">
-                                        <label class="form-check-label text-light small" for="editHasBestThirds">
-                                            <strong>Bästa 3:e-placerade lagstabell</strong> (t.ex. UEFA EM-slutspel, Fotbolls-VM)
-                                        </label>
+                                <h6 class="fw-bold text-white small text-uppercase font-monospace mb-2">
+                                    <i class="fa-solid fa-table-list text-warning me-1.5"></i>Kvalificeringstabeller (Styrs automatiskt av turneringsformatet)
+                                </h6>
+                                <div class="p-3 rounded-3 bg-dark bg-opacity-40 border border-secondary border-opacity-25" id="qualifyingTableInfoBox">
+                                    <div id="qualifyingTableStatusBadges" class="d-flex flex-wrap gap-2">
+                                        <!-- Dynamically updated in JS -->
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="editHasRunnersUp" name="has_runners_up_table" value="1">
-                                        <label class="form-check-label text-light small" for="editHasRunnersUp">
-                                            <strong>Tvåor-rankingtabell</strong> (t.ex. EM-kval, VM-kval)
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="editHasHostRanking" name="has_host_ranking_table" value="1">
-                                        <label class="form-check-label text-light small" for="editHasHostRanking">
-                                            <strong>Värdnations-säkerhetsnätsranking</strong> (t.ex. Euro 2028 Co-hosts)
-                                        </label>
-                                    </div>
+                                    <input type="hidden" id="editHasBestThirds" name="has_best_thirds_table" value="0">
+                                    <input type="hidden" id="editHasRunnersUp" name="has_runners_up_table" value="0">
+                                    <input type="hidden" id="editHasHostRanking" name="has_host_ranking_table" value="0">
                                 </div>
                             </div>
                         </div>
@@ -2398,7 +2388,7 @@
                                 </div>
                                 <div class="col-12 col-md-2">
                                     <label class="form-label text-light small fw-semibold">Poäng</label>
-                                    <input type="number" min="1" max="100" class="form-control form-control-sm bg-dark text-white border-secondary" id="new_sb_points" value="10" required>
+                                    <input type="number" min="1" max="100" class="form-control form-control-sm bg-dark text-white border-secondary" id="new_sb_points" value="30" required>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label text-light small fw-semibold">Rätt svar (Valfritt nu, kan sättas efter turneringen)</label>
@@ -2781,9 +2771,27 @@
                 document.getElementById('editTournamentSummary').value = t.tournament_summary || '';
                 document.getElementById('editTournamentRules').value = t.official_rules || '';
                 
-                document.getElementById('editHasBestThirds').checked = !!t.has_best_thirds_table;
-                document.getElementById('editHasRunnersUp').checked = !!t.has_runners_up_table;
-                document.getElementById('editHasHostRanking').checked = !!t.has_host_ranking_table;
+                document.getElementById('editHasBestThirds').value = t.has_best_thirds_table ? '1' : '0';
+                document.getElementById('editHasRunnersUp').value = t.has_runners_up_table ? '1' : '0';
+                document.getElementById('editHasHostRanking').value = t.has_host_ranking_table ? '1' : '0';
+
+                const badgesContainer = document.getElementById('qualifyingTableStatusBadges');
+                if (badgesContainer) {
+                    let badgesHtml = '';
+                    if (t.has_best_thirds_table) {
+                        badgesHtml += '<span class="badge font-monospace fs-8 py-1.5 px-3" style="background: #052E16; border: 1px solid #15803D; color: #DCFCE7;"><i class="fa-solid fa-check-circle me-1.5 text-success"></i>Bästa 3:e-placerade lagstabell aktiv (UEFA EM / VM)</span>';
+                    }
+                    if (t.has_runners_up_table) {
+                        badgesHtml += '<span class="badge font-monospace fs-8 py-1.5 px-3" style="background: #052E16; border: 1px solid #15803D; color: #DCFCE7;"><i class="fa-solid fa-check-circle me-1.5 text-success"></i>Rankade Grupptvåor aktiv (Kvalturnering)</span>';
+                    }
+                    if (t.has_host_ranking_table) {
+                        badgesHtml += '<span class="badge font-monospace fs-8 py-1.5 px-3" style="background: #052E16; border: 1px solid #15803D; color: #DCFCE7;"><i class="fa-solid fa-check-circle me-1.5 text-success"></i>Värdnations-ranking aktiv</span>';
+                    }
+                    if (!badgesHtml) {
+                        badgesHtml = '<span class="text-secondary small font-monospace"><i class="fa-solid fa-info-circle me-1.5"></i>Ingen separat kvalificeringstabell krävs för detta format.</span>';
+                    }
+                    badgesContainer.innerHTML = badgesHtml;
+                }
 
                 // Setup Icon preview
                 const iconPreview = document.getElementById('editIconPreview');
@@ -3407,6 +3415,7 @@
     function showAddSidebetForm() {
         const card = document.getElementById('newSidebetCard');
         card.classList.remove('d-none');
+        document.getElementById('new_sb_points').value = 30;
         document.getElementById('new_sb_question').focus();
     }
 
@@ -3414,6 +3423,7 @@
         const card = document.getElementById('newSidebetCard');
         card.classList.add('d-none');
         document.getElementById('newSidebetForm').reset();
+        document.getElementById('new_sb_points').value = 30;
     }
 
     function submitNewSidebet(e) {

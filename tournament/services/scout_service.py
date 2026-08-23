@@ -1515,7 +1515,7 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
             for sb in sidebets_data:
                 q_text = sb.get('question') if isinstance(sb, dict) else str(sb)
                 q_type = sb.get('question_type', 'TEXT') if isinstance(sb, dict) else 'TEXT'
-                q_pts = sb.get('points', 5) if isinstance(sb, dict) else 5
+                q_pts = sb.get('points', 30) if isinstance(sb, dict) and sb.get('points') is not None else 30
                 if q_text:
                     Sidebet.objects.create(
                         tournament=tournament,
@@ -1528,7 +1528,7 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
             Sidebet.objects.create(
                 tournament=tournament,
                 question=f"Vilket lag vinner {tournament.name}?",
-                points=10,
+                points=30,
                 question_type='CHOICES'
             )
 

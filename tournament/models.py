@@ -822,7 +822,7 @@ class Sidebet(models.Model):
 
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='sidebets')
     question = models.CharField(max_length=255, verbose_name="Fråga")
-    points = models.PositiveIntegerField(default=25, verbose_name="Poäng för rätt svar")
+    points = models.PositiveIntegerField(default=30, verbose_name="Poäng för rätt svar")
     question_type = models.CharField(max_length=10, choices=QUESTION_TYPES, default='TEXT', verbose_name="Frågetyp")
     correct_answers = models.TextField(blank=True, null=True, verbose_name="Rätt svar", help_text="Anges av admin. Separera flera giltiga/oavgjorda svar med kommatecken (t.ex. Mbappé, Isak, Haaland)")
 

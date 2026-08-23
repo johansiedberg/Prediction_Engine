@@ -123,15 +123,15 @@
                 <div class="p-3.5 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <h5 class="fw-extrabold text-warning mb-0"><i class="fa-solid fa-medal me-1.5 text-warning"></i>Ranking av Grupptvåor (Runners-Up Table)</h5>
-                        <span class="badge bg-transparent border border-info text-info font-monospace fs-8">Exkl. 5:e lag i 5-lagsgrupper</span>
+                        <span class="badge font-monospace fs-8" style="background: #052E16; border: 1px solid #15803D; color: #DCFCE7;">Top 8 direktkvalificerade</span>
                     </div>
-                    <p class="text-secondary small mb-3">Top 8 bästa grupptvåorna direktkvalificerar sig till EM 2028; övriga 4 går till Play-off.</p>
+                    <p class="text-secondary small mb-3">Top 8 bästa grupptvåorna direktkvalificerar sig till turneringen; övriga 4 går till Play-off.</p>
 
                     <div class="table-responsive">
                         <table class="table table-sm text-center align-middle mb-0 text-white" style="font-size: 0.85rem;">
                             <thead>
-                                <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30">
-                                    <th>#</th>
+                                <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30 font-monospace">
+                                    <th style="width: 36px;">#</th>
                                     <th class="text-start">Lag</th>
                                     <th>Grupp</th>
                                     <th>S</th>
@@ -141,21 +141,23 @@
                                     <th>GM</th>
                                     <th>IM</th>
                                     <th>MS</th>
-                                    <th>P</th>
+                                    <th class="fw-bold text-white">P</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for r in runners_up_table %}
-                                <tr class="border-bottom border-secondary border-opacity-10 {% if r.rank <= 8 %}bg-success bg-opacity-10{% endif %}">
-                                    <td class="fw-bold text-secondary font-monospace">{{ r.rank }}</td>
-                                    <td class="text-start fw-bold text-white">
-                                        {% if r.team.flag_url %}
+                                <tr class="{% if r.rank == 8 %}border-bottom border-success border-2{% else %}border-bottom border-secondary border-opacity-10{% endif %} {% if r.rank > 8 %}opacity-50 text-secondary{% endif %}">
+                                    <td class="fw-bold {% if r.rank <= 8 %}text-white{% else %}text-secondary{% endif %} font-monospace">{{ r.rank }}</td>
+                                    <td class="text-start fw-bold {% if r.rank <= 8 %}text-white{% else %}text-secondary{% endif %}">
+                                        {% if r.team.emblem_url %}
+                                        <img src="{{ r.team.emblem_url }}" alt="Flag" class="me-1.5 rounded-1" style="width: 20px; height: 14px; object-fit: cover;">
+                                        {% elif r.team.flag_url %}
                                         <img src="{{ r.team.flag_url }}" alt="Flag" class="me-1.5 rounded-1" style="width: 20px; height: 14px; object-fit: cover;">
                                         {% endif %}
                                         <span>{{ r.team.name }}</span>
                                     </td>
-                                    <td class="text-secondary small">{{ r.group_name }}</td>
+                                    <td class="text-secondary small font-monospace">{{ r.group_name }}</td>
                                     <td>{{ r.played }}</td>
                                     <td>{{ r.won }}</td>
                                     <td>{{ r.drawn }}</td>
@@ -165,11 +167,17 @@
                                     <td class="{% if r.gd > 0 %}text-success{% elif r.gd < 0 %}text-danger{% else %}text-secondary{% endif %} fw-semibold">
                                         {% if r.gd > 0 %}+{% endif %}{{ r.gd }}
                                     </td>
-                                    <td class="fw-extrabold text-warning font-monospace fs-6">{{ r.points }}</td>
+                                    <td class="fw-extrabold {% if r.rank <= 8 %}text-warning{% else %}text-secondary{% endif %} font-monospace fs-6">{{ r.points }}</td>
                                     <td>
-                                        <span class="badge bg-transparent border border-{{ r.status_class }} text-{{ r.status_class }} font-monospace fs-8 px-2 py-1">
-                                            {{ r.status }}
+                                        {% if r.rank <= 8 %}
+                                        <span class="badge font-monospace fs-8 px-2 py-1" style="background: #052E16; border: 1px solid #15803D; color: #DCFCE7;">
+                                            <i class="fa-solid fa-check-circle me-1 text-success"></i>DIREKTKVALIFICERAD
                                         </span>
+                                        {% else %}
+                                        <span class="badge font-monospace fs-8 px-2 py-1" style="background: #451A03; border: 1px solid #B45309; color: #FEF3C7;">
+                                            <i class="fa-solid fa-shield-halved me-1 text-warning"></i>PLAY-OFF
+                                        </span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% empty %}
@@ -190,15 +198,15 @@
                 <div class="p-3.5 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <h5 class="fw-extrabold text-info mb-0"><i class="fa-solid fa-flag text-info me-1.5"></i>Ranking av Värdnationer (Co-Hosts)</h5>
-                        <span class="badge bg-transparent border border-warning text-warning font-monospace fs-8">2 Platsers Safety Net</span>
+                        <span class="badge font-monospace fs-8" style="background: #052E16; border: 1px solid #15803D; color: #DCFCE7;">2 Platsers Safety Net</span>
                     </div>
-                    <p class="text-secondary small mb-3">Värdländerna deltar i kvalet. De 2 bästa värdländerna som ej direktkvalificerar får garanterade platser.</p>
+                    <p class="text-secondary small mb-3">De 2 bästa värdländerna som ej direktkvalificerar får garanterade platser.</p>
 
                     <div class="table-responsive">
                         <table class="table table-sm text-center align-middle mb-0 text-white" style="font-size: 0.85rem;">
                             <thead>
-                                <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30">
-                                    <th>#</th>
+                                <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30 font-monospace">
+                                    <th style="width: 36px;">#</th>
                                     <th class="text-start">Värdland</th>
                                     <th>Grupp</th>
                                     <th>P</th>
@@ -208,23 +216,31 @@
                             </thead>
                             <tbody>
                                 {% for h in host_ranking_table %}
-                                <tr class="border-bottom border-secondary border-opacity-10">
-                                    <td class="fw-bold text-secondary font-monospace">{{ h.rank }}</td>
-                                    <td class="text-start fw-bold text-white">
-                                        {% if h.team.flag_url %}
+                                <tr class="{% if h.rank == 2 %}border-bottom border-success border-2{% else %}border-bottom border-secondary border-opacity-10{% endif %} {% if h.rank > 2 %}opacity-50 text-secondary{% endif %}">
+                                    <td class="fw-bold {% if h.rank <= 2 %}text-white{% else %}text-secondary{% endif %} font-monospace">{{ h.rank }}</td>
+                                    <td class="text-start fw-bold {% if h.rank <= 2 %}text-white{% else %}text-secondary{% endif %}">
+                                        {% if h.team.emblem_url %}
+                                        <img src="{{ h.team.emblem_url }}" alt="Flag" class="me-1.5 rounded-1" style="width: 20px; height: 14px; object-fit: cover;">
+                                        {% elif h.team.flag_url %}
                                         <img src="{{ h.team.flag_url }}" alt="Flag" class="me-1.5 rounded-1" style="width: 20px; height: 14px; object-fit: cover;">
                                         {% endif %}
                                         <span>{{ h.team.name }}</span>
                                     </td>
-                                    <td class="text-secondary small">{{ h.group_name }} (#{{ h.group_pos }})</td>
-                                    <td class="fw-extrabold text-warning font-monospace">{{ h.points }}</td>
+                                    <td class="text-secondary small font-monospace">{{ h.group_name }}</td>
+                                    <td class="fw-extrabold {% if h.rank <= 2 %}text-warning{% else %}text-secondary{% endif %} font-monospace">{{ h.points }}</td>
                                     <td class="{% if h.gd > 0 %}text-success{% elif h.gd < 0 %}text-danger{% else %}text-secondary{% endif %} fw-semibold">
                                         {% if h.gd > 0 %}+{% endif %}{{ h.gd }}
                                     </td>
                                     <td>
-                                        <span class="badge bg-transparent border border-{{ h.status_class }} text-{{ h.status_class }} font-monospace fs-8 px-2 py-1" title="{{ h.qual_reason }}">
-                                            {{ h.final_status }}
+                                        {% if h.rank <= 2 %}
+                                        <span class="badge font-monospace fs-8 px-2 py-1" style="background: #052E16; border: 1px solid #15803D; color: #DCFCE7;">
+                                            <i class="fa-solid fa-check-circle me-1 text-success"></i>KVALIFICERAD
                                         </span>
+                                        {% else %}
+                                        <span class="badge font-monospace fs-8 px-2 py-1" style="background: #450A0A; border: 1px solid #B91C1C; color: #FEE2E2;">
+                                            <i class="fa-solid fa-xmark me-1 text-danger"></i>UTSLAGEN
+                                        </span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% empty %}
@@ -245,15 +261,15 @@
                 <div class="p-3.5 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <h5 class="fw-extrabold text-warning mb-0"><i class="fa-solid fa-award me-1.5 text-warning"></i>Ranking av Bästa Treor (Best 3rd-Placed Teams)</h5>
-                        <span class="badge bg-transparent border border-success text-success font-monospace fs-8">Top 4 till Åttondelsfinal</span>
+                        <span class="badge font-monospace fs-8" style="background: #052E16; border: 1px solid #15803D; color: #DCFCE7;">Top 4 till Åttondelsfinal</span>
                     </div>
                     <p class="text-secondary small mb-3">De 4 bästa treorna från gruppspelet går vidare till Slutspel (Round of 16).</p>
 
                     <div class="table-responsive">
                         <table class="table table-sm text-center align-middle mb-0 text-white" style="font-size: 0.85rem;">
                             <thead>
-                                <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30">
-                                    <th>#</th>
+                                <tr class="text-secondary text-uppercase fs-7 border-bottom border-secondary border-opacity-30 font-monospace">
+                                    <th style="width: 36px;">#</th>
                                     <th class="text-start">Lag</th>
                                     <th>Grupp</th>
                                     <th>S</th>
@@ -263,21 +279,23 @@
                                     <th>GM</th>
                                     <th>IM</th>
                                     <th>MS</th>
-                                    <th>P</th>
+                                    <th class="fw-bold text-white">P</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for r in best_thirds_table %}
-                                <tr class="border-bottom border-secondary border-opacity-10 {% if r.rank <= 4 %}bg-success bg-opacity-10{% endif %}">
-                                    <td class="fw-bold text-secondary font-monospace">{{ r.rank }}</td>
-                                    <td class="text-start fw-bold text-white">
-                                        {% if r.team.flag_url %}
+                                <tr class="{% if r.rank == 4 %}border-bottom border-success border-2{% else %}border-bottom border-secondary border-opacity-10{% endif %} {% if r.rank > 4 %}opacity-50 text-secondary{% endif %}">
+                                    <td class="fw-bold {% if r.rank <= 4 %}text-white{% else %}text-secondary{% endif %} font-monospace">{{ r.rank }}</td>
+                                    <td class="text-start fw-bold {% if r.rank <= 4 %}text-white{% else %}text-secondary{% endif %}">
+                                        {% if r.team.emblem_url %}
+                                        <img src="{{ r.team.emblem_url }}" alt="Flag" class="me-1.5 rounded-1" style="width: 20px; height: 14px; object-fit: cover;">
+                                        {% elif r.team.flag_url %}
                                         <img src="{{ r.team.flag_url }}" alt="Flag" class="me-1.5 rounded-1" style="width: 20px; height: 14px; object-fit: cover;">
                                         {% endif %}
                                         <span>{{ r.team.name }}</span>
                                     </td>
-                                    <td class="text-secondary small">{{ r.group_name }}</td>
+                                    <td class="text-secondary small font-monospace">{{ r.group_name }}</td>
                                     <td>{{ r.played }}</td>
                                     <td>{{ r.won }}</td>
                                     <td>{{ r.drawn }}</td>
@@ -287,11 +305,17 @@
                                     <td class="{% if r.gd > 0 %}text-success{% elif r.gd < 0 %}text-danger{% else %}text-secondary{% endif %} fw-semibold">
                                         {% if r.gd > 0 %}+{% endif %}{{ r.gd }}
                                     </td>
-                                    <td class="fw-extrabold text-warning font-monospace fs-6">{{ r.points }}</td>
+                                    <td class="fw-extrabold {% if r.rank <= 4 %}text-warning{% else %}text-secondary{% endif %} font-monospace fs-6">{{ r.points }}</td>
                                     <td>
-                                        <span class="badge bg-transparent border border-{{ r.status_class }} text-{{ r.status_class }} font-monospace fs-8 px-2 py-1">
-                                            {{ r.status }}
+                                        {% if r.rank <= 4 %}
+                                        <span class="badge font-monospace fs-8 px-2 py-1" style="background: #052E16; border: 1px solid #15803D; color: #DCFCE7;">
+                                            <i class="fa-solid fa-check-circle me-1 text-success"></i>KVALIFICERAD (R16)
                                         </span>
+                                        {% else %}
+                                        <span class="badge font-monospace fs-8 px-2 py-1" style="background: #450A0A; border: 1px solid #B91C1C; color: #FEE2E2;">
+                                            <i class="fa-solid fa-xmark me-1 text-danger"></i>UTSLAGEN
+                                        </span>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% empty %}
@@ -319,9 +343,19 @@
         <div class="row g-4">
             {% for st_data in knockout_data %}
             <div class="col-12 col-md-6 col-xl-4">
-                <div class="p-3.5 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm h-100">
-                    <h5 class="fw-extrabold text-info mb-3"><i class="fa-solid fa-trophy me-1.5"></i>{{ st_data.stage.name }}</h5>
+                <div class="p-3.5 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm h-100 {% if st_data.not_applicable %}opacity-75{% endif %}">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="fw-extrabold {% if st_data.not_applicable %}text-secondary{% else %}text-info{% endif %} mb-0"><i class="fa-solid fa-trophy me-1.5"></i>{{ st_data.stage.name }}</h5>
+                        {% if st_data.not_applicable %}
+                        <span class="badge font-monospace fs-8" style="background: #0F172A; border: 1px solid #475569; color: #94A3B8;">Ej tillämplig</span>
+                        {% endif %}
+                    </div>
                     
+                    {% if st_data.not_applicable %}
+                    <div class="p-3 rounded-3 border border-secondary border-opacity-20 text-secondary text-center small font-monospace">
+                        <i class="fa-solid fa-forward me-1.5 text-warning"></i>{{ st_data.note|default:"Passeras i detta format." }}
+                    </div>
+                    {% else %}
                     <div class="d-flex flex-column gap-2">
                         {% for m in st_data.matches %}
                         <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-transparent text-white">
@@ -344,6 +378,7 @@
                         <span class="text-secondary fs-7">Inga matcher i denna slutspelsfas.</span>
                         {% endfor %}
                     </div>
+                    {% endif %}
 
                 </div>
             </div>

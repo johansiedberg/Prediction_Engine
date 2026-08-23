@@ -1084,6 +1084,22 @@ def engine_admin_preview_tournament(request, tournament_id):
             'matches': matches_list,
         })
 
+    # Requirement: in View section, always show Round of 32 also, even if not applicable for the specific tournament
+    has_r32 = any(
+        '32' in (s.name or '').lower() or '16-del' in (s.name or '').lower()
+        for s in tournament.knockout_stages.all()
+    )
+    if not has_r32:
+        class VirtualRoundOf32Stage:
+            name = "Round of 32 (16-delsfinal)"
+
+        knockout_data.insert(0, {
+            'stage': VirtualRoundOf32Stage(),
+            'matches': [],
+            'not_applicable': True,
+            'note': 'Ej tillämplig för detta format (Gruppspelet avancerar direkt till Åttondelsfinal/Slutspel)'
+        })
+
     runners_up_table = tournament.get_runners_up_ranking_table()
     host_ranking_table = tournament.get_host_ranking_table()
     best_thirds_table = tournament.get_best_thirds_ranking_table()
@@ -2086,7 +2102,7 @@ def tournament_sidebet_save_view(request, tournament_id):
     sidebet_id = request.POST.get('sidebet_id')
     question = request.POST.get('question', '').strip()
     question_type = request.POST.get('question_type', 'TEXT').strip()
-    points_raw = request.POST.get('points', 25)
+    points_raw = request.POST.get('points', 30)
     correct_answers = request.POST.get('correct_answers', '').strip()
 
     if not question:
@@ -2095,7 +2111,7 @@ def tournament_sidebet_save_view(request, tournament_id):
     try:
         points = max(1, int(points_raw))
     except (ValueError, TypeError):
-        points = 25
+        points = 30
 
     if question_type not in ['TEAM', 'TEXT']:
         question_type = 'TEXT'
