@@ -148,11 +148,13 @@ class StructureAndRulesSegment(BaseModel):
 # ---------------------------------------------------------------------------
 
 class TeamEntry(BaseModel):
-    name: str = Field(description="Team name e.g. Spain or Placeholder A1")
-    code: str = Field(default="", description="Short code e.g. ESP")
+    name: str = Field(description="Team name e.g. Spain or Real Madrid")
+    code: str = Field(default="", description="FlagCDN country code e.g. es, se, gb-eng")
     is_placeholder: bool = Field(default=False, description="True if placeholder like A1 or Playoff Winner")
     seed: Optional[str] = Field(default=None, description="Seeding code e.g. A1, Pot 1")
     flag_emoji: str = Field(default="")
+    flag_url: str = Field(default="", description="Direct URL to national flag image")
+    emblem_url: str = Field(default="", description="Direct URL to club badge / crest image")
 
 
 class GroupEntry(BaseModel):

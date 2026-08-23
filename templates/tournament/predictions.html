@@ -523,46 +523,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const groupsData = {{ groups_data_json|safe }};
     const groupMatches = {{ group_matches_json|safe }};
 
-    const countryCodeMap = {
-        // English
-        'sweden': 'se', 'england': 'gb-eng', 'united kingdom': 'gb', 'great britain': 'gb',
-        'wales': 'gb-wls', 'scotland': 'gb-sct', 'northern ireland': 'gb-nir', 'france': 'fr',
-        'germany': 'de', 'spain': 'es', 'italy': 'it', 'portugal': 'pt', 'netherlands': 'nl',
-        'belgium': 'be', 'denmark': 'dk', 'norway': 'no', 'finland': 'fi', 'iceland': 'is',
-        'poland': 'pl', 'croatia': 'hr', 'ukraine': 'ua', 'switzerland': 'ch', 'austria': 'at',
-        'hungary': 'hu', 'czech republic': 'cz', 'czechia': 'cz', 'slovakia': 'sk', 'serbia': 'rs',
-        'romania': 'ro', 'turkey': 'tr', 'türkiye': 'tr', 'greece': 'gr', 'albania': 'al',
-        'slovenia': 'si', 'georgia': 'ge', 'brazil': 'br', 'argentina': 'ar', 'uruguay': 'uy',
-        'colombia': 'co', 'chile': 'cl', 'mexico': 'mx', 'united states': 'us', 'usa': 'us',
-        'canada': 'ca', 'japan': 'jp', 'south korea': 'kr', 'korea republic': 'kr', 'australia': 'au',
-        'morocco': 'ma', 'senegal': 'sn', 'cameroon': 'cm', 'ghana': 'gh', 'nigeria': 'ng',
-        'bulgaria': 'bg', 'republic of ireland': 'ie', 'ireland': 'ie', 'montenegro': 'me',
-        'malta': 'mt', 'bosnia and herzegovina': 'ba', 'bosnia': 'ba', 'north macedonia': 'mk',
-        'macedonia': 'mk', 'kosovo': 'xk', 'luxembourg': 'lu', 'armenia': 'am', 'azerbaijan': 'az',
-        'cyprus': 'cy', 'estonia': 'ee', 'faroe islands': 'fo', 'latvia': 'lv', 'lithuania': 'lt',
-        'moldova': 'md', 'kazakhstan': 'kz', 'andorra': 'ad', 'gibraltar': 'gi', 'liechtenstein': 'li',
-        'san marino': 'sm', 'belarus': 'by', 'south africa': 'za', 'qatar': 'qa', 'paraguay': 'py',
-        'saudi arabia': 'sa', 'peru': 'pe', 'algeria': 'dz', 'ecuador': 'ec', 'ivory coast': 'ci',
-        'côte d\'ivoire': 'ci', 'iran': 'ir', 'egypt': 'eg', 'tunisia': 'tn', 'israel': 'il',
-
-        // Swedish
-        'sverige': 'se', 'tyskland': 'de', 'frankrike': 'fr', 'spanien': 'es', 'italien': 'it',
-        'nederländerna': 'nl', 'belgien': 'be', 'österrike': 'at', 'schweiz': 'ch', 'tjeckien': 'cz',
-        'slovakien': 'sk', 'kroatien': 'hr', 'nordirland': 'gb-nir', 'skottland': 'gb-sct',
-        'turkiet': 'tr', 'grekland': 'gr', 'ungern': 'hu', 'irland': 'ie', 'bulgarien': 'bg',
-        'norge': 'no', 'danmark': 'dk', 'finland': 'fi', 'island': 'is', 'polen': 'pl',
-        'serbien': 'rs', 'bosnien och hercegovina': 'ba', 'bosnien': 'ba', 'nordmakedonien': 'mk',
-        'luxemburg': 'lu', 'armenien': 'am', 'azerbajdzjan': 'az', 'cypern': 'cy', 'estland': 'ee',
-        'färöarna': 'fo', 'lettland': 'lv', 'litauen': 'lt', 'ukraina': 'ua', 'moldavien': 'md',
-        'kazakstan': 'kz', 'rumänien': 'ro', 'georgien': 'ge', 'albanien': 'al', 'slovenien': 'si',
-        'montenegro': 'me', 'malta': 'mt', 'gibraltar': 'gi', 'andorra': 'ad', 'san marino': 'sm',
-        'liechtenstein': 'li', 'belarus': 'by', 'vitryssland': 'by', 'israel': 'il',
-        'mexiko': 'mx', 'sydafrika': 'za', 'sydkorea': 'kr', 'kanada': 'ca', 'kamerun': 'cm',
-        'marocko': 'ma', 'australien': 'au', 'brasilien': 'br', 'algeriet': 'dz', 'ecuador': 'ec',
-        'egypten': 'eg', 'elfenbenskusten': 'ci', 'paraguay': 'py', 'peru': 'pe', 'qatar': 'qa',
-        'saudiarabien': 'sa', 'tunisien': 'tn', 'usa': 'us', 'japan': 'jp', 'senegal': 'sn',
-        'ghana': 'gh', 'nigeria': 'ng', 'chile': 'cl', 'colombia': 'co', 'uruguay': 'uy', 'argentina': 'ar'
-    };
+    const countryCodeMap = {% get_global_country_code_map_json %};
 
     function getFlagCode(teamName) {
         if (!teamName) return null;

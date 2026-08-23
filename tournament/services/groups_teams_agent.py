@@ -90,21 +90,30 @@ class GroupsTeamsAgent:
                 g_name = g.get("name") if isinstance(g, dict) else str(g)
                 raw_team_list = g.get("teams", []) if isinstance(g, dict) else []
 
+                from tournament.services.team_badge_service import TeamBadgeService
                 team_entries: List[TeamEntry] = []
                 for t in raw_team_list:
                     t_name = t.get("name") if isinstance(t, dict) else str(t)
                     t_code = t.get("code", "") if isinstance(t, dict) else ""
                     t_seed = t.get("seed", "") if isinstance(t, dict) else ""
-                    is_ph = cls.is_placeholder_team(t_name)
+                    t_flag_url = t.get("flag_url", "") if isinstance(t, dict) else ""
+                    t_emblem_url = t.get("emblem_url", "") if isinstance(t, dict) else ""
+
+                    badge_res = TeamBadgeService.resolve_team_badge(
+                        t_name, sport=sport, tournament_name=tournament_name, use_gemini_fallback=False
+                    )
+                    is_ph = badge_res.is_placeholder or cls.is_placeholder_team(t_name)
 
                     if not is_ph:
                         real_teams_found += 1
 
                     team_entries.append(TeamEntry(
                         name=t_name,
-                        code=t_code or (t_name[:3].upper() if len(t_name) >= 3 else t_name.upper()),
+                        code=t_code or badge_res.code or (t_name[:3].upper() if len(t_name) >= 3 else t_name.upper()),
                         is_placeholder=is_ph,
                         seed=t_seed or None,
+                        flag_url=t_flag_url or badge_res.flag_url or "",
+                        emblem_url=t_emblem_url or badge_res.emblem_url or "",
                     ))
 
                 total_teams_count += len(team_entries)

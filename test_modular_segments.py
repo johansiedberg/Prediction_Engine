@@ -241,6 +241,48 @@ class TestModularSegments(unittest.TestCase):
         self.assertEqual(normalize_locations("USA / Canada / Mexico"), "USA / Canada / Mexico")
         self.assertEqual(normalize_locations(["USA", "Canada", "Mexico"]), "USA / Canada / Mexico")
 
+    def test_dynamic_team_badge_service(self):
+        from tournament.services.team_badge_service import TeamBadgeService
+        # Test 1: Standard & New Countries in Swedish and English
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Haiti"), "ht")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Curaçao"), "cw")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Curacao"), "cw")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Dominican Republic"), "do")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Dominikanska republiken"), "do")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Suriname"), "sr")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Nicaragua"), "ni")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Martinique"), "mq")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Tanzania"), "tz")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Kenya"), "ke")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Uganda"), "ug")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Saudi Arabia"), "sa")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Saudiarabien"), "sa")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("England"), "gb-eng")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Scotland"), "gb-sct")
+        self.assertEqual(TeamBadgeService.resolve_national_country_code("Nordirland"), "gb-nir")
+
+        # Test 2: Complete resolve_team_badge result for national teams
+        res_ht = TeamBadgeService.resolve_team_badge("Haiti")
+        self.assertEqual(res_ht.team_type, "NATIONAL")
+        self.assertEqual(res_ht.code, "ht")
+        self.assertEqual(res_ht.flag_url, "https://flagcdn.com/w40/ht.png")
+        self.assertEqual(res_ht.badge_url, "https://flagcdn.com/w40/ht.png")
+
+        # Test 3: Placeholders
+        res_ph = TeamBadgeService.resolve_team_badge("A1 (TBD)")
+        self.assertTrue(res_ph.is_placeholder)
+        self.assertEqual(res_ph.team_type, "PLACEHOLDER")
+
+        # Test 4: Model save auto-populates code and badge_url
+        from tournament.models import Team, Tournament
+        tour = Tournament.objects.first()
+        if tour:
+            t_obj = Team(tournament=tour, name="Haiti")
+            t_obj.save()
+            self.assertEqual(t_obj.code, "ht")
+            self.assertEqual(t_obj.flag_url, "https://flagcdn.com/w40/ht.png")
+            self.assertEqual(t_obj.badge_url, "https://flagcdn.com/w40/ht.png")
+
 
 if __name__ == "__main__":
     unittest.main()

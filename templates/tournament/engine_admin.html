@@ -1247,7 +1247,18 @@
                                                                      </div>
                                                                      <ul class="list-unstyled mb-0 text-light ps-1 font-monospace" style="font-size:0.82rem;">
                                                                          {% for t in g.teams %}
-                                                                         <li class="py-0.5">&bull; {{ t.name|default:t }}</li>
+                                                                         <li class="py-0.5 d-flex align-items-center">
+                                                                             {% if t.emblem_url %}
+                                                                                 <img src="{{ t.emblem_url }}" style="width:16px;height:16px;object-fit:contain;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">
+                                                                             {% elif t.flag_url %}
+                                                                                 <img src="{{ t.flag_url }}" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">
+                                                                             {% elif t.code and t.code|length <= 6 %}
+                                                                                 <img src="https://flagcdn.com/w40/{{ t.code|lower }}.png" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">
+                                                                             {% else %}
+                                                                                 <span class="me-1.5 text-secondary">&bull;</span>
+                                                                             {% endif %}
+                                                                             <span>{{ t.name|default:t }}</span>
+                                                                         </li>
                                                                          {% empty %}
                                                                          <li class="text-secondary italic">Inga lag angivna</li>
                                                                          {% endfor %}
@@ -3943,9 +3954,18 @@
                         <div class="d-flex flex-column gap-1">
                             ${(g.teams || []).map(t => {
                                 const code = (typeof t === 'object') ? (t.code || '') : '';
+                                const emblem = (typeof t === 'object') ? (t.emblem_url || '') : '';
+                                const flagUrl = (typeof t === 'object') ? (t.flag_url || '') : '';
                                 const name = (typeof t === 'object') ? (t.name || '') : t;
-                                const flag = code ? `<img src="https://flagcdn.com/w40/${code.toLowerCase()}.png" style="width:20px;height:14px;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">` : '';
-                                return `<div class="d-flex align-items-center text-white small">${flag}${name}</div>`;
+                                let badge = '';
+                                if (emblem) {
+                                    badge = `<img src="${emblem}" style="width:18px;height:18px;object-fit:contain;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">`;
+                                } else if (flagUrl) {
+                                    badge = `<img src="${flagUrl}" style="width:20px;height:14px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">`;
+                                } else if (code && code.length <= 6) {
+                                    badge = `<img src="https://flagcdn.com/w40/${code.toLowerCase()}.png" style="width:20px;height:14px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">`;
+                                }
+                                return `<div class="d-flex align-items-center text-white small">${badge}${name}</div>`;
                             }).join('')}
                         </div>
                     </div>

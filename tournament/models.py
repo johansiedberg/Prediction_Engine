@@ -453,219 +453,37 @@ class Group(models.Model):
         return sorted_standings
 
 
-COUNTRY_CODE_MAP = {
-    # English names
-    'sweden': 'se',
-    'england': 'gb-eng',
-    'united kingdom': 'gb',
-    'great britain': 'gb',
-    'wales': 'gb-wls',
-    'scotland': 'gb-sct',
-    'northern ireland': 'gb-nir',
-    'france': 'fr',
-    'germany': 'de',
-    'spain': 'es',
-    'italy': 'it',
-    'portugal': 'pt',
-    'netherlands': 'nl',
-    'belgium': 'be',
-    'denmark': 'dk',
-    'norway': 'no',
-    'finland': 'fi',
-    'iceland': 'is',
-    'poland': 'pl',
-    'croatia': 'hr',
-    'ukraine': 'ua',
-    'switzerland': 'ch',
-    'austria': 'at',
-    'hungary': 'hu',
-    'czech republic': 'cz',
-    'czechia': 'cz',
-    'slovakia': 'sk',
-    'serbia': 'rs',
-    'romania': 'ro',
-    'turkey': 'tr',
-    'türkiye': 'tr',
-    'greece': 'gr',
-    'albania': 'al',
-    'slovenia': 'si',
-    'georgia': 'ge',
-    'brazil': 'br',
-    'argentina': 'ar',
-    'uruguay': 'uy',
-    'colombia': 'co',
-    'chile': 'cl',
-    'mexico': 'mx',
-    'united states': 'us',
-    'usa': 'us',
-    'canada': 'ca',
-    'japan': 'jp',
-    'south korea': 'kr',
-    'australia': 'au',
-    'morocco': 'ma',
-    'senegal': 'sn',
-    'cameroon': 'cm',
-    'ghana': 'gh',
-    'nigeria': 'ng',
-    'bulgaria': 'bg',
-    'republic of ireland': 'ie',
-    'ireland': 'ie',
-    'montenegro': 'me',
-    'malta': 'mt',
-    'bosnia and herzegovina': 'ba',
-    'bosnia': 'ba',
-    'north macedonia': 'mk',
-    'macedonia': 'mk',
-    'kosovo': 'xk',
-    'luxembourg': 'lu',
-    'armenia': 'am',
-    'azerbaijan': 'az',
-    'cyprus': 'cy',
-    'estonia': 'ee',
-    'faroe islands': 'fo',
-    'latvia': 'lv',
-    'lithuania': 'lt',
-    'moldova': 'md',
-    'kazakhstan': 'kz',
-    'andorra': 'ad',
-    'gibraltar': 'gi',
-    'liechtenstein': 'li',
-    'san marino': 'sm',
-    'belarus': 'by',
-    'south africa': 'za',
-    'qatar': 'qa',
-    'paraguay': 'py',
-    'saudi arabia': 'sa',
-    'peru': 'pe',
-    'algeria': 'dz',
-    'ecuador': 'ec',
-    'ivory coast': 'ci',
-    'iran': 'ir',
-    'egypt': 'eg',
-    'tunisia': 'tn',
-    'sydafrika': 'za',
-    'saudiarabien': 'sa',
-    'algeriet': 'dz',
-    'elfenbenskusten': 'ci',
-    'egypten': 'eg',
-    'tunisien': 'tn',
-    'mexiko': 'mx',
-    'sydkorea': 'kr',
-    'kanada': 'ca',
-    'kamerun': 'cm',
-    'marocko': 'ma',
-    'australien': 'au',
-    'brasilien': 'br',
-    'ecuador': 'ec',
-    'paraguay': 'py',
-    'peru': 'pe',
-    'qatar': 'qa',
-    'japan': 'jp',
-    'senegal': 'sn',
-    'ghana': 'gh',
-    'nigeria': 'ng',
-    'chile': 'cl',
-    'colombia': 'co',
-    'uruguay': 'uy',
-    'argentina': 'ar',
+from tournament.country_registry import GLOBAL_COUNTRY_FLAG_MAP as COUNTRY_CODE_MAP
 
-    # Swedish names
-    'sverige': 'se',
-    'tyskland': 'de',
-    'frankrike': 'fr',
-    'spanien': 'es',
-    'italien': 'it',
-    'nederländerna': 'nl',
-    'belgien': 'be',
-    'österrike': 'at',
-    'schweiz': 'ch',
-    'tjeckien': 'cz',
-    'slovakien': 'sk',
-    'kroatien': 'hr',
-    'nordirland': 'gb-nir',
-    'skottland': 'gb-sct',
-    'turkiet': 'tr',
-    'grekland': 'gr',
-    'ungern': 'hu',
-    'irland': 'ie',
-    'bulgarien': 'bg',
-    'norge': 'no',
-    'danmark': 'dk',
-    'finland': 'fi',
-    'island': 'is',
-    'polen': 'pl',
-    'serbien': 'rs',
-    'bosnien och hercegovina': 'ba',
-    'bosnien': 'ba',
-    'nordmakedonien': 'mk',
-    'luxemburg': 'lu',
-    'armenien': 'am',
-    'azerbajdzjan': 'az',
-    'cypern': 'cy',
-    'estland': 'ee',
-    'färöarna': 'fo',
-    'lettland': 'lv',
-    'litauen': 'lt',
-    'ukraina': 'ua',
-    'moldavien': 'md',
-    'kazakstan': 'kz',
-    'rumänien': 'ro',
-    'georgien': 'ge',
-    'albanien': 'al',
-    'slovenien': 'si',
-    'montenegro': 'me',
-    'malta': 'mt',
-    'gibraltar': 'gi',
-    'andorra': 'ad',
-    'san marino': 'sm',
-    'liechtenstein': 'li',
-    'belarus': 'by',
-    'vitryssland': 'by',
-    'israel': 'il',
-    'singapore': 'sg',
-    'thailand': 'th',
-    'philippines': 'ph',
-    'filippinerna': 'ph',
-    'new zealand': 'nz',
-    'nya zeeland': 'nz',
-    'south africa': 'za',
-    'sydafrika': 'za',
-    'fiji': 'fj',
-    'samoa': 'ws',
-    'tonga': 'to',
-    'egypt': 'eg',
-    'egypten': 'eg',
-    'türkiye': 'tr',
-    'turkey': 'tr',
-    'czechia': 'cz',
-    'poland': 'pl',
-    'romania': 'ro',
-    'slovakia': 'sk',
-    'brazil': 'br',
-    'australia': 'au',
-    'mexico': 'mx',
-    'mexiko': 'mx',
-    'south korea': 'kr',
-    'sydkorea': 'kr',
-    'china': 'cn',
-    'kina': 'cn',
-    'wales': 'gb-wls',
-    'england': 'gb-eng',
-    'scotland': 'gb-sct',
-    'ireland': 'ie',
-    'united states': 'us',
-    'usa': 'us',
-    'canada': 'ca',
-    'kanada': 'ca',
-}
 
+class TeamBadgeCache(models.Model):
+    """
+    Persistent Database Cache for dynamically resolved club crests and national flags.
+    Prevents redundant external requests to Wikidata or Gemini AI.
+    """
+    team_name = models.CharField(max_length=200, db_index=True, unique=True)
+    sport = models.CharField(max_length=100, blank=True, default='')
+    team_type = models.CharField(max_length=20, default='NATIONAL', help_text="NATIONAL, CLUB, or PLACEHOLDER")
+    country_code = models.CharField(max_length=10, blank=True, default='')
+    emblem_url = models.URLField(max_length=500, blank=True, default='')
+    canonical_name = models.CharField(max_length=200, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Team Badge Cache"
+        verbose_name_plural = "Team Badge Caches"
+
+    def __str__(self):
+        return f"{self.team_name} ({self.team_type})"
 
 
 class Team(models.Model):
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='teams')
     group = models.ForeignKey(Group, on_delete=models.CASCADE, null=True, blank=True, related_name='teams')
     name = models.CharField(max_length=100)
-    code = models.CharField(max_length=10, blank=True, null=True, help_text="Auto-detected from name if left blank")
+    code = models.CharField(max_length=10, blank=True, null=True, help_text="Auto-detected FlagCDN country code (e.g. se, ht, cw, gb-eng)")
+    emblem_url = models.URLField(max_length=500, blank=True, default="", help_text="Club crest or team emblem URL")
 
     class Meta:
         ordering = ['name']
@@ -675,13 +493,24 @@ class Team(models.Model):
 
     def save(self, *args, **kwargs):
         if self.name:
-            clean_name = self.name.strip().lower()
-            if clean_name in COUNTRY_CODE_MAP:
-                self.code = COUNTRY_CODE_MAP[clean_name]
+            from tournament.services.team_badge_service import TeamBadgeService
+            res = TeamBadgeService.resolve_team_badge(self.name)
+            if res.code and not self.code:
+                self.code = res.code
+            if res.emblem_url and not self.emblem_url:
+                self.emblem_url = res.emblem_url
         super().save(*args, **kwargs)
 
     @property
     def flag_url(self):
+        if self.code:
+            return f"https://flagcdn.com/w40/{self.code.lower()}.png"
+        return ""
+
+    @property
+    def badge_url(self):
+        if self.emblem_url:
+            return self.emblem_url
         if self.code:
             return f"https://flagcdn.com/w40/{self.code.lower()}.png"
         return ""

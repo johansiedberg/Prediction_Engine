@@ -1298,15 +1298,21 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
             for t_item in g_item.get('teams', []):
                 t_name = t_item.get('name') if isinstance(t_item, dict) else str(t_item)
                 t_code = t_item.get('code') if isinstance(t_item, dict) else None
-                if not t_code and t_name:
-                    clean_n = t_name.strip().lower()
-                    t_code = COUNTRY_CODE_MAP.get(clean_n, '')
+                t_emblem = t_item.get('emblem_url') if isinstance(t_item, dict) else ""
+
+                from tournament.services.team_badge_service import TeamBadgeService
+                badge_res = TeamBadgeService.resolve_team_badge(
+                    t_name, sport=sport, tournament_name=tournament.name
+                )
+                final_code = t_code or badge_res.code or ''
+                final_emblem = t_emblem or badge_res.emblem_url or ''
                 
                 team = Team.objects.create(
                     tournament=tournament,
                     group=group,
                     name=t_name,
-                    code=t_code or ''
+                    code=final_code,
+                    emblem_url=final_emblem
                 )
                 created_teams[t_name] = team
 
