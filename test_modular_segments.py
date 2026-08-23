@@ -82,7 +82,7 @@ class TestModularSegments(unittest.TestCase):
         )
         self.assertEqual(gen.start_date, "2026-06-11")
         self.assertEqual(gen.end_date, "2026-07-19")
-        self.assertEqual(gen.location.host_country, "United States, Canada, Mexico")
+        self.assertEqual(gen.location.host_country, "United States / Canada / Mexico")
         self.assertEqual(len(gen.location.host_cities), 3)
         self.assertTrue(gen.emblem.is_vector)
         self.assertTrue(gen.emblem.is_transparent)
@@ -161,7 +161,10 @@ class TestModularSegments(unittest.TestCase):
             ]
         }
         matches_seg = MatchesKnockoutAgent.build_matches_knockout_segment(audit_data=audit_mock)
-        self.assertEqual(matches_seg.total_matches, 1)
+        self.assertEqual(matches_seg.total_matches, 2)
+        self.assertEqual(matches_seg.group_matches[0].home_team, "Mexico")
+        self.assertEqual(len(matches_seg.knockout_bracket), 1)
+        self.assertEqual(matches_seg.knockout_bracket[0].stage_name, "Round of 32")
         self.assertEqual(matches_seg.group_matches[0].home_team, "Mexico")
         self.assertEqual(len(matches_seg.knockout_bracket), 1)
         self.assertEqual(matches_seg.knockout_bracket[0].stage_name, "Round of 32")
@@ -222,6 +225,23 @@ class TestModularSegments(unittest.TestCase):
         self.assertTrue(payload["advancement_logic"]["has_best_thirds_table"])
         self.assertEqual(payload["advancement_logic"]["best_third_placed_advancing"], 8)
 
+    def test_normalize_multiple_locations(self):
+        from tournament.services.scout_service import normalize_locations
+        self.assertEqual(normalize_locations("Saudi Arabia"), "Saudi Arabia")
+        self.assertEqual(normalize_locations("Kenya Tanzania Uganda"), "Kenya / Tanzania / Uganda")
+        self.assertEqual(normalize_locations("Italy Turkey"), "Italy / Turkey")
+        self.assertEqual(normalize_locations("England Republic of Ireland Scotland Wales"), "England / Republic of Ireland / Scotland / Wales")
+        self.assertEqual(normalize_locations("Czech Republic Poland Romania Slovakia Turkey"), "Czech Republic / Poland / Romania / Slovakia / Turkey")
+        self.assertEqual(normalize_locations("South Africa Zimbabwe Namibia"), "South Africa / Zimbabwe / Namibia")
+        self.assertEqual(normalize_locations("Morocco Portugal Spain [ A ] [ B ]"), "Morocco / Portugal / Spain")
+        self.assertEqual(normalize_locations("Spain, Portugal & Switzerland"), "Spain / Portugal / Switzerland")
+        self.assertEqual(normalize_locations("United Kingdom & Republic of Ireland"), "United Kingdom / Republic of Ireland")
+        self.assertEqual(normalize_locations("Bulgaria Finland Italy Romania"), "Bulgaria / Finland / Italy / Romania")
+        self.assertEqual(normalize_locations("USA, Canada, Mexico"), "USA / Canada / Mexico")
+        self.assertEqual(normalize_locations("USA / Canada / Mexico"), "USA / Canada / Mexico")
+        self.assertEqual(normalize_locations(["USA", "Canada", "Mexico"]), "USA / Canada / Mexico")
+
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -93,8 +93,9 @@ class GeneralDeepScoutAgent:
             except Exception as e:
                 logger.warning("GeneralDeepScoutAgent: Gemini enrichment error: %s", e)
 
+        from tournament.services.scout_service import normalize_locations
         loc_info = LocationInfo(
-            host_country=str(host_country).strip(),
+            host_country=normalize_locations(str(host_country).strip()),
             host_cities=list(host_cities),
             venues=list(venues),
         )

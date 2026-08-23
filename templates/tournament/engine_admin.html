@@ -922,7 +922,7 @@
                                             <!-- ROW 3: Country, Dates, Officiell & Wiki Links -->
                                             <div class="text-secondary small d-flex flex-wrap align-items-center gap-2 mt-1">
                                                 {% if item.prospect.host_country and item.prospect.host_country|lower != 'world' and item.prospect.host_country|lower != 'global' %}
-                                                    <span class="text-white fw-bold"><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ item.prospect.host_country }}</span>
+                                                    <span class="text-white fw-bold"><i class="fa-solid fa-location-dot text-danger me-1"></i>{{ item.prospect.host_country|format_locations }}</span>
                                                     <span class="text-secondary opacity-40">&bull;</span>
                                                 {% endif %}
 

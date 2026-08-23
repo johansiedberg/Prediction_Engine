@@ -704,7 +704,7 @@ class LLMWikipediaScout:
             "match_format":               raw.get("match_format") or {},
             "fixtures_completed":         bool(raw.get("fixtures_completed", False)),
             "knockout_stages":            knockout_stages,
-            "host_country":               str(raw.get("host_country")      or ""),
+            "host_country":               LLMWikipediaScout._normalize_host_country(raw.get("host_country")),
             "logo_url":                   str(raw.get("logo_url")          or ""),
         }
 
@@ -779,3 +779,8 @@ class LLMWikipediaScout:
         )
 
         return blueprint.model_dump()
+
+    @staticmethod
+    def _normalize_host_country(val) -> str:
+        from tournament.services.scout_service import normalize_locations
+        return normalize_locations(val)

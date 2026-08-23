@@ -150,7 +150,7 @@ Provide a clean, valid JSON block matching this exact structure:
     "code": "slug-code-202x",
     "sport": "Football | Ice Hockey | Handball | Floorball | Basketball",
     "organizer": "UEFA / FIFA / IIHF / IFF / FIBA",
-    "host_country": "Country Name",
+    "host_country": "Country Name (use / as separator if multiple, e.g. USA / Canada / Mexico)",
     "official_source_url": "https://www.official-federation-site.org/tournament-page",
     "scouted_sources": [
       "https://en.wikipedia.org/wiki/Tournament_202X",

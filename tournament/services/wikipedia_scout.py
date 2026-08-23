@@ -243,7 +243,15 @@ class WikipediaScout:
                             if m:
                                 teams_count = int(m.group())
                         elif 'host' in h_text or 'location' in h_text:
-                            host_country = d_text
+                            from tournament.services.scout_service import normalize_locations
+                            a_links = [
+                                a.get_text().strip() for a in data_cell.find_all('a')
+                                if a.get_text().strip() and not re.match(r'^\[\s*[A-Za-z0-9]+\s*\]$', a.get_text().strip())
+                            ]
+                            if a_links and len(a_links) > 1:
+                                host_country = ' / '.join(a_links)
+                            else:
+                                host_country = normalize_locations(data_cell.get_text(separator=' / ').strip())
                         elif 'date' in h_text or 'dates' in h_text or 'duration' in h_text:
                             from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
                             s_iso, e_iso = LLMWikipediaScout._parse_date_range(d_text, "", page_title)

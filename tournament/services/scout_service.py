@@ -86,6 +86,79 @@ def has_real_teams(groups: list) -> bool:
     return real_teams >= 4 and (real_teams / (total_teams or 1)) > 0.5
 
 
+from typing import Optional, List, Dict, Any
+
+def normalize_locations(val) -> str:
+    """
+    Normalizes single or multiple tournament locations/host countries/cities
+    so that multiple locations are always separated by ' / '.
+    Cleans footnote citations like [ A ], [1], & / and delimiters,
+    and handles space-separated country names from Wikipedia/AllSportDB HTML text.
+    """
+    if not val:
+        return ""
+    if isinstance(val, list):
+        items = [normalize_locations(x) for x in val if x]
+        return " / ".join(items)
+
+    s = str(val).strip()
+    if not s or s.lower() in ["world", "global", "tbd", "tba", "-"]:
+        return s
+
+    # Remove footnote citations like [ A ], [1], [a], [b], etc.
+    s = re.sub(r'\[\s*[A-Za-z0-9]+\s*\]', '', s).strip()
+
+    # If already separated by /
+    if ' / ' in s:
+        parts = [p.strip() for p in s.split(' / ') if p.strip()]
+        return ' / '.join(parts)
+    elif '/' in s and not ('http' in s or '//' in s):
+        parts = [p.strip() for p in s.split('/') if p.strip()]
+        return ' / '.join(parts)
+
+    # If contains comma or & or ' and ' or newlines or semicolons
+    if any(sep in s for sep in [',', ';', '\n', '&', ' and ']):
+        clean = re.sub(r'\s*(?:&|;|\n|\band\b)\s*', ', ', s)
+        parts = [p.strip() for p in clean.split(',') if p.strip()]
+        if len(parts) > 1:
+            return ' / '.join(parts)
+
+    # Handle space-separated concatenated countries (from HTML td/links)
+    known_multi_word = [
+        'republic of ireland', 'czech republic', 'south africa', 'saudi arabia',
+        'united states of america', 'united states', 'united kingdom', 'new zealand',
+        'costa rica', 'dominican republic', 'puerto rico', 'el salvador', 'sri lanka',
+        'papua new guinea', 'trinidad and tobago', 'bosnia and herzegovina',
+        'antigua and barbuda', 'saint kitts and nevis', 'saint lucia',
+        'saint vincent and the grenadines', 'ivory coast', "côte d'ivoire",
+        'burkina faso', 'sierra leone', 'south korea', 'north korea', 'south sudan',
+        'united arab emirates', 'cape verde', 'cabo verde', 'equatorial guinea',
+        'guinea-bissau', 'san marino', 'hong kong'
+    ]
+    text = s
+    placeholders = {}
+    for idx, mw in enumerate(known_multi_word):
+        pattern = re.compile(re.escape(mw), re.IGNORECASE)
+        match = pattern.search(text)
+        if match:
+            ph = f'__MW_{idx}__'
+            placeholders[ph] = match.group(0)
+            text = pattern.sub(ph, text)
+
+    tokens = text.split()
+    if len(tokens) > 1:
+        rebuilt = []
+        for t in tokens:
+            if t in placeholders:
+                rebuilt.append(placeholders[t])
+            else:
+                rebuilt.append(t)
+        if len(rebuilt) > 1 and all(w[0].isupper() or w.startswith('__') for w in rebuilt):
+            return ' / '.join(rebuilt)
+
+    return s
+
+
 def resolve_rescan_date_for_prospect(prospect) -> Optional[datetime.date]:
     """
     Calculates the next automated rescan date for a WATCHLIST prospect.
@@ -138,7 +211,7 @@ def parse_and_save_scouted_json(payload):
     master_code = master_event_data.get('code') or name.lower().replace(' ', '-').replace("'", '')
     sport = master_event_data.get('sport', 'Football')
     organizer = master_event_data.get('organizer', '')
-    host_country = master_event_data.get('host_country', '')
+    host_country = normalize_locations(master_event_data.get('host_country', ''))
     
     start_date_str = master_event_data.get('start_date')
     end_date_str = master_event_data.get('end_date')

@@ -169,7 +169,7 @@ Return ONLY valid JSON matching this schema:
 {{
   "start_date": "<ISO YYYY-MM-DD or readable start date e.g. 2026-06-11>",
   "end_date": "<ISO YYYY-MM-DD or readable end date e.g. 2026-07-19>",
-  "host_country": "<Host country name(s), comma-separated>",
+  "host_country": "<Host country name(s), separated by ' / ' if multiple, e.g. USA / Canada / Mexico>",
   "host_cities": ["<Host city 1>", "<Host city 2>"],
   "host_venues": ["<Stadium/Arena 1>", "<Stadium/Arena 2>"],
   "organizer": "<Governing body e.g. FIFA, UEFA, CONCACAF, IIHF, FIBA, IOC>",

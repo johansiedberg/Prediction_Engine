@@ -1393,6 +1393,12 @@ class ScannedTournament(models.Model):
         return None
 
 
+    def save(self, *args, **kwargs):
+        if self.host_country:
+            from tournament.services.scout_service import normalize_locations
+            self.host_country = normalize_locations(self.host_country)
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"[{self.completeness_grade}] {self.name} ({self.status})"
 

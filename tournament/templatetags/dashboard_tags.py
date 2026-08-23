@@ -30,3 +30,11 @@ def get_dashboard_users():
 @register.simple_tag
 def get_dashboard_tournaments():
     return "" # Add this new dummy tag!
+
+@register.filter(name='format_locations')
+def format_locations_filter(value):
+    """Formats single or multiple tournament locations separated by /."""
+    if not value:
+        return ""
+    from tournament.services.scout_service import normalize_locations
+    return normalize_locations(value)
