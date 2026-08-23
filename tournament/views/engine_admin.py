@@ -413,16 +413,21 @@ def engine_admin_dashboard_view(request):
 
         is_grade_a = (p.completeness_grade == 'GRADE_A' and real_teams_ready)
         draw_done = bool(
-            struct_seg.get('general_setup', {}).get('draw_completed')
-            or audit.get('draw_completed', False)
-            or is_grade_a
-            or (groups_count > 0 and teams_count > 0 and real_teams_ready)
+            is_grade_a
+            or (
+                (struct_seg.get('general_setup', {}).get('draw_completed') or audit.get('draw_completed', False))
+                and real_teams_ready
+                and p.completeness_grade == 'GRADE_A'
+            )
         )
         fixtures_done = bool(
-            matches_seg.get('fixtures_completed')
-            or audit.get('fixtures_completed', False)
-            or is_grade_a
-            or (matches_count > 0 and real_teams_ready)
+            is_grade_a
+            or (
+                (matches_seg.get('fixtures_completed') or audit.get('fixtures_completed', False))
+                and draw_done
+                and real_teams_ready
+                and p.completeness_grade == 'GRADE_A'
+            )
         )
         scheduled_matchdays = int(audit.get('scheduled_matchdays', len(fixtures)))
         fixtures_have_placeholders = bool(audit.get('fixtures_have_placeholders', False)) or not real_teams_ready

@@ -147,7 +147,7 @@ class MatchesKnockoutAgent:
         # Fallback: Construct standard knockout stages if empty
         if not knockout_bracket:
             stages_to_add = ["Quarterfinals", "Semifinals", "Final"]
-            if groups_segment and groups_segment.groups_count >= 8:
+            if groups_segment and groups_segment.groups_count >= 6:
                 stages_to_add = ["Round of 16", "Quarterfinals", "Semifinals", "Final"]
             elif groups_segment and groups_segment.groups_count >= 12:
                 stages_to_add = ["Round of 32", "Round of 16", "Quarterfinals", "Semifinals", "Final"]
@@ -159,12 +159,74 @@ class MatchesKnockoutAgent:
                     matches=[],
                 ))
 
+        # Populate standard bracket placeholder matches if stages are empty
+        for stage in knockout_bracket:
+            s_name_lower = stage.stage_name.lower()
+            if not stage.matches:
+                match_entries: List[KnockoutMatchEntry] = []
+                if "round of 32" in s_name_lower:
+                    for m_idx in range(1, 17):
+                        match_entries.append(KnockoutMatchEntry(
+                            match_code=f"R32_{m_idx}",
+                            stage_name=stage.stage_name,
+                            home_team=f"Lag #{m_idx * 2 - 1}",
+                            away_team=f"Lag #{m_idx * 2}",
+                            winner_to=f"R16_{(m_idx + 1) // 2}",
+                        ))
+                elif "round of 16" in s_name_lower or "åttondels" in s_name_lower:
+                    group_letters = ["A", "B", "C", "D", "E", "F", "G", "H"]
+                    for m_idx in range(1, 9):
+                        h_src = f"1{group_letters[(m_idx - 1) % len(group_letters)]}" if m_idx <= len(group_letters) else f"Vinnare M{m_idx}"
+                        a_src = f"2{group_letters[m_idx % len(group_letters)]}" if m_idx < len(group_letters) else "3:a Grupp"
+                        match_entries.append(KnockoutMatchEntry(
+                            match_code=f"R16_{m_idx}",
+                            stage_name=stage.stage_name,
+                            home_team=h_src,
+                            away_team=a_src,
+                            winner_to=f"QF_{(m_idx + 1) // 2}",
+                        ))
+                elif "quarter" in s_name_lower or "kvart" in s_name_lower:
+                    for m_idx in range(1, 5):
+                        match_entries.append(KnockoutMatchEntry(
+                            match_code=f"QF_{m_idx}",
+                            stage_name=stage.stage_name,
+                            home_team=f"Vinnare R16_{m_idx * 2 - 1}",
+                            away_team=f"Vinnare R16_{m_idx * 2}",
+                            winner_to=f"SF_{(m_idx + 1) // 2}",
+                        ))
+                elif "semi" in s_name_lower:
+                    for m_idx in range(1, 3):
+                        match_entries.append(KnockoutMatchEntry(
+                            match_code=f"SF_{m_idx}",
+                            stage_name=stage.stage_name,
+                            home_team=f"Vinnare QF_{m_idx * 2 - 1}",
+                            away_team=f"Vinnare QF_{m_idx * 2}",
+                            winner_to="Final",
+                        ))
+                elif "final" in s_name_lower:
+                    match_entries.append(KnockoutMatchEntry(
+                        match_code="FINAL",
+                        stage_name=stage.stage_name,
+                        home_team="Vinnare SF_1",
+                        away_team="Vinnare SF_2",
+                        winner_to="Guld / Mästare",
+                    ))
+                stage.matches = match_entries
+
+        draw_is_done = bool(
+            audit.get("draw_completed")
+            and (groups_segment and groups_segment.has_real_teams)
+        )
         fixtures_completed = bool(
-            group_matches and not any(m.is_placeholder for m in group_matches)
+            draw_is_done
+            and group_matches
+            and not any(m.is_placeholder for m in group_matches)
         )
 
+        total_matches_count = len(group_matches) + sum(len(stage.matches) for stage in knockout_bracket)
+
         return MatchesAndKnockoutSegment(
-            total_matches=len(group_matches),
+            total_matches=total_matches_count,
             fixtures_completed=fixtures_completed,
             group_matches=group_matches,
             advancement_fixtures=advancement_fixtures,

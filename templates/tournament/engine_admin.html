@@ -1208,15 +1208,15 @@
                                                         <strong style="font-size:16px;">Gruppindelning &amp; Lag</strong>
                                                         
                                                         {% if item.scouting_stage == 'DEEP' %}
-                                                            {% if item.groups_count > 0 and item.teams_count > 0 and item.has_real_teams %}
+                                                            {% if item.groups_count > 0 and item.teams_count > 0 and item.has_real_teams and item.prospect.completeness_grade == 'GRADE_A' and item.draw_done %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag</span>
                                                                 <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Grupper &amp; Reella lag klara"></i>
                                                             {% elif item.draw_date %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag (Platshållare)</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag{% if item.prospect.completeness_grade != 'GRADE_A' %} (Platshållare){% endif %}</span>
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1.5"></i>Lottas {{ item.draw_date }}</span>
                                                                 <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Lottas {{ item.draw_date }}"></i>
                                                             {% elif item.groups_count > 0 and item.teams_count > 0 %}
-                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag (Platshållare)</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.groups_count }} gr &bull; {{ item.teams_count }} lag{% if item.prospect.completeness_grade != 'GRADE_A' %} (Platshållare){% endif %}</span>
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(15,23,42,0.85);border:1px solid #475569;color:#94a3b8;"><i class="fa-solid fa-circle-question me-1.5 text-secondary"></i>Lottningsdatum ej fastställt</span>
                                                                 <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Väntar lottning (Lottningsdatum ej fastställt ännu)"></i>
                                                             {% else %}
@@ -1234,7 +1234,7 @@
                                                 </h2>
                                                 <div id="collapseGroups-{{ item.prospect.id }}" class="accordion-collapse collapse">
                                                     <div class="accordion-body px-3 py-2.5">
-                                                        {% if item.groups and item.has_real_teams %}
+                                                        {% if item.groups and item.has_real_teams and item.prospect.completeness_grade == 'GRADE_A' and item.draw_done %}
                                                          <div class="row g-2">
                                                              {% for g in item.groups %}
                                                              <div class="col-12 col-md-6">
@@ -1284,14 +1284,18 @@
                                                         <strong style="font-size:16px;">Matcher &amp; Slutspel</strong>
                                                         
                                                         {% if item.scouting_stage == 'DEEP' %}
-                                                            {% if item.matches_count > 0 and item.fixtures_done and item.has_real_teams %}
+                                                            {% if item.matches_count > 0 and item.fixtures_done and item.has_real_teams and item.prospect.completeness_grade == 'GRADE_A' and item.draw_done %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher</span>
-                                                                <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställt"></i>
+                                                                <i class="fa-solid fa-circle-check text-success ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema &amp; Slutspelsträd fastställt"></i>
                                                             {% elif item.draw_date %}
+                                                                {% if item.matches_count > 0 %}
+                                                                    <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher (Preliminärt)</span>
+                                                                {% endif %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1.5"></i>Lottas {{ item.draw_date }}</span>
                                                                 <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema fastställs vid lottningen {{ item.draw_date }}"></i>
                                                             {% elif item.matches_count > 0 %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(255,255,255,0.08);color:#cbd5e1;">{{ item.matches_count }} matcher (Preliminärt)</span>
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(15,23,42,0.85);border:1px solid #475569;color:#94a3b8;"><i class="fa-solid fa-circle-question me-1.5 text-secondary"></i>Spelschema ej fastställt</span>
                                                                 <i class="fa-solid fa-clock text-warning ms-2" style="margin-left:7px !important;font-size:16px;" title="Spelschema ej fastställt"></i>
                                                             {% else %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(15,23,42,0.85);border:1px solid #475569;color:#94a3b8;"><i class="fa-solid fa-circle-question me-1.5 text-secondary"></i>Spelschema ej fastställt</span>
@@ -1300,42 +1304,100 @@
                                                         {% else %}
                                                             {% if item.draw_date %}
                                                                 <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);color:#fef08a;"><i class="fa-regular fa-calendar-check me-1.5"></i>Lottas {{ item.draw_date }}</span>
+                                                            {% else %}
+                                                                <span class="badge ms-2 font-monospace" style="font-size:14px;background:rgba(15,23,42,0.85);border:1px solid #475569;color:#94a3b8;"><i class="fa-solid fa-circle-question me-1.5 text-secondary"></i>Spelschema ej fastställt</span>
                                                             {% endif %}
                                                         {% endif %}
                                                     </button>
                                                 </h2>
                                                 <div id="collapseFixtures-{{ item.prospect.id }}" class="accordion-collapse collapse">
                                                     <div class="accordion-body px-3 py-2.5">
-                                                        {% if item.fixtures %}
-                                                        <div class="d-flex flex-column gap-1.5" style="max-height: 240px; overflow-y: auto;">
-                                                            {% for f in item.fixtures %}
-                                                            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 font-monospace" style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);font-size:0.82rem;">
-                                                                <div class="d-flex align-items-center gap-2" style="min-width:130px;">
-                                                                    <span class="text-secondary fw-bold">#{% if f.match_number %}{{ f.match_number }}{% else %}{{ forloop.counter }}{% endif %}</span>
-                                                                    <span class="badge rounded-pill bg-dark border border-warning border-opacity-40 text-warning px-2 py-0.5" style="font-size:0.75rem;">
-                                                                        {{ f.stage_or_group|default:"Gruppspel" }}
+                                                        {% if item.fixtures or item.knockouts %}
+                                                            {% if item.fixtures %}
+                                                            <div class="mb-3">
+                                                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                                                    <span class="fw-bold text-white small font-monospace text-uppercase" style="letter-spacing:0.5px;">
+                                                                        <i class="fa-solid fa-table-cells-large text-warning me-1.5"></i>Gruppspelsmatcher ({{ item.fixtures|length }})
                                                                     </span>
+                                                                    {% if item.prospect.completeness_grade != 'GRADE_A' %}
+                                                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-30 font-monospace" style="font-size:0.7rem;">Preliminärt spelschema</span>
+                                                                    {% endif %}
                                                                 </div>
-                                                                <div class="d-flex align-items-center justify-content-center gap-2 flex-grow-1 mx-2">
-                                                                    <span class="fw-bold text-white text-end flex-fill">{{ f.home_team }}</span>
-                                                                    <span class="text-info px-1">vs</span>
-                                                                    <span class="fw-bold text-white text-start flex-fill">{{ f.away_team }}</span>
+                                                                <div class="d-flex flex-column gap-1.5" style="max-height: 220px; overflow-y: auto;">
+                                                                    {% for f in item.fixtures %}
+                                                                    <div class="d-flex align-items-center justify-content-between p-2 rounded-3 font-monospace" style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);font-size:0.82rem;">
+                                                                        <div class="d-flex align-items-center gap-2" style="min-width:130px;">
+                                                                            <span class="text-secondary fw-bold">#{% if f.match_number %}{{ f.match_number }}{% else %}{{ forloop.counter }}{% endif %}</span>
+                                                                            <span class="badge rounded-pill bg-dark border border-warning border-opacity-40 text-warning px-2 py-0.5" style="font-size:0.75rem;">
+                                                                                {{ f.stage_or_group|default:"Gruppspel" }}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div class="d-flex align-items-center justify-content-center gap-2 flex-grow-1 mx-2">
+                                                                            <span class="fw-bold text-white text-end flex-fill">{{ f.home_team }}</span>
+                                                                            <span class="text-info px-1">vs</span>
+                                                                            <span class="fw-bold text-white text-start flex-fill">{{ f.away_team }}</span>
+                                                                        </div>
+                                                                        <span class="text-secondary small ms-2 font-monospace" style="font-size:0.78rem;">
+                                                                            <i class="fa-regular fa-clock me-1"></i>{{ f.date_time|default:f.date|default:"TBD" }}
+                                                                        </span>
+                                                                    </div>
+                                                                    {% endfor %}
                                                                 </div>
-                                                                <span class="text-secondary small ms-2 font-monospace" style="font-size:0.78rem;">
-                                                                    <i class="fa-regular fa-clock me-1"></i>{{ f.date_time|default:"TBD" }}
-                                                                </span>
                                                             </div>
-                                                            {% endfor %}
-                                                        </div>
+                                                            {% endif %}
+
+                                                            {% if item.knockouts %}
+                                                            <div class="mt-2.5">
+                                                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                                                    <span class="fw-bold text-white small font-monospace text-uppercase" style="letter-spacing:0.5px;">
+                                                                        <i class="fa-solid fa-trophy text-info me-1.5"></i>Slutspelsmatcher &amp; Slutspelsträd
+                                                                    </span>
+                                                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-30 font-monospace" style="font-size:0.7rem;">Utslagsträd</span>
+                                                                </div>
+                                                                <div class="row g-2">
+                                                                    {% for stage in item.knockouts %}
+                                                                    <div class="col-12 col-md-6">
+                                                                        <div class="p-2.5 rounded-3 h-100" style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+                                                                            <div class="fw-bold text-info small mb-1.5 font-monospace d-flex align-items-center justify-content-between" style="font-size:0.85rem;">
+                                                                                <span><i class="fa-solid fa-sitemap me-1.5 text-info"></i>{{ stage.stage_name|default:stage }}</span>
+                                                                                {% if stage.matches %}
+                                                                                <span class="badge rounded-pill bg-dark border border-secondary border-opacity-40 text-secondary" style="font-size:0.7rem;">{{ stage.matches|length }} match{{ stage.matches|length|pluralize:"er" }}</span>
+                                                                                {% endif %}
+                                                                            </div>
+                                                                            {% if stage.matches %}
+                                                                            <div class="d-flex flex-column gap-1">
+                                                                                {% for m in stage.matches %}
+                                                                                <div class="p-1.5 rounded-2 font-monospace" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);font-size:0.78rem;">
+                                                                                    <div class="d-flex align-items-center justify-content-between">
+                                                                                        <span class="text-secondary small fw-bold">#{{ m.match_code|default:forloop.counter }}</span>
+                                                                                        <span class="text-white fw-bold">{{ m.home_team }} <span class="text-info">vs</span> {{ m.away_team }}</span>
+                                                                                        {% if m.winner_to %}
+                                                                                        <span class="text-warning small" title="Vinnare avancerar"><i class="fa-solid fa-arrow-right me-0.5"></i>{{ m.winner_to }}</span>
+                                                                                        {% endif %}
+                                                                                    </div>
+                                                                                </div>
+                                                                                {% endfor %}
+                                                                            </div>
+                                                                            {% else %}
+                                                                            <div class="text-secondary small italic font-monospace py-1" style="font-size:0.78rem;">
+                                                                                <i class="fa-regular fa-clock me-1"></i>Trädets matchparningar fastställs efter gruppspelet.
+                                                                            </div>
+                                                                            {% endif %}
+                                                                        </div>
+                                                                    </div>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            </div>
+                                                            {% endif %}
                                                         {% else %}
                                                         <div class="p-3 rounded-3 font-monospace text-info d-flex align-items-center gap-3" style="background:rgba(14,165,233,0.08);border:1px solid rgba(14,165,233,0.3);">
                                                             <i class="fa-regular fa-calendar-days text-info fs-4 flex-shrink-0"></i>
                                                             <div>
-                                                                <div class="fw-bold text-white fs-6">Spelschema fastställs i samband med lottningen</div>
+                                                                <div class="fw-bold text-white fs-6">Spelschema &amp; Slutspelsträd fastställs i samband med lottningen</div>
                                                                 {% if item.draw_date %}
                                                                 <div class="small text-info fw-bold mt-0.5"><i class="fa-regular fa-calendar-check me-1.5"></i>Förväntat lottningsdatum: {{ item.draw_date }}</div>
                                                                 {% else %}
-                                                                <div class="small text-secondary mt-0.5" style="font-size:0.82rem;"><i class="fa-solid fa-circle-question me-1.5 text-info"></i>Lottningsdatum ej annonserat &bull; Officiella spelscheman läses in automatiskt när lottningen genomförts.</div>
+                                                                <div class="small text-secondary mt-0.5" style="font-size:0.82rem;"><i class="fa-solid fa-circle-question me-1.5 text-info"></i>Lottningsdatum ej annonserat &bull; Officiella spelscheman och slutspelsträd läses in automatiskt när lottningen genomförts.</div>
                                                                 {% endif %}
                                                             </div>
                                                         </div>
