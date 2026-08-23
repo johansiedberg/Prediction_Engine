@@ -2,6 +2,7 @@ import os
 import re
 import random
 import json
+import datetime
 
 import logging
 from django.db import transaction, models
@@ -19,7 +20,7 @@ from django.utils import timezone
 
 from tournament.models import (
     Tournament, League, LeagueMember, MatchPrediction, PoolAdminRequest, ScannedTournament,
-    PointSystem, Sidebet
+    PointSystem, Sidebet, Team, Match, Group, MasterEvent
 )
 from django.contrib.auth.models import User
 
@@ -1168,19 +1169,98 @@ def engine_admin_reject_pool_request_view(request, request_id):
 
 
 @superuser_or_staff_required
+def engine_admin_tournament_details_view(request, tournament_id):
+    """Returns full metadata JSON for a live Tournament."""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    icon_url = tournament.icon.url if tournament.icon else None
+    backdrop_url = tournament.backdrop.url if tournament.backdrop else None
+    
+    return JsonResponse({
+        'status': 'success',
+        'tournament': {
+            'id': tournament.id,
+            'name': tournament.name,
+            'sport': getattr(tournament, 'sport', 'Football') or 'Football',
+            'start_date': str(tournament.start_date) if tournament.start_date else '',
+            'end_date': str(tournament.end_date) if tournament.end_date else '',
+            'host_country': tournament.host_country or '',
+            'organizer': tournament.organizer or '',
+            'official_rules': tournament.official_rules or '',
+            'official_regulations_url': tournament.official_regulations_url or '',
+            'tournament_summary': tournament.tournament_summary or '',
+            'has_best_thirds_table': tournament.has_best_thirds_table,
+            'has_runners_up_table': tournament.has_runners_up_table,
+            'has_host_ranking_table': tournament.has_host_ranking_table,
+            'icon_url': icon_url,
+            'backdrop_url': backdrop_url,
+            'is_active': tournament.is_active,
+            'is_paused': tournament.is_paused,
+            'groups_count': tournament.tournament_groups.count(),
+            'teams_count': tournament.teams.count(),
+            'matches_count': tournament.matches.count(),
+        }
+    })
+
+
+@superuser_or_staff_required
 @require_POST
 def engine_admin_update_tournament(request, tournament_id):
-    """Updates tournament name, logotype (icon), and backdrop banner."""
+    """Updates tournament details, rules, metadata, logotype (icon), and backdrop banner."""
     tournament = get_object_or_404(Tournament, id=tournament_id)
     
     name = request.POST.get('name', '').strip()
     if not name:
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '') or request.POST.get('ajax') == '1':
             return JsonResponse({'status': 'error', 'message': 'Turneringsnamnet kan inte vara tomt.'}, status=400)
         messages.error(request, 'Turneringsnamnet kan inte vara tomt.')
         return redirect('/engine-admin/')
 
     tournament.name = name
+
+    # Update metadata fields
+    if 'sport' in request.POST:
+        tournament.sport = request.POST.get('sport', '').strip() or 'Football'
+    
+    from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+    if 'start_date' in request.POST:
+        raw_s = request.POST.get('start_date', '').strip()
+        iso_s = LLMWikipediaScout._parse_date_string(raw_s) if raw_s else ''
+        tournament.start_date = datetime.date.fromisoformat(iso_s) if iso_s else None
+
+    if 'end_date' in request.POST:
+        raw_e = request.POST.get('end_date', '').strip()
+        iso_e = LLMWikipediaScout._parse_date_string(raw_e) if raw_e else ''
+        tournament.end_date = datetime.date.fromisoformat(iso_e) if iso_e else None
+
+    if 'host_country' in request.POST:
+        tournament.host_country = request.POST.get('host_country', '').strip()
+
+    if 'organizer' in request.POST:
+        tournament.organizer = request.POST.get('organizer', '').strip()
+
+    if 'official_rules' in request.POST:
+        tournament.official_rules = request.POST.get('official_rules', '').strip()
+
+    if 'official_regulations_url' in request.POST:
+        tournament.official_regulations_url = request.POST.get('official_regulations_url', '').strip()
+
+    if 'tournament_summary' in request.POST:
+        tournament.tournament_summary = request.POST.get('tournament_summary', '').strip()
+
+    if 'has_best_thirds_table' in request.POST:
+        tournament.has_best_thirds_table = request.POST.get('has_best_thirds_table') in ['true', '1', 'on']
+
+    if 'has_runners_up_table' in request.POST:
+        tournament.has_runners_up_table = request.POST.get('has_runners_up_table') in ['true', '1', 'on']
+
+    if 'has_host_ranking_table' in request.POST:
+        tournament.has_host_ranking_table = request.POST.get('has_host_ranking_table') in ['true', '1', 'on']
+
+    # Also update linked MasterEvent if exists
+    if tournament.master_event:
+        me = tournament.master_event
+        me.name = tournament.name
+        me.save()
 
     # Handle Icon / Logotype
     clear_icon = request.POST.get('clear_icon') in ['true', '1', 'on']
@@ -1213,6 +1293,11 @@ def engine_admin_update_tournament(request, tournament_id):
             'tournament': {
                 'id': tournament.id,
                 'name': tournament.name,
+                'sport': tournament.sport,
+                'start_date': str(tournament.start_date) if tournament.start_date else '',
+                'end_date': str(tournament.end_date) if tournament.end_date else '',
+                'host_country': tournament.host_country,
+                'organizer': tournament.organizer,
                 'icon_url': icon_url,
                 'backdrop_url': backdrop_url,
             }
@@ -1220,6 +1305,134 @@ def engine_admin_update_tournament(request, tournament_id):
 
     messages.success(request, f'Turneringen "{tournament.name}" har sparats!')
     return redirect('/engine-admin/')
+
+
+@superuser_or_staff_required
+def engine_admin_groups_teams_view(request, tournament_id):
+    """Returns groups, team rosters, and match schedules for live editing."""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    groups_list = []
+    for g in tournament.tournament_groups.all().order_by('order', 'name'):
+        teams_data = []
+        for t in g.teams.all().order_by('name'):
+            teams_data.append({
+                'id': t.id,
+                'name': t.name,
+                'code': t.code,
+                'flag_url': t.flag_url,
+                'badge_url': t.badge_url,
+                'emblem_url': t.emblem_url,
+            })
+        groups_list.append({
+            'id': g.id,
+            'name': g.name,
+            'order': g.order,
+            'teams': teams_data,
+        })
+        
+    matches_list = []
+    for m in tournament.matches.all().order_by('match_number', 'date_time'):
+        matches_list.append({
+            'id': m.id,
+            'match_number': m.match_number,
+            'stage_or_group': m.group.name if m.group else (m.stage.name if m.stage else 'Match'),
+            'home_team': m.home_team,
+            'away_team': m.away_team,
+            'date_time': m.date_time.strftime('%Y-%m-%d %H:%M') if m.date_time else '',
+            'venue': m.venue or '',
+            'is_finished': m.is_finished,
+            'home_goals': m.home_goals,
+            'away_goals': m.away_goals,
+        })
+        
+    return JsonResponse({
+        'status': 'success',
+        'tournament_id': tournament.id,
+        'tournament_name': tournament.name,
+        'groups': groups_list,
+        'matches': matches_list,
+    })
+
+
+@superuser_or_staff_required
+@require_POST
+def engine_admin_save_team_view(request, tournament_id):
+    """Updates team name, code, or emblem URL."""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    team_id = request.POST.get('team_id')
+    team = get_object_or_404(Team, id=team_id, tournament=tournament)
+    
+    name = request.POST.get('name', '').strip()
+    code = request.POST.get('code', '').strip()
+    emblem_url = request.POST.get('emblem_url', '').strip()
+    
+    if name:
+        team.name = name
+    if 'code' in request.POST:
+        team.code = code
+    if 'emblem_url' in request.POST:
+        team.emblem_url = emblem_url
+    team.save()
+    invalidate_tournament_cache(tournament.id)
+    
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Laget "{team.name}" uppdaterades!',
+        'team': {
+            'id': team.id,
+            'name': team.name,
+            'code': team.code,
+            'badge_url': team.badge_url,
+            'flag_url': team.flag_url,
+        }
+    })
+
+
+@superuser_or_staff_required
+@require_POST
+def engine_admin_save_match_view(request, tournament_id):
+    """Updates match fixture schedule (date_time, venue, home_team, away_team)."""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    match_id = request.POST.get('match_id')
+    match = get_object_or_404(Match, id=match_id, tournament=tournament)
+    
+    home_team = request.POST.get('home_team', '').strip()
+    away_team = request.POST.get('away_team', '').strip()
+    venue = request.POST.get('venue', '').strip()
+    date_time_str = request.POST.get('date_time', '').strip()
+    
+    if home_team:
+        match.home_team = home_team
+    if away_team:
+        match.away_team = away_team
+    if 'venue' in request.POST:
+        match.venue = venue
+        
+    if date_time_str:
+        try:
+            dt = datetime.datetime.fromisoformat(date_time_str.replace(' ', 'T'))
+            if timezone.is_naive(dt):
+                dt = timezone.make_aware(dt, timezone.get_current_timezone())
+            match.date_time = dt
+        except Exception:
+            pass
+            
+    match.save()
+    invalidate_tournament_cache(tournament.id)
+    
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Match #{match.match_number} uppdaterades!',
+        'match': {
+            'id': match.id,
+            'match_number': match.match_number,
+            'home_team': match.home_team,
+            'away_team': match.away_team,
+            'venue': match.venue,
+            'date_time': match.date_time.strftime('%Y-%m-%d %H:%M') if match.date_time else '',
+        }
+    })
 
 
 # --- AI Tournament Scout Endpoints ---

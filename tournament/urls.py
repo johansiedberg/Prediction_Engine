@@ -10,6 +10,8 @@ from .views import (
     engine_admin_toggle_publish, engine_admin_preview_tournament,
     engine_admin_pool_requests_view, engine_admin_approve_pool_request_view,
     engine_admin_reject_pool_request_view, engine_admin_update_tournament, engine_admin_delete_tournament_view,
+    engine_admin_tournament_details_view, engine_admin_groups_teams_view,
+    engine_admin_save_team_view, engine_admin_save_match_view,
     tournament_points_sidebets_get_view, tournament_points_save_view,
 
     tournament_sidebet_save_view, tournament_sidebet_delete_view,
@@ -69,6 +71,10 @@ urlpatterns = [
     path('engine-admin/simulate/<int:tournament_id>/', engine_admin_simulate_tournament, name='engine_admin_simulate'),
     path('engine-admin/reset-simulation/<int:tournament_id>/', engine_admin_reset_simulation, name='engine_admin_reset_simulation'),
     path('engine-admin/update-tournament/<int:tournament_id>/', engine_admin_update_tournament, name='engine_admin_update_tournament'),
+    path('engine-admin/tournament/<int:tournament_id>/details/', engine_admin_tournament_details_view, name='engine_admin_tournament_details'),
+    path('engine-admin/tournament/<int:tournament_id>/groups-teams/', engine_admin_groups_teams_view, name='engine_admin_groups_teams'),
+    path('engine-admin/tournament/<int:tournament_id>/save-team/', engine_admin_save_team_view, name='engine_admin_save_team'),
+    path('engine-admin/tournament/<int:tournament_id>/save-match/', engine_admin_save_match_view, name='engine_admin_save_match'),
     path('engine-admin/delete-tournament/<int:tournament_id>/', engine_admin_delete_tournament_view, name='engine_admin_delete_tournament'),
     path('engine-admin/toggle-publish/<int:tournament_id>/', engine_admin_toggle_publish, name='engine_admin_toggle_publish'),
 

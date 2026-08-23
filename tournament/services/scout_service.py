@@ -1165,14 +1165,21 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
         return None, "Kunde inte hitta det scannade prospektet."
 
     payload = scanned.payload or {}
+    blueprint = scanned.tournament_blueprint or payload.get('tournament_blueprint') or {}
+    head_segment = blueprint.get('head_segment') or payload.get('head_segment') or {}
+    general_segment = blueprint.get('general_segment') or payload.get('general_segment') or {}
+    struct_segment = blueprint.get('structure_and_rules_segment') or payload.get('structure_and_rules_segment') or {}
+    groups_segment = blueprint.get('groups_and_teams_segment') or payload.get('groups_and_teams_segment') or {}
+    matches_segment = blueprint.get('matches_and_knockout_segment') or payload.get('matches_and_knockout_segment') or {}
+
     master_event_data = payload.get('master_event', {})
     tournament_config = payload.get('tournament_config', {})
-    groups_data = payload.get('groups', [])
-    fixtures_data = payload.get('fixtures_sample', [])
+    groups_data = groups_segment.get('groups') or payload.get('groups', [])
+    fixtures_data = matches_segment.get('group_matches') or payload.get('fixtures_sample', [])
     knockout_mapping = payload.get('knockout_mapping_sample', [])
 
     from tournament.services.skeleton_builder import SkeletonBuilder
-    builder = SkeletonBuilder(scanned.tournament_blueprint or payload.get('tournament_blueprint') or {})
+    builder = SkeletonBuilder(blueprint)
     skeleton = builder.build_skeleton()
 
     if not groups_data:
@@ -1191,10 +1198,25 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                 })
     sidebets_data = payload.get('sidebets_suggestions', [])
 
+    # Extract dates & metadata
+    from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+    raw_start = scanned.start_date or general_segment.get('start_date') or head_segment.get('start_date') or master_event_data.get('start_date') or ''
+    raw_end = scanned.end_date or general_segment.get('end_date') or head_segment.get('end_date') or master_event_data.get('end_date') or ''
+    start_iso = LLMWikipediaScout._parse_date_string(str(raw_start)) if raw_start else ''
+    end_iso = LLMWikipediaScout._parse_date_string(str(raw_end)) if raw_end else ''
+
+    start_date_obj = datetime.date.fromisoformat(start_iso) if start_iso else (scanned.start_date if isinstance(scanned.start_date, datetime.date) else None)
+    end_date_obj = datetime.date.fromisoformat(end_iso) if end_iso else (scanned.end_date if isinstance(scanned.end_date, datetime.date) else None)
+
+    sport_val = scanned.sport or general_segment.get('sport') or head_segment.get('sport') or master_event_data.get('sport') or 'Football'
+    host_country_val = scanned.host_country or (general_segment.get('location') or {}).get('host_country') or general_segment.get('host_country') or master_event_data.get('host_country') or ''
+    organizer_val = scanned.organizer or general_segment.get('organizer') or master_event_data.get('organizer') or ''
+    summary_val = general_segment.get('tournament_summary') or ''
+
     with transaction.atomic():
         # 1. Master Event
-        master_code = scanned.master_event_code or master_event_data.get('code') or scanned.name.lower().replace(' ', '-')
-        master_event_name = master_event_data.get('name') or scanned.name
+        master_code = scanned.master_event_code or head_segment.get('master_event_code') or master_event_data.get('code') or scanned.name.lower().replace(' ', '-')
+        master_event_name = master_event_data.get('name') or head_segment.get('name') or scanned.name
         master_event, _ = MasterEvent.objects.update_or_create(
             code=master_code,
             defaults={
@@ -1204,16 +1226,23 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
         )
 
         # 2. Tournament
-        has_best_thirds = tournament_config.get('has_best_thirds_table', False)
-        has_runners_up = tournament_config.get('has_runners_up_table', False)
+        has_best_thirds = struct_segment.get('qualifying_tables_rules', {}).get('has_best_thirds', False) or tournament_config.get('has_best_thirds_table', False)
+        has_runners_up = struct_segment.get('qualifying_tables_rules', {}).get('has_runners_up', False) or tournament_config.get('has_runners_up_table', False)
         has_host_ranking = tournament_config.get('has_host_ranking_table', False)
-        off_rules = scanned.official_rules or payload.get('scouting_audit', {}).get('official_rules') or payload.get('scouting_audit', {}).get('advancement_rules') or ''
-        off_url = scanned.official_source_url or payload.get('master_event', {}).get('official_source_url') or ''
+        off_rules = scanned.official_rules or struct_segment.get('official_rules_summary') or payload.get('scouting_audit', {}).get('official_rules') or payload.get('scouting_audit', {}).get('advancement_rules') or ''
+        off_url = scanned.official_source_url or general_segment.get('official_website_url') or payload.get('master_event', {}).get('official_source_url') or ''
 
         tournament, _ = Tournament.objects.update_or_create(
             name=scanned.name,
             defaults={
                 'admin': admin_user,
+                'master_event': master_event,
+                'sport': sport_val,
+                'start_date': start_date_obj,
+                'end_date': end_date_obj,
+                'host_country': host_country_val,
+                'organizer': organizer_val,
+                'tournament_summary': summary_val,
                 'is_active': is_active,
                 'is_paused': False,
                 'has_best_thirds_table': has_best_thirds,
@@ -1340,6 +1369,7 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                     match_number=m_num,
                     home_team=home,
                     away_team=away,
+                    venue=f_item.get('venue') or '',
                     date_time=match_dt
                 )
         else:
@@ -1399,6 +1429,7 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                     match_number=m_num,
                     home_team=home_ph,
                     away_team=away_ph,
+                    venue=k_item.get('venue') or '',
                     date_time=m_dt
                 )
 

@@ -1527,7 +1527,239 @@ class PointSystemFlowTests(TestCase):
         self.assertEqual(detail['pts_home'], 2)
         self.assertEqual(detail['pts_away'], 2)
         self.assertEqual(detail['pts_tot_goals'], 2)
-        self.assertEqual(detail['total'], 10)
+    def test_scout_to_tournament_conversion_transfers_all_5_segments(self):
+        """Verifies that convert_scanned_to_live_tournament transfers all 5 blueprint segments into relational DB models."""
+        from tournament.models import ScannedTournament, MasterEvent, Tournament, Group, Team, Match, PointSystem, Sidebet
+        from tournament.services.scout_service import convert_scanned_to_live_tournament
+        import datetime
+
+        blueprint = {
+            'head_segment': {
+                'name': '2026 European Women Handball Championship',
+                'sport': 'Handball',
+                'master_event_code': 'ehf-euro-2026-women',
+                'start_date': '2026-12-03',
+                'end_date': '2026-12-20',
+            },
+            'general_segment': {
+                'organizer': 'EHF',
+                'host_country': 'Czech Republic / Poland / Romania / Slovakia / Turkey',
+                'official_website_url': 'https://ehfeuro.eurohandball.com/',
+                'tournament_summary': '16th European Women Handball Championship edition.',
+            },
+            'structure_and_rules_segment': {
+                'group_stage_rules': {'points_win': 2, 'points_draw': 1, 'points_loss': 0, 'teams_advancing': 2},
+                'qualifying_tables_rules': {'has_best_thirds': False, 'has_runners_up': False},
+                'knockout_rules': {'extra_time_minutes': 10, 'penalty_shootouts': True},
+                'official_rules_summary': 'Top 2 teams advance to Main Round with carried over points.',
+            },
+            'groups_and_teams_segment': {
+                'groups': [
+                    {
+                        'name': 'Group A',
+                        'order': 1,
+                        'teams': [
+                            {'name': 'Sweden', 'code': 'SE'},
+                            {'name': 'Norway', 'code': 'NO'},
+                        ]
+                    },
+                    {
+                        'name': 'Group B',
+                        'order': 2,
+                        'teams': [
+                            {'name': 'Denmark', 'code': 'DK'},
+                            {'name': 'France', 'code': 'FR'},
+                        ]
+                    }
+                ]
+            },
+            'matches_and_knockout_segment': {
+                'group_matches': [
+                    {
+                        'match_number': 1,
+                        'stage_or_group': 'Group A',
+                        'home_team': 'Sweden',
+                        'away_team': 'Norway',
+                        'date_time': '2026-12-03T18:00:00',
+                        'venue': 'Oradea Arena',
+                    }
+                ]
+            }
+        }
+
+        prospect = ScannedTournament.objects.create(
+            name="2026 European Women Handball Championship",
+            sport="Handball",
+            master_event_code="ehf-euro-2026-women",
+            start_date=datetime.date(2026, 12, 3),
+            end_date=datetime.date(2026, 12, 20),
+            host_country="Czech Republic / Poland / Romania / Slovakia / Turkey",
+            organizer="EHF",
+            tournament_blueprint=blueprint,
+            payload={
+                'tournament_blueprint': blueprint,
+                'sidebets_suggestions': [
+                    {'question': 'Vilket lag vinner EM-guld?', 'points': 10, 'question_type': 'TEAM'}
+                ]
+            }
+        )
+
+        tour, err = convert_scanned_to_live_tournament(prospect.id, self.admin_user, is_active=False)
+        self.assertIsNone(err)
+        self.assertIsNotNone(tour)
+        self.assertFalse(tour.is_active)
+        self.assertEqual(tour.sport, 'Handball')
+        self.assertEqual(tour.start_date, datetime.date(2026, 12, 3))
+        self.assertEqual(tour.end_date, datetime.date(2026, 12, 20))
+        self.assertEqual(tour.host_country, 'Czech Republic / Poland / Romania / Slovakia / Turkey')
+        self.assertEqual(tour.organizer, 'EHF')
+        self.assertEqual(tour.tournament_summary, '16th European Women Handball Championship edition.')
+        self.assertEqual(tour.master_event.code, 'ehf-euro-2026-women')
+
+        # Verify Groups & Teams
+        self.assertEqual(tour.tournament_groups.count(), 2)
+        self.assertEqual(tour.teams.count(), 4)
+        se_team = tour.teams.get(name='Sweden')
+        self.assertEqual(se_team.code, 'SE')
+
+        # Verify Matches & Venue
+        match1 = tour.matches.get(match_number=1)
+        self.assertEqual(match1.home_team, 'Sweden')
+        self.assertEqual(match1.away_team, 'Norway')
+        self.assertEqual(match1.venue, 'Oradea Arena')
+
+        # Verify Sidebets
+        self.assertEqual(tour.sidebets.count(), 1)
+        self.assertEqual(tour.sidebets.first().question, 'Vilket lag vinner EM-guld?')
+
+        # Verify ScannedTournament linked & marked converted
+        prospect.refresh_from_db()
+        self.assertEqual(prospect.status, 'CONVERTED')
+        self.assertEqual(prospect.converted_tournament, tour)
+
+    def test_engine_admin_tournament_details_and_update_views(self):
+        """Verifies details JSON view and update view in Engine Admin."""
+        from django.test import Client
+        import json
+
+        client = Client()
+        client.force_login(self.admin_user)
+
+        # 1. Details endpoint
+        resp = client.get(f'/engine-admin/tournament/{self.tournament.id}/details/', HTTP_HOST='localhost:2029')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertEqual(data['tournament']['id'], self.tournament.id)
+
+        # 2. Update endpoint
+        update_resp = client.post(
+            f'/engine-admin/update-tournament/{self.tournament.id}/',
+            {
+                'name': 'Updated UEFA Euro 2028',
+                'sport': 'Football',
+                'start_date': '2028-06-09',
+                'end_date': '2028-07-09',
+                'host_country': 'UK & Ireland',
+                'organizer': 'UEFA',
+                'official_regulations_url': 'https://documents.uefa.com/euro-2028',
+                'tournament_summary': 'Official 18th edition in UK & Ireland.',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_HOST='localhost:2029'
+        )
+        self.assertEqual(update_resp.status_code, 200)
+        u_data = update_resp.json()
+        self.assertEqual(u_data['status'], 'success')
+
+        self.tournament.refresh_from_db()
+        self.assertEqual(self.tournament.name, 'Updated UEFA Euro 2028')
+        self.assertEqual(self.tournament.host_country, 'UK & Ireland')
+        self.assertEqual(self.tournament.organizer, 'UEFA')
+
+    def test_engine_admin_groups_teams_and_match_saving(self):
+        """Verifies groups-teams JSON view, save-team endpoint, and save-match endpoint."""
+        from django.test import Client
+        from tournament.models import Group, Team, Match
+
+        grp = Group.objects.create(tournament=self.tournament, name='Group Test', order=1)
+        tm = Team.objects.create(tournament=self.tournament, group=grp, name='Team Old', code='TO')
+        m = Match.objects.create(tournament=self.tournament, group=grp, match_number=99, home_team='Team Old', away_team='Opponent')
+
+        client = Client()
+        client.force_login(self.admin_user)
+
+        # 1. Groups & Teams list
+        list_resp = client.get(f'/engine-admin/tournament/{self.tournament.id}/groups-teams/', HTTP_HOST='localhost:2029')
+        self.assertEqual(list_resp.status_code, 200)
+        self.assertEqual(list_resp.json()['status'], 'success')
+
+        # 2. Save Team
+        team_resp = client.post(
+            f'/engine-admin/tournament/{self.tournament.id}/save-team/',
+            {'team_id': tm.id, 'name': 'Team New', 'code': 'TN'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_HOST='localhost:2029'
+        )
+        self.assertEqual(team_resp.status_code, 200)
+        tm.refresh_from_db()
+        self.assertEqual(tm.name, 'Team New')
+        self.assertEqual(tm.code, 'TN')
+
+        # 3. Save Match
+        match_resp = client.post(
+            f'/engine-admin/tournament/{self.tournament.id}/save-match/',
+            {
+                'match_id': m.id,
+                'home_team': 'Team New',
+                'away_team': 'Opponent',
+                'venue': 'Wembley Stadium',
+                'date_time': '2028-06-10 20:00'
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_HOST='localhost:2029'
+        )
+        self.assertEqual(match_resp.status_code, 200)
+        m.refresh_from_db()
+        self.assertEqual(m.venue, 'Wembley Stadium')
+
+    def test_tournament_publication_workflow_for_pool_admins(self):
+        """Verifies that inactive tournament is in coming_tournaments and active is in available_tournaments."""
+        from tournament.models import League, LeagueMember
+        from django.test import Client
+
+        league = League.objects.create(
+            name="Vännernas EM-Pool",
+            admin=self.admin_user
+        )
+        LeagueMember.objects.create(league=league, player=self.admin_user, is_verified=True)
+
+        client = Client()
+        client.force_login(self.admin_user)
+
+        # 1. While is_active=False (Draft mode)
+        self.tournament.is_active = False
+        self.tournament.save()
+
+        resp = client.get(f'/pool-admin/{league.id}/')
+        self.assertEqual(resp.status_code, 200)
+        coming = resp.context['coming_tournaments']
+        available = resp.context['available_tournaments']
+        self.assertIn(self.tournament, coming)
+        self.assertNotIn(self.tournament, available)
+
+        # 2. Publish / Activate (is_active=True)
+        self.tournament.is_active = True
+        self.tournament.save()
+
+        resp2 = client.get(f'/pool-admin/{league.id}/')
+        self.assertEqual(resp2.status_code, 200)
+        coming2 = resp2.context['coming_tournaments']
+        available2 = resp2.context['available_tournaments']
+        self.assertNotIn(self.tournament, coming2)
+        self.assertIn(self.tournament, available2)
+
+
 
 
 

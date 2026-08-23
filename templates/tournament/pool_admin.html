@@ -351,16 +351,28 @@
                                                     {% endif %}
                                                     <div>
                                                         <h6 class="fw-bold text-white mb-0" style="font-size: 0.95rem;">{{ t.name }}</h6>
-                                                        <span class="badge px-2 py-0.5 mt-0.5 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.68rem;">
-                                                            <i class="fa-solid fa-circle-check me-1"></i>Tillgänglig
-                                                        </span>
+                                                        <div class="d-flex flex-wrap align-items-center gap-1.5 mt-1">
+                                                            <span class="badge px-2 py-0.5 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.68rem;">
+                                                                <i class="fa-solid fa-circle-check me-1"></i>Tillgänglig
+                                                            </span>
+                                                            <span class="badge bg-dark border border-secondary border-opacity-30 text-warning px-2 py-0.5" style="font-size: 0.68rem;">
+                                                                {% if t.sport == 'Ice Hockey' or 'hockey' in t.sport|lower %}🏒 Ishockey
+                                                                {% elif t.sport == 'Handball' or 'handboll' in t.sport|lower %}🤾 Handboll
+                                                                {% elif t.sport == 'Basketball' or 'basket' in t.sport|lower %}🏀 Basket
+                                                                {% elif t.sport == 'Floorball' or 'innebandy' in t.sport|lower %}🏑 Innebandy
+                                                                {% else %}⚽ {{ t.sport|default:"Fotboll" }}{% endif %}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <span class="badge text-secondary font-monospace" style="font-size: 0.72rem;">#{{ t.id }}</span>
                                             </div>
 
                                             <div class="text-white small mb-3" style="font-size: 0.78rem; opacity: 0.7;">
-                                                Skapad i Engine Admin. Redo att aktiveras och konfigureras för {{ league.name }}.
+                                                {% if t.start_date %}
+                                                <div class="mb-1 text-white-50"><i class="fa-regular fa-calendar me-1 text-warning"></i>{{ t.start_date|date:"Y-m-d" }}{% if t.end_date %} – {{ t.end_date|date:"Y-m-d" }}{% endif %} {% if t.host_country %}• {{ t.host_country }}{% endif %}</div>
+                                                {% endif %}
+                                                Redo att aktiveras och konfigureras för {{ league.name }}.
                                             </div>
                                         </div>
 
@@ -400,16 +412,28 @@
                                                     {% endif %}
                                                     <div>
                                                         <h6 class="fw-bold text-white mb-0" style="font-size: 0.95rem;">{{ t.name }}</h6>
-                                                        <span class="badge px-2 py-0.5 mt-0.5 fw-bold" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 0.68rem;">
-                                                            <i class="fa-solid fa-hourglass-half me-1"></i>Kommande / Planerad
-                                                        </span>
+                                                        <div class="d-flex flex-wrap align-items-center gap-1.5 mt-1">
+                                                            <span class="badge px-2 py-0.5 fw-bold" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 0.68rem;">
+                                                                <i class="fa-solid fa-hourglass-half me-1"></i>Kommande / Planerad
+                                                            </span>
+                                                            <span class="badge bg-dark border border-secondary border-opacity-30 text-warning px-2 py-0.5" style="font-size: 0.68rem;">
+                                                                {% if t.sport == 'Ice Hockey' or 'hockey' in t.sport|lower %}🏒 Ishockey
+                                                                {% elif t.sport == 'Handball' or 'handboll' in t.sport|lower %}🤾 Handboll
+                                                                {% elif t.sport == 'Basketball' or 'basket' in t.sport|lower %}🏀 Basket
+                                                                {% elif t.sport == 'Floorball' or 'innebandy' in t.sport|lower %}🏑 Innebandy
+                                                                {% else %}⚽ {{ t.sport|default:"Fotboll" }}{% endif %}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <span class="badge text-secondary font-monospace" style="font-size: 0.72rem;">#{{ t.id }}</span>
                                             </div>
 
                                             <div class="text-white small mb-3" style="font-size: 0.78rem; opacity: 0.65;">
-                                                Denna turnering är under förberedelse eller pausad i Engine Admin. Kan aktiveras när den öppnas.
+                                                {% if t.start_date %}
+                                                <div class="mb-1 text-white-50"><i class="fa-regular fa-calendar me-1 text-warning"></i>{{ t.start_date|date:"Y-m-d" }}{% if t.end_date %} – {{ t.end_date|date:"Y-m-d" }}{% endif %} {% if t.host_country %}• {{ t.host_country }}{% endif %}</div>
+                                                {% endif %}
+                                                Denna turnering förbereds i Engine Admin och öppnas snart för aktivering.
                                             </div>
                                         </div>
 

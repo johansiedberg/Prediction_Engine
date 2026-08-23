@@ -35,42 +35,42 @@ def get_tournament_checklist_status(tour):
 
 def get_tournament_total_status(tour, chk_status):
     """
-    Computes total status for Engine Admin tournament card pill banner:
-    Normal faded translucent background with vibrant text and subtle border.
-    1. BLOCKED (Faded Red, red text): If Checklist has ALERTS! (Cannot activate)
-    2. ACTIVE (Faded Green, green text): If Published & Active. (Possible to Deactivate)
-    3. PAUSED / DEACTIVATED (Faded Blue, blue text): If manually paused/deactivated. (Possible to Activate)
-    4. DRAFT / TESTING (Faded Orange, orange text): If Draft / Testing mode. (Possible to Activate)
+    Computes total status for Engine Admin tournament card pill banner
+    adhering to Monochromatic Tonal Contrast Standards:
+    1. BLOCKED (Red monochromatic): If Checklist has ALERTS! (Cannot activate)
+    2. ACTIVE (Green monochromatic): If Published & Active. (Possible to Deactivate)
+    3. PAUSED / DEACTIVATED (Blue monochromatic): If manually paused/deactivated. (Possible to Activate)
+    4. DRAFT / CONFIGURATION (Amber monochromatic): If Draft / Pre-publication mode. (Possible to Activate)
     """
     if chk_status['status'] == 'ALERT':
         return {
             'code': 'BLOCKED',
-            'label': 'BLOCKERAD (ALERTS FINNS 🚨)',
-            'style': 'background-color: rgba(220, 53, 69, 0.15) !important; color: #ff6b6b !important; border: 1px solid rgba(220, 53, 69, 0.3) !important; font-weight: 700;',
-            'badge_text': 'BLOCKERAD',
+            'label': 'EJ REDO FÖR PUBLICERING (ALERTS 🚨)',
+            'style': 'background-color: #450A0A !important; color: #FEE2E2 !important; border: 1px solid #B91C1C !important; font-weight: 700;',
+            'badge_text': 'EJ REDO',
             'can_activate': False,
         }
     elif tour.is_active:
         return {
             'code': 'ACTIVE',
-            'label': 'PUBLISERAD / AKTIV',
-            'style': 'background-color: rgba(25, 135, 84, 0.15) !important; color: #2eca8b !important; border: 1px solid rgba(25, 135, 84, 0.3) !important; font-weight: 700;',
-            'badge_text': 'PUBLISERAD / AKTIV',
+            'label': 'PUBLICERAD / AKTIV',
+            'style': 'background-color: #052E16 !important; color: #DCFCE7 !important; border: 1px solid #15803D !important; font-weight: 700;',
+            'badge_text': 'PUBLICERAD / AKTIV',
             'can_activate': True,
         }
     elif getattr(tour, 'is_paused', False):
         return {
             'code': 'PAUSED',
             'label': 'PAUSAD / AVAKTIVERAD',
-            'style': 'background-color: rgba(13, 110, 253, 0.15) !important; color: #4dabf7 !important; border: 1px solid rgba(13, 110, 253, 0.3) !important; font-weight: 700;',
-            'badge_text': 'PAUSAD / AVAKTIVERAD',
+            'style': 'background-color: #172554 !important; color: #DBEAFE !important; border: 1px solid #1D4ED8 !important; font-weight: 700;',
+            'badge_text': 'PAUSAD',
             'can_activate': True,
         }
     else:
         return {
             'code': 'DRAFT',
-            'label': 'UTKAST / TESTLÄGE',
-            'style': 'background-color: rgba(253, 126, 20, 0.15) !important; color: #ff922b !important; border: 1px solid rgba(253, 126, 20, 0.3) !important; font-weight: 700;',
-            'badge_text': 'UTKAST / TESTLÄGE',
+            'label': 'UTKAST / EJ PUBLICERAD',
+            'style': 'background-color: #451A03 !important; color: #FEF3C7 !important; border: 1px solid #B45309 !important; font-weight: 700;',
+            'badge_text': 'UTKAST',
             'can_activate': True,
         }

@@ -2,7 +2,11 @@ import json
 import logging
 import re
 from django.conf import settings
-import google.generativeai as genai
+
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 logger = logging.getLogger(__name__)
 
@@ -12,13 +16,22 @@ class LLMWebScout:
     Uses Gemini with Google Search Grounding to hunt for official rules.
     """
     def __init__(self):
+        self.model = None
+        if not genai:
+            logger.warning("google.generativeai package not installed.")
+            return
+
         api_key = getattr(settings, 'GEMINI_API_KEY', '')
         if api_key:
-            genai.configure(api_key=api_key)
+            try:
+                genai.configure(api_key=api_key)
+            except Exception as e:
+                logger.warning(f"Failed to configure genai: {e}")
+                return
+
         # Initialize model with Google Search Grounding enabled
         # Try models in order of available quota (Flash-Lite has 500 RPD)
         target_models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-flash-lite-latest']
-        self.model = None
         for m in target_models:
             try:
                 self.model = genai.GenerativeModel(m, tools='google_search_retrieval')

@@ -43,6 +43,10 @@ from tournament.views.engine_admin import (
     tournament_sidebet_save_view,
     tournament_sidebet_delete_view,
     engine_admin_delete_tournament_view,
+    engine_admin_tournament_details_view,
+    engine_admin_groups_teams_view,
+    engine_admin_save_team_view,
+    engine_admin_save_match_view,
 )
 
 from tournament.views.pool_admin import (
