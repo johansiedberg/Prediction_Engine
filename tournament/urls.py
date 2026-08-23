@@ -36,6 +36,7 @@ from .views import (
 
 urlpatterns = [
     path('', CustomLoginView.as_view(), name='login'),
+    path('login/', CustomLoginView.as_view(), name='login_explicit'),
     path('register/', register_view, name='register'),
     path('sso/login/', sso_login_view, name='sso_login'),
     path('hub/', hub_view, name='hub'),
