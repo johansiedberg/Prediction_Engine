@@ -1442,9 +1442,10 @@ class DeepscanBlueprintTests(TestCase):
         }
 
         deep_scout = ModularDeepScout()
-        with patch.object(deep_scout.wiki_scout, 'get_article_title_from_url', return_value='World Cup 2030 Test'):
-            with patch.object(deep_scout.llm_scout, 'audit_with_llm', return_value=mock_audit):
-                res = deep_scout.deep_scan_prospect(prospect)
+        with patch.object(deep_scout.wiki_scout, 'get_article_title_from_url', return_value='World Cup 2030 Test'), \
+             patch.object(deep_scout.wiki_scout, 'search_wikipedia_article', return_value='World Cup 2030 Test'), \
+             patch.object(deep_scout.llm_scout, 'audit_with_llm', return_value=mock_audit):
+            res = deep_scout.deep_scan_prospect(prospect)
 
         prospect.refresh_from_db()
         self.assertTrue(res['ok'])

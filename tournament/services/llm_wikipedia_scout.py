@@ -384,7 +384,17 @@ class LLMWikipediaScout:
             }
         }
 
-        models = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.6-flash']
+        models = [
+            'gemini-3.1-flash-lite',
+            'gemini-3.1-flash-lite-preview',
+            'gemini-3.5-flash-lite',
+            'gemini-flash-lite-latest',
+            'gemini-3-flash-preview',
+            'gemini-3.6-flash',
+            'gemini-3.7-flash',
+            'gemini-3.5-flash',
+            'gemini-flash-latest',
+        ]
         for m in models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
             try:

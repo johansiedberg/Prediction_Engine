@@ -49,10 +49,10 @@ class GeneralDeepScoutAgent:
         dates_dict = audit.get("dates") or {}
 
         # 1. Dates resolution
-        has_audit_start = ("start_date" in audit) or ("dates" in audit and "start_date" in dates_dict)
-        has_audit_end = ("end_date" in audit) or ("dates" in audit and "end_date" in dates_dict)
-        start_date = audit.get("start_date") or dates_dict.get("start_date") or None
-        end_date = audit.get("end_date") or dates_dict.get("end_date") or None
+        has_audit_start = ("start_date" in audit) or ("tournament_start_date" in audit) or ("dates" in audit and "start_date" in dates_dict)
+        has_audit_end = ("end_date" in audit) or ("tournament_end_date" in audit) or ("dates" in audit and "end_date" in dates_dict)
+        start_date = audit.get("start_date") or audit.get("tournament_start_date") or dates_dict.get("start_date") or None
+        end_date = audit.get("end_date") or audit.get("tournament_end_date") or dates_dict.get("end_date") or None
 
         # 2. Location resolution
         host_country = audit.get("host_country") or audit.get("country") or ""

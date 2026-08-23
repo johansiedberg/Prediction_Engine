@@ -28,7 +28,7 @@ def is_valid_tournament_logo(url: str) -> bool:
         'stadium', 'arena', 'stade', 'venue', 'map_of', 'location_map', 'carte_de',
         'map.svg', 'map.png', 'map.jpg', 'map.jpeg', '_map', '-map', '%20map', 'associations_map', 'member_associations',
         'trophy', 'pokal', 'trofeo', 'trophe', 'medaille', 'medal',
-        'crowd', 'spectators', 'team_photo', 'roster', 'ball', 'pitch',
+        'crowd', 'spectators', 'team_photo', 'roster', '_ball.', '-ball.', '/ball.', 'match_ball', 'official_ball',
         'photo-resources', 'photo_resources', 'action-photo', '_vs_', '-vs-', 'vs_', 'vs-',
         'day-1', 'day-2', 'day-3', 'day_1', 'day_2', 'day_3', 'group-a', 'group-b',
         'bg_', 'background', 'banner_bg', 'header_bg', 'hero_bg', 'afc_bg',
@@ -57,11 +57,11 @@ class EmblemScout:
     """
 
     HEADERS = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 PredictionEngine/3.0'
+        'User-Agent': 'PredictionEngineBot/1.0 (https://predictionengine.app; contact@predictionengine.app)'
     }
 
     CANONICAL_EMBLEM_MAP = {
-        '2027 afc asian cup': 'https://upload.wikimedia.org/wikipedia/en/5/50/2027_AFC_Asian_Cup_logo.svg',
+        '2027 afc asian cup': 'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/2027_AFC_Asian_Cup_logo.svg/500px-2027_AFC_Asian_Cup_logo.svg.png',
         'afc asian cup': 'https://commons.wikimedia.org/wiki/Special:FilePath/AFC_Asian_Cup_logo.svg',
         'asian cup': 'https://commons.wikimedia.org/wiki/Special:FilePath/AFC_Asian_Cup_logo.svg',
         'uefa nations league': 'https://commons.wikimedia.org/wiki/Special:FilePath/UEFA_Nations_League_logo.svg',
@@ -94,38 +94,50 @@ class EmblemScout:
                 logger.info("EmblemScout: Found canonical emblem override for '%s': %s", clean_name, canonical_url)
                 return canonical_url
 
-        # 1. Wikidata P154 (Official Emblem) & Parent Entity Fallback
+        # 1. Wikipedia Article Parse Images (Fair-use & official emblems linked in Wikipedia)
+        logo_url = cls._fetch_from_wikipedia_article_images(clean_name)
+        if logo_url and is_valid_tournament_logo(logo_url):
+            logger.info("EmblemScout: Resolved emblem from Wikipedia Article Images: %s", logo_url)
+            return logo_url
+
+        # 2. Web Search Engine Direct Image Mining (Google / Web Images)
+        logo_url = cls._fetch_from_web_search_images(clean_name)
+        if logo_url and is_valid_tournament_logo(logo_url):
+            logger.info("EmblemScout: Resolved emblem from Web Search Images: %s", logo_url)
+            return logo_url
+
+        # 3. Wikidata P154 (Official Emblem) & Parent Entity Fallback
         logo_url = cls._fetch_from_wikidata(clean_name, wikidata_qid)
         if logo_url and is_valid_tournament_logo(logo_url):
             logger.info("EmblemScout: Resolved emblem from Wikidata: %s", logo_url)
             return logo_url
 
-        # 2. Wikimedia Commons Direct Search API
+        # 4. Wikimedia Commons Direct Search API
         logo_url = cls._fetch_from_wikimedia_commons(clean_name)
         if logo_url and is_valid_tournament_logo(logo_url):
             logger.info("EmblemScout: Resolved emblem from Wikimedia Commons: %s", logo_url)
             return logo_url
 
-        # 3. Wikipedia PageImages API
+        # 5. Wikipedia PageImages API
         logo_url = cls._fetch_from_wikipedia_pageimages(clean_name)
         if logo_url and is_valid_tournament_logo(logo_url):
             logger.info("EmblemScout: Resolved emblem from Wikipedia PageImages: %s", logo_url)
             return logo_url
 
-        # 4. Official Governing Body Webpage Meta & HTML Logo Tags
+        # 6. Official Governing Body Webpage Meta & HTML Logo Tags
         if official_url:
             logo_url = cls._fetch_from_official_webpage(official_url)
             if logo_url and is_valid_tournament_logo(logo_url):
                 logger.info("EmblemScout: Resolved emblem from Official Webpage: %s", logo_url)
                 return logo_url
 
-        # 5. Gemini AI Search Fallback
+        # 7. Gemini AI Search Fallback
         logo_url = cls._fetch_from_gemini_ai(clean_name, official_url)
         if logo_url and is_valid_tournament_logo(logo_url):
             logger.info("EmblemScout: Resolved emblem via Gemini AI Search: %s", logo_url)
             return logo_url
 
-        # 6. Fallback: Strip season year prefixes (e.g. "2026–27 UEFA Nations League" -> "UEFA Nations League") and retry
+        # 8. Fallback: Strip season year prefixes (e.g. "2026–27 UEFA Nations League" -> "UEFA Nations League") and retry
         parent_name = re.sub(r'^\d{4}(?:[–\-]\d{2,4})?\s*', '', clean_name).strip()
         if parent_name and parent_name != clean_name:
             logger.info("EmblemScout: Retrying search with parent tournament name '%s'", parent_name)
@@ -135,6 +147,95 @@ class EmblemScout:
 
         logger.warning("EmblemScout: No valid emblem logo found for '%s'", clean_name)
         return ""
+
+    @classmethod
+    def _fetch_from_wikipedia_article_images(cls, page_title: str) -> Optional[str]:
+        """
+        Parses all image files linked in the Wikipedia article (including fair-use logos)
+        and resolves the high-res 500px rendered PNG thumbnail.
+        """
+        titles_to_try = [page_title]
+        try:
+            from tournament.services.wikipedia_scout import WikipediaScout
+            wiki_search_title = WikipediaScout().search_wikipedia_article(page_title)
+            if wiki_search_title and wiki_search_title not in titles_to_try:
+                titles_to_try.append(wiki_search_title)
+        except Exception:
+            pass
+
+        clean_base = re.sub(r'\s*\b(qualifying|qualification|qualifiers)\b.*', '', page_title, flags=re.I).strip()
+        if clean_base and clean_base not in titles_to_try:
+            titles_to_try.append(clean_base)
+
+        for title in titles_to_try:
+            try:
+                wiki_title = title.replace(' ', '_')
+                parse_url = f"https://en.wikipedia.org/w/api.php?action=parse&page={urllib.parse.quote(wiki_title)}&prop=images&format=json"
+                res = requests.get(parse_url, headers=cls.HEADERS, timeout=6)
+                if res.status_code != 200:
+                    continue
+                data = res.json()
+                images = data.get('parse', {}).get('images', [])
+
+                logo_candidates = []
+                for img_name in images:
+                    img_lower = img_name.lower()
+                    if not any(k in img_lower for k in ['map', 'flag', 'stadium', 'trophy', 'medal', 'youtube', 'icon', 'nuvola', 'avatar']) and any(img_lower.endswith(ext) for ext in ['.svg', '.png', '.jpg', '.webp']):
+                        if any(k in img_lower for k in ['logo', 'emblem', 'crest', 'badge', 'insignia']):
+                            logo_candidates.append(img_name)
+
+                for img_name in logo_candidates:
+                    info_url = f"https://en.wikipedia.org/w/api.php?action=query&titles=File:{urllib.parse.quote(img_name)}&prop=imageinfo&iiprop=url&iiurlwidth=500&format=json"
+                    i_res = requests.get(info_url, headers=cls.HEADERS, timeout=6)
+                    if i_res.status_code == 200:
+                        i_data = i_res.json()
+                        pages = i_data.get('query', {}).get('pages', {})
+                        for _, p in pages.items():
+                            ii = p.get('imageinfo', [{}])[0]
+                            thumb_url = ii.get('thumburl') or ii.get('url')
+                            if thumb_url and is_valid_tournament_logo(thumb_url):
+                                return thumb_url
+            except Exception as exc:
+                logger.warning("EmblemScout article images parse error for '%s': %s", title, exc)
+        return None
+
+    @classmethod
+    def _fetch_from_web_search_images(cls, tournament_name: str) -> Optional[str]:
+        """
+        Performs web search image discovery for the tournament emblem/logo.
+        """
+        clean_base = re.sub(r'\s*\b(qualifying|qualification|qualifiers)\b.*', '', tournament_name, flags=re.I).strip()
+        queries = [
+            f"{clean_base} official emblem logo",
+            f"{tournament_name} emblem logo",
+            f"{clean_base} tournament logo",
+        ]
+
+        for query in queries:
+            try:
+                vqd_res = requests.get(
+                    f"https://duckduckgo.com/?q={urllib.parse.quote(query)}&t=h_&iax=images&ia=images",
+                    headers=cls.HEADERS,
+                    timeout=6,
+                )
+                if not vqd_res or not hasattr(vqd_res, 'text') or not isinstance(vqd_res.text, str):
+                    continue
+                vqd = re.search(r'vqd=([\d\-]+)', vqd_res.text) or re.search(r'vqd=\"([^\"]+)\"', vqd_res.text)
+                if vqd:
+                    vqd_val = vqd.group(1)
+                    api_url = f"https://duckduckgo.com/i.js?l=us-en&o=json&q={urllib.parse.quote(query)}&vqd={vqd_val}&f=,,,"
+                    res = requests.get(api_url, headers=cls.HEADERS, timeout=6)
+                    if res.status_code == 200:
+                        data = res.json()
+                        for r in data.get('results', [])[:10]:
+                            cand_url = r.get('image') or r.get('thumbnail')
+                            if cand_url and is_valid_tournament_logo(cand_url):
+                                cand_lower = cand_url.lower()
+                                if any(k in cand_lower for k in ['logo', 'emblem', 'crest', 'badge', 'brand', 'assets', 'upload', 'commons', 'gstatic', 'googleusercontent']):
+                                    return cand_url
+            except Exception as exc:
+                logger.warning("EmblemScout web search images error for query '%s': %s", query, exc)
+        return None
 
     @classmethod
     def _fetch_from_wikidata(cls, page_title: str, wikidata_qid: Optional[str] = None) -> Optional[str]:
