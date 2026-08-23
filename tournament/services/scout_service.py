@@ -161,33 +161,10 @@ def normalize_locations(val) -> str:
 
 def resolve_rescan_date_for_prospect(prospect) -> Optional[datetime.date]:
     """
-    Calculates the next automated rescan date for a WATCHLIST prospect.
-    If an established draw date exists, sets next rescan date to that exact draw date.
-    Otherwise falls back to start date or 7 days from today.
+    Calculates the next automated rescan date for a prospect using LifecycleStrategy.
     """
-    import datetime
-    payload = prospect.payload or {}
-    bp = prospect.tournament_blueprint or payload.get('tournament_blueprint') or {}
-    scouting_audit = payload.get('scouting_audit', {})
-
-    raw_draw_date = (
-        bp.get('draw_date')
-        or scouting_audit.get('draw_date')
-        or payload.get('draw_date')
-    )
-
-    if raw_draw_date:
-        try:
-            from dateutil import parser
-            d_obj = parser.parse(str(raw_draw_date)).date()
-            if d_obj >= datetime.date.today():
-                return d_obj
-        except Exception:
-            pass
-
-    if prospect.start_date:
-        return prospect.start_date
-
+    if hasattr(prospect, 'rescan_date') and prospect.rescan_date:
+        return prospect.rescan_date
     return datetime.date.today() + datetime.timedelta(days=7)
 
 

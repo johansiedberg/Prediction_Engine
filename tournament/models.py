@@ -1174,11 +1174,25 @@ class ScannedTournament(models.Model):
         ('ARCHIVED', 'Arkiverad / Ignorerad'),
     )
 
+    TOURNAMENT_TYPE_CHOICES = (
+        ('INTERNATIONAL_NATIONAL', 'International / National Teams'),
+        ('CLUB_CONTINENTAL', 'Club / Continental Championship'),
+        ('CLUB_DOMESTIC', 'Club / Domestic Cup'),
+    )
+
+    LIFECYCLE_PHASE_CHOICES = (
+        ('PHASE_1_MACRO_META', 'Fas 1: Metadata (> 9 mån)'),
+        ('PHASE_2_THE_DRAW', 'Fas 2: Lottning (9-3 mån)'),
+        ('PHASE_3_PRODUCTION', 'Fas 3: Produktion (< 3 mån)'),
+    )
+
     name = models.CharField(max_length=200, help_text="Tournament display name (e.g. Innebandy-VM Herrar 2026)")
     master_event_code = models.SlugField(max_length=100, blank=True, help_text="Master Event slug (e.g. iff-wfc-2026)")
     sport = models.CharField(max_length=100, default='Football', help_text="Sport discipline (e.g. Football, Floorball, Ice Hockey)")
     organizer = models.CharField(max_length=100, blank=True, help_text="Federation / Organizer (e.g. UEFA, FIFA, IFF)")
     host_country = models.CharField(max_length=150, blank=True, help_text="Host Country / Cities")
+    tournament_type = models.CharField(max_length=40, choices=TOURNAMENT_TYPE_CHOICES, default='INTERNATIONAL_NATIONAL', help_text="Tournament classification format")
+    lifecycle_phase = models.CharField(max_length=40, choices=LIFECYCLE_PHASE_CHOICES, default='PHASE_1_MACRO_META', help_text="Current temporal lifecycle scraping phase")
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     completeness_grade = models.CharField(max_length=20, choices=GRADE_CHOICES, default='GRADE_A')
@@ -1201,31 +1215,48 @@ class ScannedTournament(models.Model):
         verbose_name_plural = "Scanned Tournament Prospects"
 
     @property
-    def rescan_date(self):
-        """Returns the next scheduled rescan date as a datetime.date object or None."""
-        import datetime
+    def lifecycle_info(self):
+        """Returns the calculated LifecycleState containing phase, rescan date, tool policy and badges."""
+        from tournament.services.lifecycle_strategy import LifecycleStrategy, TournamentType
         payload = self.payload or {}
         audit = payload.get('scouting_audit', {})
         bp = self.tournament_blueprint or payload.get('tournament_blueprint') or {}
 
-        d_str = audit.get('next_rescan_date') or audit.get('draw_date') or bp.get('draw_date') or audit.get('rescan_date')
-        if d_str:
+        draw_date_obj = None
+        raw_draw = audit.get('draw_date') or bp.get('draw_date') or payload.get('draw_date')
+        if raw_draw:
             try:
                 from dateutil import parser
-                d_obj = parser.parse(str(d_str)).date()
-                if d_obj >= datetime.date.today():
-                    return d_obj
+                draw_date_obj = parser.parse(str(raw_draw)).date()
             except Exception:
                 pass
-        if self.created_at:
-            return self.created_at.date() + datetime.timedelta(days=7)
-        return None
 
+        t_type = TournamentType(self.tournament_type) if self.tournament_type in [e.value for e in TournamentType] else None
+        if not t_type:
+            t_type = LifecycleStrategy.determine_tournament_type(self.name, self.sport, self.organizer)
+
+        return LifecycleStrategy.calculate_lifecycle_phase(
+            start_date=self.start_date,
+            draw_date=draw_date_obj,
+            tournament_type=t_type
+        )
+
+    @property
+    def rescan_date(self):
+        """Returns the next scheduled rescan date as a datetime.date object or None."""
+        info = self.lifecycle_info
+        return info.next_rescan_date
 
     def save(self, *args, **kwargs):
         if self.host_country:
             from tournament.services.scout_service import normalize_locations
             self.host_country = normalize_locations(self.host_country)
+        if not self.tournament_type or self.tournament_type == 'INTERNATIONAL_NATIONAL':
+            from tournament.services.lifecycle_strategy import LifecycleStrategy
+            self.tournament_type = LifecycleStrategy.determine_tournament_type(self.name, self.sport, self.organizer).value
+        if self.start_date:
+            info = self.lifecycle_info
+            self.lifecycle_phase = info.phase.value
         super().save(*args, **kwargs)
 
     def __str__(self):

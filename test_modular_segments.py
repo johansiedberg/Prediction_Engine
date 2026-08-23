@@ -283,6 +283,52 @@ class TestModularSegments(unittest.TestCase):
             self.assertEqual(t_obj.flag_url, "https://flagcdn.com/w40/ht.png")
             self.assertEqual(t_obj.badge_url, "https://flagcdn.com/w40/ht.png")
 
+    def test_lifecycle_strategy(self):
+        import datetime
+        from tournament.services.lifecycle_strategy import LifecycleStrategy, TournamentType, ScraperPhase
+
+        today = datetime.date(2026, 8, 23)
+
+        # 1. International > 9 months out -> Phase 1 Macro-Meta
+        wc2030_start = datetime.date(2030, 6, 1)
+        res_p1 = LifecycleStrategy.calculate_lifecycle_phase(
+            start_date=wc2030_start,
+            tournament_type=TournamentType.INTERNATIONAL_NATIONAL,
+            today=today
+        )
+        self.assertEqual(res_p1.phase, ScraperPhase.PHASE_1_MACRO_META)
+        self.assertFalse(res_p1.tool_policy["fetch_fixtures"])
+        self.assertEqual(res_p1.next_rescan_date, today + datetime.timedelta(days=30))
+
+        # 2. International 3-9 months out with draw date -> Phase 2 The Draw
+        afc_start = datetime.date(2027, 1, 15)  # ~145 days away
+        draw_date = datetime.date(2026, 10, 1)
+        res_p2 = LifecycleStrategy.calculate_lifecycle_phase(
+            start_date=afc_start,
+            draw_date=draw_date,
+            tournament_type=TournamentType.INTERNATIONAL_NATIONAL,
+            today=today
+        )
+        self.assertEqual(res_p2.phase, ScraperPhase.PHASE_2_THE_DRAW)
+        self.assertTrue(res_p2.tool_policy["fetch_fixtures"])
+        self.assertEqual(res_p2.next_rescan_date, draw_date)
+
+        # 3. International < 3 months out -> Phase 3 Production
+        wc2026_start = datetime.date(2026, 9, 15)  # 23 days away
+        res_p3 = LifecycleStrategy.calculate_lifecycle_phase(
+            start_date=wc2026_start,
+            tournament_type=TournamentType.INTERNATIONAL_NATIONAL,
+            today=today
+        )
+        self.assertEqual(res_p3.phase, ScraperPhase.PHASE_3_PRODUCTION)
+        self.assertTrue(res_p3.tool_policy["fetch_exact_kickoff_hours"])
+        self.assertEqual(res_p3.next_rescan_date, today + datetime.timedelta(days=3))
+
+        # 4. Club Tournament Type classification
+        self.assertEqual(LifecycleStrategy.determine_tournament_type("UEFA Champions League 2026"), TournamentType.CLUB_CONTINENTAL)
+        self.assertEqual(LifecycleStrategy.determine_tournament_type("FIFA Club World Cup 2029"), TournamentType.CLUB_CONTINENTAL)
+        self.assertEqual(LifecycleStrategy.determine_tournament_type("Fotbolls-VM Herrar 2026"), TournamentType.INTERNATIONAL_NATIONAL)
+
 
 if __name__ == "__main__":
     unittest.main()
