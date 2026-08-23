@@ -1123,11 +1123,21 @@ def transfer_scouted_logo_to_tournament(scanned, tournament, master_event=None):
         or payload.get('logo_url')
     )
 
+    from tournament.services.emblem_scout import EmblemScout, is_valid_tournament_logo
+
+    # If no valid logo found yet, discover via multi-source EmblemScout
+    if not logo_url or not is_valid_tournament_logo(logo_url):
+        discovered_logo = EmblemScout.discover_emblem(
+            tournament.name,
+            sport=getattr(tournament, 'sport', 'Football') or 'Football',
+            official_url=getattr(tournament, 'official_regulations_url', '') or ''
+        )
+        if discovered_logo and is_valid_tournament_logo(discovered_logo):
+            logo_url = discovered_logo
+
     if not logo_url or not isinstance(logo_url, str) or not logo_url.startswith('http'):
         return
 
-    # Skip if logo_url is invalid or country flag
-    from tournament.services.wikidata_scout import is_valid_tournament_logo
     if not is_valid_tournament_logo(logo_url):
         return
 
@@ -1158,6 +1168,7 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
     """
     Takes a ScannedTournament prospect and converts it into a full live tournament
     in the database (MasterEvent, Tournament, PointSystem, Groups, Teams, Matches, KnockoutStages, Sidebets).
+    All gathered information from all 5 blueprint segments and scout payloads are fed into the tournament data.
     Returns (tournament_obj, error_string_if_any).
     """
     scanned = ScannedTournament.objects.filter(id=scanned_id).first()
@@ -1196,22 +1207,73 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                     'away_placeholder': m.get('away_source', ''),
                     'match_code': m.get('match_code', '')
                 })
-    sidebets_data = payload.get('sidebets_suggestions', [])
+    sidebets_data = payload.get('sidebets_suggestions') or struct_segment.get('sidebets') or payload.get('sidebets') or []
 
     # Extract dates & metadata
     from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
-    raw_start = scanned.start_date or general_segment.get('start_date') or head_segment.get('start_date') or master_event_data.get('start_date') or ''
-    raw_end = scanned.end_date or general_segment.get('end_date') or head_segment.get('end_date') or master_event_data.get('end_date') or ''
+    raw_start = scanned.start_date or general_segment.get('start_date') or head_segment.get('start_date') or master_event_data.get('start_date') or payload.get('start_date') or ''
+    raw_end = scanned.end_date or general_segment.get('end_date') or head_segment.get('end_date') or master_event_data.get('end_date') or payload.get('end_date') or ''
     start_iso = LLMWikipediaScout._parse_date_string(str(raw_start)) if raw_start else ''
     end_iso = LLMWikipediaScout._parse_date_string(str(raw_end)) if raw_end else ''
 
     start_date_obj = datetime.date.fromisoformat(start_iso) if start_iso else (scanned.start_date if isinstance(scanned.start_date, datetime.date) else None)
     end_date_obj = datetime.date.fromisoformat(end_iso) if end_iso else (scanned.end_date if isinstance(scanned.end_date, datetime.date) else None)
 
-    sport_val = scanned.sport or general_segment.get('sport') or head_segment.get('sport') or master_event_data.get('sport') or 'Football'
-    host_country_val = scanned.host_country or (general_segment.get('location') or {}).get('host_country') or general_segment.get('host_country') or master_event_data.get('host_country') or ''
-    organizer_val = scanned.organizer or general_segment.get('organizer') or master_event_data.get('organizer') or ''
-    summary_val = general_segment.get('tournament_summary') or ''
+    sport_val = scanned.sport or general_segment.get('sport') or head_segment.get('sport') or master_event_data.get('sport') or payload.get('sport') or 'Football'
+    
+    loc_data = general_segment.get('location') or {}
+    host_country_val = (
+        scanned.host_country
+        or (loc_data.get('host_country') if isinstance(loc_data, dict) else '')
+        or (loc_data.get('cities') if isinstance(loc_data, dict) else '')
+        or general_segment.get('host_country')
+        or head_segment.get('host_country')
+        or master_event_data.get('host_country')
+        or payload.get('host_country')
+        or ''
+    )
+    
+    organizer_val = scanned.organizer or general_segment.get('organizer') or master_event_data.get('organizer') or head_segment.get('organizer') or payload.get('organizer') or ''
+    summary_val = general_segment.get('tournament_summary') or payload.get('tournament_summary') or head_segment.get('summary') or payload.get('summary') or scanned.grade_reason or ''
+
+    # Compile comprehensive official rules from all gathered sources
+    rules_parts = []
+    if scanned.official_rules:
+        rules_parts.append(scanned.official_rules.strip())
+    if struct_segment.get('official_rules_summary') and struct_segment.get('official_rules_summary').strip() not in rules_parts:
+        rules_parts.append(struct_segment.get('official_rules_summary').strip())
+    if struct_segment.get('tournament_format'):
+        fmt_entry = f"Format: {struct_segment.get('tournament_format')}"
+        if fmt_entry not in rules_parts:
+            rules_parts.append(fmt_entry)
+    if struct_segment.get('tiebreakers'):
+        tb_entry = f"Tiebreakers:\n{struct_segment.get('tiebreakers')}"
+        if tb_entry not in rules_parts:
+            rules_parts.append(tb_entry)
+    if struct_segment.get('advancement_rules'):
+        adv_entry = f"Avancemang:\n{struct_segment.get('advancement_rules')}"
+        if adv_entry not in rules_parts:
+            rules_parts.append(adv_entry)
+    if struct_segment.get('overtime_and_penalties'):
+        ot_entry = f"Förlängning & Straffar:\n{struct_segment.get('overtime_and_penalties')}"
+        if ot_entry not in rules_parts:
+            rules_parts.append(ot_entry)
+    if not rules_parts:
+        audit_adv = payload.get('scouting_audit', {}).get('advancement_rules') or payload.get('scouting_audit', {}).get('official_rules')
+        if audit_adv:
+            rules_parts.append(audit_adv.strip())
+    
+    off_rules = "\n\n".join(rules_parts).strip()
+    
+    off_url = (
+        scanned.official_source_url
+        or general_segment.get('official_website_url')
+        or payload.get('scouting_audit', {}).get('official_source_url')
+        or head_segment.get('official_source_url')
+        or master_event_data.get('official_source_url')
+        or payload.get('scouting_audit', {}).get('wikipedia_url')
+        or ''
+    )
 
     with transaction.atomic():
         # 1. Master Event
@@ -1226,11 +1288,23 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
         )
 
         # 2. Tournament
-        has_best_thirds = struct_segment.get('qualifying_tables_rules', {}).get('has_best_thirds', False) or tournament_config.get('has_best_thirds_table', False)
-        has_runners_up = struct_segment.get('qualifying_tables_rules', {}).get('has_runners_up', False) or tournament_config.get('has_runners_up_table', False)
-        has_host_ranking = tournament_config.get('has_host_ranking_table', False)
-        off_rules = scanned.official_rules or struct_segment.get('official_rules_summary') or payload.get('scouting_audit', {}).get('official_rules') or payload.get('scouting_audit', {}).get('advancement_rules') or ''
-        off_url = scanned.official_source_url or general_segment.get('official_website_url') or payload.get('master_event', {}).get('official_source_url') or ''
+        has_best_thirds = (
+            struct_segment.get('qualifying_tables_rules', {}).get('has_best_thirds', False)
+            or struct_segment.get('has_best_thirds_table', False)
+            or tournament_config.get('has_best_thirds_table', False)
+            or bool(re.search(r'bästa tre(or|a)|best 3rd|third-placed', off_rules, re.IGNORECASE))
+        )
+        has_runners_up = (
+            struct_segment.get('qualifying_tables_rules', {}).get('has_runners_up', False)
+            or struct_segment.get('has_runners_up_table', False)
+            or tournament_config.get('has_runners_up_table', False)
+            or bool(re.search(r'bästa två(or|a)|runners-up|ranking of second', off_rules, re.IGNORECASE))
+        )
+        has_host_ranking = (
+            tournament_config.get('has_host_ranking_table', False)
+            or struct_segment.get('has_host_ranking_table', False)
+            or bool(re.search(r'co-host|värdnation', off_rules, re.IGNORECASE))
+        )
 
         tournament, _ = Tournament.objects.update_or_create(
             name=scanned.name,
@@ -1437,17 +1511,26 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
         match_number_counter = ensure_complete_knockout_bracket(tournament, base_dt, match_number_counter)
 
         # 8. Sidebets
-        for sb in sidebets_data:
-            q_text = sb.get('question')
-            q_type = sb.get('question_type', 'TEXT')
-            q_pts = sb.get('points', 5)
-            if q_text:
-                Sidebet.objects.create(
-                    tournament=tournament,
-                    question=q_text,
-                    points=q_pts,
-                    question_type=q_type
-                )
+        if sidebets_data:
+            for sb in sidebets_data:
+                q_text = sb.get('question') if isinstance(sb, dict) else str(sb)
+                q_type = sb.get('question_type', 'TEXT') if isinstance(sb, dict) else 'TEXT'
+                q_pts = sb.get('points', 5) if isinstance(sb, dict) else 5
+                if q_text:
+                    Sidebet.objects.create(
+                        tournament=tournament,
+                        question=q_text,
+                        points=q_pts,
+                        question_type=q_type
+                    )
+        else:
+            # Auto-create standard tournament winner sidebet
+            Sidebet.objects.create(
+                tournament=tournament,
+                question=f"Vilket lag vinner {tournament.name}?",
+                points=10,
+                question_type='CHOICES'
+            )
 
         # Mark ScannedTournament as converted and link to live tournament
         scanned.status = 'CONVERTED'

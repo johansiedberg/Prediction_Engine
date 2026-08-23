@@ -76,6 +76,11 @@ class EmblemScout:
     }
 
     @classmethod
+    def discover_emblem(cls, tournament_name: str, sport: Optional[str] = None, official_url: Optional[str] = None, wikidata_qid: Optional[str] = None) -> str:
+        """Alias for discover_official_emblem."""
+        return cls.discover_official_emblem(tournament_name=tournament_name, official_url=official_url, wikidata_qid=wikidata_qid)
+
+    @classmethod
     def discover_official_emblem(cls, tournament_name: str, official_url: Optional[str] = None, wikidata_qid: Optional[str] = None) -> str:
         """
         Discovers the canonical official emblem logo URL for a given tournament name.
