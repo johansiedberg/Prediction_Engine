@@ -345,15 +345,25 @@
             <div class="col-12 col-md-6 col-xl-4">
                 <div class="p-3.5 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm h-100 {% if st_data.not_applicable %}opacity-75{% endif %}">
                     <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h5 class="fw-extrabold {% if st_data.not_applicable %}text-secondary{% else %}text-info{% endif %} mb-0"><i class="fa-solid fa-trophy me-1.5"></i>{{ st_data.stage.name }}</h5>
+                        <h5 class="fw-extrabold {% if st_data.not_applicable %}text-secondary{% else %}text-info{% endif %} mb-0">
+                            <i class="fa-solid fa-trophy me-1.5 {% if st_data.not_applicable %}text-secondary{% else %}text-info{% endif %}"></i>{{ st_data.stage.name }}
+                        </h5>
                         {% if st_data.not_applicable %}
                         <span class="badge font-monospace fs-8" style="background: #0F172A; border: 1px solid #475569; color: #94A3B8;">Ej tillämplig</span>
+                        {% elif st_data.matches %}
+                        <span class="badge font-monospace fs-8" style="background: #052E16; border: 1px solid #15803D; color: #DCFCE7;">{{ st_data.matches|length }} matcher</span>
+                        {% else %}
+                        <span class="badge font-monospace fs-8" style="background: #451A03; border: 1px solid #B45309; color: #FEF3C7;">0 matcher</span>
                         {% endif %}
                     </div>
                     
                     {% if st_data.not_applicable %}
                     <div class="p-3 rounded-3 border border-secondary border-opacity-20 text-secondary text-center small font-monospace">
-                        <i class="fa-solid fa-forward me-1.5 text-warning"></i>{{ st_data.note|default:"Passeras i detta format." }}
+                        <i class="fa-solid fa-forward me-1.5 text-warning"></i>{{ st_data.note|default:"Ej tillämplig för detta format (Gruppspelet avancerar direkt till Åttondelsfinal/Slutspel)" }}
+                    </div>
+                    {% elif not st_data.matches %}
+                    <div class="p-3 rounded-3 border border-secondary border-opacity-20 text-secondary text-center small font-monospace">
+                        <i class="fa-solid fa-clock-rotate-left me-1.5 text-warning"></i>Inga matcher i denna slutspelsfas.
                     </div>
                     {% else %}
                     <div class="d-flex flex-column gap-2">
@@ -374,8 +384,6 @@
                                 <span class="fw-extrabold text-warning font-monospace ms-2">{% if m.away_goals != None %}{{ m.away_goals }}{% else %}-{% endif %}</span>
                             </div>
                         </div>
-                        {% empty %}
-                        <span class="text-secondary fs-7">Inga matcher i denna slutspelsfas.</span>
                         {% endfor %}
                     </div>
                     {% endif %}
