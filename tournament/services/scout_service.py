@@ -455,9 +455,10 @@ def fetch_and_ingest_allsportdb_tournaments(months_ahead=12, dry_run=False, sync
         else: updated_count += 1
 
         today = datetime.date.today()
-        is_upcoming = bool(start_date_val and start_date_val > today)
+        min_upcoming_date = today + datetime.timedelta(days=30)
+        is_upcoming = bool(start_date_val and start_date_val > min_upcoming_date)
 
-        # Sync to ScannedTournament prospect ONLY if H2H team sport AND strictly upcoming (start_date > today)
+        # Sync to ScannedTournament prospect ONLY if H2H team sport AND starts in > 30 days
         if sync_scout and is_h2h and is_upcoming:
             master_code = title.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
             host_str = f"{country} ({city})".strip(' ()')
@@ -886,6 +887,12 @@ def fetch_and_ingest_major_football_tournaments(sync_scout=True):
                     start_date_str = str(start_date_val)
                 except Exception:
                     pass
+            
+            # Skip past, ongoing, or imminent events (< 30 days from today) during Webscan shallow ingestion.
+            today = datetime.date.today()
+            min_upcoming_date = today + datetime.timedelta(days=30)
+            if start_date_val and start_date_val < min_upcoming_date:
+                continue
 
             teams_count = (infobox.get('teams_count') if infobox and infobox.get('teams_count') else 16)
             today = datetime.date.today()
