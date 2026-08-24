@@ -145,7 +145,7 @@ _SYSTEM_PROMPT = (
     "fixtures yet, set scheduled_matchdays to the number of matchday rounds and leave "
     "fixtures as an empty list.\n"
     "If a draw has been announced for a future date but not yet held, set draw_completed=false "
-    "and record the draw_date.\n"
+    "and actively USE GOOGLE SEARCH to find the exact official draw_date if it is not firmly established in the text.\n"
     + _RESPONSE_SCHEMA_DESC
 )
 
@@ -378,6 +378,7 @@ class LLMWikipediaScout:
         headers = {'Content-Type': 'application/json'}
         payload = {
             'contents': [{'parts': [{'text': prompt}]}],
+            'tools': [{'googleSearch': {}}],
             'generationConfig': {
                 'response_mime_type': 'application/json',
                 'temperature': 0.0,
