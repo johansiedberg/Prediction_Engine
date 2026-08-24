@@ -169,6 +169,23 @@ class ModularDeepScout:
             }
 
         # Handle Disambiguation / Split Tournament Portal pages
+
+        # 1.5 Intermediate Auto-Rejection (Header Stage)
+        # Rejects past tournaments instantly after the initial audit fetch, bypassing all 5 sub-agents
+        audit_start = audit.get("start_date") or audit.get("tournament_start_date")
+        if audit_start:
+            try:
+                astart_obj = datetime.date.fromisoformat(str(audit_start)[:10])
+                if astart_obj < min_upcoming_date:
+                    p_name = prospect.name
+                    prospect.delete()
+                    return {
+                        'ok': False,
+                        'error': f"Djupscanning misslyckades: Turneringen '{p_name}' är pågående eller startar inom mindre än 30 dagar (Startdatum: {astart_obj}). Endast framtida turneringar accepteras.",
+                    }
+            except Exception:
+                pass
+
         if audit.get('is_disambiguation') and audit.get('sub_tournaments'):
             from tournament.services.scout_service import parse_and_save_scouted_json
             created_names = []
