@@ -849,6 +849,14 @@ def fetch_and_ingest_major_football_tournaments(sync_scout=True):
 
             master_code = title.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
 
+            # Auto-reject tournaments from past years right at the Web Scraper level
+            import re
+            year_match = re.search(r'\b(19\d{2}|20\d{2})\b', title)
+            if year_match:
+                tournament_year = int(year_match.group(1))
+                if tournament_year < datetime.date.today().year:
+                    continue
+
             existing = ScannedTournament.objects.filter(
                 models.Q(master_event_code=master_code) |
                 models.Q(name__iexact=title)

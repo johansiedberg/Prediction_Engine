@@ -178,6 +178,14 @@ class ModularDeepScout:
                     continue
                 sub_url = sub.get('wiki_url') or f"https://en.wikipedia.org/wiki/{urllib.parse.quote(sub_name.replace(' ', '_'))}"
                 sub_code = sub_name.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
+                
+                # Auto-reject sub-tournaments from past years
+                year_match = re.search(r'\b(19\d{2}|20\d{2})\b', sub_name)
+                if year_match:
+                    tournament_year = int(year_match.group(1))
+                    if tournament_year < today_date.year:
+                        logger.info(f"Skipping sub-tournament '{sub_name}' because year {tournament_year} is in the past.")
+                        continue
 
                 sub_payload = {
                     "scouting_audit": {
