@@ -1959,3 +1959,110 @@ class EngineAdminAjaxEndpointsTestCase(TestCase):
         self.client.force_login(self.user)
         resp = self.client.post(f'/engine-admin/validate/{self.tournament.id}/', HTTP_HOST='localhost:2029')
         self.assertIn(resp.status_code, [302, 403])
+import unittest
+from unittest.mock import patch, MagicMock
+from django.test import TestCase
+
+from tournament.services.head_discovery_agent import HeadDiscoveryAgent
+from tournament.services.general_deep_scout_agent import GeneralDeepScoutAgent
+from tournament.services.structure_rules_agent import StructureRulesAgent
+from tournament.services.groups_teams_agent import GroupsTeamsAgent
+from tournament.services.matches_knockout_agent import MatchesKnockoutAgent
+from tournament.schemas.tournament_prospect_schema import GroupsAndTeamsSegment
+
+class ScoutAgentsTestCase(TestCase):
+    def test_head_discovery_agent(self):
+        head = HeadDiscoveryAgent.build_head_segment(
+            name="World Cup 2026",
+            sport="Football",
+            start_date="2026-06-11",
+            discovery_source="Test"
+        )
+        self.assertEqual(head.name, "World Cup 2026")
+        self.assertEqual(head.master_event_code, "world-cup-2026")
+        self.assertEqual(head.sport, "Football")
+        self.assertTrue(head.is_h2h_team_sport)
+        self.assertEqual(head.start_date, "2026-06-11")
+
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=True)
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.scout_general_details')
+    @patch('tournament.services.wikidata_scout.WikidataScout.fetch_wikidata_entity')
+    @patch('tournament.services.official_site_scout.OfficialSiteScout.discover_official_site')
+    @patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem')
+    def test_general_deep_scout_agent(self, mock_emblem, mock_official, mock_wiki, mock_gemini, mock_avail):
+        mock_gemini.return_value = {
+            "start_date": "2026-06-11",
+            "host_country": "USA",
+            "logo_url": "gemini_logo.png"
+        }
+        mock_emblem.return_value = "emblem_logo.png"
+        mock_official.return_value = "https://example.com"
+        mock_wiki.return_value = {"wikidata_qid": "Q123", "official_website_url": "https://example.com"}
+
+        agent = GeneralDeepScoutAgent()
+        result = agent.build_general_segment(
+            tournament_name="Test Tournament",
+            audit_data={"sport": "Football"}
+        )
+
+        self.assertEqual(result.start_date, "2026-06-11")
+        self.assertEqual(result.location.host_country, "USA")
+        self.assertEqual(result.emblem.logo_url, "gemini_logo.png")
+        self.assertEqual(result.official_website_url, "https://example.com")
+
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=True)
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.scout_structure_and_rules')
+    def test_structure_rules_agent(self, mock_gemini, mock_avail):
+        mock_gemini.return_value = {
+            "knockout_rules": {"starting_round": "Round of 16"},
+            "draw_completed": True
+        }
+        agent = StructureRulesAgent()
+        result = agent.build_structure_rules_segment(
+            tournament_name="Test Tournament"
+        )
+        self.assertTrue(result.general_setup.draw_completed)
+        self.assertEqual(result.knockout_rules.starting_round, "Round of 16")
+
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=True)
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.scout_groups_and_teams')
+    def test_groups_teams_agent(self, mock_gemini, mock_avail):
+        mock_gemini.return_value = {
+            "groups": [
+                {"name": "Group A", "teams": ["Team 1", "Team 2"]}
+            ]
+        }
+        agent = GroupsTeamsAgent()
+        result = agent.build_groups_teams_segment(
+            tournament_name="Test Tournament"
+        )
+        self.assertEqual(len(result.groups), 1)
+        self.assertEqual(result.groups[0].name, "Group A")
+        self.assertEqual(len(result.groups[0].teams), 2)
+        self.assertEqual(result.groups[0].teams[0].name, "Team 1")
+
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=True)
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.scout_matches_and_knockout')
+    def test_matches_knockout_agent(self, mock_gemini, mock_avail):
+        mock_gemini.return_value = {
+            "fixtures": [
+                {"match_number": 1, "home_team": "Team 1", "away_team": "Team 2", "stage": "Group A"}
+            ],
+            "knockout_stages": [
+                {"stage_name": "Final", "matches": [
+                    {"match_number": 2, "home_team": "Winner 1", "away_team": "Winner 2"}
+                ]}
+            ]
+        }
+        agent = MatchesKnockoutAgent()
+        # Create a dummy groups_segment
+        groups_seg = GroupsAndTeamsSegment(groups=[])
+        result = agent.build_matches_knockout_segment(
+            tournament_name="Test Tournament",
+            groups_segment=groups_seg
+        )
+        self.assertEqual(len(result.group_matches), 1)
+        self.assertEqual(result.group_matches[0].match_number, 1)
+        self.assertEqual(len(result.knockout_bracket), 1)
+        self.assertEqual(result.knockout_bracket[0].stage_name, "Final")
+
