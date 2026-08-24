@@ -75,7 +75,7 @@ class CustomLoginView(LoginView):
 def superuser_or_staff_required(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        if not request.user.is_authenticated or request.user.username != 'johansiedberg' or not request.user.is_superuser:
+        if not request.user.is_authenticated or not request.user.is_superuser:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', ''):
                 from django.http import JsonResponse
                 return JsonResponse({'status': 'error', 'message': 'Sessionen har gått ut eller saknar Engine Admin-behörighet.'}, status=401)

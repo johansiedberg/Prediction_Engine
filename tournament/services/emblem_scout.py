@@ -1,11 +1,9 @@
 import logging
 import re
 import urllib.parse
-import urllib3
 import requests
 from typing import Optional, Dict, Any
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logger = logging.getLogger(__name__)
 
 
@@ -321,7 +319,11 @@ class EmblemScout:
         if not official_url or not isinstance(official_url, str):
             return None
         try:
-            res = requests.get(official_url, headers=cls.HEADERS, timeout=8, verify=False)
+            try:
+                res = requests.get(official_url, headers=cls.HEADERS, timeout=8, verify=True)
+            except requests.exceptions.SSLError:
+                logger.warning("EmblemScout: SSL error for %s, skipping.", official_url)
+                return None
             if res.status_code != 200:
                 return None
             from bs4 import BeautifulSoup

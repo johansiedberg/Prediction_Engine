@@ -4,7 +4,6 @@ from .views import (
     CustomLoginView, register_view, dashboard_view, predictions_view, upload_avatar_view,
     hub_view, join_league_view, switch_league_view, sso_login_view,
     # Engine Admin (Port 2029)
-    create_admin_user_view,
     engine_admin_dashboard_view, engine_admin_validate_tournament,
     engine_admin_simulate_tournament, engine_admin_reset_simulation,
     engine_admin_toggle_publish, engine_admin_preview_tournament,
@@ -67,7 +66,6 @@ urlpatterns = [
     path('pool-admin/<int:league_id>/toggle-tournament/<int:tournament_id>/', toggle_pool_tournament_view, name='toggle_pool_tournament'),
 
     # Engine Admin Routes (Port 2029)
-    path('engine-admin/create-admin-user/', create_admin_user_view, name='create_admin_user'),
     path('engine-admin/', engine_admin_dashboard_view, name='engine_admin'),
     path('engine-admin/validate/<int:tournament_id>/', engine_admin_validate_tournament, name='engine_admin_validate'),
     path('engine-admin/simulate/<int:tournament_id>/', engine_admin_simulate_tournament, name='engine_admin_simulate'),

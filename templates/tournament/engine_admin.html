@@ -695,6 +695,28 @@
 
         </div>
 
+        <!-- ===================================================================== -->
+        <!-- SECTION 3: POOL-ADMIN ANSÖKNINGAR                                      -->
+        <!-- ===================================================================== -->
+        <div class="tab-pane fade" id="pool-requests-pane" role="tabpanel" aria-labelledby="pool-requests-tab">
+            <div class="p-4 rounded-4 border border-secondary border-opacity-30 bg-transparent shadow-sm">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <h4 class="fw-extrabold text-white mb-0">
+                        <i class="fa-solid fa-user-shield text-warning me-2"></i> Pool-Admin-ansökningar
+                    </h4>
+                    <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-3" onclick="loadPoolRequests()">
+                        <i class="fa-solid fa-arrows-rotate me-1"></i> Uppdatera
+                    </button>
+                </div>
+                <div id="pool-requests-list">
+                    <div class="text-center py-5">
+                        <i class="fa-solid fa-spinner fa-spin fa-2x text-secondary mb-3"></i>
+                        <p class="text-secondary">Laddar ansökningar...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- SECTION 4: AI TOURNAMENT SCOUT -->
         <div class="tab-pane fade" id="scout-pane" role="tabpanel">
             {% csrf_token %}
@@ -1036,12 +1058,12 @@
                                                     <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.75rem;">
                                                         Officiell
                                                     </a>
-                                                    <button class="btn btn-link text-secondary p-0 text-decoration-none" style="font-size:0.75rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '{{ item.official_source_url|escapejs }}')" title="Ändra officiell länk">
+                                                    <button class="btn btn-link text-secondary p-0 text-decoration-none" style="font-size:0.75rem;" onclick="openEditRulesModal({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}', '{{ item.official_rules|escapejs }}', '{{ item.official_source_url|escapejs }}')" title="Ändra officiell länk">
                                                         <i class="fa-solid fa-pen-to-square"></i>
                                                     </button>
                                                 {% else %}
                                                     <span class="text-secondary opacity-40">&bull;</span>
-                                                    <button class="btn btn-outline-info btn-xs rounded-pill font-monospace py-0.5 px-2 text-decoration-none" style="font-size:0.72rem;" onclick="updateOfficialUrl({{ item.prospect.id }}, '')" title="Lägg till manuell webbadress">
+                                                    <button class="btn btn-outline-info btn-xs rounded-pill font-monospace py-0.5 px-2 text-decoration-none" style="font-size:0.72rem;" onclick="openEditRulesModal({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}', '', '')" title="Lägg till manuell webbadress">
                                                         + Officiell
                                                     </button>
                                                 {% endif %}
@@ -1351,7 +1373,7 @@
                                                                              {% elif t.flag_url %}
                                                                                  <img src="{{ t.flag_url }}" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">
                                                                              {% elif t.code and t.code|length <= 6 %}
-                                                                                 <img src="https://flagcdn.com/w40/{{ t.code|lower }}.png" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">
+                                                                                 <img src="https://flagcdn.com/w40/{{ t.code|lower }}.png" loading="lazy" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">
                                                                              {% else %}
                                                                                  <span class="me-1.5 text-secondary">&bull;</span>
                                                                              {% endif %}
@@ -1449,7 +1471,7 @@
                                                                                 {% elif f.home_team_flag_url %}
                                                                                     <img src="{{ f.home_team_flag_url }}" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 ms-1.5 border border-secondary border-opacity-30" alt="">
                                                                                 {% elif f.home_team_code and f.home_team_code|length <= 6 %}
-                                                                                    <img src="https://flagcdn.com/w40/{{ f.home_team_code|lower }}.png" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 ms-1.5 border border-secondary border-opacity-30" alt="">
+                                                                                    <img src="https://flagcdn.com/w40/{{ f.home_team_code|lower }}.png" loading="lazy" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 ms-1.5 border border-secondary border-opacity-30" alt="">
                                                                                 {% endif %}
                                                                             </span>
                                                                             <span class="text-info px-1">vs</span>
@@ -1459,7 +1481,7 @@
                                                                                 {% elif f.away_team_flag_url %}
                                                                                     <img src="{{ f.away_team_flag_url }}" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">
                                                                                 {% elif f.away_team_code and f.away_team_code|length <= 6 %}
-                                                                                    <img src="https://flagcdn.com/w40/{{ f.away_team_code|lower }}.png" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">
+                                                                                    <img src="https://flagcdn.com/w40/{{ f.away_team_code|lower }}.png" loading="lazy" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">
                                                                                 {% endif %}
                                                                                 <span>{{ f.away_team }}</span>
                                                                             </span>
@@ -1503,7 +1525,7 @@
                                                                                             {% elif m.home_team_flag_url %}
                                                                                                 <img src="{{ m.home_team_flag_url }}" style="width:14px;height:10px;object-fit:cover;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
                                                                                             {% elif m.home_team_code and m.home_team_code|length <= 6 %}
-                                                                                                <img src="https://flagcdn.com/w40/{{ m.home_team_code|lower }}.png" style="width:14px;height:10px;object-fit:cover;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
+                                                                                                <img src="https://flagcdn.com/w40/{{ m.home_team_code|lower }}.png" loading="lazy" style="width:14px;height:10px;object-fit:cover;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
                                                                                             {% endif %}
                                                                                             <span>{{ m.home_team }}</span>
                                                                                             <span class="text-info mx-1">vs</span>
@@ -1512,7 +1534,7 @@
                                                                                             {% elif m.away_team_flag_url %}
                                                                                                 <img src="{{ m.away_team_flag_url }}" style="width:14px;height:10px;object-fit:cover;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
                                                                                             {% elif m.away_team_code and m.away_team_code|length <= 6 %}
-                                                                                                <img src="https://flagcdn.com/w40/{{ m.away_team_code|lower }}.png" style="width:14px;height:10px;object-fit:cover;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
+                                                                                                <img src="https://flagcdn.com/w40/{{ m.away_team_code|lower }}.png" loading="lazy" style="width:14px;height:10px;object-fit:cover;" class="rounded-1 me-1 border border-secondary border-opacity-30" alt="">
                                                                                             {% endif %}
                                                                                             <span>{{ m.away_team }}</span>
                                                                                         </span>
@@ -2617,19 +2639,6 @@
         return cookieValue;
     }
 
-    function copyAdminEmails() {
-        const copyText = document.getElementById("adminEmailsInput");
-        if (!copyText) return;
-        copyText.select();
-        copyText.setSelectionRange(0, 99999);
-        navigator.clipboard.writeText(copyText.value).then(() => {
-            alert("Kopierade alla Pool Admin E-postadresser till urklipp!");
-        }).catch(() => {
-            document.execCommand('copy');
-            alert("Kopierade alla Pool Admin E-postadresser till urklipp!");
-        });
-    }
-
     // --- UNIFIED TOURNAMENT MANAGEMENT STUDIO MODAL LOGIC ---
     let currentEditingTournamentId = null;
     let currentGmTournamentId = null;
@@ -3320,10 +3329,6 @@
         container.innerHTML = html;
     }
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
 
     function showAddSidebetForm() {
         const card = document.getElementById('newSidebetCard');
@@ -3721,13 +3726,13 @@
                                         req.status === 'PENDING' ? 'rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3)' :
                                         req.status === 'APPROVED' ? 'rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3)' :
                                         'rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3)'
-                                    };">${req.status}</span>
+                                    };">${escapeHtml(req.status)}</span>
                                     <span class="text-secondary small">#${req.id} &bull; ${req.created_at ? req.created_at.split('T')[0] : '-'}</span>
                                 </div>
-                                <h5 class="fw-bold text-white mb-1">${req.pool_name}</h5>
-                                <p class="text-secondary mb-1" style="font-size:0.85rem;">Ansökare: <strong class="text-white">${req.user}</strong>${req.master_event ? ' &bull; Mästerskap: ' + req.master_event : ''}</p>
-                                ${req.description ? `<p class="text-secondary mb-0" style="font-size:0.8rem;">${req.description}</p>` : ''}
-                                ${req.reviewed_by ? `<p class="text-secondary mb-0 mt-1" style="font-size:0.78rem;"><i class="fa-solid fa-user-check me-1"></i>Granskad av ${req.reviewed_by}${req.rejection_reason ? ' &bull; Anledning: ' + req.rejection_reason : ''}</p>` : ''}
+                                <h5 class="fw-bold text-white mb-1">${escapeHtml(req.pool_name)}</h5>
+                                <p class="text-secondary mb-1" style="font-size:0.85rem;">Ansökare: <strong class="text-white">${escapeHtml(req.user)}</strong>${req.master_event ? ' &bull; Mästerskap: ' + escapeHtml(req.master_event) : ''}</p>
+                                ${req.description ? `<p class="text-secondary mb-0" style="font-size:0.8rem;">${escapeHtml(req.description)}</p>` : ''}
+                                ${req.reviewed_by ? `<p class="text-secondary mb-0 mt-1" style="font-size:0.78rem;"><i class="fa-solid fa-user-check me-1"></i>Granskad av ${escapeHtml(req.reviewed_by)}${req.rejection_reason ? ' &bull; Anledning: ' + escapeHtml(req.rejection_reason) : ''}</p>` : ''}
                             </div>
                             ${req.status === 'PENDING' ? `
                             <div class="d-flex gap-2">
@@ -3783,20 +3788,6 @@
         });
     }
 
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
 
     // ==========================================
     // AI TOURNAMENT SCOUT JAVASCRIPT HANDLERS
@@ -4444,7 +4435,7 @@
                                 } else if (flagUrl) {
                                     badge = `<img src="${flagUrl}" style="width:20px;height:14px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">`;
                                 } else if (code && code.length <= 6) {
-                                    badge = `<img src="https://flagcdn.com/w40/${code.toLowerCase()}.png" style="width:20px;height:14px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">`;
+                                    badge = `<img src="https://flagcdn.com/w40/${code.toLowerCase()}.png" loading="lazy" style="width:20px;height:14px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30">`;
                                 }
                                 return `<div class="d-flex align-items-center text-white small">${badge}${name}</div>`;
                             }).join('')}
@@ -4503,7 +4494,7 @@
                                         } else if (f.home_team_flag_url) {
                                             hBadge = `<img src="${f.home_team_flag_url}" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
                                         } else if (f.home_team_code && f.home_team_code.length <= 6) {
-                                            hBadge = `<img src="https://flagcdn.com/w40/${f.home_team_code.toLowerCase()}.png" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
+                                            hBadge = `<img src="https://flagcdn.com/w40/${f.home_team_code.toLowerCase()}.png" loading="lazy" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
                                         }
 
                                         let aBadge = '';
@@ -4512,7 +4503,7 @@
                                         } else if (f.away_team_flag_url) {
                                             aBadge = `<img src="${f.away_team_flag_url}" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
                                         } else if (f.away_team_code && f.away_team_code.length <= 6) {
-                                            aBadge = `<img src="https://flagcdn.com/w40/${f.away_team_code.toLowerCase()}.png" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
+                                            aBadge = `<img src="https://flagcdn.com/w40/${f.away_team_code.toLowerCase()}.png" loading="lazy" style="width:16px;height:12px;object-fit:cover;" class="rounded-1 me-1.5 border border-secondary border-opacity-30" alt="">`;
                                         }
 
                                         return `

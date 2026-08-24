@@ -10,7 +10,6 @@ from tournament.views.engine_admin import (
     engine_admin_root_view,
     engine_admin_login_view,
     engine_admin_logout_view,
-    create_admin_user_view,
     engine_admin_dashboard_view,
     engine_admin_validate_tournament,
     engine_admin_simulate_tournament,

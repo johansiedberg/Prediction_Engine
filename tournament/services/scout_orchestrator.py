@@ -54,7 +54,7 @@ class DualScoutOrchestrator:
         Merges the Tier 1 (web) and Tier 2 (wiki) payloads.
         Rules and Tiebreakers from Tier 1 override Tier 2 if domain is verified.
         """
-        merged = wiki_payload.copy()
+        merged = wiki_payload.copy() if wiki_payload else {}
         
         # Initialize provenance tracking
         provenance = {
@@ -70,8 +70,8 @@ class DualScoutOrchestrator:
         
         # If Web Scout found rules on an official domain, override Wikipedia
         if web_rules and web_prov.get("domain_verified"):
-            # We enforce Tier 1 supremacy
-            merged["points_system"] = web_rules # Or map it accordingly
+            # Store as official rules text, not as points_system (which expects a dict)
+            merged["official_rules_text"] = web_rules
             provenance["official_rules"] = {
                 "source": "Official Web Agent (Tier 1)",
                 "confidence": web_prov.get("confidence", "high"),

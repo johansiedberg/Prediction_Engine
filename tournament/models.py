@@ -22,7 +22,7 @@ class League(models.Model):
     tournaments = models.ManyToManyField('Tournament', related_name='leagues', blank=True, help_text="Tournaments activated and configured for this individual pool")
     name = models.CharField(max_length=200, help_text="Private friend group or commercial pool name")
     description = models.TextField(blank=True, help_text="Pool description from creation form")
-    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='managed_leagues')
+    admin = models.ForeignKey(User, on_delete=models.PROTECT, related_name='managed_leagues')
     invite_code = models.CharField(max_length=12, unique=True, blank=True, help_text="Unique 6-character joining code (e.g. ENGINE8)")
     is_active = models.BooleanField(default=True)
     is_actual_knockout_open = models.BooleanField(default=False, help_text="Open predictions for the actual knockout bracket after group stage ends")
@@ -32,6 +32,11 @@ class League(models.Model):
     logo = models.ImageField(upload_to='leagues/logos/', blank=True, null=True, help_text="Custom friend pool emblem/logo")
     banner = models.ImageField(upload_to='leagues/banners/', blank=True, null=True, help_text="Custom friend pool header backdrop banner")
     primary_color = models.CharField(max_length=20, default='#10b981', help_text="Custom brand accent color hex code")
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['admin', 'is_active'], name='idx_league_admin_active'),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.invite_code:
@@ -60,7 +65,7 @@ class LeagueMember(models.Model):
 
 class Tournament(models.Model):
     name = models.CharField(max_length=200)
-    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='managed_tournaments')
+    admin = models.ForeignKey(User, on_delete=models.PROTECT, related_name='managed_tournaments')
     players = models.ManyToManyField(User, related_name='participating_tournaments', blank=True)
     master_event = models.ForeignKey(MasterEvent, on_delete=models.SET_NULL, null=True, blank=True, related_name='tournaments')
     sport = models.CharField(max_length=100, default='Football', blank=True, help_text="Sport discipline (e.g. Football, Handball, Ice Hockey)")
@@ -83,6 +88,11 @@ class Tournament(models.Model):
     backdrop = models.ImageField(upload_to='tournament/backdrops/', blank=True, null=True, help_text="Header backdrop background")
     official_rules = models.TextField(blank=True, default="", help_text="Official tournament format regulations, tiebreakers, and advancement rules")
     official_regulations_url = models.URLField(max_length=500, blank=True, help_text="Direct URL to official federation regulations document or page")
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['is_active', 'start_date'], name='idx_tour_active_start'),
+        ]
 
     def __str__(self):
         return self.name
@@ -386,6 +396,9 @@ class Group(models.Model):
 
     class Meta:
         ordering = ['order', 'name']
+        constraints = [
+            models.UniqueConstraint(fields=['tournament', 'name'], name='unique_tournament_group')
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.tournament.name})"
@@ -494,18 +507,17 @@ class Team(models.Model):
 
     class Meta:
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(fields=['tournament', 'name'], name='unique_tournament_team')
+        ]
 
     def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
-        if self.name:
-            from tournament.services.team_badge_service import TeamBadgeService
-            res = TeamBadgeService.resolve_team_badge(self.name)
-            if res.code and not self.code:
-                self.code = res.code
-            if res.emblem_url and not self.emblem_url:
-                self.emblem_url = res.emblem_url
+        # NOTE: Badge resolution (TeamBadgeService) removed from save() to prevent
+        # synchronous external HTTP requests on every Team save. Badge resolution
+        # is performed explicitly during scouting/import operations instead.
         super().save(*args, **kwargs)
 
     @property
@@ -530,6 +542,9 @@ class KnockoutStage(models.Model):
 
     class Meta:
         ordering = ['order', 'name']
+        constraints = [
+            models.UniqueConstraint(fields=['tournament', 'name'], name='unique_tournament_knockout')
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.tournament.name})"
@@ -569,6 +584,11 @@ class Match(models.Model):
                     except AttributeError:
                         pass
         super().save(*args, **kwargs)
+        from tournament.services.cache_service import invalidate_tournament_cache
+        try:
+            invalidate_tournament_cache(self.tournament_id)
+        except Exception:
+            pass
 
     def __str__(self):
         home_info = self.get_home_team_info()
@@ -806,9 +826,17 @@ class MatchPrediction(models.Model):
     class Meta:
         unique_together = ('match', 'player')
         indexes = [
-            models.Index(fields=['match', 'player']),
             models.Index(fields=['player']),
         ]
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from tournament.services.cache_service import invalidate_tournament_cache
+        try:
+            if hasattr(self, 'match') and hasattr(self.match, 'tournament_id'):
+                invalidate_tournament_cache(self.match.tournament_id)
+        except Exception:
+            pass
 
     def __str__(self):
         return f"{self.player.get_full_name() or self.player.email} - Match {self.match.match_number}"
@@ -857,11 +885,19 @@ class SidebetAnswer(models.Model):
     class Meta:
         unique_together = ('sidebet', 'player')
         indexes = [
-            models.Index(fields=['sidebet', 'player']),
             models.Index(fields=['player']),
         ]
         verbose_name = "Spelarens bonussvar"
         verbose_name_plural = "Spelarnas bonussvar"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from tournament.services.cache_service import invalidate_tournament_cache
+        try:
+            if hasattr(self, 'sidebet') and hasattr(self.sidebet, 'tournament_id'):
+                invalidate_tournament_cache(self.sidebet.tournament_id)
+        except Exception:
+            pass
 
     def __str__(self):
         return f"{self.player.get_full_name() or self.player.email} - {self.sidebet.question}: {self.answer}"
@@ -877,7 +913,6 @@ class TournamentSubmission(models.Model):
     class Meta:
         unique_together = ('tournament', 'player')
         indexes = [
-            models.Index(fields=['tournament', 'player']),
             models.Index(fields=['player']),
         ]
 
@@ -1221,6 +1256,11 @@ class ScannedTournament(models.Model):
         ordering = ['-created_at']
         verbose_name = "Scanned Tournament Prospect"
         verbose_name_plural = "Scanned Tournament Prospects"
+        indexes = [
+            models.Index(fields=['status', 'completeness_grade'], name='idx_scanned_status_grade'),
+            models.Index(fields=['sport', 'status'], name='idx_scanned_sport_status'),
+            models.Index(fields=['master_event_code'], name='idx_scanned_master_event'),
+        ]
 
     @property
     def lifecycle_info(self):

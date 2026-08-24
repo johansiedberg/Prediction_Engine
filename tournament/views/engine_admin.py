@@ -35,7 +35,7 @@ from tournament.services.scout_service import (
 
 def engine_admin_root_view(request):
     """Entry point for Port 2029 (Engine Admin). Shows Dashboard if logged in as standalone system Engine Admin ('johansiedberg'), else Login form."""
-    if request.user.is_authenticated and request.user.username == 'johansiedberg' and request.user.is_superuser:
+    if request.user.is_authenticated and request.user.is_superuser:
         return engine_admin_dashboard_view(request)
     return render(request, 'tournament/engine_admin_login.html')
 
@@ -50,7 +50,7 @@ def engine_admin_login_view(request):
             user_obj = User.objects.filter(email__iexact=login_input).first()
             if user_obj:
                 user = authenticate(request, username=user_obj.username, password=pwd)
-        if user is not None and user.username == 'johansiedberg' and user.is_superuser:
+        if user is not None and user.is_superuser:
             login(request, user)
             return redirect('/')
         else:
@@ -62,13 +62,6 @@ def engine_admin_logout_view(request):
     logout(request)
     return redirect('/')
 
-
-def create_admin_user_view(request):
-    """Admin creation via HTTP endpoint is disabled.
-    Engine Admin credentials are managed strictly in the Python codebase (seed_members management command).
-    """
-    from django.http import HttpResponseForbidden
-    return HttpResponseForbidden("Admin account creation via HTTP is disabled. Admin accounts are managed strictly via Python codebase.")
 
 
 @superuser_or_staff_required
@@ -208,12 +201,9 @@ def engine_admin_dashboard_view(request):
             'tour_preds_count': tour_preds_cnt,
         })
 
-    # Auto-rescan any WATCHLIST prospects whose next_rescan_date is due
-    try:
-        from tournament.services.scout_service import auto_rescan_due_watchlist_prospects
-        auto_rescan_due_watchlist_prospects()
-    except Exception as e:
-        pass
+    # NOTE: auto_rescan_due_watchlist_prospects() removed from dashboard load
+    # to prevent blocking I/O (external scraping/LLM calls) during page render.
+    # Rescanning is triggered explicitly via the Scout UI or management command.
 
     # 5. AI Tournament Scout Prospects (Sorted nearest in time first)
     scanned_list = ScannedTournament.objects.select_related('converted_tournament').order_by(
@@ -886,57 +876,58 @@ def engine_admin_simulate_tournament(request, tournament_id):
     else:
         available_pool = WORLD_CUP_2026_NATIONAL_TEAMS
 
-    # Only assign national teams if placeholder teams exist!
-    if placeholder_teams:
-        assigned_nat_teams = available_pool[:max(len(placeholder_teams), 1)]
-        team_mapping = {}
-        for idx, team in enumerate(placeholder_teams):
-            nat_name = assigned_nat_teams[idx % len(assigned_nat_teams)]
-            original_name = team.name
-            team_mapping[original_name] = nat_name
-            
-            team.name = nat_name
-            team.code = ''
-            team.save()
+    with transaction.atomic():
+        # Only assign national teams if placeholder teams exist!
+        if placeholder_teams:
+            assigned_nat_teams = available_pool[:max(len(placeholder_teams), 1)]
+            team_mapping = {}
+            for idx, team in enumerate(placeholder_teams):
+                nat_name = assigned_nat_teams[idx % len(assigned_nat_teams)]
+                original_name = team.name
+                team_mapping[original_name] = nat_name
+                
+                team.name = nat_name
+                team.code = ''
+                team.save()
 
-        for match in tournament.matches.all():
-            if match.home_team in team_mapping:
-                match.home_team = team_mapping[match.home_team]
-            if match.away_team in team_mapping:
-                match.away_team = team_mapping[match.away_team]
+            for match in tournament.matches.all():
+                if match.home_team in team_mapping:
+                    match.home_team = team_mapping[match.home_team]
+                if match.away_team in team_mapping:
+                    match.away_team = team_mapping[match.away_team]
 
-    # 1. Ensure complete knockout bracket exists (Quarterfinals, Semifinals, Final)
-    from tournament.services.scout_service import ensure_complete_knockout_bracket
-    ensure_complete_knockout_bracket(tournament)
+        # 1. Ensure complete knockout bracket exists (Quarterfinals, Semifinals, Final)
+        from tournament.services.scout_service import ensure_complete_knockout_bracket
+        ensure_complete_knockout_bracket(tournament)
 
-    # 2. Simulate Group Matches first
-    simulated_count = 0
-    group_matches = list(tournament.matches.filter(group__isnull=False).order_by('match_number', 'id'))
-    for match in group_matches:
-        match.home_goals = random.choice([0, 1, 1, 2, 2, 3, 4])
-        match.away_goals = random.choice([0, 1, 1, 2, 2, 3, 4])
-        match.is_finished = True
-        match.save()
-        simulated_count += 1
+        # 2. Simulate Group Matches first
+        simulated_count = 0
+        group_matches = list(tournament.matches.filter(group__isnull=False).order_by('match_number', 'id'))
+        for match in group_matches:
+            match.home_goals = random.choice([0, 1, 1, 2, 2, 3, 4])
+            match.away_goals = random.choice([0, 1, 1, 2, 2, 3, 4])
+            match.is_finished = True
+            match.save()
+            simulated_count += 1
 
-    # Clear cached lookup maps on tournament instance
-    if hasattr(tournament, '_matches_by_number_dict'):
-        delattr(tournament, '_matches_by_number_dict')
-    if hasattr(tournament, '_groups_by_code_dict'):
-        delattr(tournament, '_groups_by_code_dict')
+        # Clear cached lookup maps on tournament instance
+        if hasattr(tournament, '_matches_by_number_dict'):
+            delattr(tournament, '_matches_by_number_dict')
+        if hasattr(tournament, '_groups_by_code_dict'):
+            delattr(tournament, '_groups_by_code_dict')
 
-    # 3. Simulate Knockout Matches in sequential match_number order
-    knockout_matches = list(tournament.matches.filter(group__isnull=True).order_by('match_number', 'id'))
-    for match in knockout_matches:
-        h_g = random.choice([1, 2, 2, 3, 4])
-        a_g = random.choice([0, 1, 1, 2, 3])
-        if h_g == a_g:
-            h_g += 1
-        match.home_goals = h_g
-        match.away_goals = a_g
-        match.is_finished = True
-        match.save()
-        simulated_count += 1
+        # 3. Simulate Knockout Matches in sequential match_number order
+        knockout_matches = list(tournament.matches.filter(group__isnull=True).order_by('match_number', 'id'))
+        for match in knockout_matches:
+            h_g = random.choice([1, 2, 2, 3, 4])
+            a_g = random.choice([0, 1, 1, 2, 3])
+            if h_g == a_g:
+                h_g += 1
+            match.home_goals = h_g
+            match.away_goals = a_g
+            match.is_finished = True
+            match.save()
+            simulated_count += 1
 
     invalidate_tournament_cache(tournament.id)
 
@@ -960,20 +951,21 @@ def engine_admin_reset_simulation(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     scanned = ScannedTournament.objects.filter(converted_tournament=tournament).first()
 
-    if scanned:
-        from tournament.services.scout_service import convert_scanned_to_live_tournament
-        restored_tour, err = convert_scanned_to_live_tournament(scanned.id, request.user, is_active=tournament.is_active)
-        if restored_tour:
-            tournament = restored_tour
+    with transaction.atomic():
+        if scanned:
+            from tournament.services.scout_service import convert_scanned_to_live_tournament
+            restored_tour, err = convert_scanned_to_live_tournament(scanned.id, request.user, is_active=tournament.is_active)
+            if restored_tour:
+                tournament = restored_tour
 
-    reset_matches_count = 0
-    for match in tournament.matches.all():
-        match.home_goals = None
-        match.away_goals = None
-        match.is_finished = False
-        match.box_score_data = {}
-        match.save()
-        reset_matches_count += 1
+        reset_matches_count = 0
+        for match in tournament.matches.all():
+            match.home_goals = None
+            match.away_goals = None
+            match.is_finished = False
+            match.box_score_data = {}
+            match.save()
+            reset_matches_count += 1
 
     invalidate_tournament_cache(tournament.id)
 
@@ -994,39 +986,40 @@ def engine_admin_toggle_publish(request, tournament_id):
     """
     tournament = get_object_or_404(Tournament, id=tournament_id)
     
-    if not tournament.is_active:
-        teams = list(tournament.teams.all())
-        placeholder_teams = [t.name for t in teams if re.match(r'^([A-L][1-8]|Lag\s*\d+|Team\s*\d+)$', t.name.strip(), re.IGNORECASE)]
-        has_no_teams = len(teams) == 0
-        has_no_matches = tournament.matches.count() == 0
-        has_no_ps = not hasattr(tournament, 'point_system') or not tournament.point_system
-        
-        if placeholder_teams or has_no_teams or has_no_matches or has_no_ps:
-            reasons = []
-            if placeholder_teams:
-                reasons.append(f"{len(placeholder_teams)} tillfälliga placeholders återstår ({', '.join(placeholder_teams[:3])}...)")
-            if has_no_teams:
-                reasons.append("inga lag registrerade")
-            if has_no_matches:
-                reasons.append("inga matcher schemalagda")
-            if has_no_ps:
-                reasons.append("poängsystem saknas")
-                
-            return JsonResponse({
-                'status': 'blocked',
-                'is_active': False,
-                'message': f'PUBLICERING STOPPAD (Alert 🚨): Turneringen kan inte aktiveras förrän följande rödmarkerade varningar (Alerts) i Checklistan har åtgärdats: {"; ".join(reasons)}.',
-            })
+    with transaction.atomic():
+        if not tournament.is_active:
+            teams = list(tournament.teams.all())
+            placeholder_teams = [t.name for t in teams if re.match(r'^([A-L][1-8]|Lag\s*\d+|Team\s*\d+)$', t.name.strip(), re.IGNORECASE)]
+            has_no_teams = len(teams) == 0
+            has_no_matches = tournament.matches.count() == 0
+            has_no_ps = not hasattr(tournament, 'point_system') or not tournament.point_system
+            
+            if placeholder_teams or has_no_teams or has_no_matches or has_no_ps:
+                reasons = []
+                if placeholder_teams:
+                    reasons.append(f"{len(placeholder_teams)} tillfälliga placeholders återstår ({', '.join(placeholder_teams[:3])}...)")
+                if has_no_teams:
+                    reasons.append("inga lag registrerade")
+                if has_no_matches:
+                    reasons.append("inga matcher schemalagda")
+                if has_no_ps:
+                    reasons.append("poängsystem saknas")
+                    
+                return JsonResponse({
+                    'status': 'blocked',
+                    'is_active': False,
+                    'message': f'PUBLICERING STOPPAD (Alert 🚨): Turneringen kan inte aktiveras förrän följande rödmarkerade varningar (Alerts) i Checklistan har åtgärdats: {"; ".join(reasons)}.',
+                })
 
-        # Always wipe test results before activating!
-        tournament.matches.update(home_goals=None, away_goals=None, is_finished=False)
-        tournament.is_active = True
-        tournament.is_paused = False
-    else:
-        tournament.is_active = False
-        tournament.is_paused = True
+            # Always wipe test results before activating!
+            tournament.matches.update(home_goals=None, away_goals=None, is_finished=False)
+            tournament.is_active = True
+            tournament.is_paused = False
+        else:
+            tournament.is_active = False
+            tournament.is_paused = True
 
-    tournament.save()
+        tournament.save()
     invalidate_tournament_cache(tournament.id)
     chk = get_tournament_checklist_status(tournament)
     tot = get_tournament_total_status(tournament, chk)
@@ -2172,6 +2165,11 @@ def save_gemini_api_key_view(request):
     api_key = request.POST.get('gemini_api_key', '').strip()
     if not api_key:
         messages.error(request, "Ingen API-nyckel angavs.")
+        return redirect('/admin-engine/#scout-pane')
+
+    import re
+    if not re.match(r'^[A-Za-z0-9_\-]+$', api_key):
+        messages.error(request, "Ogiltigt format på API-nyckel. Endast bokstäver, siffror, understreck och bindestreck är tillåtna.")
         return redirect('/admin-engine/#scout-pane')
 
     os.environ['GEMINI_API_KEY'] = api_key

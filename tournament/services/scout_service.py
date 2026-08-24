@@ -1569,9 +1569,9 @@ def auto_rescan_due_watchlist_prospects():
         r_date = prospect.rescan_date
         if r_date and r_date <= today:
             try:
-                from tournament.views.engine_admin import scout_deep_scan_one_view
+                from tournament.services.modular_deep_scout import ModularDeepScout
                 logger.info(f"Auto-rescanning due WATCHLIST prospect {prospect.id} ({prospect.name}) due on {r_date}")
-                scout_deep_scan_one_view(prospect.id)
+                ModularDeepScout().deep_scan_prospect(prospect)
                 rescanned_count += 1
             except Exception as e:
                 logger.error(f"Auto-rescan failed for prospect {prospect.id} ({prospect.name}): {e}")

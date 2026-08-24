@@ -47,6 +47,8 @@ class GeminiRateLimiter:
         window_seconds = cls.get_window_seconds()
 
         while True:
+            penalty_sleep = 0.0
+            sleep_duration = 0.0
             with cls._lock:
                 now = time.time()
 
@@ -57,22 +59,24 @@ class GeminiRateLimiter:
                         logger.warning("GeminiRateLimiter: Timeout while waiting for 429 penalty backoff to clear.")
                         return False
                     logger.info("GeminiRateLimiter: In 429 penalty backoff. Waiting %.1fs...", penalty_sleep)
-                    time.sleep(penalty_sleep)
-                    continue
+                else:
+                    # 2. Evict timestamps older than sliding window
+                    while cls._timestamps and cls._timestamps[0] <= now - window_seconds:
+                        cls._timestamps.popleft()
 
-                # 2. Evict timestamps older than sliding window
-                while cls._timestamps and cls._timestamps[0] <= now - window_seconds:
-                    cls._timestamps.popleft()
+                    # 3. Check if under rate limit
+                    if len(cls._timestamps) < max_calls:
+                        cls._timestamps.append(now)
+                        logger.debug("GeminiRateLimiter: Slot acquired (%d/%d calls in last %.0fs)", len(cls._timestamps), max_calls, window_seconds)
+                        return True
 
-                # 3. Check if under rate limit
-                if len(cls._timestamps) < max_calls:
-                    cls._timestamps.append(now)
-                    logger.debug("GeminiRateLimiter: Slot acquired (%d/%d calls in last %.0fs)", len(cls._timestamps), max_calls, window_seconds)
-                    return True
+                    # 4. Rate limit reached: compute wait time until oldest timestamp expires
+                    oldest_timestamp = cls._timestamps[0]
+                    sleep_duration = (oldest_timestamp + window_seconds) - now + 0.05
 
-                # 4. Rate limit reached: compute wait time until oldest timestamp expires
-                oldest_timestamp = cls._timestamps[0]
-                sleep_duration = (oldest_timestamp + window_seconds) - now + 0.05
+            if penalty_sleep > 0:
+                time.sleep(penalty_sleep)
+                continue
 
             # Outside lock: sleep until window rolls over
             if (time.time() - start_wait) + sleep_duration > timeout:

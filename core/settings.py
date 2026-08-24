@@ -36,13 +36,13 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-=ofd#@j+(1r7dw4-+k-=!=9(z$*zu@gm4y2w-frm%3ou4cky1s'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-dev-only-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'True').strip().lower() in ('true', '1', 'yes')
 
 
-ALLOWED_HOSTS = ['*'] 
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',') if h.strip()] 
 
 CSRF_TRUSTED_ORIGINS = [
     # Production (external IP via Caddy HTTPS)
@@ -84,7 +84,7 @@ INSTALLED_APPS = [
 ]
 
 # Shared Single Sign-On Secret Key for credentials-free redirection from Social Hub
-HERRKLUBB_SSO_SECRET = 'toarps-herrklubb-sso-secret-key-1981-2028'
+HERRKLUBB_SSO_SECRET = os.getenv('HERRKLUBB_SSO_SECRET', 'toarps-herrklubb-sso-secret-key-1981-2028')
 
 
 MIDDLEWARE = [
@@ -185,5 +185,5 @@ LOGIN_REDIRECT_URL = '/hub/'
 LOGOUT_REDIRECT_URL = '/'
 
 # AllSportDB (v3) API Settings (Engine Admin Pipeline)
-ALLSPORTDB_API_KEY = os.getenv('ALLSPORTDB_API_KEY', '8e1624b6-9e05-44c1-af91-9bc3b2b74f3d')
+ALLSPORTDB_API_KEY = os.getenv('ALLSPORTDB_API_KEY', '')
 ALLSPORTDB_API_BASE_URL = os.getenv('ALLSPORTDB_API_BASE_URL', 'https://api.allsportdb.com/v3')
