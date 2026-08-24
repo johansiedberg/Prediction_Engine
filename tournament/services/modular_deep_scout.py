@@ -95,6 +95,21 @@ class ModularDeepScout:
                 'error': f"Djupscanning avbröts direkt: Turneringen '{p_name}' har redan avslutats (Slutdatum: {prospect.end_date}).",
             }
 
+
+        # Fallback early rejection based on tournament year in title (if missing exact dates)
+        import re
+        if not prospect.start_date:
+            year_match = re.search(r'\b(19\d{2}|20\d{2})\b', prospect.name)
+            if year_match:
+                tournament_year = int(year_match.group(1))
+                if tournament_year < today_date.year:
+                    p_name = prospect.name
+                    prospect.delete()
+                    return {
+                        'ok': False,
+                        'error': f"Djupscanning avbröts direkt: Turneringen '{p_name}' spelades år {tournament_year} vilket är i det förflutna. Endast framtida turneringar accepteras.",
+                    }
+
         # 1. Resolve source page title or URL
         official_url = prospect.official_source_url or payload.get('master_event', {}).get('official_source_url') or scouting_audit.get('official_source_url') or ''
         wiki_url = scouting_audit.get('wikipedia_url') or (official_url if 'wikipedia.org' in (official_url or '') else '')
