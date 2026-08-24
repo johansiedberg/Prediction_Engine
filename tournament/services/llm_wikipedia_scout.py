@@ -484,6 +484,22 @@ class LLMWikipediaScout:
             year = int(m.group(3))
             return f"{year:04d}-{month:02d}-{day:02d}"
 
+
+        # Month YYYY (e.g. "May 2026")
+        m = re.search(r'^([A-Za-z]+)\s+(\d{4})$', s)
+        if m and m.group(1).lower() in month_map:
+            return f"{m.group(2)}-{month_map[m.group(1).lower()]:02d}-01"
+
+        # YYYY-MM
+        m = re.search(r'^(\d{4})-(\d{1,2})$', s)
+        if m:
+            return f"{m.group(1)}-{int(m.group(2)):02d}-01"
+
+        # YYYY (e.g. "2026")
+        m = re.search(r'^(\d{4})$', s)
+        if m:
+            return f"{m.group(1)}-01-01"
+
         return ""
 
     @staticmethod
