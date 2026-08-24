@@ -40,6 +40,7 @@ class HeadDiscoveryAgent:
         name: str,
         sport: str = "Football",
         start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
         discovery_source: str = "AllSportDB",
         master_event_code: Optional[str] = None,
     ) -> HeadSegment:
@@ -57,5 +58,6 @@ class HeadDiscoveryAgent:
             sport=clean_sport,
             is_h2h_team_sport=h2h_eligible,
             start_date=start_date if start_date else None,
+            end_date=end_date if end_date else None,
             discovery_source=discovery_source,
         )

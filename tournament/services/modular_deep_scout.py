@@ -204,6 +204,7 @@ class ModularDeepScout:
             name=prospect.name,
             sport=prospect.sport or audit.get('sport') or "Football",
             start_date=prospect.start_date.isoformat() if prospect.start_date else None,
+            end_date=prospect.end_date.isoformat() if prospect.end_date else None,
             discovery_source="Deepscan Pipeline",
             master_event_code=prospect.master_event_code,
         )
