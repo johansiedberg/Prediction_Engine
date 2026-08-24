@@ -385,8 +385,7 @@ class LLMWikipediaScout:
         }
 
         models = [
-            'gemini-flash-latest',
-            'gemini-pro-latest',
+            'gemini-flash-lite-latest',
         ]
         from tournament.services.gemini_rate_limiter import GeminiRateLimiter
 
