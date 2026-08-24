@@ -395,7 +395,7 @@ def scout_deep_scan_one_view(request: HttpRequest, prospect_id: int) -> JsonResp
             OfficialRegulationsVerifier(),
         )
         if not result['ok']:
-            if any(k in result.get('error', '') for k in ['avslutats', 'avvisades', 'passerats', 'mindre än 30 dagar', 'pågående', 'avslutad', 'misslyckades']):
+            if any(k in result.get('error', '') for k in ['avslutats', 'avvisades', 'passerats', 'mindre än 30 dagar', 'pågående', 'avslutad', 'misslyckades', 'avbröts', 'förflutna']):
                 return JsonResponse({'status': 'deleted', 'message': result['error']}, status=200)
             return JsonResponse({'status': 'error', 'message': result['error']}, status=400)
 
