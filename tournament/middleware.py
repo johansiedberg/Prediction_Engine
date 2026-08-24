@@ -22,7 +22,7 @@ class EngineAdminPortMiddleware:
         port = host_parts[1] if len(host_parts) > 1 else str(request.get_port())
         path = request.path
 
-        if port == '2029':
+        if port in ['2029', '8029']:
             if path == '/' or path == '/login/':
                 if request.method == 'POST':
                     from tournament.views.engine_admin import engine_admin_login_view

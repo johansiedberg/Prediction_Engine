@@ -80,7 +80,7 @@ def superuser_or_staff_required(view_func: Callable) -> Callable:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', ''):
                 from django.http import JsonResponse
                 return JsonResponse({'status': 'error', 'message': 'Sessionen har gått ut eller saknar Engine Admin-behörighet.'}, status=401)
-            if str(request.get_port()) == '2029':
+            if str(request.get_port()) in ['2029', '8029'] or request.META.get('HTTP_HOST', '').endswith('2029'):
                 from tournament.views.engine_admin import engine_admin_root_view
                 return engine_admin_root_view(request)
             messages.error(request, "Åtkomst nekad: Endast det dedikerade Engine Admin-systemkontot har behörighet.")
