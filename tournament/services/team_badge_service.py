@@ -47,17 +47,24 @@ class TeamBadgeService:
 
     @classmethod
     def is_placeholder(cls, name_str: str) -> bool:
-        """Checks if the team name is a placeholder (e.g. A1, Pot 1, Playoff Winner, TBD)."""
+        """Checks if the team name is a placeholder (e.g. A1, 1A, Pot 1, Playoff Winner, TBD, W73, 3C/E/F)."""
         if not name_str or not isinstance(name_str, str):
             return True
         s = name_str.strip().lower()
         if not s or len(s) < 2 or s in {'tbd', 'total', 'seed', 'team', 'match', 'placeholder', 'null', 'none', '-'}:
             return True
-        if re.match(r'^[a-z]\d+\b', s):
+        # Bracket / Slot notation: A1, 1A, B2, 2B, 3C/E/F, 1st, 2nd, 3rd, etc.
+        if re.match(r'^(?:[a-z]\d+|\d+[a-z](?:/[a-z]+)*|\d+(?:st|nd|rd|th))\b', s):
             return True
-        if re.match(r'^(?:group|grupp|lag|team|seed|winner|runner-up|vinnare|qf|sf|r16|r32)\s*[\w\d_-]*$', s):
+        # Match winners / losers / tokens: W73, L74, M1, QF_1, SF_2, R16_3, etc.
+        if re.match(r'^(?:[wml]\d+|qf_\d+|sf_\d+|r16_\d+|r32_\d+|m_\d+)\b', s):
+            return True
+        # Common text placeholders
+        if re.match(r'^(?:group|grupp|lag|team|seed|pot|winner|runner-up|vinnare|förlorare|loser|qf|sf|r16|r32|play-?off|path)\s*[\w\d_#\s\-/]*$', s):
             return True
         if re.search(r'\(\d+:?[ae]?\s+(?:grupp|group)\s+[a-z]\)', s):
+            return True
+        if any(tok in s for tok in ['vinnare', 'winner', 'mästare', 'guld', 'finalist', 'play-off', 'playoff', 'tbd', 'to be determined']):
             return True
         return False
 

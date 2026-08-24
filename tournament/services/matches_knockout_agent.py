@@ -54,12 +54,14 @@ class MatchesKnockoutAgent:
         raw_advancement = audit.get("knockout_mapping_sample") or []
 
         # 0. Gemini AI Intelligence Enrichment
-        # If the draw is explicitly known to not be completed, we skip querying Gemini for fixtures
-        # to save massive API latency, since it would only hallucinate placeholders anyway.
-        is_draw_completed = audit.get("draw_completed", True)
+        # If the draw is not completed, or real teams are not confirmed, or if we ALREADY have
+        # confirmed fixtures parsed from Wikipedia, skip querying Gemini to save 15-30s of latency.
+        has_real_teams = bool(groups_segment and groups_segment.has_real_teams)
+        is_draw_completed = bool(audit.get("draw_completed") and has_real_teams)
+        already_has_fixtures = bool(raw_fixtures and len(raw_fixtures) >= 4)
         
         from tournament.services.gemini_scout_service import GeminiScoutService
-        if GeminiScoutService.is_available() and tournament_name and is_draw_completed:
+        if GeminiScoutService.is_available() and tournament_name and is_draw_completed and not already_has_fixtures:
             try:
                 gemini_matches = GeminiScoutService.scout_matches_and_knockout(
                     tournament_name=tournament_name,
@@ -90,13 +92,21 @@ class MatchesKnockoutAgent:
                         "is_placeholder": t.is_placeholder,
                     }
 
+        from tournament.services.team_badge_service import TeamBadgeService
+
         def _resolve_team_meta(name_str: str) -> Dict[str, Any]:
             if not name_str or not isinstance(name_str, str):
                 return {"code": "", "flag_url": "", "emblem_url": "", "is_placeholder": True}
             clean = name_str.strip()
             if clean in team_cache:
                 return team_cache[clean]
-            from tournament.services.team_badge_service import TeamBadgeService
+            
+            # Instant 0ms check for bracket slots / match winners / placeholders
+            if TeamBadgeService.is_placeholder(clean):
+                ph_meta = {"code": "", "flag_url": "", "emblem_url": "", "is_placeholder": True}
+                team_cache[clean] = ph_meta
+                return ph_meta
+
             badge_res = TeamBadgeService.resolve_team_badge(
                 clean, sport=sport, tournament_name=tournament_name, use_gemini_fallback=False
             )
