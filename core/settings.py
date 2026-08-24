@@ -187,3 +187,6 @@ LOGOUT_REDIRECT_URL = '/'
 # AllSportDB (v3) API Settings (Engine Admin Pipeline)
 ALLSPORTDB_API_KEY = os.getenv('ALLSPORTDB_API_KEY', '')
 ALLSPORTDB_API_BASE_URL = os.getenv('ALLSPORTDB_API_BASE_URL', 'https://api.allsportdb.com/v3')
+# Limit Gemini calls to 14 RPM to safely stay under Google's 15 RPM limit for Flash Lite
+GEMINI_MAX_CALLS_PER_MINUTE = 14
+GEMINI_RATE_LIMIT_WINDOW_SECONDS = 60.0
