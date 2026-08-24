@@ -289,7 +289,18 @@ class MatchesKnockoutAgent:
             and not any(m.is_placeholder for m in group_matches)
         )
 
-        total_matches_count = len(group_matches) + sum(len(stage.matches) for stage in knockout_bracket)
+        # Calculate theoretical matches if fixtures are just a sample
+        theoretical_group_matches = 0
+        if groups_segment and not fixtures_completed:
+            for g in groups_segment.groups:
+                t_count = len(g.teams)
+                if t_count >= 2:
+                    # Assume double round-robin for large qualifiers (like Euro/World Cup) if long duration, else single
+                    # Default to single round robin math for placeholders to be safe, but at least it won't be '6'
+                    theoretical_group_matches += (t_count * (t_count - 1)) // 2
+
+        actual_listed_matches = len(group_matches) + sum(len(stage.matches) for stage in knockout_bracket)
+        total_matches_count = max(actual_listed_matches, theoretical_group_matches + sum(len(stage.matches) for stage in knockout_bracket))
 
         return MatchesAndKnockoutSegment(
             total_matches=total_matches_count,
