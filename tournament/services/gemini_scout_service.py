@@ -96,7 +96,7 @@ class GeminiScoutService:
                     logger.warning("GeminiScoutService: Rate limiter acquire timed out for model %s", model_name)
                     return None
 
-                res = requests.post(url, headers=headers, json=payload, timeout=20)
+                res = requests.post(url, headers=headers, json=payload, timeout=60)
                 if res.status_code == 200:
                     data = res.json()
                     candidates = data.get("candidates", [])
@@ -119,7 +119,7 @@ class GeminiScoutService:
                         payload["generationConfig"]["response_mime_type"] = "application/json"
                         if not GeminiRateLimiter.acquire():
                             return None
-                        retry_res = requests.post(url, headers=headers, json=payload, timeout=20)
+                        retry_res = requests.post(url, headers=headers, json=payload, timeout=60)
                         if retry_res.status_code == 200:
                             data = retry_res.json()
                             candidates = data.get("candidates", [])
