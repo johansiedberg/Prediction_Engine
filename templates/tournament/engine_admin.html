@@ -150,7 +150,7 @@
     <div class="tab-content" id="adminMainSectionsContent">
 
         <!-- SECTION 1: TOURNAMENTS (Rows Layout) -->
-        <div class="tab-pane fade show active" id="tournaments-pane" role="tabpanel">
+        <div class="tab-pane fade show active" id="tournaments-pane" role="tabpanel" aria-labelledby="tournaments-tab">
             <div class="row g-3">
                 {% for item in tournaments_data %}
                 <div class="col-12">
@@ -325,7 +325,7 @@
         </div>
 
         <!-- SECTION 2: MONITOR -->
-        <div class="tab-pane fade" id="monitor-pane" role="tabpanel">
+        <div class="tab-pane fade" id="monitor-pane" role="tabpanel" aria-labelledby="monitor-tab">
             
             <!-- Transparent KPI Summary Cards -->
             <div class="row g-3 mb-4">
@@ -718,7 +718,7 @@
         </div>
 
         <!-- SECTION 4: AI TOURNAMENT SCOUT -->
-        <div class="tab-pane fade" id="scout-pane" role="tabpanel">
+        <div class="tab-pane fade" id="scout-pane" role="tabpanel" aria-labelledby="scout-tab">
             {% csrf_token %}
 
             <!-- Performance: GPU compositing hint for scroll container -->
@@ -894,7 +894,7 @@
                                     Rensa
                                 </button>
                                 <div class="dropdown">
-                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <button class="btn btn-outline-secondary btn-sm rounded-pill px-2.5 py-1.5 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Fler alternativ">
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-dark shadow-lg border border-secondary border-opacity-30 rounded-3">
                                         <li>
@@ -1058,7 +1058,7 @@
                                                     <a href="{{ item.official_source_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-info border-opacity-40 text-info text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.75rem;">
                                                         Officiell
                                                     </a>
-                                                    <button class="btn btn-link text-secondary p-0 text-decoration-none" style="font-size:0.75rem;" onclick="openEditRulesModal({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}', '{{ item.official_rules|escapejs }}', '{{ item.official_source_url|escapejs }}')" title="Ändra officiell länk">
+                                                    <button class="btn btn-link text-secondary p-0 text-decoration-none" style="font-size:0.75rem;" onclick="openEditRulesModal({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}', '{{ item.official_rules|escapejs }}', '{{ item.official_source_url|escapejs }}')" title="Ändra officiell länk" aria-label="Redigera">
                                                         <i class="fa-solid fa-pen-to-square"></i>
                                                     </button>
                                                 {% else %}
@@ -1760,11 +1760,11 @@
 </div>
 
 <!-- MODAL 3: VIEW RAW JSON PROSPECT MODAL -->
-<div class="modal fade" id="rawJsonModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="rawJsonModal" tabindex="-1" aria-labelledby="rawJsonModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
             <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
-                <h5 class="modal-title fw-bold text-white mb-0"><i class="fa-solid fa-code me-2 text-warning"></i>Rå JSON-Payload</h5>
+                <h5 class="modal-title fw-bold text-white mb-0" id="rawJsonModalLabel"><i class="fa-solid fa-code me-2 text-warning"></i>Rå JSON-Payload</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
             </div>
             <div class="modal-body p-4">
@@ -1775,7 +1775,7 @@
 </div>
 
 <!-- SEE TOURNAMENT REVIEW MODAL CONTAINER -->
-<div class="modal fade" id="seeTournamentModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="seeTournamentModal" tabindex="-1" aria-label="Granska turnering" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" id="seeTournamentModalBody" style="background: #090D16 !important;">
             <div class="p-5 text-center text-secondary">
@@ -1835,7 +1835,7 @@
             <div class="modal-body p-4 tab-content" id="editTournamentTabContent">
                 
                 <!-- TAB 1: GENERAL INFO, BRANDING & RULES -->
-                <div class="tab-pane fade show active" id="edit-general-pane" role="tabpanel">
+                <div class="tab-pane fade show active" id="edit-general-pane" role="tabpanel" aria-labelledby="edit-general-tab">
                     <form id="editTournamentForm" enctype="multipart/form-data" onsubmit="submitEditTournament(event)">
                         {% csrf_token %}
                         <input type="hidden" id="editTournamentId" name="tournament_id" value="">
@@ -1935,7 +1935,7 @@
                                                 <span>Ingen logotyp vald</span>
                                             </div>
                                             <button type="button" id="editRemoveIconBtn" class="btn btn-outline-danger btn-xs rounded-pill position-absolute top-0 end-0 m-2 d-none" 
-                                                    onclick="clearTournamentIcon()" title="Ta bort vald logotyp">
+                                                    onclick="clearTournamentIcon()" title="Ta bort vald logotyp" aria-label="Ta bort">
                                                 <i class="fa-solid fa-xmark"></i>
                                             </button>
                                         </div>
@@ -1967,7 +1967,7 @@
                                                 <span>Ingen specifik bakgrund vald</span>
                                             </div>
                                             <button type="button" id="editRemoveBackdropBtn" class="btn btn-outline-danger btn-xs rounded-pill position-absolute top-0 end-0 m-2 d-none" 
-                                                    onclick="clearTournamentBackdrop()" title="Ta bort vald bakgrund">
+                                                    onclick="clearTournamentBackdrop()" title="Ta bort vald bakgrund" aria-label="Ta bort">
                                                 <i class="fa-solid fa-xmark"></i>
                                             </button>
                                         </div>
@@ -2019,7 +2019,7 @@
                 </div>
 
                 <!-- TAB 2: GROUPS & TEAMS -->
-                <div class="tab-pane fade" id="edit-teams-pane" role="tabpanel">
+                <div class="tab-pane fade" id="edit-teams-pane" role="tabpanel" aria-labelledby="edit-teams-tab">
                     <div id="editTeamsAlert" class="alert d-none mb-3 py-2 px-3 small rounded-3" role="alert"></div>
                     <div id="editGroupsContainer" class="row g-4">
                         <!-- Loaded dynamically via JS -->
@@ -2031,7 +2031,7 @@
                 </div>
 
                 <!-- TAB 3: MATCH SCHEDULE & VENUES -->
-                <div class="tab-pane fade" id="edit-matches-pane" role="tabpanel">
+                <div class="tab-pane fade" id="edit-matches-pane" role="tabpanel" aria-labelledby="edit-matches-tab">
                     <div id="editMatchesAlert" class="alert d-none mb-3 py-2 px-3 small rounded-3" role="alert"></div>
                     <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
                         <table class="table table-dark table-hover mb-0 align-middle">
@@ -2053,7 +2053,7 @@
                 </div>
 
                 <!-- TAB 4: POINTS & SIDEBETS -->
-                <div class="tab-pane fade" id="edit-points-pane" role="tabpanel">
+                <div class="tab-pane fade" id="edit-points-pane" role="tabpanel" aria-labelledby="edit-points-tab">
                     <!-- Nav Tabs for Points vs Sidebets -->
                     <ul class="nav nav-pills mb-4 gap-2 border-bottom border-secondary border-opacity-20 pb-3" id="pointsSubTab" role="tablist">
                         <li class="nav-item" role="presentation">
@@ -2070,7 +2070,7 @@
 
                     <div class="tab-content" id="pointsSubTabContent">
                         <!-- SUB-TAB 1: POINTS SYSTEM -->
-                        <div class="tab-pane fade show active" id="sub-points-pane" role="tabpanel">
+                        <div class="tab-pane fade show active" id="sub-points-pane" role="tabpanel" aria-labelledby="sub-points-tab">
                             <div id="psPointsAlert" class="alert d-none mb-3 py-2 px-3 small rounded-3" role="alert"></div>
 
                             <!-- Presets Quick Bar (Single Default Template) -->
@@ -2282,7 +2282,7 @@
                         </div>
 
                         <!-- SUB-TAB 2: SIDEBETS -->
-                        <div class="tab-pane fade" id="sub-sidebets-pane" role="tabpanel">
+                        <div class="tab-pane fade" id="sub-sidebets-pane" role="tabpanel" aria-labelledby="sub-sidebets-tab">
                             <div id="psSidebetsAlert" class="alert d-none mb-3 py-2 px-3 small rounded-3" role="alert"></div>
 
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-3 border-bottom border-secondary border-opacity-20">
@@ -2299,7 +2299,7 @@
                             <div id="newSidebetCard" class="card bg-dark border border-info border-opacity-40 rounded-3 p-3.5 mb-4 shadow-sm d-none">
                                 <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-20">
                                     <strong class="text-info small fw-bold"><i class="fa-solid fa-circle-plus me-1.5"></i>Ny Sidebet / Bonusfråga:</strong>
-                                    <button type="button" class="btn-close btn-close-white btn-sm" onclick="hideAddSidebetForm()"></button>
+                                    <button type="button" class="btn-close btn-close-white btn-sm" onclick="hideAddSidebetForm()" aria-label="Stäng"></button>
                                 </div>
                                 <form id="newSidebetForm" onsubmit="submitNewSidebet(event)">
                                     <div class="row g-3">
@@ -3033,7 +3033,7 @@
                             <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary border-opacity-40 py-0.5 px-2" value="${escapeAttr(t.name)}" id="team-name-${t.id}" style="font-size: 0.82rem;">
                             <input type="text" class="form-control form-control-sm bg-dark text-warning border-secondary border-opacity-40 py-0.5 px-1 font-monospace text-uppercase text-center" value="${escapeAttr(t.code || '')}" placeholder="ISO" id="team-code-${t.id}" style="width: 54px; font-size: 0.78rem;">
                         </div>
-                        <button type="button" class="btn btn-outline-info btn-xs rounded-pill px-2 py-1" onclick="saveTeamRow(${t.id})" title="Spara lagändring">
+                        <button type="button" class="btn btn-outline-info btn-xs rounded-pill px-2 py-1" onclick="saveTeamRow(${t.id})" title="Spara lagändring" aria-label="Spara">
                             <i class="fa-solid fa-floppy-disk"></i>
                         </button>
                     </div>
@@ -3297,7 +3297,7 @@
                             <button type="button" class="btn btn-outline-success btn-xs rounded-pill px-2.5 py-1" onclick="saveExistingSidebet(${sb.id})" title="Spara ändringar på denna fråga">
                                 <i class="fa-solid fa-check me-1"></i>Spara
                             </button>
-                            <button type="button" class="btn btn-outline-danger btn-xs rounded-pill px-2 py-1" onclick="deleteSidebetItem(${sb.id})" title="Radera frågan">
+                            <button type="button" class="btn btn-outline-danger btn-xs rounded-pill px-2 py-1" onclick="deleteSidebetItem(${sb.id})" title="Radera frågan" aria-label="Ta bort">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </div>

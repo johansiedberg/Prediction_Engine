@@ -1,3 +1,4 @@
+from typing import Callable, Any
 # Auth views - Login, Logout, and permission decorators
 import datetime
 import calendar
@@ -13,7 +14,7 @@ from django.contrib.auth.models import User
 from django.db.models import Count, Max, Q
 from django.conf import settings
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import HttpRequest, HttpResponse, JsonResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 
@@ -72,9 +73,9 @@ class CustomLoginView(LoginView):
         return '/dashboard/?tab=predictions'
 
 
-def superuser_or_staff_required(view_func):
+def superuser_or_staff_required(view_func: Callable) -> Callable:
     @wraps(view_func)
-    def _wrapped_view(request, *args, **kwargs):
+    def _wrapped_view(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if not request.user.is_authenticated or not request.user.is_superuser:
             if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', ''):
                 from django.http import JsonResponse

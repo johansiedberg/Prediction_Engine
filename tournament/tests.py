@@ -1800,3 +1800,162 @@ class GeminiRateLimiterTest(TestCase):
         # Immediate acquire should fail when timeout is short
         acquired = GeminiRateLimiter.acquire(timeout=0.05)
         self.assertFalse(acquired, "Should not acquire during 429 penalty backoff")
+
+class TeamBadgeServiceTestCase(TestCase):
+    def test_resolve_team_badge_known_country(self):
+        from tournament.services.team_badge_service import TeamBadgeService
+        res = TeamBadgeService.resolve_team_badge("Sweden")
+        self.assertEqual(res.team_type, "NATIONAL")
+        self.assertEqual(res.code, "se")
+        self.assertEqual(res.canonical_name, "Sweden")
+        self.assertIn("se.png", res.flag_url)
+
+    def test_resolve_team_badge_fallback(self):
+        from tournament.services.team_badge_service import TeamBadgeService
+        res = TeamBadgeService.resolve_team_badge("TBD")
+        self.assertTrue(res.is_placeholder)
+        self.assertEqual(res.team_type, "PLACEHOLDER")
+
+    @patch('tournament.services.team_badge_service.TeamBadgeService.query_gemini_team_disambiguation')
+    @patch('tournament.services.team_badge_service.TeamBadgeService.query_wikidata_club_logo')
+    def test_cache_behavior(self, mock_wiki, mock_gemini):
+        from tournament.services.team_badge_service import TeamBadgeService
+        mock_wiki.return_value = None
+        mock_gemini.return_value = None
+
+        res1 = TeamBadgeService.resolve_team_badge("Unknown FC")
+        self.assertEqual(res1.team_type, "CLUB")
+        self.assertEqual(mock_wiki.call_count, 1)
+
+        res2 = TeamBadgeService.resolve_team_badge("Unknown FC")
+        self.assertEqual(res2.team_type, "CLUB")
+        self.assertEqual(mock_wiki.call_count, 1)
+
+class CacheServiceTestCase(TestCase):
+    @patch('tournament.services.cache_service.timezone.now')
+    def test_invalidate_tournament_cache(self, mock_now):
+        from tournament.services.cache_service import invalidate_tournament_cache, get_tournament_cache_version
+        from django.core.cache import cache
+        import datetime
+        
+        t_id = 9999
+        cache.delete(f"t_version_{t_id}")
+        
+        mock_now.return_value = datetime.datetime(2026, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        v1 = get_tournament_cache_version(t_id)
+        
+        mock_now.return_value = datetime.datetime(2026, 1, 1, 12, 0, 5, tzinfo=datetime.timezone.utc)
+        v2 = invalidate_tournament_cache(t_id)
+        
+        self.assertNotEqual(v1, v2)
+        v3 = get_tournament_cache_version(t_id)
+        self.assertEqual(v2, v3)
+
+    def test_cache_key_format(self):
+        from tournament.services.cache_service import get_tournament_cache_version
+        v = get_tournament_cache_version(8888)
+        self.assertIsInstance(v, int)
+
+class PoolAdminServiceTestCase(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        from tournament.models import PoolAdminRequest, MasterEvent
+        self.admin = User.objects.create_superuser('pool_tester', 'pool@test.com', 'pass')
+        self.user = User.objects.create_user('pool_requester', 'req@test.com', 'pass')
+        self.master_event = MasterEvent.objects.create(name='Test Event', code='test-event')
+        self.request = PoolAdminRequest.objects.create(
+            user=self.user,
+            master_event=self.master_event,
+            pool_name='My Test Pool'
+        )
+
+    def test_approve_pool_admin_request(self):
+        from tournament.services.pool_admin_service import approve_pool_admin_request
+        league = approve_pool_admin_request(self.request, self.admin)
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, 'APPROVED')
+        self.assertEqual(self.request.reviewed_by, self.admin)
+        self.assertIsNotNone(self.request.league)
+        self.assertEqual(league.admin, self.user)
+
+    def test_reject_pool_admin_request(self):
+        from tournament.services.pool_admin_service import reject_pool_admin_request
+        reject_pool_admin_request(self.request, self.admin, "Not allowed")
+        self.request.refresh_from_db()
+        self.assertEqual(self.request.status, 'REJECTED')
+        self.assertEqual(self.request.rejection_reason, "Not allowed")
+
+class LifecycleStrategyTestCase(TestCase):
+    def test_determine_tournament_type(self):
+        from tournament.services.lifecycle_strategy import LifecycleStrategy, TournamentType
+        self.assertEqual(LifecycleStrategy.determine_tournament_type("Champions League"), TournamentType.CLUB_CONTINENTAL)
+        self.assertEqual(LifecycleStrategy.determine_tournament_type("World Cup"), TournamentType.INTERNATIONAL_NATIONAL)
+
+    def test_calculate_lifecycle_phase(self):
+        from tournament.services.lifecycle_strategy import LifecycleStrategy, ScraperPhase, TournamentType
+        import datetime
+        today = datetime.date(2026, 8, 24)
+        
+        state1 = LifecycleStrategy.calculate_lifecycle_phase(
+            start_date=datetime.date(2026, 9, 24),
+            tournament_type=TournamentType.INTERNATIONAL_NATIONAL,
+            today=today
+        )
+        self.assertEqual(state1.phase, ScraperPhase.PHASE_3_PRODUCTION)
+
+        state2 = LifecycleStrategy.calculate_lifecycle_phase(
+            start_date=datetime.date(2028, 9, 24),
+            tournament_type=TournamentType.INTERNATIONAL_NATIONAL,
+            today=today
+        )
+        self.assertEqual(state2.phase, ScraperPhase.PHASE_1_MACRO_META)
+        
+        state3 = LifecycleStrategy.calculate_lifecycle_phase(
+            start_date=datetime.date(2025, 1, 1),
+            tournament_type=TournamentType.INTERNATIONAL_NATIONAL,
+            today=today
+        )
+        self.assertEqual(state3.phase, ScraperPhase.PHASE_3_PRODUCTION)
+        self.assertTrue(state3.days_to_start < 0)
+
+class EngineAdminAjaxEndpointsTestCase(TestCase):
+    def setUp(self):
+        from django.contrib.auth.models import User
+        from tournament.models import Tournament
+        self.admin = User.objects.create_superuser('test_admin', 'admin@test.com', 'pass123')
+        self.user = User.objects.create_user('test_user', 'user@test.com', 'pass123')
+        self.tournament = Tournament.objects.create(name='Test Tourney', admin=self.admin)
+
+    def test_pool_requests_view(self):
+        self.client.force_login(self.admin)
+        resp = self.client.get('/engine-admin/pool-requests/', HTTP_HOST='localhost:2029')
+        self.assertEqual(resp.status_code, 200)
+
+    def test_validate_tournament_view(self):
+        self.client.force_login(self.admin)
+        resp = self.client.post(f'/engine-admin/validate/{self.tournament.id}/', HTTP_X_REQUESTED_WITH='XMLHttpRequest', HTTP_HOST='localhost:2029')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('overall_status', resp.json())
+
+    def test_simulate_tournament_view(self):
+        self.client.force_login(self.admin)
+        resp = self.client.post(f'/engine-admin/simulate/{self.tournament.id}/', HTTP_X_REQUESTED_WITH='XMLHttpRequest', HTTP_HOST='localhost:2029')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('status', resp.json())
+
+    def test_reset_simulation_view(self):
+        self.client.force_login(self.admin)
+        resp = self.client.post(f'/engine-admin/reset-simulation/{self.tournament.id}/', HTTP_X_REQUESTED_WITH='XMLHttpRequest', HTTP_HOST='localhost:2029')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('status', resp.json())
+
+    def test_toggle_publish_view(self):
+        self.client.force_login(self.admin)
+        resp = self.client.post(f'/engine-admin/toggle-publish/{self.tournament.id}/', HTTP_X_REQUESTED_WITH='XMLHttpRequest', HTTP_HOST='localhost:2029')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('status', resp.json())
+
+    def test_non_superuser_forbidden(self):
+        self.client.force_login(self.user)
+        resp = self.client.post(f'/engine-admin/validate/{self.tournament.id}/', HTTP_HOST='localhost:2029')
+        self.assertIn(resp.status_code, [302, 403])
