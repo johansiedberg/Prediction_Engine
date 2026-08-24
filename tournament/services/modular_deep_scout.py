@@ -76,6 +76,25 @@ class ModularDeepScout:
         today_date = datetime.date.today()
         active_sources: List[str] = []
 
+        # 0. Early Rejection based on known prospect header dates
+        min_upcoming_date = today_date + datetime.timedelta(days=30)
+        
+        if prospect.start_date and prospect.start_date < min_upcoming_date:
+            p_name = prospect.name
+            prospect.delete()
+            return {
+                'ok': False,
+                'error': f"Djupscanning avbröts direkt: Turneringen '{p_name}' är pågående eller startar inom 30 dagar (Startdatum: {prospect.start_date}). Endast framtida turneringar accepteras.",
+            }
+            
+        if prospect.end_date and prospect.end_date < today_date:
+            p_name = prospect.name
+            prospect.delete()
+            return {
+                'ok': False,
+                'error': f"Djupscanning avbröts direkt: Turneringen '{p_name}' har redan avslutats (Slutdatum: {prospect.end_date}).",
+            }
+
         # 1. Resolve source page title or URL
         official_url = prospect.official_source_url or payload.get('master_event', {}).get('official_source_url') or scouting_audit.get('official_source_url') or ''
         wiki_url = scouting_audit.get('wikipedia_url') or (official_url if 'wikipedia.org' in (official_url or '') else '')
