@@ -100,8 +100,10 @@ class GroupsTeamsAgent:
         prior_draw_completed = bool(audit.get("draw_completed") or bp.get("draw_completed"))
         is_empty_prospect = (audit.get("teams_count") == 0 and audit.get("groups_count") == 0 and not raw_groups)
 
+        is_draw_completed = audit.get("draw_completed", True)
+        
         from tournament.services.gemini_scout_service import GeminiScoutService
-        if GeminiScoutService.is_available() and tournament_name and not is_empty_prospect:
+        if GeminiScoutService.is_available() and tournament_name and not is_empty_prospect and is_draw_completed:
             try:
                 gemini_groups = GeminiScoutService.scout_groups_and_teams(
                     tournament_name=tournament_name,

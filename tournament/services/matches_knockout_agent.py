@@ -54,8 +54,12 @@ class MatchesKnockoutAgent:
         raw_advancement = audit.get("knockout_mapping_sample") or []
 
         # 0. Gemini AI Intelligence Enrichment
+        # If the draw is explicitly known to not be completed, we skip querying Gemini for fixtures
+        # to save massive API latency, since it would only hallucinate placeholders anyway.
+        is_draw_completed = audit.get("draw_completed", True)
+        
         from tournament.services.gemini_scout_service import GeminiScoutService
-        if GeminiScoutService.is_available() and tournament_name:
+        if GeminiScoutService.is_available() and tournament_name and is_draw_completed:
             try:
                 gemini_matches = GeminiScoutService.scout_matches_and_knockout(
                     tournament_name=tournament_name,
