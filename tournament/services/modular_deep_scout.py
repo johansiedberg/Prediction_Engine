@@ -217,32 +217,6 @@ class ModularDeepScout:
             existing_logo_url=prospect.logo_url,
         )
 
-        # SEGMENT 3: Structure & Rules Segment (Points W/D/L, tiebreakers, qualifying tables via Gemini AI)
-        structure_rules_seg = self.structure_agent.build_structure_rules_segment(
-            audit_data=audit,
-            official_rules_text=audit.get('official_rules') or audit.get('advancement_rules') or "",
-            tournament_name=prospect.name,
-            sport=prospect.sport or "Football",
-            teams_count=getattr(prospect, 'teams_count', None) or payload.get('tournament_config', {}).get('total_teams'),
-        )
-
-        # SEGMENT 4: Groups & Teams Segment (Group matrices, real teams, seeding pots via Gemini AI)
-        groups_teams_seg = self.groups_agent.build_groups_teams_segment(
-            audit_data=audit,
-            default_groups_count=4,
-            teams_per_group=4,
-            tournament_name=prospect.name,
-            sport=prospect.sport or "Football",
-        )
-
-        # SEGMENT 5: Matches & Knockout Segment (Timetable & knockout trees via Gemini AI)
-        matches_ko_seg = self.matches_agent.build_matches_knockout_segment(
-            audit_data=audit,
-            groups_segment=groups_teams_seg,
-            tournament_name=prospect.name,
-            sport=prospect.sport or "Football",
-        )
-
         # Date validation & Auto-Rejection Rules
         start_date_obj = None
         if general_seg.start_date:
@@ -291,6 +265,33 @@ class ModularDeepScout:
 
         prospect.start_date = start_date_obj
         prospect.end_date = end_date_obj
+
+        # SEGMENT 3: Structure & Rules Segment (Points W/D/L, tiebreakers, qualifying tables via Gemini AI)
+        structure_rules_seg = self.structure_agent.build_structure_rules_segment(
+            audit_data=audit,
+            official_rules_text=audit.get('official_rules') or audit.get('advancement_rules') or "",
+            tournament_name=prospect.name,
+            sport=prospect.sport or "Football",
+            teams_count=getattr(prospect, 'teams_count', None) or payload.get('tournament_config', {}).get('total_teams'),
+        )
+
+        # SEGMENT 4: Groups & Teams Segment (Group matrices, real teams, seeding pots via Gemini AI)
+        groups_teams_seg = self.groups_agent.build_groups_teams_segment(
+            audit_data=audit,
+            default_groups_count=4,
+            teams_per_group=4,
+            tournament_name=prospect.name,
+            sport=prospect.sport or "Football",
+        )
+
+        # SEGMENT 5: Matches & Knockout Segment (Timetable & knockout trees via Gemini AI)
+        matches_ko_seg = self.matches_agent.build_matches_knockout_segment(
+            audit_data=audit,
+            groups_segment=groups_teams_seg,
+            tournament_name=prospect.name,
+            sport=prospect.sport or "Football",
+        )
+
 
         # Grade Evaluation
         has_full_dates = bool(start_date_obj and end_date_obj)
