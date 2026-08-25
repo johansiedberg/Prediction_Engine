@@ -9,7 +9,7 @@ The main objective of the platform is to digitize and automate the entire workfl
 * **Automated Point Calculation:** The system automatically calculates tournament points across multiple competition stages and updates participant rankings in real time based on actual match results.
 * **Flexible Pool Scoring Systems:** Pool Administrators can configure pool-specific scoring rules across 4 distinct stages (Match predictions, Group tables, Qualification tables, and Knockout advancement) plus bonus Sidebets.
 * **Dual-Portal Architecture:** Strict separation between master tournament setup/administration (Engine Admin) and pool competition/member management (Player & Pool Admin).
-* **AI Tournament Scout & Ingestion:** Automated scouting and ingestion of international tournament fixtures and groups using Gemini structured scouting prompts (`ScoutService` & `ScannedTournament`).
+* **AI Tournament Scout & 5-Segment Deepscan Engine:** Modular AI architecture (`ModularDeepScout`, `GeminiScoutService`, and 5 dedicated sub-agents) automating shallow ingestion and deep auditing of international tournaments with strict 30-day runway filtering and zero-latency bracket token resolution.
 * **High-Performance Caching & Indexing:** Multi-layer cache service and optimized database indexes for lightning-fast leaderboard and prediction calculations.
 * **AI Match & Field Analytics:** Dynamic AI-generated editorial summaries providing match analysis, individual tips, outliers, and rivalry banter.
 
@@ -82,7 +82,7 @@ The codebase follows a decoupled architecture separating business logic (service
 PREDICTION_ENGINE/
 │
 ├── core/
-│   ├── settings.py           # Core settings, dual-port URL configurations
+│   ├── settings.py           # Core settings, rate limiters, dual-port URL configurations
 │   ├── urls.py               # Master routing
 │   ├── asgi.py & wsgi.py
 │
@@ -103,15 +103,29 @@ PREDICTION_ENGINE/
 │   │   ├── __init__.py
 │   │   ├── scoring.py        # Point calculation engine
 │   │   ├── cache_service.py  # Multi-layer leaderboard & prediction caching
-│   │   ├── scout_service.py  # AI tournament scout & ingestion service
+│   │   ├── scout_service.py  # Shallow ingestion & prospect synchronization
+│   │   ├── modular_deep_scout.py # Stage 2–4 5-Segment Deepscan Orchestrator
+│   │   ├── head_discovery_agent.py   # Segment 1: Head Discovery Agent
+│   │   ├── general_deep_scout_agent.py # Segment 2: General & Emblem Agent
+│   │   ├── structure_rules_agent.py  # Segment 3: Structure & Rules Agent
+│   │   ├── groups_teams_agent.py     # Segment 4: Groups & Teams Agent
+│   │   ├── matches_knockout_agent.py # Segment 5: Matches & Knockout Agent
+│   │   ├── gemini_scout_service.py   # Central Gemini AI Client & Grounding
+│   │   ├── gemini_rate_limiter.py    # Sliding window 14 RPM rate limiter
+│   │   ├── team_badge_service.py     # 4-tier team badge & bracket slot resolver
+│   │   ├── llm_wikipedia_scout.py    # Grounded Wikipedia scraping & date parsing
 │   │   ├── analytics.py      # AI match & field analysis
 │   │   ├── tournament_admin.py # Tournament checklist & validation
 │   │   └── pool_admin_service.py # Player progress matrix & request approval
 │   │
+│   ├── schemas/              # Pydantic Structural Schemas
+│   │   ├── __init__.py
+│   │   └── tournament_prospect_schema.py # Unified 5-Segment Prospect Blueprint
+│   │
 │   ├── views/                # Modular View Packages
 │   │   ├── __init__.py
 │   │   ├── auth.py           # Port-aware authentication & SSO receiver
-│   │   ├── engine_admin.py   # Port 2029 Engine Admin views
+│   │   ├── engine_admin/     # Port 2029 Engine Admin split views (scout, dashboard, etc.)
 │   │   ├── pool_admin.py     # Port 2028 Pool Admin views
 │   │   ├── dashboard.py      # Leaderboard, predictions & overview
 │   │   └── match_views.py    # Predictions & score updates
@@ -193,3 +207,11 @@ To initialize all user accounts and league configurations:
   * Multi-modal signaling pairs visual color with explicit status icons and descriptive text labels.
 * **Tab State Persistence Standard:**
   * Tab navigation states in Engine Admin (`engine_admin.html`) persist in `localStorage` (`engineAdminActiveTab`) and URL hashes, restoring the active tab section seamlessly on page reload.
+* **AI Tournament Scout Date Validation & 30-Day Runway Rule:**
+  * The scout engine is dedicated to upcoming tournaments for Pool-Admin creation. Any tournament with `start_date < today + 30 days` (past or imminent) is immediately rejected/discarded at both shallow web ingestion and deepscan stages.
+  * All date extractions strictly normalize to `YYYY-MM-DD` (falling back to `YYYY-MM-01` or `YYYY-01-01`) to prevent null-comparison bypasses.
+  * Multi-tiered early rejection triggers at Step 0 (Title regex), Step 0.5 (Intermediate header audit), and during umbrella disambiguation splitting.
+* **Gemini AI Rate Limiting & High-Performance Scouting Standard:**
+  * Standardized on `gemini-flash-lite-latest` with a strict 14 RPM governor (`GEMINI_MAX_CALLS_PER_MINUTE = 14`) via `GeminiRateLimiter` to eliminate 60s 429 quota punishment blocks.
+  * Bracket slot tokens (`1A`, `2B`, `3C/E/F`, `W73`, `Lag #1`, `Vinnare M1`, `Guld`) are resolved in **0.00ms** by `TeamBadgeService.is_placeholder` without making external Wikidata or DB queries.
+  * Matches & Knockout sub-agent skips redundant Gemini fixture searches when the draw is pending or when full fixtures are already parsed from Wikipedia.

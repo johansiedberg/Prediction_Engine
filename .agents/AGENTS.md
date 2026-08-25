@@ -68,9 +68,26 @@ When colouring banners, badges, callouts, and status notification containers, en
 - Executing any action (scout scan, tournament delete, status update, point rule save) MUST restore the exact same active tab section on reload without resetting to section 1.
 
 ## Section 4: AI Tournament Scout UI & Filtering Rules
-- **AllSportDB Ingestion**: AllSportDB (v3) API is the single authoritative source of scanned tournament prospects.
+- **AllSportDB Ingestion**: AllSportDB (v3) API is the primary source of scanned tournament prospects, complemented by Wikipedia continental scout modules.
 - **H2H Team Sport Filter**: Exclude non-H2H individual sports (Chess, Tennis, Archery, Sailing, Wrestling, etc.) by setting grade to `GRADE_C`.
+- **Minimum 30-Day Runway Buffer Rule**:
+  - The scout engine is strictly designed to discover future tournaments for Pool Administrators.
+  - Any tournament with `start_date < today + 30 days` (imminent or past tournaments) MUST be rejected/discarded at both the shallow ingestion layer and deepscan evaluation.
+- **Strict Date Normalization Hierarchy**:
+  - All date strings must normalize to full ISO format `YYYY-MM-DD`.
+  - Fallback hierarchy: `YYYY-MM-DD` -> `YYYY-MM-01` -> `YYYY-01-01`. Never leave unparseable year/month strings as `None` to prevent bypassing date comparison logic.
+- **Multi-Tiered Early Rejection Pipeline**:
+  - **Step 0 (Title / Regex)**: Immediate rejection if title contains past years (`< current_year`).
+  - **Step 0.5 (Intermediate Header Audit)**: Rejects immediately upon initial Wikipedia audit fetch before executing sub-agents 1–5.
+  - **Disambiguation Splitter**: Rejects past sub-tournaments before creating new prospect cards from umbrella pages.
 - **Grade A/B/C Rating Monochromatic Badges**:
   - **Grade A (100% Ready)**: Green-950 surface (`#052E16`), Green-700 border (`#15803D`), Green-100 text (`#DCFCE7`) + Checkmark Shield icon.
   - **Grade B (Pending Draw/Fixtures)**: Amber-950 surface (`#451A03`), Amber-700 border (`#B45309`), Amber-100 text (`#FEF3C7`) + Clock icon.
   - **Grade C (Filtered/Watched)**: Slate-900 surface (`#0F172A`), Slate-600 border (`#475569`), Slate-200 text (`#E2E8F0`) + Info icon.
+
+## Section 5: AI Engine & Performance Standards
+- **AI Model Standard**: All scouting agents must standardize on `gemini-flash-lite-latest` (or `gemini-3.5-flash-lite`) to leverage high-throughput quotas.
+- **Rate Limit Governor**: Enforce a strict 14 RPM ceiling (`GEMINI_MAX_CALLS_PER_MINUTE = 14`) via `GeminiRateLimiter` to safely operate below Google's 15 RPM limit and prevent 60-second 429 penalty backoffs during bulk scans.
+- **Matches & Knockout Performance**:
+  - Bracket slot tokens (`1A`, `2B`, `3C/E/F`, `W73`, `Lag #1`, `Vinnare M1`, `Guld`) MUST be recognized instantly (0ms) by `TeamBadgeService.is_placeholder` without making external Wikidata or database lookups.
+  - Gemini fixtures query in `MatchesKnockoutAgent` MUST be skipped if the draw is pending (`has_real_teams == False`) or if confirmed fixtures were already parsed from the Wikipedia audit.
