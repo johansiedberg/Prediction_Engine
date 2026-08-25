@@ -881,13 +881,13 @@
 
                             <!-- Right Column: Header Action Buttons -->
                             <div class="d-flex flex-wrap align-items-center gap-2">
-                                <button class="btn btn-info btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
+                                <button class="btn btn-primary btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-white" id="scrapeWebNowBtn" onclick="triggerWebScrapeNow()">
                                     <i class="fa-solid fa-globe me-1.5"></i>Sök web
                                 </button>
-                                <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#searchSpecificModal">
+                                <button class="btn btn-primary btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-white" data-bs-toggle="modal" data-bs-target="#searchSpecificModal">
                                     <i class="fa-solid fa-magnifying-glass me-1.5"></i>Sök specifik
                                 </button>
-                                <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold" id="scoutRefreshAllBtn" onclick="refreshFilteredScoutProspects()">
+                                <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" id="scoutRefreshAllBtn" onclick="refreshFilteredScoutProspects()">
                                     <i class="fa-solid fa-rotate me-1.5"></i><span id="scoutBulkActionLabel">Djupscanna alla ({{ scout_counts.total }})</span>
                                 </button>
                                 <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-bold" onclick="clearFilteredScoutProspectsList()">
@@ -912,6 +912,30 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Web / Specific Scan Realtime Progress Banner -->
+            <div id="scoutScanProgressContainer" class="p-3.5 mb-3 rounded-4 shadow border d-none" style="background:rgba(15, 23, 42, 0.95);border-color:rgba(59, 130, 246, 0.4) !important;">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2.5">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="spinner-border flex-shrink-0" role="status" style="width: 1.5rem; height: 1.5rem; border-width: 0.18em; color: #3b82f6 !important;">
+                            <span class="visually-hidden">Scannar...</span>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-white fs-6 mb-0.5">
+                                <span id="scoutScanProgressTitle">Scannar webben...</span>
+                            </div>
+                            <div class="text-secondary small font-monospace" id="scoutScanProgressSubtext" style="font-size:0.83rem;">
+                                Initierar webbscanning...
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-end font-monospace fs-6 fw-bold" id="scoutScanProgressFoundCount" style="color: #60a5fa;">Hittade 0</div>
+                </div>
+
+                <div class="progress rounded-pill overflow-hidden" style="height:10px;background:rgba(255,255,255,0.08);">
+                    <div id="scoutScanProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; background-color: #2563eb !important;"></div>
                 </div>
             </div>
 
@@ -1598,10 +1622,10 @@
 <!-- MODAL 0: SPECIFIC TOURNAMENT SEARCH MODAL -->
 <div class="modal fade" id="searchSpecificModal" tabindex="-1" aria-labelledby="searchSpecificModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border border-warning border-opacity-40 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
+        <div class="modal-content border border-primary border-opacity-40 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
             <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
                 <div class="d-flex align-items-center gap-2">
-                    <div class="p-2 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 text-warning">
+                    <div class="p-2 rounded-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 text-primary">
                         <i class="fa-solid fa-magnifying-glass fs-4"></i>
                     </div>
                     <div>
@@ -1616,18 +1640,18 @@
                 <p class="text-secondary small mb-3">Ange turneringsnamnet eller klistra in en webbadress. Systemet söker på webben, Wikipedia och Google/Gemini och lägger till turneringen i scoutlistan.</p>
                 
                 <div class="mb-3">
-                    <label for="searchSpecificInput" class="form-label text-warning small font-monospace fw-bold text-uppercase mb-1">Turneringsnamn eller Webbadress</label>
+                    <label for="searchSpecificInput" class="form-label text-primary small font-monospace fw-bold text-uppercase mb-1">Turneringsnamn eller Webbadress</label>
                     <input type="text" class="form-control bg-dark text-white border-secondary border-opacity-40 rounded-3 p-2.5 font-monospace small" id="searchSpecificInput" placeholder="t.ex. 2027 AFC Asian Cup eller FIVB Volleyball Boys' U17 World Championship">
                 </div>
 
-                <div class="p-3 rounded-3 bg-dark bg-opacity-60 border border-warning border-opacity-20 text-warning small">
+                <div class="p-3 rounded-3 bg-dark bg-opacity-60 border border-primary border-opacity-20 text-info small">
                     <i class="fa-solid fa-lightbulb me-1.5"></i>Exempel: <code>2027 AFC Asian Cup</code>, <code>FIVB Volleyball Boys' U17 World Championship</code>, eller <code>https://en.wikipedia.org/wiki/2026_Men's_World_Floorball_Championships</code>
                 </div>
             </div>
             
             <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 justify-content-between">
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Avbryt</button>
-                <button type="button" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" id="confirmSearchSpecificBtn" onclick="searchSpecificTournament()">
+                <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm text-white" id="confirmSearchSpecificBtn" onclick="searchSpecificTournament()">
                     <i class="fa-solid fa-magnifying-glass me-1.5"></i>Sök och Lägg till
                 </button>
             </div>
@@ -4013,6 +4037,9 @@
             return;
         }
 
+        const scanProgress = document.getElementById('scoutScanProgressContainer');
+        if (scanProgress) scanProgress.classList.add('d-none');
+
         const progressContainer = document.getElementById('scoutBulkProgressContainer');
         const progressTitle     = document.getElementById('scoutBulkProgressTitle');
         const progressSubtext   = document.getElementById('scoutBulkProgressSubtext');
@@ -4131,7 +4158,7 @@
 
         setSubAgentStep(6);
         if (progressTitle) progressTitle.innerText = `Djupscanning klar för de ${totalCount} turneringarna!`;
-        if (progressSubtext) progressSubtext.innerHTML = `[${totalCount}/${totalCount}] Bearbetning klar: ${gradeACount} Redo, ${gradeBCount} Ej redo, ${rejectedCount} avvisade. Uppdaterar listan...`;
+        if (progressSubtext) progressSubtext.innerHTML = `[${totalCount}/${totalCount}] Bearbetning klar: ${gradeACount} Redo, ${gradeBCount} Ej redo, ${rejectedCount} avvisade. Uppdaterar scout-vyn...`;
         if (progressBar) {
             progressBar.style.width = '100%';
             progressBar.classList.remove('bg-warning', 'bg-danger');
@@ -4140,9 +4167,8 @@
         if (progressPercent) progressPercent.innerText = '100%';
 
         setTimeout(() => {
-            localStorage.setItem('engineAdminActiveTab', 'scout-tab');
-            location.reload();
-        }, 1000);
+            refreshScoutFrame();
+        }, 800);
     }
 
     async function clearFilteredScoutProspectsList() {
@@ -4338,8 +4364,51 @@
         const originalHtml = btn ? btn.innerHTML : '';
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Söker på webben &amp; Wikipedia...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Söker...';
         }
+
+        // Close search modals so user immediately sees live progress bar
+        hideModalSafe('searchSpecificModal');
+        hideModalSafe('importWikipediaModal');
+
+        const progressContainer = document.getElementById('scoutScanProgressContainer');
+        const progressTitle     = document.getElementById('scoutScanProgressTitle');
+        const progressSubtext   = document.getElementById('scoutScanProgressSubtext');
+        const progressFound     = document.getElementById('scoutScanProgressFoundCount');
+        const progressBar       = document.getElementById('scoutScanProgressBar');
+
+        const bulkProgress = document.getElementById('scoutBulkProgressContainer');
+        if (bulkProgress) bulkProgress.classList.add('d-none');
+
+        if (progressContainer) {
+            progressContainer.classList.remove('d-none');
+            progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (progressTitle) progressTitle.innerHTML = `<i class="fa-solid fa-magnifying-glass me-1.5"></i>Söker specifik turnering: "${query}"...`;
+            if (progressSubtext) progressSubtext.innerText = 'Söker på Wikipedia, webben och Google/Gemini AI...';
+            if (progressFound) progressFound.innerText = 'Hittade: 0';
+            if (progressBar) {
+                progressBar.style.width = '15%';
+                progressBar.style.backgroundColor = '#2563eb';
+                progressBar.classList.remove('bg-success', 'bg-danger');
+            }
+        }
+
+        let step = 0;
+        const stages = [
+            { text: `Söker Wikipedia och infobox för "${query}"...`, found: 1, width: 35 },
+            { text: `Hämtar officiell webbplats och logotyp...`, found: 1, width: 65 },
+            { text: `Validerar datum och 30-dagars regel...`, found: 1, width: 85 }
+        ];
+
+        const progressInterval = setInterval(() => {
+            if (step < stages.length) {
+                const st = stages[step];
+                if (progressSubtext) progressSubtext.innerText = st.text;
+                if (progressFound) progressFound.innerText = `Hittade: ${st.found}`;
+                if (progressBar) progressBar.style.width = `${st.width}%`;
+                step++;
+            }
+        }, 900);
 
         const csrfToken = getCSRFToken();
         const formData = new FormData();
@@ -4354,24 +4423,38 @@
             },
             body: formData,
         })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status === 'success') {
-                hideModalSafe('searchSpecificModal');
-                hideModalSafe('importWikipediaModal');
-                alert('🚀 ' + data.message);
-                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
-                location.reload();
-            } else {
-                alert('Fel vid sökning: ' + data.message);
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHtml;
-                }
+        .then(async r => {
+            const data = await r.json();
+            if (!r.ok || data.status !== 'success') {
+                throw new Error(data.message || `HTTP ${r.status}`);
             }
+            return data;
+        })
+        .then(data => {
+            clearInterval(progressInterval);
+            const newProspectId = data.prospect ? data.prospect.id : null;
+            if (progressFound) progressFound.innerText = 'Hittade: 1';
+            if (progressTitle) progressTitle.innerHTML = '<i class="fa-solid fa-circle-check me-1.5 text-success"></i>Turnering hittad och tillagd!';
+            if (progressSubtext) progressSubtext.innerText = `${data.message || 'Turneringen lades till i scoutlistan.'} Uppdaterar scout-vyn...`;
+            if (progressBar) {
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#16a34a';
+                progressBar.classList.add('bg-success');
+            }
+            setTimeout(() => {
+                refreshScoutFrame(newProspectId);
+            }, 700);
         })
         .catch(err => {
-            alert('Nätverksfel vid sökning: ' + err.message);
+            clearInterval(progressInterval);
+            console.error('Nätverksfel vid sökning:', err);
+            if (progressTitle) progressTitle.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1.5 text-danger"></i>Sökning misslyckades';
+            if (progressSubtext) progressSubtext.innerHTML = `<span class="text-danger">${err.message || 'Nätverksfel vid sökning.'}</span>`;
+            if (progressBar) {
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#dc2626';
+                progressBar.classList.add('bg-danger');
+            }
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
@@ -4830,6 +4913,9 @@ Search and extract upcoming sports tournaments matching:
         const card = document.getElementById(`prospect-card-${prospectId}`);
         const tournamentName = (card ? (card.getAttribute('data-tournament-name') || (card.querySelector('h4') ? card.querySelector('h4').innerText.trim() : '')) : '') || `Turnering #${prospectId}`;
 
+        const scanProgress = document.getElementById('scoutScanProgressContainer');
+        if (scanProgress) scanProgress.classList.add('d-none');
+
         const progressContainer = document.getElementById('scoutBulkProgressContainer');
         const progressTitle     = document.getElementById('scoutBulkProgressTitle');
         const progressSubtext   = document.getElementById('scoutBulkProgressSubtext');
@@ -4888,7 +4974,7 @@ Search and extract upcoming sports tournaments matching:
             if (data.status === 'success') {
                 setSubAgentStep(6);
                 if (progressTitle) progressTitle.innerText = `Djupscanning klar för ${tournamentName}!`;
-                if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetning klar för <strong>${tournamentName}</strong>. Laddar om...`;
+                if (progressSubtext) progressSubtext.innerHTML = `[1/1] Bearbetning klar för <strong>${tournamentName}</strong>. Uppdaterar scout-vyn...`;
                 if (progressBar) {
                     progressBar.style.width = '100%';
                     progressBar.classList.remove('bg-warning', 'bg-danger');
@@ -4896,11 +4982,12 @@ Search and extract upcoming sports tournaments matching:
                 }
                 if (progressPercent) progressPercent.innerText = '100%';
 
-                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
-                setTimeout(() => location.reload(), 600);
+                setTimeout(() => {
+                    refreshScoutFrame(prospectId);
+                }, 700);
             } else if (data.status === 'deleted') {
                 if (progressTitle) progressTitle.innerText = `Turneringen avvisades och togs bort!`;
-                if (progressSubtext) progressSubtext.innerHTML = `[1/1] <span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>${data.message || 'Ej godkänd enligt villkor'}</span>. Laddar om...`;
+                if (progressSubtext) progressSubtext.innerHTML = `[1/1] <span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>${data.message || 'Ej godkänd enligt villkor'}</span>. Uppdaterar scout-vyn...`;
                 if (progressBar) {
                     progressBar.style.width = '100%';
                     progressBar.classList.remove('bg-warning', 'bg-success');
@@ -4908,8 +4995,9 @@ Search and extract upcoming sports tournaments matching:
                 }
                 if (progressPercent) progressPercent.innerText = '100%';
 
-                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
-                setTimeout(() => location.reload(), 800);
+                setTimeout(() => {
+                    refreshScoutFrame();
+                }, 800);
             } else {
                 if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
                 if (progressContainer) progressContainer.classList.add('d-none');
@@ -4931,8 +5019,57 @@ Search and extract upcoming sports tournaments matching:
         const originalHtml = btn ? btn.innerHTML : '';
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-satellite-dish fa-spin me-1.5"></i>Scannar webben...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Scannar...';
         }
+
+        const progressContainer = document.getElementById('scoutScanProgressContainer');
+        const progressTitle     = document.getElementById('scoutScanProgressTitle');
+        const progressSubtext   = document.getElementById('scoutScanProgressSubtext');
+        const progressFound     = document.getElementById('scoutScanProgressFoundCount');
+        const progressBar       = document.getElementById('scoutScanProgressBar');
+
+        const bulkProgress = document.getElementById('scoutBulkProgressContainer');
+        if (bulkProgress) bulkProgress.classList.add('d-none');
+
+        if (progressContainer) {
+            progressContainer.classList.remove('d-none');
+            progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (progressTitle) progressTitle.innerHTML = '<i class="fa-solid fa-globe me-1.5"></i>Scannar webben efter turneringar...';
+            if (progressSubtext) progressSubtext.innerText = 'Söker AllSportDB API & Wikipedia årskalendrar...';
+            if (progressFound) progressFound.innerText = 'Hittade: 0';
+            if (progressBar) {
+                progressBar.style.width = '10%';
+                progressBar.style.backgroundColor = '#2563eb';
+                progressBar.classList.remove('bg-success', 'bg-danger');
+            }
+        }
+
+        let foundCount = 0;
+        let step = 0;
+        const searchStages = [
+            { text: 'Söker AllSportDB API efter kommande turneringar...', found: 1, width: 25 },
+            { text: 'Söker Wikipedia sportkalendrar & mästerskap...', found: 2, width: 45 },
+            { text: 'Analyserar kontinentala mästerskap & kval...', found: 3, width: 60 },
+            { text: 'Kör Google Gemini AI Search Grounded Tri-Pillar Scout...', found: 4, width: 75 },
+            { text: 'Filtrerar H2H-sporter och tillämpar 30-dagars regel...', found: 5, width: 88 },
+        ];
+
+        const progressInterval = setInterval(() => {
+            if (step < searchStages.length) {
+                const st = searchStages[step];
+                foundCount = st.found;
+                if (progressSubtext) progressSubtext.innerText = st.text;
+                if (progressFound) progressFound.innerText = `Hittade: ${foundCount}`;
+                if (progressBar) progressBar.style.width = `${st.width}%`;
+                step++;
+            } else {
+                foundCount++;
+                if (progressFound) progressFound.innerText = `Hittade: ${foundCount}`;
+                if (progressBar && parseInt(progressBar.style.width) < 95) {
+                    progressBar.style.width = `${Math.min(95, parseInt(progressBar.style.width) + 2)}%`;
+                }
+            }
+        }, 1200);
 
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
         const formData = new FormData();
@@ -4950,10 +5087,28 @@ Search and extract upcoming sports tournaments matching:
             return r.json();
         })
         .then(data => {
+            clearInterval(progressInterval);
             if (data.status === 'success') {
-                localStorage.setItem('engineAdminActiveTab', 'scout-tab');
-                location.reload();
+                const total = data.total_count !== undefined ? data.total_count : foundCount;
+                if (progressFound) progressFound.innerText = `Hittade: ${total}`;
+                if (progressTitle) progressTitle.innerHTML = '<i class="fa-solid fa-circle-check me-1.5 text-success"></i>Webbscanning slutförd!';
+                if (progressSubtext) progressSubtext.innerText = `Hittade ${total} turneringar (${data.created_count || 0} nya, ${data.updated_count || 0} uppdaterade). Uppdaterar scout-vyn...`;
+                if (progressBar) {
+                    progressBar.style.width = '100%';
+                    progressBar.style.backgroundColor = '#16a34a';
+                    progressBar.classList.add('bg-success');
+                }
+                setTimeout(() => {
+                    refreshScoutFrame();
+                }, 700);
             } else {
+                if (progressTitle) progressTitle.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1.5 text-danger"></i>Scanning avbröts';
+                if (progressSubtext) progressSubtext.innerHTML = `<span class="text-danger">${data.message || 'Ett fel uppstod.'}</span>`;
+                if (progressBar) {
+                    progressBar.style.width = '100%';
+                    progressBar.style.backgroundColor = '#dc2626';
+                    progressBar.classList.add('bg-danger');
+                }
                 if (btn) {
                     btn.disabled = false;
                     btn.innerHTML = originalHtml;
@@ -4961,7 +5116,15 @@ Search and extract upcoming sports tournaments matching:
             }
         })
         .catch(err => {
+            clearInterval(progressInterval);
             console.error('Nätverksfel vid webbscanning:', err);
+            if (progressTitle) progressTitle.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1.5 text-danger"></i>Nätverksfel';
+            if (progressSubtext) progressSubtext.innerHTML = `<span class="text-danger">${err.message || 'Nätverksfel vid webbscanning.'}</span>`;
+            if (progressBar) {
+                progressBar.style.width = '100%';
+                progressBar.style.backgroundColor = '#dc2626';
+                progressBar.classList.add('bg-danger');
+            }
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
@@ -4969,17 +5132,41 @@ Search and extract upcoming sports tournaments matching:
         });
     }
 
+    // --- CENTRAL SCOUT FRAME REFRESH & PERSISTENCE HELPER ---
+    function refreshScoutFrame(highlightId = null) {
+        localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+        localStorage.setItem('scoutActiveFilter', 'all');
+        localStorage.setItem('scoutActiveSportFilter', 'all');
+        if (highlightId) {
+            localStorage.setItem('scoutHighlightProspectId', String(highlightId));
+        }
+
+        // Cache-busting URL reload directly to scout-pane
+        const url = new URL(window.location.href);
+        url.searchParams.set('_t', Date.now());
+        url.hash = 'scout-pane';
+        window.location.href = url.toString();
+    }
+
     // --- TAB PERSISTENCE SYSTEM ---
     function initTabPersistence() {
         const STORAGE_KEY = 'engineAdminActiveTab';
 
         // 1. Restore saved tab on load
-        const savedTabId = localStorage.getItem(STORAGE_KEY) || (location.hash ? location.hash.replace('#', '') : null);
-        if (savedTabId) {
-            const btn = document.getElementById(savedTabId) || document.querySelector(`[data-bs-target="#${savedTabId}"]`);
-            if (btn) {
+        let target = localStorage.getItem(STORAGE_KEY) || (location.hash ? location.hash.replace('#', '') : null);
+        if (target) {
+            let tabBtn = document.querySelector(`button[data-bs-target="#${target}"]`)
+                      || document.querySelector(`button#${target}`)
+                      || document.getElementById(target);
+
+            if (tabBtn && !tabBtn.matches('button, [data-bs-toggle="pill"], [data-bs-toggle="tab"]')) {
+                const paneId = tabBtn.id;
+                tabBtn = document.querySelector(`[data-bs-target="#${paneId}"]`);
+            }
+
+            if (tabBtn) {
                 try {
-                    const bsTab = bootstrap.Tab.getOrCreateInstance(btn);
+                    const bsTab = bootstrap.Tab.getOrCreateInstance(tabBtn);
                     bsTab.show();
                 } catch(e) {
                     console.warn('Could not restore active tab:', e);
@@ -4992,8 +5179,9 @@ Search and extract upcoming sports tournaments matching:
             tabBtn.addEventListener('shown.bs.tab', function(e) {
                 const targetId = e.target.id;
                 localStorage.setItem(STORAGE_KEY, targetId);
+                const targetPane = e.target.getAttribute('data-bs-target')?.replace('#', '') || targetId;
                 if (history.replaceState) {
-                    history.replaceState(null, null, '#' + targetId);
+                    history.replaceState(null, null, '#' + targetPane);
                 }
             });
         });
@@ -5003,6 +5191,37 @@ Search and extract upcoming sports tournaments matching:
     document.addEventListener('DOMContentLoaded', function() {
         // Initialize tab persistence
         initTabPersistence();
+
+        // Ensure active tab if scout
+        if (location.hash === '#scout-pane' || localStorage.getItem('engineAdminActiveTab') === 'scout-tab') {
+            const scoutBtn = document.getElementById('scout-tab');
+            if (scoutBtn) {
+                try {
+                    bootstrap.Tab.getOrCreateInstance(scoutBtn).show();
+                } catch(e) {}
+            }
+        }
+
+        // Check for highlighted newly scanned prospect
+        const highlightId = localStorage.getItem('scoutHighlightProspectId');
+        if (highlightId) {
+            localStorage.removeItem('scoutHighlightProspectId');
+            setTimeout(() => {
+                const card = document.getElementById(`prospect-card-${highlightId}`);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    card.style.transition = 'box-shadow 0.6s ease, border-color 0.6s ease, transform 0.4s ease';
+                    card.style.boxShadow = '0 0 25px rgba(59, 130, 246, 0.85)';
+                    card.style.borderColor = '#3b82f6';
+                    card.style.transform = 'scale(1.01)';
+                    setTimeout(() => {
+                        card.style.boxShadow = '';
+                        card.style.borderColor = '';
+                        card.style.transform = '';
+                    }, 4000);
+                }
+            }, 350);
+        }
 
         // Move all modals directly to document.body to prevent stacking context or z-index trapping
         document.querySelectorAll('.modal').forEach(modal => {
