@@ -89,6 +89,61 @@ class OfficialSiteScout:
         }
 
     @classmethod
+    def canonicalize_official_url(cls, url: str, tournament_name: str = "") -> str:
+        """
+        Normalizes deep news article URLs, press release links, or sub-paths into the
+        canonical top-level tournament portal hub on official federation domains.
+        e.g. 'https://www.uefa.com/uefanationsleague/news/02a1-...' -> 'https://www.uefa.com/uefanationsleague/'
+             'https://www.uefa.com/news-media/news/...--uefa-nations-league...' -> 'https://www.uefa.com/uefanationsleague/'
+             'https://www.concacaf.com/competitions/gold-cup/news/...' -> 'https://www.concacaf.com/competitions/gold-cup/'
+             'https://www.cafonline.com/afcon2025/news/...' -> 'https://www.cafonline.com/totalenergies-africa-cup-of-nations/'
+        """
+        if not url:
+            return ""
+        u_lower = url.lower()
+        t_lower = (tournament_name or "").lower()
+
+        # UEFA
+        if "uefa.com" in u_lower:
+            if "nationsleague" in u_lower or "nations-league" in u_lower or "nations league" in t_lower:
+                return "https://www.uefa.com/uefanationsleague/"
+            if "womenseuro" in u_lower or "women's euro" in t_lower:
+                return "https://www.uefa.com/womenseuro/"
+            if "euro2028" in u_lower or "euro 2028" in t_lower:
+                return "https://www.uefa.com/euro2028/"
+            if "euro2032" in u_lower or "euro 2032" in t_lower:
+                return "https://www.uefa.com/euro2032/"
+
+        # CONCACAF
+        if "concacaf.com" in u_lower:
+            if "gold-cup" in u_lower or "gold cup" in t_lower:
+                return "https://www.concacaf.com/competitions/gold-cup/"
+            if "nations-league" in u_lower or "nations league" in t_lower:
+                return "https://www.concacaf.com/competitions/nations-league/"
+
+        # CAF (Africa Cup of Nations)
+        if "africa cup" in t_lower or "afcon" in t_lower or ("cafonline.com" in u_lower and ("afcon" in u_lower or "africa-cup" in u_lower)):
+            return "https://www.cafonline.com/totalenergies-africa-cup-of-nations/"
+        if "cafonline.com" in u_lower:
+            return "https://www.cafonline.com/"
+
+        # FIFA
+        if "fifa.com" in u_lower or "world cup" in t_lower or "worldcup" in t_lower:
+            if "women" in t_lower:
+                return "https://www.fifa.com/fifaplus/en/tournaments/womens/womensworldcup"
+            return "https://www.fifa.com/worldcup/"
+
+        # AFC
+        if "asian cup" in t_lower or "asian_cup" in u_lower or "the-afc.com" in u_lower:
+            return "https://www.the-afc.com/en/national/afc_asian_cup/"
+
+        # FIBA
+        if "fiba.basketball" in u_lower or "fiba" in t_lower:
+            return "https://www.fiba.basketball/worldcup/"
+
+        return url
+
+    @classmethod
     def discover_official_site(cls, tournament_name: str, wikipedia_title: Optional[str] = None) -> Optional[str]:
         """
         Discovers the official tournament website or press release URL for a given tournament.
@@ -96,6 +151,11 @@ class OfficialSiteScout:
         """
         if not tournament_name:
             return None
+
+        # Check if tournament name immediately maps to a known federation hub
+        direct_canonical = cls.canonicalize_official_url(f"https://domain/{tournament_name.lower().replace(' ', '-')}", tournament_name)
+        if direct_canonical and not direct_canonical.startswith("https://domain/"):
+            return direct_canonical
 
         # 1. Resolve Wikipedia title if not provided
         title = wikipedia_title
@@ -139,12 +199,12 @@ class OfficialSiteScout:
         ranked.sort(key=lambda x: x['score'], reverse=True)
 
         if ranked and ranked[0]['score'] >= 30:
-            return ranked[0]['url']
+            return cls.canonicalize_official_url(ranked[0]['url'], tournament_name)
 
         # Fallback to first non-wikipedia link if present
         for item in ranked:
             if 'wikipedia.org' not in item['url'] and 'wikimedia.org' not in item['url']:
-                return item['url']
+                return cls.canonicalize_official_url(item['url'], tournament_name)
 
         return None
 
