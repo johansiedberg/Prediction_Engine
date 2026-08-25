@@ -137,8 +137,38 @@ class OfficialSiteScout:
                 return "https://www.fiba.basketball/en/events/fiba-u19-basketball-world-cup-2027"
             return "https://www.fiba.basketball/worldcup/"
 
+        # ICC (Cricket)
+        if "cricket" in t_lower or "icc-cricket.com" in u_lower:
+            return "https://www.icc-cricket.com/"
+
+        # WBSC (Baseball & Softball)
+        if any(b in t_lower for b in ["baseball", "softball", "baseball5"]) or "wbsc.org" in u_lower:
+            return "https://www.wbsc.org/"
+
+        # World Netball
+        if "netball" in t_lower or "netball.sport" in u_lower:
+            return "https://netball.sport/"
+
+        # EuroHockey / FIH (Field Hockey)
+        if "eurohockey" in t_lower or "eurohockey.org" in u_lower:
+            return "https://eurohockey.org/"
+        if "fih.hockey" in u_lower or ("field hockey" in t_lower or "hockey world cup" in t_lower):
+            return "https://www.fih.hockey/"
+
+        # IFF (Floorball)
+        if "floorball" in t_lower or "floorball.sport" in u_lower:
+            return "https://floorball.sport/"
+
+        # IHF (Handball)
+        if "ihf.info" in u_lower or ("handball" in t_lower and ("world" in t_lower or "ihf" in t_lower)):
+            return "https://www.ihf.info/"
+
+        # World Curling
+        if "curling" in t_lower or "worldcurling.org" in u_lower:
+            return "https://worldcurling.org/"
+
         # FIFA (Football)
-        if "fifa.com" in u_lower or ("fifa" in t_lower and "world" in t_lower) or (not any(s in t_lower for s in ["basket", "fiba", "hockey", "curling", "cricket", "rugby", "volleyball", "handball"]) and ("world cup" in t_lower or "worldcup" in t_lower)):
+        if "fifa.com" in u_lower or ("fifa" in t_lower and "world" in t_lower) or (not any(s in t_lower for s in ["basket", "fiba", "hockey", "curling", "cricket", "rugby", "volleyball", "handball", "baseball", "softball", "netball", "floorball", "lacrosse"]) and ("world cup" in t_lower or "worldcup" in t_lower)):
             if "women" in t_lower or "dam" in t_lower:
                 return "https://www.fifa.com/fifaplus/en/tournaments/womens/womensworldcup"
             return "https://www.fifa.com/worldcup/"
