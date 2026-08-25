@@ -42,16 +42,19 @@ class GeminiScoutService:
         return bool(cls.get_api_key())
 
     @classmethod
+    @classmethod
     def generate_json(
         cls,
         prompt: str,
         system_instruction: Optional[str] = None,
         search_grounding: bool = False,
         temperature: float = 0.1,
+        timeout: float = 10.0,
     ) -> Optional[Dict[str, Any]]:
         """
         Executes a Gemini generation call and parses the response as a JSON dictionary.
-        Handles markdown fence stripping and fallback cascades across models.
+        Includes a strict timeout circuit breaker (default: 10.0s) to guarantee the
+        scouting pipeline never hangs or gets stuck in a loop.
         """
         api_key = cls.get_api_key()
         if not api_key:
@@ -77,7 +80,6 @@ class GeminiScoutService:
         for model_name in cls.SUPPORTED_MODELS:
             url = f"{cls.BASE_URL}/{model_name}:generateContent?key={api_key}"
 
-            # Attempt 1: with search grounding if requested
             payload: Dict[str, Any] = {
                 "contents": contents,
                 "generationConfig": {
@@ -91,11 +93,11 @@ class GeminiScoutService:
                 payload["generationConfig"]["response_mime_type"] = "application/json"
 
             try:
-                if not GeminiRateLimiter.acquire():
-                    logger.warning("GeminiScoutService: Rate limiter acquire timed out for model %s", model_name)
+                if not GeminiRateLimiter.acquire(timeout=6.0):
+                    logger.warning("GeminiScoutService: Rate limiter acquire timed out for model %s. Aborting search.", model_name)
                     return None
 
-                res = requests.post(url, headers=headers, json=payload, timeout=60)
+                res = requests.post(url, headers=headers, json=payload, timeout=timeout)
                 if res.status_code == 200:
                     data = res.json()
                     candidates = data.get("candidates", [])
@@ -112,30 +114,13 @@ class GeminiScoutService:
                     break
                 else:
                     logger.debug("Gemini model %s returned status %d: %s", model_name, res.status_code, res.text[:150])
-                    # If search grounding failed with schema, retry without search grounding
-                    if search_grounding:
-                        payload.pop("tools", None)
-                        payload["generationConfig"]["response_mime_type"] = "application/json"
-                        if not GeminiRateLimiter.acquire():
-                            return None
-                        retry_res = requests.post(url, headers=headers, json=payload, timeout=60)
-                        if retry_res.status_code == 200:
-                            data = retry_res.json()
-                            candidates = data.get("candidates", [])
-                            if candidates:
-                                parts = candidates[0].get("content", {}).get("parts", [])
-                                if parts:
-                                    raw_text = parts[0].get("text", "").strip()
-                                    clean_json = cls._extract_json_block(raw_text)
-                                    if clean_json:
-                                        return json.loads(clean_json)
-                        elif retry_res.status_code == 429:
-                            logger.warning("GeminiScoutService: Retry for %s returned 429 Quota Exceeded.", model_name)
-                            GeminiRateLimiter.record_429()
-                            break
 
+            except requests.Timeout:
+                logger.warning("GeminiScoutService: Query to %s timed out after %.1fs. Abandoning search to keep pipeline moving.", model_name, timeout)
+                return None
             except Exception as exc:
                 logger.warning("GeminiScoutService: Error calling %s: %s", model_name, exc)
+                return None
 
         return None
 

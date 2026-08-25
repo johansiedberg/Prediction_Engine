@@ -4066,14 +4066,19 @@
                 }
             }, 600);
 
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
             try {
                 const res = await fetch(`/engine-admin/scout/deep-scan/${item.id}/`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': csrfToken,
                         'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    },
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
                 const data = await res.json();
                 clearInterval(subInterval);
 
@@ -4109,11 +4114,16 @@
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
             } catch (err) {
+                clearTimeout(timeoutId);
                 clearInterval(subInterval);
-                console.error(`Error deep scanning prospect #${item.id} (${item.name}):`, err);
+                const isTimeout = err.name === 'AbortError';
+                console.warn(`Deepscan prospect #${item.id} (${item.name}) ${isTimeout ? 'tidsgräns nådd (15s)' : 'fel'}:`, err);
                 if (progressBar) {
                     progressBar.classList.remove('bg-warning', 'bg-success');
                     progressBar.classList.add('bg-danger');
+                }
+                if (progressSubtext) {
+                    progressSubtext.innerHTML = `[${currentNum}/${totalCount}] <span class="text-danger fw-bold"><i class="fa-solid fa-clock-rotate-left me-1"></i>${item.name} tidsgräns nådd — Hoppar till nästa</span>`;
                 }
                 await new Promise(resolve => setTimeout(resolve, 400));
             }
@@ -4857,6 +4867,9 @@ Search and extract upcoming sports tournaments matching:
             }
         }, 800);
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+
         try {
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
                 || getCookie('csrftoken');
@@ -4866,7 +4879,9 @@ Search and extract upcoming sports tournaments matching:
                     'X-CSRFToken': csrfToken,
                     'X-Requested-With': 'XMLHttpRequest',
                 },
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
             const data = await res.json();
             clearInterval(stepInterval);
 
@@ -4901,10 +4916,13 @@ Search and extract upcoming sports tournaments matching:
                 alert(data.error || data.message || 'Djupscanning misslyckades.');
             }
         } catch (e) {
+            clearTimeout(timeoutId);
             clearInterval(stepInterval);
             console.error('deepScanProspect error:', e);
             if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
             if (progressContainer) progressContainer.classList.add('d-none');
+            const msg = e.name === 'AbortError' ? 'Tidsgräns nådd (20s). Försök igen eller gå vidare.' : 'Nätverksfel vid djupscanning.';
+            alert(msg);
         }
     }
 

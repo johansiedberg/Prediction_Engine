@@ -37,9 +37,9 @@ class GeminiRateLimiter:
         return float(getattr(settings, "GEMINI_RATE_LIMIT_WINDOW_SECONDS", 60.0))
 
     @classmethod
-    def acquire(cls, timeout: float = 120.0) -> bool:
+    def acquire(cls, timeout: float = 8.0) -> bool:
         """
-        Blocks until an API call slot is available within the 5 calls/minute rate limit.
+        Blocks until an API call slot is available within the rate limit.
         Returns True when the slot is acquired, or False if timeout expires.
         """
         start_wait = time.time()

@@ -345,12 +345,23 @@ class ModularDeepScout:
         )
 
         # SEGMENT 5: Matches & Knockout Segment (Timetable & knockout trees via Gemini AI)
-        matches_ko_seg = self.matches_agent.build_matches_knockout_segment(
-            audit_data=audit,
-            groups_segment=groups_teams_seg,
-            tournament_name=prospect.name,
-            sport=prospect.sport or "Football",
-        )
+        try:
+            matches_ko_seg = self.matches_agent.build_matches_knockout_segment(
+                audit_data=audit,
+                groups_segment=groups_teams_seg,
+                tournament_name=prospect.name,
+                sport=prospect.sport or "Football",
+            )
+        except Exception as exc:
+            logger.warning("Segment 5 (Matches & Knockout) exception for '%s': %s. Falling back to default stages.", prospect.name, exc)
+            from tournament.schemas.deepscan_blueprint import MatchesKnockoutSegment
+            matches_ko_seg = MatchesKnockoutSegment(
+                fixtures_completed=False,
+                scheduled_matchdays=0,
+                matches=[],
+                knockout_stages=[],
+                third_place_match_exists=False,
+            )
 
 
         # Grade Evaluation
