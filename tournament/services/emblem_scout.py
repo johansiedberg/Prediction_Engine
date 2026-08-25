@@ -59,18 +59,21 @@ class EmblemScout:
     }
 
     CANONICAL_EMBLEM_MAP = {
+        'uefa nations league': 'https://upload.wikimedia.org/wikipedia/en/thumb/8/80/UEFA_Nations_League.svg/500px-UEFA_Nations_League.svg.png',
+        'concacaf gold cup': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Concacaf_Gold_Cup_2021.svg/500px-Concacaf_Gold_Cup_2021.svg.png',
+        'gold cup': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Concacaf_Gold_Cup_2021.svg/500px-Concacaf_Gold_Cup_2021.svg.png',
+        'concacaf nations league': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Concacaf_Nations_League_logo.svg/500px-Concacaf_Nations_League_logo.svg.png',
         '2027 afc asian cup': 'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/2027_AFC_Asian_Cup_logo.svg/500px-2027_AFC_Asian_Cup_logo.svg.png',
-        'afc asian cup': 'https://commons.wikimedia.org/wiki/Special:FilePath/AFC_Asian_Cup_logo.svg',
-        'asian cup': 'https://commons.wikimedia.org/wiki/Special:FilePath/AFC_Asian_Cup_logo.svg',
-        'uefa nations league': 'https://commons.wikimedia.org/wiki/Special:FilePath/UEFA_Nations_League_logo.svg',
-        'concacaf nations league': 'https://commons.wikimedia.org/wiki/Special:FilePath/Concacaf_Nations_League_logo.svg',
-        'copa américa': 'https://commons.wikimedia.org/wiki/Special:FilePath/Copa_Am%C3%A9rica_logo.svg',
-        'copa america': 'https://commons.wikimedia.org/wiki/Special:FilePath/Copa_Am%C3%A9rica_logo.svg',
-        'africa cup of nations': 'https://commons.wikimedia.org/wiki/Special:FilePath/Africa_Cup_of_Nations_logo.svg',
-        'afcon': 'https://commons.wikimedia.org/wiki/Special:FilePath/Africa_Cup_of_Nations_logo.svg',
-        'uefa euro 2028': 'https://commons.wikimedia.org/wiki/Special:FilePath/UEFA_Euro_2028_Logo.svg',
-        '2026 fifa world cup': 'https://commons.wikimedia.org/wiki/Special:FilePath/2026_FIFA_World_Cup_emblem.svg',
-        'fifa world cup 2026': 'https://commons.wikimedia.org/wiki/Special:FilePath/2026_FIFA_World_Cup_emblem.svg',
+        'afc asian cup': 'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/2027_AFC_Asian_Cup_logo.svg/500px-2027_AFC_Asian_Cup_logo.svg.png',
+        'asian cup': 'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/2027_AFC_Asian_Cup_logo.svg/500px-2027_AFC_Asian_Cup_logo.svg.png',
+        'copa américa': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Copa_Am%C3%A9rica_logo.svg/500px-Copa_Am%C3%A9rica_logo.svg.png',
+        'copa america': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Copa_Am%C3%A9rica_logo.svg/500px-Copa_Am%C3%A9rica_logo.svg.png',
+        'africa cup of nations': 'https://upload.wikimedia.org/wikipedia/en/c/cf/Africa_Cup_of_Nation_official_logo.png',
+        'afcon': 'https://upload.wikimedia.org/wikipedia/en/c/cf/Africa_Cup_of_Nation_official_logo.png',
+        'uefa euro 2028': 'https://upload.wikimedia.org/wikipedia/en/thumb/1/1a/UEFA_Euro_2028_Logo.svg/500px-UEFA_Euro_2028_Logo.svg.png',
+        '2026 fifa world cup': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/2026_FIFA_World_Cup_emblem.svg/500px-2026_FIFA_World_Cup_emblem.svg.png',
+        'fifa world cup 2026': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/2026_FIFA_World_Cup_emblem.svg/500px-2026_FIFA_World_Cup_emblem.svg.png',
+        'fifa world cup': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/2026_FIFA_World_Cup_emblem.svg/500px-2026_FIFA_World_Cup_emblem.svg.png',
     }
 
     @classmethod
@@ -82,22 +85,25 @@ class EmblemScout:
     def discover_official_emblem(cls, tournament_name: str, official_url: Optional[str] = None, wikidata_qid: Optional[str] = None) -> str:
         """
         Discovers the canonical official emblem logo URL for a given tournament name.
+        Strips year/season terms to discover brand-level logos if season logos are absent.
         Returns the resolved image URL string or empty string if not found.
         """
         if not tournament_name or not isinstance(tournament_name, str):
             return ""
 
         clean_name = tournament_name.strip()
-        logger.info("EmblemScout: Starting official emblem search for '%s'", clean_name)
+        brand_name = re.sub(r'\b(19\d{2}|20\d{2}(?:[–\-]\d{2,4})?)\b', '', clean_name).strip()
+        logger.info("EmblemScout: Starting official emblem search for '%s' (Brand: '%s')", clean_name, brand_name)
 
-        # 0. Canonical Emblem Map Fast-Path Override
+        # 0. Canonical Emblem Map Fast-Path Override (Checks both exact name and stripped brand name)
         name_lower = clean_name.lower()
+        brand_lower = brand_name.lower()
         for key, canonical_url in cls.CANONICAL_EMBLEM_MAP.items():
-            if key in name_lower:
+            if key in name_lower or (brand_lower and key in brand_lower):
                 logger.info("EmblemScout: Found canonical emblem override for '%s': %s", clean_name, canonical_url)
                 return canonical_url
 
-        # 1. Wikipedia Article Parse Images (Fair-use & official emblems linked in Wikipedia)
+        # 1. Wikipedia Article Parse & Infobox Images
         logo_url = cls._fetch_from_wikipedia_article_images(clean_name)
         if logo_url and is_valid_tournament_logo(logo_url):
             logger.info("EmblemScout: Resolved emblem from Wikipedia Article Images: %s", logo_url)
@@ -140,11 +146,10 @@ class EmblemScout:
             logger.info("EmblemScout: Resolved emblem via Gemini AI Search: %s", logo_url)
             return logo_url
 
-        # 8. Fallback: Strip season year prefixes (e.g. "2026–27 UEFA Nations League" -> "UEFA Nations League") and retry
-        parent_name = re.sub(r'^\d{4}(?:[–\-]\d{2,4})?\s*', '', clean_name).strip()
-        if parent_name and parent_name != clean_name:
-            logger.info("EmblemScout: Retrying search with parent tournament name '%s'", parent_name)
-            parent_logo = cls.discover_official_emblem(parent_name, official_url, wikidata_qid)
+        # 8. Fallback: Strip season year prefixes and retry
+        if brand_name and brand_name != clean_name:
+            logger.info("EmblemScout: Retrying search with parent brand name '%s'", brand_name)
+            parent_logo = cls.discover_official_emblem(brand_name, official_url, wikidata_qid)
             if parent_logo:
                 return parent_logo
 
@@ -154,15 +159,23 @@ class EmblemScout:
     @classmethod
     def _fetch_from_wikipedia_article_images(cls, page_title: str) -> Optional[str]:
         """
-        Parses all image files linked in the Wikipedia article (including fair-use logos)
+        Parses all image files linked in the Wikipedia article (including Infobox logo and fair-use logos)
         and resolves the high-res 500px rendered PNG thumbnail.
         """
         titles_to_try = [page_title]
+        brand_name = re.sub(r'\b(19\d{2}|20\d{2}(?:[–\-]\d{2,4})?)\b', '', page_title).strip()
+        if brand_name and brand_name not in titles_to_try:
+            titles_to_try.append(brand_name)
+
         try:
             from tournament.services.wikipedia_scout import WikipediaScout
             wiki_search_title = WikipediaScout().search_wikipedia_article(page_title)
             if wiki_search_title and wiki_search_title not in titles_to_try:
                 titles_to_try.append(wiki_search_title)
+            if brand_name:
+                brand_wiki_title = WikipediaScout().search_wikipedia_article(brand_name)
+                if brand_wiki_title and brand_wiki_title not in titles_to_try:
+                    titles_to_try.append(brand_wiki_title)
         except Exception:
             pass
 
@@ -170,6 +183,47 @@ class EmblemScout:
         if clean_base and clean_base not in titles_to_try:
             titles_to_try.append(clean_base)
 
+        # 1a. Fast Infobox Logo Parser on Wikipedia
+        for title in titles_to_try:
+            try:
+                info_url = "https://en.wikipedia.org/w/api.php"
+                params = {
+                    "action": "query",
+                    "titles": title,
+                    "prop": "revisions",
+                    "rvprop": "content",
+                    "rvsection": "0",
+                    "format": "json"
+                }
+                res = requests.get(info_url, params=params, headers=cls.HEADERS, timeout=6)
+                if res.status_code == 200:
+                    pages = res.json().get("query", {}).get("pages", {})
+                    for _, p in pages.items():
+                        for rev in p.get("revisions", []):
+                            content = rev.get("*", "")
+                            logo_match = re.search(r'\|\s*(?:logo|image|emblem|crest)\s*=\s*([^|\n}]+)', content, re.I)
+                            if logo_match:
+                                logo_file = logo_match.group(1).strip()
+                                if not logo_file.lower().startswith("file:"):
+                                    logo_file = f"File:{logo_file}"
+                                img_res = requests.get("https://en.wikipedia.org/w/api.php", params={
+                                    "action": "query",
+                                    "titles": logo_file,
+                                    "prop": "imageinfo",
+                                    "iiprop": "url",
+                                    "iiurlwidth": 500,
+                                    "format": "json"
+                                }, headers=cls.HEADERS, timeout=6)
+                                if img_res.status_code == 200:
+                                    for _, img_p in img_res.json().get("query", {}).get("pages", {}).items():
+                                        for ii in img_p.get("imageinfo", []):
+                                            thumb = ii.get("thumburl") or ii.get("url")
+                                            if thumb and is_valid_tournament_logo(thumb):
+                                                return thumb
+            except Exception as exc:
+                logger.debug("EmblemScout infobox parse warning for '%s': %s", title, exc)
+
+        # 1b. Full page images fallback
         for title in titles_to_try:
             try:
                 wiki_title = title.replace(' ', '_')
@@ -184,7 +238,7 @@ class EmblemScout:
                 for img_name in images:
                     img_lower = img_name.lower()
                     if not any(k in img_lower for k in ['map', 'flag', 'stadium', 'trophy', 'medal', 'youtube', 'icon', 'nuvola', 'avatar']) and any(img_lower.endswith(ext) for ext in ['.svg', '.png', '.jpg', '.webp']):
-                        if any(k in img_lower for k in ['logo', 'emblem', 'crest', 'badge', 'insignia']):
+                        if any(k in img_lower for k in ['logo', 'emblem', 'crest', 'badge', 'insignia']) or (brand_name and brand_name.lower() in img_lower):
                             logo_candidates.append(img_name)
 
                 for img_name in logo_candidates:
