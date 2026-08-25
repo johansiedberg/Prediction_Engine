@@ -243,9 +243,30 @@ class StructureRulesAgent:
 
         # 4. Knockout Rules
         ko_stages = audit.get("knockout_stages") or []
-        first_round = ko_rules_data.get("starting_round") or (ko_stages[0] if ko_stages else "Slutspel")
+        first_round = ko_rules_data.get("starting_round")
+        if not first_round and ko_stages:
+            first_round = ko_stages[0]
         if isinstance(first_round, dict):
             first_round = first_round.get("stage_name", "Slutspel")
+
+        if not first_round or first_round == "Slutspel":
+            # Dynamic format-specific starting round resolution
+            t_name_lower = str(tournament_name or "").lower()
+            sport_lower = str(sport or "").lower()
+            groups_cnt = int(audit.get("groups_count", 0))
+            teams_cnt = int(teams_count or 0)
+            if "nations league" in t_name_lower:
+                first_round = "Quarterfinals"
+            elif "handball" in sport_lower or "handboll" in sport_lower:
+                first_round = "Quarterfinals"
+            elif groups_cnt >= 12 or teams_cnt >= 48:
+                first_round = "Round of 32"
+            elif groups_cnt >= 6 or (20 <= teams_cnt <= 36):
+                first_round = "Round of 16"
+            elif groups_cnt >= 3 or (8 <= teams_cnt <= 20):
+                first_round = "Quarterfinals"
+            else:
+                first_round = "Semifinals"
 
         extra_min = ko_rules_data.get("extra_time_minutes") if ko_rules_data.get("extra_time_minutes") is not None else match_fmt.get("extra_time_minutes", default_extra_min)
         has_pens = ko_rules_data.get("has_penalties") if "has_penalties" in ko_rules_data else match_fmt.get("has_penalties", default_has_pens)
