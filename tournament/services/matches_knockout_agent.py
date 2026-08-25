@@ -360,10 +360,53 @@ class MatchesKnockoutAgent:
                 ))
 
         # 3. Dynamic Knockout Bracket Tree Construction
+        from tournament.services.format_blueprint_service import FormatBlueprintService
+        canon_bp = FormatBlueprintService.get_canonical_blueprint(tournament_name, sport)
+
         t_name_lower = str(tournament_name or "").lower()
         sport_lower = str(sport or "").lower()
         groups_count = groups_segment.groups_count if groups_segment else 0
         teams_count = groups_segment.teams_count if groups_segment else 0
+
+        # Check if canonical blueprint has explicit pre-wired knockout stages (e.g. Euro qualifying play-offs)
+        if canon_bp and canon_bp.get("knockout_stages"):
+            canon_stages: List[KnockoutStageEntry] = []
+            for r_idx, ks in enumerate(canon_bp["knockout_stages"], start=1):
+                s_name = ks.get("stage_name", f"Stage {r_idx}")
+                m_list = []
+                for m in ks.get("matches", []):
+                    h_m = _resolve_team_meta(m.get("home_team", ""))
+                    a_m = _resolve_team_meta(m.get("away_team", ""))
+                    m_list.append(KnockoutMatchEntry(
+                        match_code=m.get("match_code", ""),
+                        stage_name=s_name,
+                        home_team=m.get("home_team", ""),
+                        away_team=m.get("away_team", ""),
+                        home_team_code=h_m["code"],
+                        home_team_flag_url=h_m["flag_url"],
+                        home_team_emblem_url=h_m["emblem_url"],
+                        away_team_code=a_m["code"],
+                        away_team_flag_url=a_m["flag_url"],
+                        away_team_emblem_url=a_m["emblem_url"],
+                        winner_to=m.get("winner_to"),
+                    ))
+                canon_stages.append(KnockoutStageEntry(
+                    stage_name=s_name,
+                    round_order=r_idx,
+                    matches=m_list,
+                ))
+            if canon_stages:
+                has_real_teams = bool(groups_segment and groups_segment.has_real_teams)
+                draw_is_done = bool((audit.get("draw_completed") or has_real_teams) and has_real_teams)
+                fixtures_completed = bool(draw_is_done and group_matches and not any(m.is_placeholder for m in group_matches))
+                actual_listed_matches = len(group_matches) + sum(len(stage.matches) for stage in canon_stages)
+                return MatchesAndKnockoutSegment(
+                    total_matches=actual_listed_matches,
+                    fixtures_completed=fixtures_completed,
+                    group_matches=group_matches,
+                    advancement_fixtures=advancement_fixtures,
+                    knockout_bracket=canon_stages,
+                )
 
         # Determine target starting round and stages
         stages_to_add: List[str] = []
@@ -387,6 +430,18 @@ class MatchesKnockoutAgent:
                 stages_to_add = ["Quarterfinals", "Semifinals", "Final"]
             else:
                 stages_to_add = ["Semifinals", "Final"]
+
+        has_bronze = bool(
+            (canon_bp and canon_bp.get("knockout_rules", {}).get("has_third_place_match"))
+            or audit.get("has_third_place_match")
+            or ("fifa world cup" in t_name_lower and "u-20" not in t_name_lower and "u-17" not in t_name_lower)
+            or ("fiba" in t_name_lower)
+            or ("handball" in sport_lower or "handboll" in sport_lower)
+            or ("nations league" in t_name_lower)
+            or ("afcon" in t_name_lower or "africa cup" in t_name_lower)
+            or ("copa am" in t_name_lower)
+            or ("olympic" in t_name_lower or "olymp" in t_name_lower)
+        )
 
         # Build clean knockout stages and wire matches sequentially
         knockout_bracket: List[KnockoutStageEntry] = []
@@ -539,6 +594,31 @@ class MatchesKnockoutAgent:
                 elif "final" in s_name_lower:
                     p1_code = prev_stage_matches[0].match_code if len(prev_stage_matches) >= 1 else "SF_1"
                     p2_code = prev_stage_matches[1].match_code if len(prev_stage_matches) >= 2 else "SF_2"
+
+                    # Generate 3rd Place Match (Bronsmatch) if supported by tournament rules
+                    if has_bronze and len(prev_stage_matches) >= 2:
+                        bronze_match = KnockoutMatchEntry(
+                            match_code="3RD_PLACE",
+                            stage_name="Match om 3:e pris",
+                            home_team=f"Förlorare {p1_code}",
+                            away_team=f"Förlorare {p2_code}",
+                            winner_to="Brons / 3:e plats",
+                        )
+                        h_bm = _resolve_team_meta(bronze_match.home_team)
+                        a_bm = _resolve_team_meta(bronze_match.away_team)
+                        bronze_match.home_team_code = h_bm["code"]
+                        bronze_match.home_team_flag_url = h_bm["flag_url"]
+                        bronze_match.home_team_emblem_url = h_bm["emblem_url"]
+                        bronze_match.away_team_code = a_bm["code"]
+                        bronze_match.away_team_flag_url = a_bm["flag_url"]
+                        bronze_match.away_team_emblem_url = a_bm["emblem_url"]
+
+                        knockout_bracket.append(KnockoutStageEntry(
+                            stage_name="Match om 3:e pris",
+                            round_order=r_idx,
+                            matches=[bronze_match],
+                        ))
+
                     m_code = "FINAL"
                     match_entries.append(KnockoutMatchEntry(
                         match_code=m_code,

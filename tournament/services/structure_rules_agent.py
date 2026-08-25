@@ -53,6 +53,19 @@ class StructureRulesAgent:
         """
         audit = dict(audit_data or {})
 
+        # 0. Canonical Blueprint Enrichment
+        from tournament.services.format_blueprint_service import FormatBlueprintService
+        canon_bp = FormatBlueprintService.get_canonical_blueprint(tournament_name, sport)
+        if canon_bp:
+            if canon_bp.get("points_system") and not audit.get("points_system"):
+                audit["points_system"] = canon_bp["points_system"]
+            if canon_bp.get("advancement_logic"):
+                audit["advancement_logic"] = canon_bp["advancement_logic"]
+            if canon_bp.get("knockout_stages") and not audit.get("knockout_stages"):
+                audit["knockout_stages"] = canon_bp["knockout_stages"]
+            if canon_bp.get("official_rules_summary") and not audit.get("official_rules_summary"):
+                audit["official_rules_summary"] = canon_bp["official_rules_summary"]
+
         # 0a. Ingest data from Official Federation Portal if available
         official_ingest = audit.get("official_ingest") or {}
         if official_ingest:
@@ -100,6 +113,9 @@ class StructureRulesAgent:
         match_fmt = audit.get("match_format") or {}
         pts_sys = audit.get("points_system") or {}
         ko_rules_data = gemini_rules.get("knockout_rules") or {}
+        if canon_bp and canon_bp.get("knockout_rules"):
+            for k, v in canon_bp["knockout_rules"].items():
+                ko_rules_data.setdefault(k, v)
 
         # 1. General Setup (Draw date, seeding, host guarantees)
         draw_date = audit.get("draw_date") or bp.get("draw_date") or None

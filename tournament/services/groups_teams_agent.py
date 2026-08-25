@@ -100,6 +100,14 @@ class GroupsTeamsAgent:
         prior_draw_completed = bool(audit.get("draw_completed") or bp.get("draw_completed"))
         is_empty_prospect = (audit.get("teams_count") == 0 and audit.get("groups_count") == 0 and not raw_groups)
 
+        from tournament.services.format_blueprint_service import FormatBlueprintService
+        canon_bp = FormatBlueprintService.get_canonical_blueprint(tournament_name, sport)
+        if canon_bp and canon_bp.get("groups") and (not raw_groups or not prior_has_real):
+            raw_groups = canon_bp["groups"]
+            audit["groups"] = raw_groups
+            if "draw_completed" in canon_bp:
+                audit["draw_completed"] = canon_bp["draw_completed"]
+
         is_draw_completed = audit.get("draw_completed", True)
         
         from tournament.services.gemini_scout_service import GeminiScoutService
@@ -131,9 +139,11 @@ class GroupsTeamsAgent:
             from tournament.services.team_badge_service import TeamBadgeService
 
             # Check if preliminary groups (Group A-F) exist and have real teams
-            prelim_groups = [g for g in raw_groups if re.match(r'^(?:Group|Pool|Division)\s+[A-Z]$', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)]
-            if len(prelim_groups) >= 2:
-                # If prelim groups exist, exclude roman numeral main round placeholder groups (e.g. Group I, Group II)
+            has_letters_past_i = any(bool(re.match(r'^(?:Group|Pool|Division)\s+[J-Z]$', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)) for g in raw_groups)
+            has_roman_ii = any(bool(re.match(r'^(?:Group|Pool)\s+(?:II|III|IV)\b', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)) for g in raw_groups)
+
+            if has_roman_ii and not has_letters_past_i:
+                # If roman numeral groups exist (e.g. Handball Main Round Group I, Group II) alongside prelim groups, exclude them
                 filtered_raw_groups = [
                     g for g in raw_groups
                     if not re.match(r'^(?:Group|Pool)\s+(?:I|II|III|IV|V|VI)\b', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)
