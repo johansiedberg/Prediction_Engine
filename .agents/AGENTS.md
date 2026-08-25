@@ -9,7 +9,28 @@
   - Access at: http://127.0.0.1:2029 (or https:// in HTTPS-enabled environments)
 
 ## Server Updates & Deployment Protocol
-- **Mandatory Git Push**: Whenever the user requests server updates, migrations, or deployments, all relevant changes MUST be staged (`git add`), committed with a clear descriptive message (`git commit`), and pushed to GitHub (`git push origin main`).
+- **Milestone-Only Commits (Anti-Noise Policy)**:
+  - NEVER make micro-commits for intermediate styling/CSS/line tweaks.
+  - Test and iterate freely in local DEV mode (Player port 2028 / Engine Admin port 2029).
+  - Only commit when a full feature or milestone is completed and verified, using Conventional Commits (`feat:`, `fix:`, `style:`, `refactor:`).
+- **Production Server**: `johansiedberg@192.168.86.35`
+- **Server Project Path**: `/home/johansiedberg/Projects/Prediction_Engine`
+- **Deployment Procedure**:
+  1. Commit and push local changes to `origin/main` on GitHub.
+  2. Connect to the production server via SSH: `ssh johansiedberg@192.168.86.35`
+  3. Run the automated deploy script:
+     ```bash
+     cd /home/johansiedberg/Projects/Prediction_Engine && ./deploy.sh
+     ```
+
+## Engine Admin Account Isolation
+- There is exactly ONE system superuser account for Engine Admin (`johansiedberg`).
+- This account is strictly restricted to Port 2029 system administration.
+- It MUST NEVER be linked to any player tables (`Tournament.players`), tournament submissions, leagues, pools, or player leaderboards.
+
+## Distraction-Free Login Standard
+- All login screens and entry points must remain 100% distraction-free authentication portals.
+- NEVER display news banners, changelogs, version numbers, or update popups at login.
 
 ## HTTPS Security Standards
 - Enforces HTTPS standards (`SECURE_PROXY_SSL_HEADER`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `SECURE_HSTS_SECONDS`, `SECURE_REFERRER_POLICY`) for secure encrypted transport.

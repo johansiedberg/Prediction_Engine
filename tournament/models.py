@@ -743,8 +743,8 @@ def auto_create_user_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=User)
 def auto_add_user_to_active_tournaments(sender, instance, created, **kwargs):
-    """Automatically enroll new players into active tournaments and create submission records."""
-    if created:
+    """Automatically enroll new regular players into active tournaments. Superusers/staff are strictly excluded."""
+    if created and not instance.is_superuser and not instance.is_staff:
         active_tournaments = Tournament.objects.filter(is_active=True)
         for t in active_tournaments:
             t.players.add(instance)

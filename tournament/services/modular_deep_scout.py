@@ -475,7 +475,7 @@ class ModularDeepScout:
         )
 
         # Empty Prospect Rejection Rule
-        if not has_start_date and not draw_ok and not fixtures_ok and groups_teams_seg.teams_count == 0:
+        if not has_start_date and not draw_ok and not fixtures_ok and (groups_teams_seg.teams_count == 0 or not groups_teams_seg.has_real_teams):
             p_name = prospect.name
             prospect.delete()
             return {
