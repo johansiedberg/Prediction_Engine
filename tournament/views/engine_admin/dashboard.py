@@ -362,6 +362,15 @@ def engine_admin_dashboard_view(request: HttpRequest) -> HttpResponse:
                 f_copy = dict(f)
                 h_name = (f_copy.get('home_team') or f_copy.get('home') or '').strip()
                 a_name = (f_copy.get('away_team') or f_copy.get('away') or '').strip()
+
+                # Normalize fixture date_time to strict ISO YYYY-MM-DD (or YYYY-MM-DD HH:MM)
+                raw_dt = f_copy.get('date_time') or f_copy.get('date') or ''
+                if raw_dt:
+                    from tournament.services.matches_knockout_agent import MatchesKnockoutAgent
+                    norm_dt = MatchesKnockoutAgent._normalize_match_date(raw_dt, f_copy.get('time'))
+                    if norm_dt:
+                        f_copy['date_time'] = norm_dt
+
                 if h_name in team_badge_map:
                     if not f_copy.get('home_team_flag_url'): f_copy['home_team_flag_url'] = team_badge_map[h_name]['flag_url']
                     if not f_copy.get('home_team_emblem_url'): f_copy['home_team_emblem_url'] = team_badge_map[h_name]['emblem_url']
@@ -402,6 +411,15 @@ def engine_admin_dashboard_view(request: HttpRequest) -> HttpResponse:
                         m_copy = dict(m)
                         h_name = (m_copy.get('home_team') or m_copy.get('home_source') or '').strip()
                         a_name = (m_copy.get('away_team') or m_copy.get('away_source') or '').strip()
+
+                        # Normalize knockout match date_time to strict ISO YYYY-MM-DD
+                        raw_kdt = m_copy.get('date_time') or m_copy.get('date') or ''
+                        if raw_kdt:
+                            from tournament.services.matches_knockout_agent import MatchesKnockoutAgent
+                            norm_kdt = MatchesKnockoutAgent._normalize_match_date(raw_kdt, m_copy.get('time'))
+                            if norm_kdt:
+                                m_copy['date_time'] = norm_kdt
+
                         if h_name in team_badge_map:
                             if not m_copy.get('home_team_flag_url'): m_copy['home_team_flag_url'] = team_badge_map[h_name]['flag_url']
                             if not m_copy.get('home_team_emblem_url'): m_copy['home_team_emblem_url'] = team_badge_map[h_name]['emblem_url']
