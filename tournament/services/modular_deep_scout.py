@@ -520,6 +520,7 @@ class ModularDeepScout:
         payload_dict = unified_blueprint.to_payload_dict()
         prospect.completeness_grade = final_grade.value
         prospect.grade_reason = final_reason
+        prospect.sport = head_seg.sport or prospect.sport
         prospect.logo_url = general_seg.emblem.logo_url or prospect.logo_url
 
         if final_grade == CompletenessGrade.GRADE_A:
