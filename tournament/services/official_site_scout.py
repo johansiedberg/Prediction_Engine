@@ -127,19 +127,23 @@ class OfficialSiteScout:
         if "cafonline.com" in u_lower:
             return "https://www.cafonline.com/"
 
-        # FIFA
-        if "fifa.com" in u_lower or "world cup" in t_lower or "worldcup" in t_lower:
-            if "women" in t_lower:
+        # FIBA (Basketball)
+        if "fiba.basketball" in u_lower or "fiba" in t_lower or "basketball" in t_lower:
+            if "u19" in u_lower or "u19" in t_lower or "under-19" in t_lower:
+                if "women" in t_lower or "dam" in t_lower:
+                    return "https://www.fiba.basketball/en/events/fiba-u19-womens-basketball-world-cup-2027"
+                return "https://www.fiba.basketball/en/events/fiba-u19-basketball-world-cup-2027"
+            return "https://www.fiba.basketball/worldcup/"
+
+        # FIFA (Football)
+        if "fifa.com" in u_lower or ("fifa" in t_lower and "world" in t_lower) or (not any(s in t_lower for s in ["basket", "fiba", "hockey", "curling", "cricket", "rugby", "volleyball", "handball"]) and ("world cup" in t_lower or "worldcup" in t_lower)):
+            if "women" in t_lower or "dam" in t_lower:
                 return "https://www.fifa.com/fifaplus/en/tournaments/womens/womensworldcup"
             return "https://www.fifa.com/worldcup/"
 
         # AFC
         if "asian cup" in t_lower or "asian_cup" in u_lower or "the-afc.com" in u_lower:
             return "https://www.the-afc.com/en/national/afc_asian_cup/"
-
-        # FIBA
-        if "fiba.basketball" in u_lower or "fiba" in t_lower:
-            return "https://www.fiba.basketball/worldcup/"
 
         return url
 

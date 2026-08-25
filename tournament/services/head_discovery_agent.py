@@ -16,7 +16,7 @@ import logging
 from typing import Optional, Dict, Any
 
 from tournament.schemas.tournament_prospect_schema import HeadSegment
-from tournament.services.tournament_filter import is_h2h_team_sport
+from tournament.services.tournament_filter import is_h2h_team_sport, detect_sport_from_title
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,11 @@ class HeadDiscoveryAgent:
         Validates sport suitability and constructs a validated HeadSegment.
         """
         clean_name = (name or "").strip()
-        clean_sport = (sport or "Football").strip()
+        raw_sport = (sport or "").strip()
+        if not raw_sport or raw_sport.lower() in ["sports", "general", "other", ""]:
+            clean_sport = detect_sport_from_title(clean_name, default_sport="Football")
+        else:
+            clean_sport = detect_sport_from_title(clean_name, default_sport=raw_sport)
         clean_slug = master_event_code or cls.generate_slug(clean_name)
         h2h_eligible = is_h2h_team_sport(clean_sport)
 

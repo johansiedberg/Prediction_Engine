@@ -133,9 +133,56 @@ class StructureRulesAgent:
         )
 
         # 2. Group Stage Rules & Tiebreakers
-        pts_win = pts_sys.get("win", bp.get("points_for_win", 3))
-        pts_draw = pts_sys.get("draw", bp.get("points_for_draw", 1))
-        pts_loss = pts_sys.get("loss", bp.get("points_for_loss", 0))
+        sport_lower = str(sport or "").lower()
+        if "basket" in sport_lower or "fiba" in sport_lower:
+            default_pts_win = 2
+            default_pts_draw = 0
+            default_pts_loss = 1
+            default_extra_min = 5
+            default_has_pens = False
+            default_tb_desc = "Vid oavgjort spelas förlängningsperioder (5 min) tills en vinnare korats."
+            default_suspension_y = "5 personliga foul = utesluten från matchen"
+            default_suspension_r = "Diskvalificerande foul = matchstraff och eventuell avstängning"
+        elif "ice hockey" in sport_lower or "hockey" in sport_lower:
+            default_pts_win = 3
+            default_pts_draw = 0
+            default_pts_loss = 0
+            default_extra_min = 5
+            default_has_pens = True
+            default_tb_desc = "Vid oavgjort spelas förlängning med Sudden Death, följt av straffläggning."
+            default_suspension_y = "2 minuters utvisning"
+            default_suspension_r = "Matchstraff = minst 1 match avstängning"
+        elif "handball" in sport_lower or "handboll" in sport_lower:
+            default_pts_win = 2
+            default_pts_draw = 1
+            default_pts_loss = 0
+            default_extra_min = 10
+            default_has_pens = True
+            default_tb_desc = "Vid oavgjort i slutspel spelas förlängning (2x5 min) följt av straffkast vid behov."
+            default_suspension_y = "Gult kort / 2 minuters utvisning"
+            default_suspension_r = "Rött / blått kort = rapport och avstängning"
+        elif "volleyball" in sport_lower or "volleyboll" in sport_lower:
+            default_pts_win = 3
+            default_pts_draw = 0
+            default_pts_loss = 0
+            default_extra_min = 0
+            default_has_pens = False
+            default_tb_desc = "Matcher avgörs i bäst av 5 set (skiljeset till 15 poäng)."
+            default_suspension_y = "Varning (gult kort)"
+            default_suspension_r = "Uteslutning / diskvalificering (rött kort)"
+        else:
+            default_pts_win = 3
+            default_pts_draw = 1
+            default_pts_loss = 0
+            default_extra_min = 30
+            default_has_pens = True
+            default_tb_desc = "Vid oavgjort i slutspel tillämpas Förlängning (2x15 min) följt av Straffsparksläggning."
+            default_suspension_y = "2 gula kort = 1 match avstängning"
+            default_suspension_r = "1 rött kort = minst 1 match avstängning"
+
+        pts_win = pts_sys.get("win", bp.get("points_for_win", default_pts_win))
+        pts_draw = pts_sys.get("draw", bp.get("points_for_draw", default_pts_draw))
+        pts_loss = pts_sys.get("loss", bp.get("points_for_loss", default_pts_loss))
 
         raw_tb = audit.get("tiebreakers") or bp.get("tiebreaker_hierarchy") or []
         tb_steps: List[TiebreakerStep] = []
@@ -166,8 +213,8 @@ class StructureRulesAgent:
             points_win=int(pts_win),
             points_draw=int(pts_draw),
             points_loss=int(pts_loss),
-            yellow_cards_suspension="2 gula kort = 1 match avstängning",
-            red_card_suspension="1 rött kort = minst 1 match avstängning",
+            yellow_cards_suspension=default_suspension_y,
+            red_card_suspension=default_suspension_r,
             tiebreaker_hierarchy=tb_steps,
             teams_per_group_advancing=int(teams_adv),
         )
@@ -200,14 +247,14 @@ class StructureRulesAgent:
         if isinstance(first_round, dict):
             first_round = first_round.get("stage_name", "Slutspel")
 
-        extra_min = ko_rules_data.get("extra_time_minutes") if ko_rules_data.get("extra_time_minutes") is not None else match_fmt.get("extra_time_minutes", 30)
-        has_pens = ko_rules_data.get("has_penalties") if "has_penalties" in ko_rules_data else match_fmt.get("has_penalties", True)
-        tiebreaker_desc = ko_rules_data.get("tiebreaker_description") or "Vid oavgjort i slutspel tillämpas Förlängning följt av Straffsparksläggning."
+        extra_min = ko_rules_data.get("extra_time_minutes") if ko_rules_data.get("extra_time_minutes") is not None else match_fmt.get("extra_time_minutes", default_extra_min)
+        has_pens = ko_rules_data.get("has_penalties") if "has_penalties" in ko_rules_data else match_fmt.get("has_penalties", default_has_pens)
+        tiebreaker_desc = ko_rules_data.get("tiebreaker_description") or default_tb_desc
 
         ko_rules = KnockoutRules(
             starting_round=str(first_round),
             total_rounds=ko_rules_data.get("total_rounds") or len(ko_stages) or 3,
-            extra_time_minutes=int(extra_min or 0),
+            extra_time_minutes=int(extra_min if extra_min is not None else default_extra_min),
             has_penalties=bool(has_pens),
             tiebreaker_description=tiebreaker_desc,
         )

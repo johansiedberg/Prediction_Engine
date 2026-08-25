@@ -154,3 +154,33 @@ def evaluate_event_grade(event_dict, is_h2h_sport_compatible):
 
     return 'GRADE_C', "Grad C: Saknar officiell verifierad webbplats eller grundläggande turneringsstruktur."
 
+
+def detect_sport_from_title(title: str, default_sport: str = "Football") -> str:
+    """
+    Infers the correct sport discipline from the tournament title if default_sport is generic or unknown.
+    """
+    if not title:
+        return default_sport
+    t_lower = title.lower()
+    if any(k in t_lower for k in ['basketball', 'fiba', 'basket-em', 'basket-vm', 'nba', 'euroleague', 'wnba']):
+        return 'Basketball'
+    if any(k in t_lower for k in ['ice hockey', 'ishockey', 'hockey-vm', 'hockey-em', 'iihf', 'nhl', 'shl', 'khl', 'spengler cup']):
+        return 'Ice Hockey'
+    if any(k in t_lower for k in ['handball', 'handboll', 'handbolls-vm', 'handbolls-em', 'ehf', 'ihf']):
+        return 'Handball'
+    if any(k in t_lower for k in ['volleyball', 'volleyboll', 'fivb', 'cev', 'beach volleyball']):
+        return 'Volleyball'
+    if any(k in t_lower for k in ['floorball', 'innebandy', 'iff']):
+        return 'Floorball'
+    if any(k in t_lower for k in ['rugby', 'six nations', 'world rugby']):
+        return 'Rugby'
+    if any(k in t_lower for k in ['curling', 'world curling', 'curling-vm']):
+        return 'Curling'
+    if any(k in t_lower for k in ['baseball', 'mlb', 'wbsc']):
+        return 'Baseball'
+    if any(k in t_lower for k in ['softball']):
+        return 'Softball'
+    if any(k in t_lower for k in ['football', 'soccer', 'fotboll', 'uefa', 'fifa', 'concacaf', 'caf', 'afc', 'conmebol', 'copa']):
+        return 'Football'
+    return default_sport
+

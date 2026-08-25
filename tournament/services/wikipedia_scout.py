@@ -328,12 +328,22 @@ class WikipediaScout:
                                 'teams': [{'name': t, 'is_placeholder': is_second_stage or bool(re.search(r'^[A-Z]\d', t))} for t in teams_in_tbl]
                             })
 
-            # Fallback if heading-based scan didn't capture groups/pools
+            # Fallback if heading-based scan didn't capture groups/pools (Only accept genuine standings tables with 3-8 teams)
             if not groups:
                 wikitables = soup.find_all('table', class_=re.compile(r'wikitable'))
                 for tbl in wikitables:
-                    headers_txt = [th.get_text().strip() for th in tbl.find_all('th')]
-                    if any('team' in h.lower() or 'pos' in h.lower() for h in headers_txt):
+                    prev_h = tbl.find_previous(re.compile(r'^h[2-4]$'))
+                    prev_h_txt = (prev_h.get_text().strip() if prev_h else '').lower()
+                    if any(k in prev_h_txt for k in ['qualif', 'award', 'medal', 'all-time', 'statistic', 'summary', 'record', 'participat']):
+                        continue
+
+                    headers_txt = [th.get_text().strip().lower() for th in tbl.find_all('th')]
+                    if any(k in headers_txt for k in ['appearance', 'streak', 'previous best', 'mvp', 'all-tournament', 'method', 'wr']):
+                        continue
+
+                    # Require standard standings headers (Pts, Pld, W, L, GF, GA, Pos, etc.)
+                    has_standings_header = any(h in ['pts', 'pld', 'w', 'd', 'l', 'gf', 'ga', 'gd', 'pos', 'p', 'v', 'o', 'f', 'diff', 'points'] for h in headers_txt)
+                    if any('team' in h or 'pos' in h or 'lag' in h for h in headers_txt) and has_standings_header:
                         teams_in_tbl = []
                         for row in tbl.find_all('tr')[1:]:
                             th = row.find('th')
@@ -348,7 +358,8 @@ class WikipediaScout:
                                         teams_in_tbl.append(clean_t)
                                         extracted_teams_set.add(clean_t)
                         
-                        if len(teams_in_tbl) >= 2 and len(groups) < 8:
+                        # Only accept standard tournament group size (between 3 and 10 teams)
+                        if 3 <= len(teams_in_tbl) <= 10 and len(groups) < 8:
                             grp_label = f"Group {chr(65 + len(groups))}"
                             groups.append({
                                 'name': grp_label,
@@ -430,6 +441,12 @@ class WikipediaScout:
 
                 # Require at least some team identity
                 if not clean_h or not clean_a:
+                    return
+                if clean_h in ['–', '-', '—', 'N/A', 'TBD', 'TBC', ''] or clean_a in ['–', '-', '—', 'N/A', 'TBD', 'TBC', '']:
+                    return
+                if re.match(r'^\d+(?:st|nd|rd|th)$', clean_h, re.I) or re.match(r'^\d+(?:st|nd|rd|th)$', clean_a, re.I):
+                    return
+                if clean_h.lower().startswith('as ') or clean_a.lower().startswith('as '):
                     return
                 # Reject month names accidentally parsed as teams
                 if clean_h.lower() in MONTH_NAMES or clean_a.lower() in MONTH_NAMES:
@@ -554,12 +571,17 @@ class WikipediaScout:
 
             # --- Strategy 3: NLP Table & Row Pattern Mining ---
             for row in soup.find_all('tr'):
+                prev_h = row.find_previous(re.compile(r'^h[2-4]$'))
+                prev_h_txt = (prev_h.get_text().strip() if prev_h else '').lower()
+                if any(k in prev_h_txt for k in ['summar', 'result', 'history', 'medal', 'past', 'edition', 'champions', 'award', 'statistic', 'all-time', 'record']):
+                    continue
+
                 cells = [c.get_text().strip() for c in row.find_all(['td', 'th'])]
                 if len(cells) >= 3:
                     found_cell_fixture = False
                     for idx, cell_txt in enumerate(cells[1:-1], start=1):
                         c_strip = cell_txt.strip()
-                        if c_strip in ['v', 'vs', '–', '-', '–\n', 'v\n', 'vs\n'] or re.match(r'^\d+\s*[\-–]\s*\d+$', c_strip):
+                        if c_strip in ['v', 'vs', 'v\n', 'vs\n']:
                             home_c = cells[idx - 1].replace('\xa0', ' ').strip()
                             away_c = cells[idx + 1].replace('\xa0', ' ').strip()
                             venue_c = cells[idx + 2].replace('\xa0', ' ').strip() if len(cells) > idx + 2 else ''

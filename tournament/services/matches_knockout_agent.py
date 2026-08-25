@@ -199,6 +199,18 @@ class MatchesKnockoutAgent:
                     a_team = (f.get("away_team") or f.get("away") or "").strip()
                     stage_raw = (f.get("stage_or_group") or f.get("group") or "Group Stage").strip()
 
+                    # Filter out non-matches, empty opposing teams, or table rank artifacts (e.g. '4th', '6th', 'as Yugoslavia')
+                    if not h_team or not a_team or h_team in ["–", "-", "—", "N/A", "TBD", "TBC"] and a_team in ["–", "-", "—", "N/A", "TBD", "TBC"]:
+                        continue
+                    if a_team in ["–", "-", "—", "N/A", ""]:
+                        continue
+                    if h_team in ["–", "-", "—", "N/A", ""]:
+                        continue
+                    if re.match(r'^\d+(?:st|nd|rd|th)$', h_team, re.I) or re.match(r'^\d+(?:st|nd|rd|th)$', a_team, re.I):
+                        continue
+                    if h_team.lower().startswith("as ") or a_team.lower().startswith("as "):
+                        continue
+
                     # Sanitize stage name: remove non-match suffixes (criteria, ranking, seeding, tiebreakers, etc.)
                     stage_clean = re.sub(r'\s*-\s*(?:criteria.*|ranking.*|seeding.*|pots.*|tiebreaker.*|overview.*|format.*)$', '', stage_raw, flags=re.I).strip()
                     if not stage_clean:
