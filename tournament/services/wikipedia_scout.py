@@ -135,18 +135,24 @@ class WikipediaScout:
                         if not host_country:
                             host_country = d_text[:80]
 
-                    elif 'date' in h_text or 'period' in h_text:
-                        # Try to extract year range from cell
-                        dates = re.findall(
-                            r'\d{1,2}\s+(?:January|February|March|April|May|June|July|'
-                            r'August|September|October|November|December)\s+\d{4}',
-                            d_text, re.IGNORECASE
-                        )
-                        if len(dates) >= 2 and not start_date:
-                            start_date = dates[0]
-                            end_date   = dates[-1]
-                        elif len(dates) == 1 and not start_date:
-                            start_date = dates[0]
+                    elif 'date' in h_text or 'period' in h_text or 'dates' in h_text:
+                        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                        p_start, p_end = LLMWikipediaScout._parse_date_range(d_text, "", page_title=page_title)
+                        if p_start and not start_date:
+                            start_date = p_start
+                        if p_end and not end_date:
+                            end_date = p_end
+
+            # Fallback to lead paragraphs if infobox omitted date
+            if not start_date:
+                from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                paragraphs = soup.find_all('p')
+                lead_text = " ".join(p.get_text(separator=' ', strip=True) for p in paragraphs[:3])
+                p_start, p_end = LLMWikipediaScout._parse_date_range(lead_text, "", page_title=page_title)
+                if p_start and not start_date:
+                    start_date = p_start
+                if p_end and not end_date:
+                    end_date = p_end
 
             wiki_url = (
                 f"https://en.wikipedia.org/wiki/"

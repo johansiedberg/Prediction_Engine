@@ -987,14 +987,118 @@ def purge_completed_past_prospects():
     return deleted_cnt
 
 
+def resolve_and_filter_prospect_dates(prospects_list=None):
+    """
+    Final Step in Web Scan:
+    For all non-converted prospects that are missing start_date (or have start_date=None/TBD),
+    performs a fast targeted lookup for the exact tournament start and end dates (YYYY-MM-DD)
+    via Wikipedia Infobox/Lead scan and lightweight Google Search Grounding.
+    
+    Enforces the 30-Day Runway Rule:
+    - If start_date < today + 30 days or end_date < today: Rejects/Deletes prospect immediately.
+    - If start_date >= today + 30 days: Populates start_date, end_date, and updates payload.
+    
+    Returns (resolved_count, discarded_count).
+    """
+    from tournament.services.wikipedia_scout import WikipediaScout
+    from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+    from tournament.services.gemini_scout_service import GeminiScoutService
+    
+    wiki_scout = WikipediaScout()
+    today = datetime.date.today()
+    min_upcoming_date = today + datetime.timedelta(days=30)
+    
+    target_prospects = prospects_list if prospects_list is not None else list(ScannedTournament.objects.exclude(status='CONVERTED'))
+    
+    resolved_count = 0
+    discarded_count = 0
+    
+    for p in target_prospects:
+        # Check if start_date is already valid and future
+        if p.start_date:
+            if p.start_date < min_upcoming_date or (p.end_date and p.end_date < today):
+                logger.info(f"Discarding prospect '{p.name}' (#{p.id}): Start date {p.start_date} is within 30 days or in past.")
+                p.delete()
+                discarded_count += 1
+            continue
+            
+        start_iso = ""
+        end_iso = ""
+        
+        # 1. Fast Wikipedia Infobox & Lead Paragraph Scan
+        payload = p.payload or {}
+        audit_info = payload.get('scouting_audit', {})
+        wiki_url = audit_info.get('wikipedia_url') or p.official_source_url or ""
+        page_title = audit_info.get('wikipedia_title') or ""
+        
+        if not page_title and wiki_url and 'wikipedia.org/wiki/' in wiki_url:
+            page_title = wiki_scout.get_article_title_from_url(wiki_url)
+        if not page_title:
+            page_title = wiki_scout.search_wikipedia_article(p.name)
+            
+        if page_title:
+            infobox = wiki_scout.audit_infobox_only(page_title)
+            if infobox:
+                if infobox.get('start_date'):
+                    start_iso = LLMWikipediaScout._parse_date_string(infobox['start_date'])
+                if infobox.get('end_date'):
+                    end_iso = LLMWikipediaScout._parse_date_string(infobox['end_date'])
+                    
+        # 2. Targeted Google Search Grounded Date Query (Fallback for un-wikified tournaments)
+        if not start_iso and GeminiScoutService.is_available():
+            try:
+                date_prompt = f"""Find the official tournament start date and end date for "{p.name}" (Sport: {p.sport or 'Sports'}).
+Return ONLY valid JSON matching this schema:
+{{
+  "start_date": "<ISO YYYY-MM-DD or null if unknown>",
+  "end_date": "<ISO YYYY-MM-DD or null if unknown>"
+}}"""
+                ai_dates = GeminiScoutService.generate_json(date_prompt, search_grounding=True)
+                if ai_dates:
+                    if ai_dates.get('start_date'):
+                        start_iso = LLMWikipediaScout._parse_date_string(ai_dates['start_date'])
+                    if ai_dates.get('end_date'):
+                        end_iso = LLMWikipediaScout._parse_date_string(ai_dates['end_date'])
+            except Exception as e:
+                logger.warning(f"Google Search date lookup error for '{p.name}': {e}")
+                
+        # 3. Process Extracted Date
+        if start_iso:
+            try:
+                s_date_obj = datetime.date.fromisoformat(start_iso)
+                e_date_obj = datetime.date.fromisoformat(end_iso) if end_iso else None
+                
+                # Check 30-day runway rule
+                if s_date_obj < min_upcoming_date or (e_date_obj and e_date_obj < today):
+                    logger.info(f"Targeted Date Scan: Discarding '{p.name}' (#{p.id}) because start date {s_date_obj} < {min_upcoming_date}.")
+                    p.delete()
+                    discarded_count += 1
+                else:
+                    p.start_date = s_date_obj
+                    if e_date_obj:
+                        p.end_date = e_date_obj
+                    master_event = payload.setdefault('master_event', {})
+                    master_event['start_date'] = start_iso
+                    if end_iso:
+                        master_event['end_date'] = end_iso
+                    p.payload = payload
+                    p.save()
+                    resolved_count += 1
+                    logger.info(f"Targeted Date Scan: Populated dates for '{p.name}' ({start_iso} to {end_iso or 'TBD'}).")
+            except Exception as exc:
+                logger.warning(f"Error parsing dates for prospect '{p.name}': {exc}")
+                
+    return resolved_count, discarded_count
+
+
 def sync_all_scout_prospects(custom_query=None):
     """
     Triggers AllSportDB API (v3), Wikipedia Annual Sports Event Crawler, and
     Major Continental Football Tournaments & Qualifiers Crawler.
     Applies multi-step H2H team sport and format filtering, evaluates Grade A/B/C ratings,
     and ingests unique prospects into ScannedTournament for Engine Admin.
-    After ingestion, automatically merges duplicate prospects sharing the exact same Wikipedia page
-    and purges past/completed prospects.
+    After ingestion, automatically merges duplicate prospects sharing the exact same Wikipedia page,
+    purges past/completed prospects, and executes Step 6 Targeted Date Resolution & 30-Day Runway Filtering.
     Returns (created_count, updated_count, list_of_prospects).
     """
     # 1. Authoritative AllSportDB Ingestion
@@ -1024,6 +1128,11 @@ def sync_all_scout_prospects(custom_query=None):
     purged_cnt = purge_completed_past_prospects()
     if purged_cnt > 0:
         logger.info(f"Purged {purged_cnt} past/completed prospects from scout database.")
+
+    # 6. Final Step: Targeted Date Resolution & 30-Day Runway Filter
+    resolved_cnt, discarded_cnt = resolve_and_filter_prospect_dates()
+    if resolved_cnt > 0 or discarded_cnt > 0:
+        logger.info(f"Targeted Date Resolution: {resolved_cnt} populated with exact YYYY-MM-DD dates, {discarded_cnt} discarded (< 30 days).")
 
     # Re-fetch active non-archived prospects
     all_prospects = list(ScannedTournament.objects.exclude(status='ARCHIVED'))

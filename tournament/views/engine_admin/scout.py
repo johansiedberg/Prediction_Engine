@@ -138,15 +138,35 @@ def scout_search_specific_view(request: HttpRequest) -> JsonResponse:
 
         sport = gemini_meta.get('sport') or 'Championship'
         host_country = (infobox.get('host_country') if infobox else None) or gemini_meta.get('host_country') or 'Värdnation'
-        start_date = gemini_meta.get('start_date') or ''
-        end_date = gemini_meta.get('end_date') or ''
+        start_date = (infobox.get('start_date') if infobox else None) or gemini_meta.get('start_date') or ''
+        end_date = (infobox.get('end_date') if infobox else None) or gemini_meta.get('end_date') or ''
         logo_url = gemini_meta.get('logo_url') or EmblemScout.discover_official_emblem(title, official_url=resolved_url)
+
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+        if start_date:
+            start_date = LLMWikipediaScout._parse_date_string(start_date)
+        if end_date:
+            end_date = LLMWikipediaScout._parse_date_string(end_date)
+
+        today_date = datetime.date.today()
+        min_upcoming_date = today_date + datetime.timedelta(days=30)
+        
+        # Enforce 30-day runway rule on specific search import
+        if start_date:
+            try:
+                s_date_obj = datetime.date.fromisoformat(start_date)
+                if s_date_obj < min_upcoming_date:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': f'Turneringen "{title}" avvisades eftersom startdatumet ({s_date_obj}) är i det förflutna eller infaller inom mindre än 30 dagar (tröskel: {min_upcoming_date}).'
+                    }, status=400)
+            except Exception:
+                pass
 
         master_code = title.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
         final_grade = 'GRADE_C'
         grade_reason_str = f"Grad C (Inväntar djupscanning): Prospektet hittades via webbsökning för '{title}'. Klicka 'Djupscanna' för fullständig analys."
 
-        today_date = datetime.date.today()
         next_rescan_date = today_date + datetime.timedelta(days=7)
 
         scout_payload = {
