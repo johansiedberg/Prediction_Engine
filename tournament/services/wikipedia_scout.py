@@ -440,11 +440,14 @@ class WikipediaScout:
                 if venue_str: confidence += 0.1
                 if h_is_pholder or a_is_pholder: confidence -= 0.1  # slight deduction for placeholder
 
+                iso_date = LLMWikipediaScout._parse_date_string(date_str) if date_str else ''
+                clean_date = iso_date if iso_date else date_str
+
                 fixtures.append({
                     'home_team': clean_h,
                     'away_team': clean_a,
                     'stage_or_group': stage_label,
-                    'date': date_str,
+                    'date': clean_date,
                     'time': time_str,
                     'venue': venue_str,
                     'confidence': round(max(0.1, confidence), 2),

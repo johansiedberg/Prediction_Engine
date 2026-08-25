@@ -452,7 +452,7 @@ class LLMWikipediaScout:
     @staticmethod
     def _parse_date_string(date_str: str) -> str:
         """
-        Parses a date string (e.g. '11 June 2026', '2026-06-11', 'June 11, 2026')
+        Parses a date string (e.g. '11 June 2026', '2026-06-11', 'June 11, 2026', 'Sept 5 2026', '3rd of August 2026')
         into an ISO YYYY-MM-DD string, or returns empty string if unparseable.
         """
         if not date_str:
@@ -460,7 +460,11 @@ class LLMWikipediaScout:
         s = str(date_str).strip()
         if re.match(r'^\d{4}-\d{2}-\d{2}$', s):
             return s
-        
+
+        # Clean ordinal suffixes: 1st, 2nd, 3rd, 4th -> 1, 2, 3, 4 and " of "
+        s_clean = re.sub(r'(\d+)(st|nd|rd|th)\b', r'\1', s, flags=re.IGNORECASE)
+        s_clean = re.sub(r'\bof\b', ' ', s_clean, flags=re.IGNORECASE).strip()
+
         month_map = {
             'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
             'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
@@ -468,37 +472,44 @@ class LLMWikipediaScout:
             'october': 10, 'oct': 10, 'november': 11, 'nov': 11, 'december': 12, 'dec': 12
         }
 
-        # 11 June 2026
-        m = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', s)
+        # 11 June 2026 / 3 August 2026
+        m = re.search(r'(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})', s_clean)
         if m and m.group(2).lower() in month_map:
             day = int(m.group(1))
             month = month_map[m.group(2).lower()]
             year = int(m.group(3))
             return f"{year:04d}-{month:02d}-{day:02d}"
 
-        # June 11, 2026
-        m = re.search(r'([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})', s)
+        # June 11, 2026 / Sept 5, 2026 / August 3, 2026
+        m = re.search(r'([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})', s_clean)
         if m and m.group(1).lower() in month_map:
             month = month_map[m.group(1).lower()]
             day = int(m.group(2))
             year = int(m.group(3))
             return f"{year:04d}-{month:02d}-{day:02d}"
 
-
         # Month YYYY (e.g. "May 2026")
-        m = re.search(r'^([A-Za-z]+)\s+(\d{4})$', s)
+        m = re.search(r'^([A-Za-z]+)\s+(\d{4})$', s_clean)
         if m and m.group(1).lower() in month_map:
             return f"{m.group(2)}-{month_map[m.group(1).lower()]:02d}-01"
 
         # YYYY-MM
-        m = re.search(r'^(\d{4})-(\d{1,2})$', s)
+        m = re.search(r'^(\d{4})-(\d{1,2})$', s_clean)
         if m:
             return f"{m.group(1)}-{int(m.group(2)):02d}-01"
 
         # YYYY (e.g. "2026")
-        m = re.search(r'^(\d{4})$', s)
+        m = re.search(r'^(\d{4})$', s_clean)
         if m:
             return f"{m.group(1)}-01-01"
+
+        # Fallback with dateutil parser
+        try:
+            from dateutil import parser
+            parsed = parser.parse(s_clean, fuzzy=True)
+            return parsed.strftime("%Y-%m-%d")
+        except Exception:
+            pass
 
         return ""
 

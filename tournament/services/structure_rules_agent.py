@@ -95,16 +95,20 @@ class StructureRulesAgent:
         draw_date = audit.get("draw_date") or bp.get("draw_date") or None
         draw_completed = bool(audit.get("draw_completed") or bp.get("draw_completed") or False)
 
-        # Check if draw_date is in the past
+        # Check if draw_date is in the past and normalize format
         if draw_date:
             try:
                 import datetime
                 from dateutil import parser
                 parsed_draw = parser.parse(str(draw_date), fuzzy=True).date()
+                draw_date = parsed_draw.strftime("%Y-%m-%d")
                 if parsed_draw <= datetime.date.today():
                     draw_completed = True
             except Exception:
-                pass
+                from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                iso_draw = LLMWikipediaScout._parse_date_string(str(draw_date))
+                if iso_draw:
+                    draw_date = iso_draw
 
         seeding = audit.get("seeding_elements") or bp.get("seeding_elements") or []
         if isinstance(seeding, str):

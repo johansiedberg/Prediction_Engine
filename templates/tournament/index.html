@@ -632,7 +632,7 @@
                                                         {% with m=m_item.match home=m_item.home away=m_item.away analytics=m_item.analytics pred=m_item.pred detail=m_item.detail %}
                                                         <tr {% if detail.total > 0 %}style="background: rgba(16, 185, 129, 0.04); cursor: pointer;"{% else %}style="cursor: pointer;"{% endif %} data-bs-toggle="collapse" data-bs-target="#box-score-{{ m.id }}" title="Klicka för att se matchfakta & box score">
                                                             <td class="py-2 px-2 text-center text-secondary opacity-75 fw-normal align-middle">
-                                                                {{ m.date_time|date:"d-b"|default:"-" }}
+                                                                {{ m.date_time|date:"Y-m-d"|default:"-" }}
                                                             </td>
                                                             <td class="py-2 px-2 fw-bold text-white align-middle" style="width: 280px;">
                                                                 <div class="d-grid align-items-center" style="grid-template-columns: 105px 22px 16px 22px 105px; gap: 0.25rem;">
@@ -1183,8 +1183,8 @@
                                                     {% with m=m_item.match home=m_item.home away=m_item.away analytics=m_item.analytics pred=m_item.pred detail=m_item.detail %}
                                                     <tr {% if m_item.total_row_pts > 0 %}style="background: rgba(16, 185, 129, 0.04);"{% endif %}>
                                                         <!-- 1. DATUM (Condensed width & padding) -->
-                                                        <td class="py-2 px-1 text-center text-secondary opacity-75 fw-normal align-middle" style="width: 45px;">
-                                                            {{ m.date_time|date:"d-b"|default:"-" }}
+                                                        <td class="py-2 px-1 text-center text-secondary opacity-75 fw-normal align-middle" style="width: 80px;">
+                                                            {{ m.date_time|date:"Y-m-d"|default:"-" }}
                                                         </td>
 
                                                         <!-- 2. MATCH (PREDICTED FIXTURE FROM USER'S TREE) -->

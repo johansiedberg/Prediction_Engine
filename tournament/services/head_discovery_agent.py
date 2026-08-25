@@ -52,12 +52,16 @@ class HeadDiscoveryAgent:
         clean_slug = master_event_code or cls.generate_slug(clean_name)
         h2h_eligible = is_h2h_team_sport(clean_sport)
 
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+        s_date_iso = LLMWikipediaScout._parse_date_string(str(start_date)) if start_date else None
+        e_date_iso = LLMWikipediaScout._parse_date_string(str(end_date)) if end_date else None
+
         return HeadSegment(
             name=clean_name,
             master_event_code=clean_slug,
             sport=clean_sport,
             is_h2h_team_sport=h2h_eligible,
-            start_date=start_date if start_date else None,
-            end_date=end_date if end_date else None,
+            start_date=s_date_iso if s_date_iso else (start_date if start_date else None),
+            end_date=e_date_iso if e_date_iso else (end_date if end_date else None),
             discovery_source=discovery_source,
         )

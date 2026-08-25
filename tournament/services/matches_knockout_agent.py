@@ -38,6 +38,43 @@ class MatchesKnockoutAgent:
     ]
 
     @classmethod
+    def _normalize_match_date(cls, raw_dt: Any, time_val: Any = None) -> Optional[str]:
+        if not raw_dt:
+            return None
+        s = str(raw_dt).strip()
+        if not s or s.lower() in ("none", "null", "tbd", "-", "undefined"):
+            return None
+
+        if time_val and str(time_val).strip() and str(time_val).strip() not in s:
+            s = f"{s} {str(time_val).strip()}"
+
+        import re
+        if re.match(r'^\d{4}-\d{2}-\d{2}$', s):
+            return s
+        if re.match(r'^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}$', s):
+            return s
+
+        # Clean ordinal suffixes: 1st, 2nd, 3rd, 4th -> 1, 2, 3, 4 and " of "
+        s_clean = re.sub(r'(\d+)(st|nd|rd|th)\b', r'\1', s, flags=re.IGNORECASE)
+        s_clean = re.sub(r'\bof\b', ' ', s_clean, flags=re.IGNORECASE).strip()
+
+        try:
+            from dateutil import parser
+            parsed = parser.parse(s_clean, fuzzy=True)
+            has_time = any(c in s_clean for c in (':', 'am', 'pm', 'AM', 'PM', 'T'))
+            if has_time and (parsed.hour != 0 or parsed.minute != 0 or ':' in s_clean):
+                return parsed.strftime("%Y-%m-%d %H:%M")
+            return parsed.strftime("%Y-%m-%d")
+        except Exception:
+            from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+            iso_p = LLMWikipediaScout._parse_date_string(s_clean)
+            if iso_p:
+                if time_val and ':' in str(time_val):
+                    return f"{iso_p} {str(time_val).strip()}"
+                return iso_p
+            return s
+
+    @classmethod
     def build_matches_knockout_segment(
         cls,
         audit_data: Optional[Dict[str, Any]] = None,
@@ -165,9 +202,8 @@ class MatchesKnockoutAgent:
                     a_code = str(f.get("away_team_code") or a_meta["code"]).lower()
                     a_flag = f.get("away_team_flag_url") or a_meta["flag_url"] or (f"https://flagcdn.com/w40/{a_code}.png" if len(a_code) == 2 else "")
 
-                    dt_val = f.get("date_time") or f.get("date")
-                    if dt_val and f.get("time") and f.get("time") not in str(dt_val):
-                        dt_val = f"{dt_val} {f.get('time')}"
+                    dt_raw = f.get("date_time") or f.get("date")
+                    dt_clean = cls._normalize_match_date(dt_raw, f.get("time"))
 
                     group_matches.append(GroupMatchEntry(
                         match_number=f.get("match_number", idx),
@@ -180,7 +216,7 @@ class MatchesKnockoutAgent:
                         away_team_code=a_code,
                         away_team_flag_url=a_flag,
                         away_team_emblem_url=f.get("away_team_emblem_url") or a_meta["emblem_url"],
-                        date_time=str(dt_val) if dt_val else None,
+                        date_time=dt_clean,
                         venue=f.get("venue") or "",
                         is_placeholder=bool(f.get("is_placeholder", False)) or h_meta["is_placeholder"] or a_meta["is_placeholder"],
                     ))
@@ -251,6 +287,9 @@ class MatchesKnockoutAgent:
                         a_code = str(m.get("away_team_code") or a_meta["code"]).lower()
                         a_flag = m.get("away_team_flag_url") or a_meta["flag_url"] or (f"https://flagcdn.com/w40/{a_code}.png" if len(a_code) == 2 else "")
 
+                        k_dt_raw = m.get("date_time") or m.get("date")
+                        k_dt_clean = cls._normalize_match_date(k_dt_raw, m.get("time"))
+
                         match_entries.append(KnockoutMatchEntry(
                             match_code=m.get("match_code", ""),
                             stage_name=s_name,
@@ -263,7 +302,7 @@ class MatchesKnockoutAgent:
                             away_team_flag_url=a_flag,
                             away_team_emblem_url=m.get("away_team_emblem_url") or a_meta["emblem_url"],
                             winner_to=m.get("winner_to"),
-                            date_time=str(m.get("date_time")) if m.get("date_time") else None,
+                            date_time=k_dt_clean,
                             venue=m.get("venue", ""),
                         ))
 

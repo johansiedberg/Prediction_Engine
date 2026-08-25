@@ -95,6 +95,16 @@ class GeneralDeepScoutAgent:
             except Exception as e:
                 logger.warning("GeneralDeepScoutAgent: Gemini enrichment error: %s", e)
 
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+        if start_date:
+            s_parsed = LLMWikipediaScout._parse_date_string(str(start_date))
+            if s_parsed:
+                start_date = s_parsed
+        if end_date:
+            e_parsed = LLMWikipediaScout._parse_date_string(str(end_date))
+            if e_parsed:
+                end_date = e_parsed
+
         from tournament.services.scout_service import normalize_locations
         loc_info = LocationInfo(
             host_country=normalize_locations(str(host_country).strip()),

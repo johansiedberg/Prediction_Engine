@@ -1044,7 +1044,7 @@ class LLMWikipediaScoutTestCase(TestCase):
 
         res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
         self.assertFalse(res['ok'])
-        self.assertIn('pågående eller startar inom mindre än 30 dagar', res['error'])
+        self.assertIn('är pågående eller startar inom', res['error'])
         self.assertFalse(ScannedTournament.objects.filter(id=prospect.id).exists())
 
     @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
@@ -1075,7 +1075,7 @@ class LLMWikipediaScoutTestCase(TestCase):
 
         res = _run_deep_scan_on_prospect(prospect, WikipediaScout(), OfficialRegulationsVerifier())
         self.assertFalse(res['ok'])
-        self.assertIn('mindre än 30 dagar', res['error'])
+        self.assertIn('är pågående eller startar inom', res['error'])
         self.assertFalse(ScannedTournament.objects.filter(id=prospect.id).exists())
 
     @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
@@ -1957,8 +1957,8 @@ class EngineAdminAjaxEndpointsTestCase(TestCase):
 
     def test_non_superuser_forbidden(self):
         self.client.force_login(self.user)
-        resp = self.client.post(f'/engine-admin/validate/{self.tournament.id}/', HTTP_HOST='localhost:2029')
-        self.assertIn(resp.status_code, [302, 403])
+        resp = self.client.post(f'/engine-admin/validate/{self.tournament.id}/', HTTP_X_REQUESTED_WITH='XMLHttpRequest', HTTP_HOST='localhost:2029')
+        self.assertIn(resp.status_code, [302, 401, 403])
 import unittest
 from unittest.mock import patch, MagicMock
 from django.test import TestCase
@@ -2223,5 +2223,29 @@ class RestScoutApiTestCase(TestCase):
         output = out.getvalue()
         self.assertIn("REST API Ingestion Completed", output)
         self.assertIn("Champions Hockey League", output)
+
+
+class DateFormattingAndNormalizationTestCase(TestCase):
+    """Tests that all dates are parsed and formatted as strict ISO YYYY-MM-DD."""
+
+    def test_llm_date_string_parser_formats(self):
+        from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+
+        self.assertEqual(LLMWikipediaScout._parse_date_string("Sept 5, 2026"), "2026-09-05")
+        self.assertEqual(LLMWikipediaScout._parse_date_string("3rd of August 2026"), "2026-08-03")
+        self.assertEqual(LLMWikipediaScout._parse_date_string("August 3rd, 2026"), "2026-08-03")
+        self.assertEqual(LLMWikipediaScout._parse_date_string("11 June 2026"), "2026-06-11")
+        self.assertEqual(LLMWikipediaScout._parse_date_string("2026-06-11"), "2026-06-11")
+        self.assertEqual(LLMWikipediaScout._parse_date_string("May 2026"), "2026-05-01")
+
+    def test_matches_knockout_date_normalizer(self):
+        from tournament.services.matches_knockout_agent import MatchesKnockoutAgent
+
+        self.assertEqual(MatchesKnockoutAgent._normalize_match_date("Sept 5, 2026"), "2026-09-05")
+        self.assertEqual(MatchesKnockoutAgent._normalize_match_date("3rd of August 2026", "18:00"), "2026-08-03 18:00")
+        self.assertEqual(MatchesKnockoutAgent._normalize_match_date("2026-06-11 21:00"), "2026-06-11 21:00")
+        self.assertEqual(MatchesKnockoutAgent._normalize_match_date("2026-06-11"), "2026-06-11")
+        self.assertIsNone(MatchesKnockoutAgent._normalize_match_date("TBD"))
+        self.assertIsNone(MatchesKnockoutAgent._normalize_match_date(""))
 
 

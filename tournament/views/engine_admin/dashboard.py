@@ -660,6 +660,16 @@ def engine_admin_dashboard_view(request: HttpRequest) -> HttpResponse:
             or payload.get('draw_date')
             or ''
         )
+        if draw_date_val:
+            try:
+                from dateutil import parser
+                parsed_d = parser.parse(str(draw_date_val), fuzzy=True).date()
+                draw_date_val = parsed_d.strftime('%Y-%m-%d')
+            except Exception:
+                from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+                iso_d = LLMWikipediaScout._parse_date_string(str(draw_date_val))
+                if iso_d:
+                    draw_date_val = iso_d
         logo_url_val = (
             general_seg.get('emblem', {}).get('logo_url')
             or p.logo_url
