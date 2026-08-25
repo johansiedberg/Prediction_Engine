@@ -431,16 +431,32 @@ class MatchesKnockoutAgent:
             else:
                 stages_to_add = ["Semifinals", "Final"]
 
+        # 3rd place match (Bronsmatch) rule detection:
+        # Standard in almost all Olympic and International World Championships (FIFA World Cup, FIBA, IIHF, IHF, FIVB, IFF, WCF, Rugby World Cup, AFCON, Copa America, Nations League),
+        # but NOT in UEFA Euro senior finals (abolished after 1980) or Cricket World Cups.
+        is_uefa_euro_final = ("euro" in t_name_lower or "em" in t_name_lower) and "qualif" not in t_name_lower and "kval" not in t_name_lower and "u19" not in t_name_lower and "u21" not in t_name_lower and "handball" not in sport_lower and "hockey" not in sport_lower
+        is_cricket = "cricket" in sport_lower
+
         has_bronze = bool(
-            (canon_bp and canon_bp.get("knockout_rules", {}).get("has_third_place_match"))
-            or audit.get("has_third_place_match")
-            or ("fifa world cup" in t_name_lower and "u-20" not in t_name_lower and "u-17" not in t_name_lower)
-            or ("fiba" in t_name_lower)
-            or ("handball" in sport_lower or "handboll" in sport_lower)
-            or ("nations league" in t_name_lower)
-            or ("afcon" in t_name_lower or "africa cup" in t_name_lower)
-            or ("copa am" in t_name_lower)
-            or ("olympic" in t_name_lower or "olymp" in t_name_lower)
+            not is_uefa_euro_final
+            and not is_cricket
+            and (
+                (canon_bp and canon_bp.get("knockout_rules", {}).get("has_third_place_match"))
+                or audit.get("has_third_place_match")
+                or ("world cup" in t_name_lower or "world championship" in t_name_lower or " vm" in t_name_lower)
+                or ("fiba" in t_name_lower or "basketball" in sport_lower)
+                or ("handball" in sport_lower or "handboll" in sport_lower)
+                or ("ice hockey" in sport_lower or "ishockey" in sport_lower or "iihf" in t_name_lower)
+                or ("floorball" in sport_lower or "innebandy" in sport_lower)
+                or ("volleyball" in sport_lower or "volleyboll" in sport_lower or "fivb" in t_name_lower)
+                or ("curling" in sport_lower)
+                or ("rugby" in sport_lower)
+                or ("netball" in sport_lower)
+                or ("nations league" in t_name_lower)
+                or ("afcon" in t_name_lower or "africa cup" in t_name_lower)
+                or ("copa am" in t_name_lower)
+                or ("olympic" in t_name_lower or "olymp" in t_name_lower)
+            )
         )
 
         # Build clean knockout stages and wire matches sequentially
