@@ -110,6 +110,67 @@ class ModularDeepScout:
                         'error': f"Djupscanning avbröts direkt: Turneringen '{p_name}' spelades år {tournament_year} vilket är i det förflutna. Endast framtida turneringar accepteras.",
                     }
 
+        # Step 0.5: Generic Umbrella Tournament Auto-Disambiguation & Merging
+        # e.g., 'UEFA Nations League' -> '2026–27 UEFA Nations League', 'CONCACAF Gold Cup' -> '2027 CONCACAF Gold Cup'
+        has_year = bool(re.search(r'\b(19\d{2}|20\d{2})\b', prospect.name))
+        if not has_year:
+            from tournament.models import ScannedTournament
+            from tournament.services.scout_service import normalize_brand_key
+            brand_key = normalize_brand_key(prospect.name)
+            
+            # Find existing active editions matching this brand
+            all_prospects = list(ScannedTournament.objects.exclude(id=prospect.id).exclude(status='ARCHIVED'))
+            matching_editions = [
+                p for p in all_prospects
+                if normalize_brand_key(p.name) == brand_key and re.search(r'\b(20\d{2})\b', p.name)
+            ]
+            
+            if matching_editions:
+                # Retain the highest quality edition
+                matching_editions.sort(
+                    key=lambda p: (
+                        p.completeness_grade == 'GRADE_A',
+                        p.completeness_grade == 'GRADE_B',
+                        len((p.payload or {}).get('matches_and_knockout_segment', {}).get('group_matches', [])),
+                        -p.id
+                    ),
+                    reverse=True
+                )
+                target = matching_editions[0]
+                
+                # Merge official URLs if target lacks it
+                if prospect.official_source_url and not target.official_source_url:
+                    target.official_source_url = prospect.official_source_url
+                    target.save()
+                    
+                target_name = target.name
+                target_id = target.id
+                target_grade = target.completeness_grade
+                target_payload = target.payload or {}
+                
+                logger.info("Auto-merging generic umbrella prospect '%s' (ID %d) into concrete edition '%s' (ID %d)", prospect.name, prospect.id, target_name, target_id)
+                prospect.delete()
+                
+                return {
+                    'ok': True,
+                    'merged_into': target_id,
+                    'target_name': target_name,
+                    'grade': target_grade,
+                    'grade_reason': f"Automatiskt sammanfogad med den officiella säsongsupplagan '{target_name}'.",
+                    'fixtures_count': len(target_payload.get('matches_and_knockout_segment', {}).get('group_matches', [])),
+                    'groups_count': len(target_payload.get('groups_and_teams_segment', {}).get('groups', [])),
+                    'draw_completed': bool(target_payload.get('structure_and_rules_segment', {}).get('general_setup', {}).get('draw_completed')),
+                    'draw_date': target_payload.get('structure_and_rules_segment', {}).get('general_setup', {}).get('draw_date', ''),
+                    'scheduled_matchdays': len(target_payload.get('matches_and_knockout_segment', {}).get('group_matches', [])),
+                }
+            else:
+                # Look up the upcoming concrete edition name on Wikipedia/Search
+                upcoming_title = self.wiki_scout.search_wikipedia_article(f"{today_date.year} {prospect.name}") or self.wiki_scout.search_wikipedia_article(f"{today_date.year+1} {prospect.name}")
+                if upcoming_title and re.search(r'\b(20\d{2})\b', upcoming_title):
+                    logger.info("Upgrading generic umbrella prospect '%s' to upcoming concrete edition '%s'", prospect.name, upcoming_title)
+                    prospect.name = upcoming_title
+                    prospect.save()
+
         # 1. Resolve source page title or URL
         official_url = prospect.official_source_url or payload.get('master_event', {}).get('official_source_url') or scouting_audit.get('official_source_url') or ''
         wiki_url = scouting_audit.get('wikipedia_url') or (official_url if 'wikipedia.org' in (official_url or '') else '')

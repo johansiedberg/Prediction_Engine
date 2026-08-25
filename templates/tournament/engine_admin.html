@@ -4985,6 +4985,20 @@ Search and extract upcoming sports tournaments matching:
                 setTimeout(() => {
                     refreshScoutFrame(prospectId);
                 }, 700);
+            } else if (data.status === 'merged') {
+                setSubAgentStep(6);
+                if (progressTitle) progressTitle.innerText = `Sammanfogad med officiell upplaga!`;
+                if (progressSubtext) progressSubtext.innerHTML = `[1/1] <span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i>${data.message || 'Sammanfogad'}</span>. Uppdaterar scout-vyn...`;
+                if (progressBar) {
+                    progressBar.style.width = '100%';
+                    progressBar.classList.remove('bg-warning', 'bg-danger');
+                    progressBar.classList.add('bg-success');
+                }
+                if (progressPercent) progressPercent.innerText = '100%';
+
+                setTimeout(() => {
+                    refreshScoutFrame();
+                }, 700);
             } else if (data.status === 'deleted') {
                 if (progressTitle) progressTitle.innerText = `Turneringen avvisades och togs bort!`;
                 if (progressSubtext) progressSubtext.innerHTML = `[1/1] <span class="text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation me-1"></i>${data.message || 'Ej godkänd enligt villkor'}</span>. Uppdaterar scout-vyn...`;

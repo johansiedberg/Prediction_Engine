@@ -419,6 +419,18 @@ def scout_deep_scan_one_view(request: HttpRequest, prospect_id: int) -> JsonResp
                 return JsonResponse({'status': 'deleted', 'message': result['error']}, status=200)
             return JsonResponse({'status': 'error', 'message': result['error']}, status=400)
 
+        if result.get('merged_into'):
+            return JsonResponse({
+                'status': 'merged',
+                'message': f"Sammanfogad med '{result.get('target_name', '')}' ({result.get('grade', 'GRADE_A')})",
+                'grade': result.get('grade', 'GRADE_A'),
+                'grade_reason': result.get('grade_reason', ''),
+                'fixtures_count': result.get('fixtures_count', 0),
+                'groups_count': result.get('groups_count', 0),
+                'draw_completed': result.get('draw_completed', True),
+                'draw_date': result.get('draw_date', ''),
+            }, status=200)
+
         prospect.save()
         
         # Merge duplicate prospects sharing the exact same Wikipedia link

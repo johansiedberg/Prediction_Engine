@@ -712,51 +712,93 @@ def extract_wikipedia_url(scanned_obj):
     return wiki_url.lower()
 
 
+def normalize_brand_key(name: str) -> str:
+    """
+    Normalizes tournament name into a canonical brand slug (stripping year/season strings).
+    e.g. 'UEFA Nations League' -> 'uefanationsleague'
+         '2026–27 UEFA Nations League' -> 'uefanationsleague'
+         '2027 CONCACAF Gold Cup' -> 'concacafgoldcup'
+    """
+    if not name:
+        return ""
+    # Strip year ranges (e.g. 2026-27, 2026–27) and single years (e.g. 2026, 2027)
+    clean = re.sub(r'\b(19\d{2}|20\d{2}(?:[–\-]\d{2,4})?)\b', '', name)
+    clean = re.sub(r'[^a-zA-Z0-9]', '', clean).lower()
+    return clean
+
+
 def merge_duplicate_scanned_tournaments_by_wikipedia():
     """
-    Scans all ScannedTournament records and merges any duplicate records that share the exact same
-    Wikipedia page URL or article identifier.
+    Scans all ScannedTournament records and merges duplicate records:
+    1. Records sharing the exact same Wikipedia page URL or article identifier.
+    2. Generic umbrella records (lacking a season/year) that match an active concrete edition (e.g. 'UEFA Nations League' + '2026–27 UEFA Nations League').
     
-    The highest quality / deepest scanned instance is retained as primary, copying any missing groups,
-    fixtures, rules, or links from duplicates before removing the duplicate prospects.
+    The highest quality / deepest scanned instance with concrete year is retained as primary,
+    copying any missing groups, fixtures, rules, or links from duplicates before removing the duplicate prospects.
     Returns (merged_count, list_of_retained_prospects).
     """
     scanned_list = list(ScannedTournament.objects.exclude(status='ARCHIVED'))
-    wiki_map = {}
+    merged_map = {}
     
+    # Pass 1: Group by Wikipedia key
     for s in scanned_list:
         wiki_key = extract_wikipedia_url(s)
         if wiki_key:
-            wiki_map.setdefault(wiki_key, []).append(s)
+            merged_map.setdefault(f"wiki:{wiki_key}", []).append(s)
+
+    # Pass 2: Group generic umbrella records with their concrete edition
+    for s in scanned_list:
+        b_key = normalize_brand_key(s.name)
+        if b_key and len(b_key) >= 4:
+            merged_map.setdefault(f"brand:{b_key}", []).append(s)
 
     merged_count = 0
     retained_prospects = []
+    processed_ids = set()
 
-    for wiki_key, prospects in wiki_map.items():
-        if len(prospects) <= 1:
-            if prospects:
-                retained_prospects.append(prospects[0])
+    for group_key, prospects in merged_map.items():
+        # Filter out already processed/deleted prospects
+        valid_prospects = [p for p in prospects if p.id not in processed_ids and ScannedTournament.objects.filter(id=p.id).exists()]
+        if len(valid_prospects) <= 1:
+            if valid_prospects and valid_prospects[0].id not in processed_ids:
+                retained_prospects.append(valid_prospects[0])
+                processed_ids.add(valid_prospects[0].id)
             continue
 
-        # Sort prospects: DEEP > SHALLOW, GRADE_A > GRADE_B > GRADE_C > GRADE_D, more groups/fixtures, oldest ID
+        # If grouped by brand, only merge if at least one prospect is a generic umbrella (lacks a year)
+        if group_key.startswith("brand:"):
+            has_umbrella = any(not re.search(r'\b(19\d{2}|20\d{2})\b', p.name) for p in valid_prospects)
+            has_concrete = any(bool(re.search(r'\b(19\d{2}|20\d{2})\b', p.name)) for p in valid_prospects)
+            if not (has_umbrella and has_concrete):
+                # Distinct multi-year editions (e.g. 2026 World Cup vs 2030 World Cup) are NOT merged
+                for p in valid_prospects:
+                    if p.id not in processed_ids:
+                        retained_prospects.append(p)
+                        processed_ids.add(p.id)
+                continue
+
+        # Sort prospects: concrete year > generic umbrella, DEEP > SHALLOW, GRADE_A > GRADE_B > GRADE_C, fixtures count
         def sort_key(p):
             p_payload = p.payload or {}
+            has_yr = 10 if re.search(r'\b(19\d{2}|20\d{2})\b', p.name) else 0
             stage_score = 2 if p_payload.get('scouting_audit', {}).get('scouting_stage') == 'DEEP' else 1
             grade_score = {'GRADE_A': 4, 'GRADE_B': 3, 'GRADE_C': 2, 'GRADE_D': 1}.get(p.completeness_grade, 0)
             rules_score = 1 if p.official_rules else 0
             groups_count = len(p_payload.get('groups', []))
-            fixtures_count = len(p_payload.get('fixtures_sample', []))
-            return (stage_score, grade_score, rules_score, groups_count + fixtures_count, -p.id)
+            fixtures_count = len(p_payload.get('fixtures_sample', [])) + len(p_payload.get('matches_and_knockout_segment', {}).get('group_matches', []))
+            return (has_yr, stage_score, grade_score, rules_score, groups_count + fixtures_count, -p.id)
 
-        prospects.sort(key=sort_key, reverse=True)
-        primary = prospects[0]
-        duplicates = prospects[1:]
+        valid_prospects.sort(key=sort_key, reverse=True)
+        primary = valid_prospects[0]
+        duplicates = valid_prospects[1:]
 
         primary_payload = primary.payload or {}
         primary_groups = primary_payload.get('groups', [])
         primary_fixtures = primary_payload.get('fixtures_sample', [])
 
         for dup in duplicates:
+            if dup.id in processed_ids or not ScannedTournament.objects.filter(id=dup.id).exists():
+                continue
             dup_payload = dup.payload or {}
             dup_groups = dup_payload.get('groups', [])
             dup_fixtures = dup_payload.get('fixtures_sample', [])
@@ -776,13 +818,15 @@ def merge_duplicate_scanned_tournaments_by_wikipedia():
             # Transfer any linked TournamentEvent objects
             TournamentEvent.objects.filter(scanned_prospect=dup).update(scanned_prospect=primary)
 
-            # Delete duplicate prospect
+            processed_ids.add(dup.id)
             dup.delete()
             merged_count += 1
 
         primary.payload = primary_payload
         primary.save()
-        retained_prospects.append(primary)
+        if primary.id not in processed_ids:
+            retained_prospects.append(primary)
+            processed_ids.add(primary.id)
 
     return merged_count, retained_prospects
 

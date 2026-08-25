@@ -2314,4 +2314,56 @@ class OfficialSiteScoutAndIngestTestCase(TestCase):
         self.assertEqual(len(result["groups"][0]["teams"]), 4)
         self.assertEqual(result["groups"][0]["teams"][0]["name"], "Egypt")
 
+    def test_umbrella_brand_merging_and_deduplication(self):
+        from tournament.models import ScannedTournament
+        from tournament.services.scout_service import normalize_brand_key, merge_duplicate_scanned_tournaments_by_wikipedia
+        from tournament.services.modular_deep_scout import ModularDeepScout
+        import datetime
+
+        # Test brand key normalization
+        self.assertEqual(normalize_brand_key("UEFA Nations League"), "uefanationsleague")
+        self.assertEqual(normalize_brand_key("2026–27 UEFA Nations League"), "uefanationsleague")
+        self.assertEqual(normalize_brand_key("CONCACAF Gold Cup"), "concacafgoldcup")
+        self.assertEqual(normalize_brand_key("2027 CONCACAF Gold Cup"), "concacafgoldcup")
+
+        # Create concrete 2026-27 UEFA Nations League prospect
+        concrete = ScannedTournament.objects.create(
+            name="2026–27 UEFA Nations League",
+            sport="Football",
+            completeness_grade="GRADE_A",
+            status="READY",
+            start_date=datetime.date(2026, 9, 3),
+            end_date=datetime.date(2027, 6, 13),
+            payload={
+                "matches_and_knockout_segment": {
+                    "group_matches": [{"match_id": "M1", "round": "Matchday 1"}] * 10
+                }
+            }
+        )
+
+        # Create generic umbrella UEFA Nations League prospect
+        umbrella = ScannedTournament.objects.create(
+            name="UEFA Nations League",
+            sport="Football",
+            completeness_grade="GRADE_C",
+            status="NOT_READY",
+            official_source_url="https://www.uefa.com/uefanationsleague/",
+            payload={}
+        )
+
+        # Test ModularDeepScout auto-merges generic umbrella into concrete edition
+        scout = ModularDeepScout()
+        res = scout.deep_scan_prospect(umbrella)
+
+        self.assertTrue(res["ok"])
+        self.assertEqual(res["merged_into"], concrete.id)
+        self.assertEqual(res["target_name"], "2026–27 UEFA Nations League")
+        self.assertEqual(res["grade"], "GRADE_A")
+
+        # Verify umbrella is deleted and concrete has official_source_url merged
+        self.assertFalse(ScannedTournament.objects.filter(id=umbrella.id).exists())
+        concrete.refresh_from_db()
+        self.assertEqual(concrete.official_source_url, "https://www.uefa.com/uefanationsleague/")
+
+
 
