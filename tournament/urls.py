@@ -30,6 +30,7 @@ from .views import (
     update_pool_points_view, add_pool_sidebet_view,
     pool_admin_add_self_view, pool_admin_reset_password_view,
     toggle_tournament_player_view, toggle_pool_tournament_view,
+    pool_admin_bulk_toggle_players_view,
     update_pool_admin_email_view,
 )
 
@@ -54,6 +55,7 @@ urlpatterns = [
     path('pool-admin/request/', request_pool_admin_view, name='request_pool_admin'),
     path('pool-admin/<int:league_id>/', pool_admin_dashboard_view, name='pool_admin_dashboard'),
     path('pool-admin/<int:league_id>/tournament/<int:tournament_id>/', pool_admin_tournament_config_view, name='pool_admin_tournament_config'),
+    path('pool-admin/<int:league_id>/tournament/<int:tournament_id>/bulk-players/', pool_admin_bulk_toggle_players_view, name='pool_admin_bulk_toggle_players'),
     path('pool-admin/verify-member/<int:member_id>/', verify_member_view, name='verify_member'),
     path('pool-admin/branding/<int:league_id>/', update_pool_branding_view, name='update_pool_branding'),
     path('pool-admin/<int:league_id>/add-player/', pool_admin_add_player_view, name='pool_admin_add_player'),

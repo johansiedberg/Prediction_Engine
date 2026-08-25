@@ -102,11 +102,12 @@ class GroupsTeamsAgent:
 
         from tournament.services.format_blueprint_service import FormatBlueprintService
         canon_bp = FormatBlueprintService.get_canonical_blueprint(tournament_name, sport)
-        if canon_bp and canon_bp.get("groups") and (not raw_groups or not prior_has_real):
-            raw_groups = canon_bp["groups"]
-            audit["groups"] = raw_groups
+        if canon_bp:
             if "draw_completed" in canon_bp:
                 audit["draw_completed"] = canon_bp["draw_completed"]
+            if canon_bp.get("groups") and (not raw_groups or not prior_has_real or not canon_bp.get("draw_completed", True)):
+                raw_groups = canon_bp["groups"]
+                audit["groups"] = raw_groups
 
         is_draw_completed = audit.get("draw_completed", True)
         

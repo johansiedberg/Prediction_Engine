@@ -1,10 +1,12 @@
+import datetime
 from unittest.mock import patch, MagicMock
-from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings, Client
 from django.contrib.auth.models import User
 
 from tournament.models import (
     Tournament, Match, MatchPrediction, TournamentSubmission,
-    DailyGazette, RoundLeaderboardSnapshot, PointSystem, League, LeagueMember
+    DailyGazette, RoundLeaderboardSnapshot, PointSystem, League, LeagueMember,
+    KnockoutStage, Sidebet, ScannedTournament
 )
 from tournament.editorial_engine.special_edition_reporter import SpecialEditionReporter
 from tournament.editorial_engine.detectors import check_and_trigger_special_editions
@@ -2364,6 +2366,131 @@ class OfficialSiteScoutAndIngestTestCase(TestCase):
         self.assertFalse(ScannedTournament.objects.filter(id=umbrella.id).exists())
         concrete.refresh_from_db()
         self.assertEqual(concrete.official_source_url, "https://www.uefa.com/uefanationsleague/")
+
+
+class PoolAdminTournamentConfigTestCase(TestCase):
+    """Verifies tournament activation/config workspace, rules integration, 25p sidebets, and participant management."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(username='poolboss', email='boss@example.com', password='password123', first_name='Boss')
+        self.player1 = User.objects.create_user(username='player1', email='p1@example.com', password='password123', first_name='Anna')
+        self.player2 = User.objects.create_user(username='player2', email='p2@example.com', password='password123', first_name='Björn')
+
+        self.league = League.objects.create(name='Test Poolen', admin=self.admin, invite_code='TESTP1')
+        LeagueMember.objects.create(league=self.league, player=self.admin, is_verified=True)
+        LeagueMember.objects.create(league=self.league, player=self.player1, is_verified=True)
+        LeagueMember.objects.create(league=self.league, player=self.player2, is_verified=True)
+
+        self.tournament = Tournament.objects.create(
+            name="2026 Men's World Floorball Championship",
+            sport="Floorball",
+            admin=self.admin,
+            start_date=datetime.date(2026, 12, 4),
+            end_date=datetime.date(2026, 12, 13),
+            official_rules="Topp 2 i Grupp A & B går till Kvartsfinal.",
+            official_regulations_url="https://floorball.sport/wfc2026/"
+        )
+        self.stage_playoff = KnockoutStage.objects.create(tournament=self.tournament, name="Play-off", order=1)
+        self.stage_qf = KnockoutStage.objects.create(tournament=self.tournament, name="Quarterfinals", order=2)
+        self.stage_sf = KnockoutStage.objects.create(tournament=self.tournament, name="Semifinals", order=3)
+        self.stage_bronze = KnockoutStage.objects.create(tournament=self.tournament, name="Bronze match", order=4)
+        self.stage_final = KnockoutStage.objects.create(tournament=self.tournament, name="Final", order=5)
+
+    def test_pool_admin_tournament_config_context_and_rounds(self):
+        client = Client()
+        client.force_login(self.admin)
+
+        resp = client.get(f'/pool-admin/{self.league.id}/tournament/{self.tournament.id}/', HTTP_HOST='localhost:2028')
+        self.assertEqual(resp.status_code, 200)
+
+        # Verify context data
+        self.assertIn('structure_data', resp.context)
+        self.assertIn('tournament_knockout_stages', resp.context)
+
+        struct = resp.context['structure_data']
+        self.assertEqual(struct['official_rules'], "Topp 2 i Grupp A & B går till Kvartsfinal.")
+        self.assertEqual(struct['official_regulations_url'], "https://floorball.sport/wfc2026/")
+
+        stages = resp.context['tournament_knockout_stages']
+        self.assertEqual(len(stages), 5)
+        self.assertEqual(stages[0]['stage_name'], 'Play-off')
+        self.assertEqual(stages[0]['field_name'], 'knockout_round_of_32')
+        self.assertEqual(stages[1]['stage_name'], 'Quarterfinals')
+        self.assertEqual(stages[1]['field_name'], 'knockout_quarterfinal')
+        self.assertEqual(stages[3]['stage_name'], 'Bronze match')
+        self.assertEqual(stages[3]['field_name'], 'knockout_bronze_match')
+        self.assertEqual(stages[4]['stage_name'], 'Final')
+        self.assertEqual(stages[4]['field_name'], 'knockout_final')
+
+    def test_sidebet_default_points_25(self):
+        # 1. Model default
+        sb = Sidebet.objects.create(tournament=self.tournament, question="Vem vinner skytteligan?")
+        self.assertEqual(sb.points, 25)
+
+        # 2. View creation default
+        client = Client()
+        client.force_login(self.admin)
+        client.post(
+            f'/pool-admin/{self.league.id}/sidebet/',
+            {'tournament_id': self.tournament.id, 'question': 'Egen fråga?', 'question_type': 'TEXT'},
+            HTTP_HOST='localhost:2028'
+        )
+        created_sb = Sidebet.objects.filter(tournament=self.tournament, question='Egen fråga?').first()
+        self.assertIsNotNone(created_sb)
+        self.assertEqual(created_sb.points, 25)
+
+    def test_add_player_directly_to_tournament(self):
+        client = Client()
+        client.force_login(self.admin)
+
+        resp = client.post(
+            f'/pool-admin/{self.league.id}/add-player/',
+            {
+                'first_name': 'Kalle',
+                'last_name': 'Anka',
+                'email': 'kalle@example.com',
+                'password': 'SecretPassword123!',
+                'tournament_id': self.tournament.id
+            },
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        # Verify user created
+        kalle = User.objects.get(email='kalle@example.com')
+        self.assertEqual(kalle.first_name, 'Kalle')
+
+        # Verify user in league members
+        self.assertTrue(LeagueMember.objects.filter(league=self.league, player=kalle).exists())
+
+        # Verify user linked to tournament
+        self.assertTrue(self.tournament.players.filter(id=kalle.id).exists())
+
+    def test_bulk_toggle_players(self):
+        client = Client()
+        client.force_login(self.admin)
+
+        # 1. Enroll all
+        resp = client.post(
+            f'/pool-admin/{self.league.id}/tournament/{self.tournament.id}/bulk-players/',
+            {'action': 'enroll_all'},
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.tournament.players.count(), 3)
+
+        # 2. Remove all
+        resp = client.post(
+            f'/pool-admin/{self.league.id}/tournament/{self.tournament.id}/bulk-players/',
+            {'action': 'remove_all'},
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.tournament.players.count(), 0)
+
 
 
 

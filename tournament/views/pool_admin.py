@@ -197,7 +197,7 @@ def request_pool_admin_view(request):
                 description=description,
                 master_event=master_event
             )
-            messages.success(request, f"Tack {user.first_name}! Din ansökan om att starta '{pool_name}' har skickats in och behandlas nu av Engine-Admin.")
+            messages.success(request, f"Tack {user.first_name}! Din ansökan om att starta '{pool_name}' har skickats in och behandlas nu.")
             return redirect('hub')
 
     master_events = MasterEvent.objects.filter(is_active=True)
@@ -252,7 +252,8 @@ def pool_admin_dashboard_view(request, league_id):
 @login_required
 def pool_admin_tournament_config_view(request, league_id, tournament_id):
     """Dedicated configuration workspace for a single tournament inside a pool."""
-    from tournament.models import LeaguePointSystem, Sidebet
+    from tournament.models import LeaguePointSystem, Sidebet, ScannedTournament, KnockoutStage
+    from tournament.services.format_blueprint_service import FormatBlueprintService
     league = get_object_or_404(League, id=league_id)
 
     if league.admin != request.user and not request.user.is_superuser:
@@ -287,6 +288,164 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
         point_system.knockout_final = t_ps.knockout_final
         point_system.save()
 
+    # Retrieve linked prospect from Engine Admin (ScannedTournament) or format blueprint
+    scanned = (
+        ScannedTournament.objects.filter(converted_tournament=tournament).first() or
+        ScannedTournament.objects.filter(name__iexact=tournament.name).first()
+    )
+    bp = FormatBlueprintService.get_canonical_blueprint(tournament.name, tournament.sport) or {}
+    scanned_payload = scanned.payload if (scanned and isinstance(scanned.payload, dict)) else {}
+
+    # Extract or infer groups count & teams count
+    groups_count = tournament.tournament_groups.count()
+    if groups_count == 0 and scanned and scanned.payload and scanned.payload.get('groups'):
+        groups_count = len(scanned.payload.get('groups'))
+    elif groups_count == 0 and bp.get('groups_count'):
+        groups_count = bp.get('groups_count')
+
+    teams_count = tournament.teams.count()
+    if teams_count == 0 and tournament.tournament_groups.exists():
+        teams_count = tournament.tournament_groups.values('teams').distinct().count()
+    if teams_count == 0 and scanned and scanned.payload and scanned.payload.get('groups'):
+        teams_count = sum(len(g.get('teams', [])) for g in scanned.payload.get('groups'))
+    elif teams_count == 0 and bp.get('teams_count'):
+        teams_count = bp.get('teams_count')
+
+    adv_logic = scanned_payload.get('advancement_logic') or {}
+    teams_per_group_adv = adv_logic.get('teams_per_group_advancing') or (2 if groups_count > 0 else 0)
+
+    has_best_thirds = tournament.has_best_thirds_table or adv_logic.get('has_best_thirds_table', False)
+    best_thirds_count = adv_logic.get('best_third_placed_advancing', 4) if has_best_thirds else 0
+
+    has_runners_up = tournament.has_runners_up_table or adv_logic.get('has_runners_up_table', False)
+    runners_up_count = adv_logic.get('runners_up_advancing', 8) if has_runners_up else 0
+
+    # Group stage points (win / draw / loss)
+    pts_sys = scanned_payload.get('points_system') or {}
+    points_win = pts_sys.get('win') if pts_sys.get('win') is not None else (bp.get('points_win') if bp.get('points_win') is not None else (2 if 'floorball' in tournament.sport.lower() or 'basketball' in tournament.sport.lower() else 3))
+    points_draw = pts_sys.get('draw') if pts_sys.get('draw') is not None else (bp.get('points_draw') if bp.get('points_draw') is not None else (1 if 'floorball' in tournament.sport.lower() or 'football' in tournament.sport.lower() else 0))
+    points_loss = pts_sys.get('loss') if pts_sys.get('loss') is not None else (bp.get('points_loss') if bp.get('points_loss') is not None else 0)
+
+    # Tiebreaker hierarchy
+    tiebreakers = (
+        scanned_payload.get('tiebreakers') or
+        bp.get('tiebreakers') or
+        [
+            'Inbördes möten (Poäng)',
+            'Inbördes målskillnad',
+            'Inbördes gjorda mål',
+            'Total målskillnad',
+            'Gjorda mål totalt',
+            'Disciplinpoäng (Fair Play)',
+            'Lottning'
+        ]
+    )
+
+    # Match format description
+    match_fmt = scanned_payload.get('match_format') or {}
+    reg_min = match_fmt.get('regular_time_minutes', 90)
+    extra_min = match_fmt.get('extra_time_minutes', 30)
+    if 'floorball' in tournament.sport.lower() or 'innebandy' in tournament.sport.lower():
+        match_format_summary = "Ordinarie speltid 3x20 min. Vid oavgjort i slutspel: 10 min sudden death följt av 5 straffar per lag."
+    elif 'handball' in tournament.sport.lower() or 'handboll' in tournament.sport.lower():
+        match_format_summary = "Ordinarie speltid 2x30 min. Vid oavgjort i slutspel: Förlängning (2x5 min) följt av 7-meterskast (straffar)."
+    elif 'hockey' in tournament.sport.lower():
+        match_format_summary = "Ordinarie speltid 3x20 min. Vid oavgjort: Sudden death övertid (3-mot-3 / 4-mot-4) följt av straffar."
+    elif 'basket' in tournament.sport.lower():
+        match_format_summary = "Ordinarie speltid 4x10 min. Vid oavgjort: Förlängning (5 min) tills en vinnare koras."
+    else:
+        match_format_summary = f"Ordinarie speltid {reg_min} min. Vid oavgjort i slutspel: Förlängning ({extra_min} min) följt av Straffsparksläggning."
+
+    # Qualifying summary
+    if has_best_thirds and best_thirds_count > 0:
+        qualifying_summary = f"Ranking av 3:or: De {best_thirds_count} bästa 3:orna avancerar till slutspel."
+    elif has_runners_up and runners_up_count > 0:
+        qualifying_summary = f"Kvaltabell för 2:or: De {runners_up_count} bästa grupptvåorna avancerar."
+    elif groups_count > 0:
+        qualifying_summary = f"Direktavancemang: Topp {teams_per_group_adv} per grupp avancerar till slutspelet."
+    else:
+        qualifying_summary = "Enligt officiella föreskrifter."
+
+    # Knockout stages mapping
+    stages_qs = tournament.knockout_stages.all().order_by('order', 'id')
+    stages_list = list(stages_qs)
+
+    if stages_list:
+        first_stage = stages_list[0].name
+        knockout_summary = f"Startar med {first_stage} ({len(stages_list)} slutspelsomgångar)."
+    else:
+        knockout_summary = "Slutspelsträd enligt officiellt spelschema."
+
+    def _map_stage(stage_name, default_order=0):
+        low = stage_name.lower()
+        if '32' in low or 'play-off' in low or 'playoff' in low or 'sextondel' in low:
+            return 'knockout_round_of_32', 'Play-off / Sextondelsfinal', getattr(point_system, 'knockout_round_of_32', 2)
+        elif '16' in low or 'åttondel' in low or 'eighth' in low:
+            return 'knockout_round_of_16', 'Åttondelsfinal', getattr(point_system, 'knockout_round_of_16', 4)
+        elif 'quarter' in low or 'kvarts' in low or 'qf' in low:
+            return 'knockout_quarterfinal', 'Kvartsfinal', getattr(point_system, 'knockout_quarterfinal', 6)
+        elif 'semi' in low or 'sf' in low:
+            return 'knockout_semifinal', 'Semifinal', getattr(point_system, 'knockout_semifinal', 8)
+        elif 'bronze' in low or '3rd' in low or '3:e' in low or 'tredje' in low:
+            return 'knockout_bronze_match', 'Bronsmatch (3:e pris)', getattr(point_system, 'knockout_bronze_match', 10)
+        elif 'final' in low or 'guld' in low:
+            return 'knockout_final', 'Finalmatch', getattr(point_system, 'knockout_final', 10)
+        else:
+            return 'knockout_quarterfinal', stage_name, getattr(point_system, 'knockout_quarterfinal', 6)
+
+    tournament_knockout_stages = []
+    if stages_list:
+        for idx, s in enumerate(stages_list):
+            f_name, label, val = _map_stage(s.name, idx)
+            tournament_knockout_stages.append({
+                'stage': s,
+                'stage_name': s.name,
+                'field_name': f_name,
+                'label': f"{label} Bonus",
+                'value': val,
+            })
+    else:
+        default_stages = [
+            ('knockout_round_of_16', 'Åttondelsfinal Bonus', point_system.knockout_round_of_16),
+            ('knockout_quarterfinal', 'Kvartsfinal Bonus', point_system.knockout_quarterfinal),
+            ('knockout_semifinal', 'Semifinal Bonus', point_system.knockout_semifinal),
+            ('knockout_final', 'Bronsmatch & Final Bonus', point_system.knockout_final),
+        ]
+        for f_name, label, val in default_stages:
+            tournament_knockout_stages.append({
+                'stage': None,
+                'stage_name': label,
+                'field_name': f_name,
+                'label': label,
+                'value': val,
+            })
+
+    official_rules = (
+        tournament.official_rules or
+        (scanned.official_rules if scanned else '') or
+        bp.get('official_rules_summary', '') or
+        "Officiella turneringsregler och föreskrifter enligt arrangörens officiella regelbok."
+    )
+    official_regulations_url = (
+        tournament.official_regulations_url or
+        (scanned.official_source_url if scanned else '')
+    )
+
+    structure_data = {
+        'groups_count': groups_count,
+        'teams_count': teams_count,
+        'teams_per_group_advancing': teams_per_group_adv,
+        'qualifying_summary': qualifying_summary,
+        'knockout_summary': knockout_summary,
+        'points_win': points_win,
+        'points_draw': points_draw,
+        'points_loss': points_loss,
+        'match_format_summary': match_format_summary,
+        'tiebreakers': tiebreakers,
+        'official_rules': official_rules,
+        'official_regulations_url': official_regulations_url,
+    }
+
     sidebets = Sidebet.objects.filter(tournament=tournament)
     players_data = get_player_progress_matrix(league, tournament)
     enrolled_user_ids = set(tournament.players.values_list('id', flat=True))
@@ -297,12 +456,43 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
         'tournament': tournament,
         'is_active_in_pool': is_active_in_pool,
         'point_system': point_system,
+        'structure_data': structure_data,
+        'tournament_knockout_stages': tournament_knockout_stages,
         'sidebets': sidebets,
         'players_data': players_data,
         'enrolled_user_ids': enrolled_user_ids,
         'members': members,
     }
     return render(request, 'tournament/pool_admin_tournament_config.html', context)
+
+
+@login_required
+@require_POST
+def pool_admin_bulk_toggle_players_view(request, league_id, tournament_id):
+    """Enrolls or removes ALL pool members to/from a tournament."""
+    from django.urls import reverse
+    league = get_object_or_404(League, id=league_id)
+    if league.admin != request.user and not request.user.is_superuser:
+        return HttpResponseForbidden("Åtkomst nekad.")
+
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    action = request.POST.get('action')
+
+    # Ensure tournament is active in pool
+    league.tournaments.add(tournament)
+
+    members_users = [m.player for m in league.members.all().select_related('player')]
+
+    if action == 'enroll_all':
+        for u in members_users:
+            tournament.players.add(u)
+        messages.success(request, f"Alla {len(members_users)} poolmedlemmar har kopplats till {tournament.name}!")
+    elif action == 'remove_all':
+        for u in members_users:
+            tournament.players.remove(u)
+        messages.info(request, f"Alla deltagare har kopplats bort från {tournament.name}.")
+
+    return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament.id])}#sec-participants")
 
 
 @login_required
@@ -407,8 +597,9 @@ def update_pool_branding_view(request, league_id):
 @login_required
 @require_POST
 def pool_admin_add_player_view(request, league_id):
-    """Creates a new player account directly and adds them to the pool."""
+    """Creates a new player account directly and adds them to the pool (and optionally tournament)."""
     from django.contrib.auth.models import User as DjangoUser
+    from django.urls import reverse
     league = get_object_or_404(League, id=league_id)
     if league.admin != request.user and not request.user.is_superuser:
         return HttpResponseForbidden("Åtkomst nekad.")
@@ -417,9 +608,12 @@ def pool_admin_add_player_view(request, league_id):
     last_name = request.POST.get('last_name', '').strip()
     email = request.POST.get('email', '').strip().lower()
     password = request.POST.get('password', '').strip()
+    tournament_id = request.POST.get('tournament_id')
 
     if not first_name or not email or not password:
         messages.error(request, "Förnamn, e-post och lösenord krävs.")
+        if tournament_id:
+            return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament_id])}#sec-participants")
         return redirect('pool_admin_dashboard', league_id=league.id)
 
     # Check if user exists or create new
@@ -442,6 +636,13 @@ def pool_admin_add_player_view(request, league_id):
         player=player_user,
         defaults={'is_verified': True}
     )
+
+    if tournament_id:
+        tournament = get_object_or_404(Tournament, id=tournament_id)
+        league.tournaments.add(tournament)
+        tournament.players.add(player_user)
+        messages.success(request, f"Deltagaren {first_name} ({email}) har lagts till i poolen och kopplats direkt till {tournament.name}!")
+        return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament.id])}#sec-participants")
 
     if created:
         messages.success(request, f"Spelaren {first_name} ({email}) har skapats och lagts till i poolen!")
@@ -609,7 +810,7 @@ def add_pool_sidebet_view(request, league_id):
 
     tournament_id = request.POST.get('tournament_id')
     question = request.POST.get('question', '').strip()
-    points = int(request.POST.get('points', 5))
+    points = int(request.POST.get('points', 25))
     question_type = request.POST.get('question_type', 'TEXT')
 
     if not tournament_id or not question:

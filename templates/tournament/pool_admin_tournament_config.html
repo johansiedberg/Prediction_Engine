@@ -32,7 +32,6 @@
                         <span class="badge px-2 py-0.5 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);">
                             <i class="fa-solid fa-users me-1"></i>{{ league.name }}
                         </span>
-                        <span class="badge bg-secondary bg-opacity-30 text-white font-monospace">Engine ID: #{{ tournament.id }}</span>
                     </div>
                 </div>
             </div>
@@ -107,29 +106,97 @@
     <!-- CONFIGURATION SECTIONS -->
     <div class="d-flex flex-column gap-4">
 
-        <!-- OFFICIAL TOURNAMENT REGULATIONS CARD -->
-        {% if tournament.official_rules or tournament.official_regulations_url %}
+        <!-- OFFICIAL TOURNAMENT REGULATIONS & ENGINE ADMIN BLUEPRINT CARD -->
         <div class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(14, 165, 233, 0.3) !important; border-radius: 16px;">
             <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
                 <div>
                     <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-scroll me-2 text-info"></i>Officiella Turneringsföreskrifter &amp; Reglemente</h5>
                     <p class="text-secondary mb-0 mt-0.5 small">Fastställda regler för turneringsformat, gruppspels-tiebreakers och avancemang för {{ tournament.name }}.</p>
                 </div>
-                {% if tournament.official_regulations_url %}
-                <a href="{{ tournament.official_regulations_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info btn-sm rounded-pill font-monospace fw-bold">
+                {% if structure_data.official_regulations_url %}
+                <a href="{{ structure_data.official_regulations_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-info btn-sm rounded-pill font-monospace fw-bold">
                     <i class="fa-solid fa-external-link me-1.5"></i>Officiell Regelbok
                 </a>
                 {% endif %}
             </div>
-            {% if tournament.official_rules %}
             <div class="card-body p-4">
-                <div class="p-3 rounded-3 font-monospace text-light small" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); white-space: pre-wrap; font-size: 0.85rem; max-height: 220px; overflow-y: auto;">
-                    {{ tournament.official_rules }}
+                <div class="row g-3 mb-3">
+                    <!-- Tournament Setup -->
+                    <div class="col-12 col-md-6">
+                        <div class="p-3.5 rounded-3 h-100" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08);">
+                            <div class="fw-bold text-info small mb-2 font-monospace d-flex align-items-center">
+                                <i class="fa-solid fa-layer-group me-1.5"></i>Turneringsstruktur (Tournament Setup)
+                            </div>
+                            <ul class="list-unstyled mb-0 text-light font-monospace" style="font-size:0.82rem;">
+                                <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
+                                    <span class="text-secondary mb-1">Gruppspel &amp; Matcher per lag:</span>
+                                    <strong class="text-white">
+                                        {{ structure_data.groups_count }} grupper &bull; {{ structure_data.teams_count }} lag totalt.
+                                        {% if structure_data.teams_per_group_advancing %}
+                                        <span class="text-info mt-1 d-block"><i class="fa-solid fa-arrow-turn-up me-1.5"></i>Topp {{ structure_data.teams_per_group_advancing }} från varje grupp avancerar direkt till slutspel.</span>
+                                        {% endif %}
+                                    </strong>
+                                </li>
+                                <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
+                                    <span class="text-secondary mb-1">Kvalificeringstabeller &amp; Avancemang:</span>
+                                    <strong class="text-white">
+                                        {{ structure_data.qualifying_summary }}
+                                    </strong>
+                                </li>
+                                <li class="py-2 d-flex flex-column">
+                                    <span class="text-secondary mb-1">Slutspelsstruktur (Knockout Stage):</span>
+                                    <strong class="text-white">
+                                        {{ structure_data.knockout_summary }}
+                                    </strong>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Rules / Regulations -->
+                    <div class="col-12 col-md-6">
+                        <div class="p-3.5 rounded-3 h-100" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08);">
+                            <div class="fw-bold text-warning small mb-2 font-monospace d-flex align-items-center">
+                                <i class="fa-solid fa-gavel me-1.5"></i>Regler &amp; Logik (Rules / Regulations)
+                            </div>
+                            <ul class="list-unstyled mb-0 text-light font-monospace" style="font-size:0.82rem;">
+                                <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex justify-content-between">
+                                    <span class="text-secondary">Poäng i gruppspel (V/O/F):</span>
+                                    <strong class="text-white">
+                                        {{ structure_data.points_win }}p / {{ structure_data.points_draw }}p / {{ structure_data.points_loss }}p
+                                    </strong>
+                                </li>
+                                <li class="py-2 border-bottom border-secondary border-opacity-25 d-flex flex-column">
+                                    <span class="text-secondary mb-1">Slutspel oavgjort &amp; Förlängning:</span>
+                                    <strong class="text-white">
+                                        {{ structure_data.match_format_summary }}
+                                    </strong>
+                                </li>
+                                <li class="py-2 d-flex flex-column">
+                                    <span class="text-secondary mb-1"><strong>Särskiljning av tabeller (Tiebreakers):</strong></span>
+                                    <ol class="mb-0 ps-3 text-white" style="font-size:0.75rem; line-height:1.6;">
+                                        {% for tb in structure_data.tiebreakers %}
+                                        <li>{{ tb }}</li>
+                                        {% endfor %}
+                                    </ol>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
+                {% if structure_data.official_rules %}
+                <div class="mt-3">
+                    <button class="btn btn-outline-secondary btn-sm rounded-pill font-monospace" type="button" data-bs-toggle="collapse" data-bs-target="#officialRulesTextCollapse" aria-expanded="false">
+                        <i class="fa-solid fa-align-left me-1.5"></i>Visa fullständiga regeltextföreskrifter
+                    </button>
+                    <div class="collapse mt-2" id="officialRulesTextCollapse">
+                        <div class="p-3 rounded-3 font-monospace text-light small" style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); white-space: pre-wrap; font-size: 0.82rem; max-height: 220px; overflow-y: auto;">
+                            {{ structure_data.official_rules }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
-        {% endif %}
 
         <!-- SECTION 1: SET POINTS (POÄNGREGLER) -->
         <div id="sec-set-points" class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15) !important; border-radius: 16px;">
@@ -510,41 +577,19 @@
                                         </p>
 
                                         <div class="row g-4 align-items-stretch">
-                                            <!-- LEFT COLUMN: SINGLE STACKED INPUTS -->
+                                            <!-- LEFT COLUMN: DYNAMIC TOURNAMENT KNOCKOUT STAGES INPUTS -->
                                             <div class="col-lg-6">
                                                 <div class="d-flex flex-column gap-3 p-3 rounded-4 h-100" style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.15);">
+                                                    {% for stg in tournament_knockout_stages %}
                                                     <div>
-                                                        <label class="form-label text-white small fw-bold mb-1">Åttondelsfinal Bonus</label>
+                                                        <label class="form-label text-white small fw-bold mb-1">{{ stg.label }}</label>
                                                         <div class="input-group input-group-sm">
-                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_round_of_16', -1)">-</button>
-                                                            <input type="number" id="pts_knockout_round_of_16" name="knockout_round_of_16" value="{{ point_system.knockout_round_of_16 }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
-                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_round_of_16', 1)">+</button>
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('{{ stg.field_name }}', -1)">-</button>
+                                                            <input type="number" id="pts_{{ stg.field_name }}" name="{{ stg.field_name }}" value="{{ stg.value }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('{{ stg.field_name }}', 1)">+</button>
                                                         </div>
                                                     </div>
-                                                    <div>
-                                                        <label class="form-label text-white small fw-bold mb-1">Kvartsfinal Bonus</label>
-                                                        <div class="input-group input-group-sm">
-                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_quarterfinal', -1)">-</button>
-                                                            <input type="number" id="pts_knockout_quarterfinal" name="knockout_quarterfinal" value="{{ point_system.knockout_quarterfinal }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
-                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_quarterfinal', 1)">+</button>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label class="form-label text-white small fw-bold mb-1">Semifinal Bonus</label>
-                                                        <div class="input-group input-group-sm">
-                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_semifinal', -1)">-</button>
-                                                            <input type="number" id="pts_knockout_semifinal" name="knockout_semifinal" value="{{ point_system.knockout_semifinal }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
-                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_semifinal', 1)">+</button>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label class="form-label text-white small fw-bold mb-1">Bronsmatch &amp; Final</label>
-                                                        <div class="input-group input-group-sm">
-                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_final', -1)">-</button>
-                                                            <input type="number" id="pts_knockout_final" name="knockout_final" value="{{ point_system.knockout_final }}" class="form-control text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
-                                                            <button class="btn btn-outline-secondary text-white px-3" type="button" onclick="adjustPts('knockout_final', 1)">+</button>
-                                                        </div>
-                                                    </div>
+                                                    {% endfor %}
                                                 </div>
                                             </div>
 
@@ -704,13 +749,13 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label text-white small fw-bold">Poäng för rätt svar</label>
-                                <input type="number" name="points" value="5" min="1" max="50" class="form-control form-control-sm text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                                <input type="number" name="points" value="25" min="1" max="100" class="form-control form-control-sm text-center fw-bold" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
                             </div>
                         </div>
 
                         <div class="mt-3 text-end">
                             <button type="submit" class="btn btn-sm btn-info fw-bold px-3 py-1.5" style="border-radius: 8px;">
-                                <i class="fa-solid fa-plus me-1"></i>Skapa Bonusfråga
+                                <i class="fa-solid fa-plus me-1.5"></i>Skapa Bonusfråga
                             </button>
                         </div>
                     </form>
@@ -721,12 +766,34 @@
 
         <!-- SECTION 3: CHOOSE PARTICIPANTS (KOPPLA DELTAGARE) -->
         <div id="sec-participants" class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15) !important; border-radius: 16px;">
-            <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4 d-flex align-items-center justify-content-between">
-                <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-user-check me-2 text-success"></i>3. Koppla Deltagare</h5>
+            <div class="card-header border-bottom border-secondary border-opacity-15 py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-user-check me-2 text-success"></i>3. Koppla Deltagare</h5>
+                    <p class="text-white mb-0 mt-0.5 small" style="opacity: 0.85;">Hantera deltagare som ska delta och tippa i {{ tournament.name }}.</p>
+                </div>
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-success rounded-pill fw-bold px-3" data-bs-toggle="modal" data-bs-target="#addNewParticipantModal">
+                        <i class="fa-solid fa-user-plus me-1.5"></i>Ny deltagare
+                    </button>
+                    <form method="post" action="{% url 'pool_admin_bulk_toggle_players' league.id tournament.id %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="enroll_all">
+                        <button type="submit" class="btn btn-sm btn-outline-info rounded-pill fw-bold px-3" title="Koppla alla poolmedlemmar till denna turnering">
+                            <i class="fa-solid fa-users me-1.5"></i>Koppla alla ({{ members.count }})
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'pool_admin_bulk_toggle_players' league.id tournament.id %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="remove_all">
+                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill fw-bold px-3" title="Koppla bort samtliga deltagare från denna turnering">
+                            <i class="fa-solid fa-user-xmark me-1.5"></i>Koppla bort alla
+                        </button>
+                    </form>
+                </div>
             </div>
             <div class="card-body p-4">
                 <p class="text-white small mb-4" style="opacity: 0.85;">
-                    Välj vilka av {{ league.name }}s deltagare som ska delta i {{ tournament.name }}. Klicka på <strong>+ Lägg till</strong> för att registrera en deltagare utan sidomladdning.
+                    Välj vilka av {{ league.name }}s deltagare som ska delta i {{ tournament.name }}. Klicka på <strong>+ Lägg till</strong> för att registrera en deltagare utan sidomladdning eller använd <strong>Ny deltagare</strong> för att skapa och koppla direkt.
                 </p>
 
                 <div class="row g-4">
@@ -755,12 +822,12 @@
 
                                     <div id="pool-member-action-{{ member.player.id }}">
                                         {% if member.player.id in enrolled_user_ids %}
-                                        <span class="badge px-2 py-1 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399;"><i class="fa-solid fa-check me-1"></i>Tillagd</span>
+                                        <span class="badge px-2 py-1 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399;"><i class="fa-solid fa-check me-1.5"></i>Tillagd</span>
                                         {% else %}
                                         <form method="post" action="{% url 'toggle_tournament_player' league.id tournament.id member.player.id %}" class="d-inline" onsubmit="toggleParticipantAjax(event, this, {{ member.player.id }})">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-xs fw-bold px-2 py-1" style="background: #10b981; color: #ffffff; border-radius: 6px; font-size: 0.72rem;">
-                                                <i class="fa-solid fa-plus me-1"></i>Lägg till
+                                                <i class="fa-solid fa-plus me-1.5"></i>Lägg till
                                             </button>
                                         </form>
                                         {% endif %}
@@ -798,7 +865,7 @@
                                     <form method="post" action="{% url 'toggle_tournament_player' league.id tournament.id member.player.id %}" class="d-inline" onsubmit="toggleParticipantAjax(event, this, {{ member.player.id }})">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-xs fw-bold px-2 py-1" style="background: rgba(239, 68, 68, 0.18); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; font-size: 0.72rem;" title="Ta bort från turnering">
-                                            <i class="fa-solid fa-user-minus me-1"></i>Ta bort
+                                            <i class="fa-solid fa-user-minus me-1.5"></i>Ta bort
                                         </button>
                                     </form>
                                 </div>
@@ -876,6 +943,54 @@
 
     </div>
 
+</div>
+
+<!-- MODAL: LÄGG TILL NY DELTAGARE I POOL & TURNERING -->
+<div class="modal fade" id="addNewParticipantModal" tabindex="-1" aria-labelledby="addNewParticipantModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white" style="background: #0f172a; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7);">
+            <div class="modal-header border-bottom border-secondary border-opacity-20 px-4 py-3">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="addNewParticipantModalLabel">
+                    <i class="fa-solid fa-user-plus text-success"></i>Lägg till ny deltagare
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            <form method="post" action="{% url 'pool_admin_add_player' league.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="tournament_id" value="{{ tournament.id }}">
+                <div class="modal-body px-4 py-3">
+                    <p class="text-white small mb-3" style="opacity: 0.85;">
+                        Skapa ett deltagarkonto som automatiskt läggs till i <strong>{{ league.name }}</strong> och kopplas direkt till <strong>{{ tournament.name }}</strong>.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label text-white small fw-semibold">Förnamn *</label>
+                            <input type="text" name="first_name" class="form-control form-control-sm bg-dark text-white border-secondary" required placeholder="Förnamn">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label text-white small fw-semibold">Efternamn</label>
+                            <input type="text" name="last_name" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Efternamn">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-white small fw-semibold">E-postadress *</label>
+                            <input type="email" name="email" class="form-control form-control-sm bg-dark text-white border-secondary" required placeholder="namn@foretag.se">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-white small fw-semibold">Initialt Lösenord *</label>
+                            <input type="text" name="password" class="form-control form-control-sm bg-dark text-white border-secondary font-monospace" required value="Spelare2028!">
+                            <div class="text-white mt-1" style="font-size: 0.72rem; opacity: 0.7;">Deltagaren kan logga in direkt med dessa uppgifter.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-20 px-4 py-3">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Avbryt</button>
+                    <button type="submit" class="btn btn-sm btn-success rounded-pill fw-bold px-4">
+                        <i class="fa-solid fa-check me-1.5"></i>Skapa &amp; Koppla Deltagare
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>

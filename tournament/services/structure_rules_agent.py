@@ -108,14 +108,28 @@ class StructureRulesAgent:
             except Exception as e:
                 logger.warning("StructureRulesAgent: Gemini rules scout error: %s", e)
 
+        # 0c. Enforce Canonical Blueprint Overrides (Authoritative)
+        if canon_bp:
+            if canon_bp.get("points_system"):
+                audit["points_system"] = canon_bp["points_system"]
+            if canon_bp.get("advancement_logic"):
+                audit["advancement_logic"] = canon_bp["advancement_logic"]
+            if canon_bp.get("match_format"):
+                audit["match_format"] = canon_bp["match_format"]
+            if canon_bp.get("knockout_rules"):
+                if canon_bp["knockout_rules"].get("starting_round"):
+                    audit["knockout_stages"] = [canon_bp["knockout_rules"]["starting_round"]]
+            if canon_bp.get("official_rules_summary"):
+                audit["official_rules_summary"] = canon_bp["official_rules_summary"]
+
         bp = audit.get("tournament_blueprint") or {}
-        adv_logic = audit.get("advancement_logic") or {}
-        match_fmt = audit.get("match_format") or {}
-        pts_sys = audit.get("points_system") or {}
+        adv_logic = audit.get("advancement_logic") or (canon_bp.get("advancement_logic") if canon_bp else {}) or {}
+        match_fmt = audit.get("match_format") or (canon_bp.get("match_format") if canon_bp else {}) or {}
+        pts_sys = audit.get("points_system") or (canon_bp.get("points_system") if canon_bp else {}) or {}
         ko_rules_data = gemini_rules.get("knockout_rules") or {}
         if canon_bp and canon_bp.get("knockout_rules"):
             for k, v in canon_bp["knockout_rules"].items():
-                ko_rules_data.setdefault(k, v)
+                ko_rules_data[k] = v
 
         # 1. General Setup (Draw date, seeding, host guarantees)
         draw_date = audit.get("draw_date") or bp.get("draw_date") or None
@@ -151,6 +165,7 @@ class StructureRulesAgent:
         # 2. Group Stage Rules & Tiebreakers
         sport_lower = str(sport or "").lower()
         if "basket" in sport_lower or "fiba" in sport_lower:
+            default_regular_min = 40
             default_pts_win = 2
             default_pts_draw = 0
             default_pts_loss = 1
@@ -159,7 +174,8 @@ class StructureRulesAgent:
             default_tb_desc = "Vid oavgjort spelas förlängningsperioder (5 min) tills en vinnare korats."
             default_suspension_y = "5 personliga foul = utesluten från matchen"
             default_suspension_r = "Diskvalificerande foul = matchstraff och eventuell avstängning"
-        elif "ice hockey" in sport_lower or "hockey" in sport_lower:
+        elif "ice hockey" in sport_lower or "hockey" in sport_lower or "ishockey" in sport_lower:
+            default_regular_min = 60
             default_pts_win = 3
             default_pts_draw = 0
             default_pts_loss = 0
@@ -169,6 +185,7 @@ class StructureRulesAgent:
             default_suspension_y = "2 minuters utvisning"
             default_suspension_r = "Matchstraff = minst 1 match avstängning"
         elif "handball" in sport_lower or "handboll" in sport_lower:
+            default_regular_min = 60
             default_pts_win = 2
             default_pts_draw = 1
             default_pts_loss = 0
@@ -177,7 +194,18 @@ class StructureRulesAgent:
             default_tb_desc = "Vid oavgjort i slutspel spelas förlängning (2x5 min) följt av straffkast vid behov."
             default_suspension_y = "Gult kort / 2 minuters utvisning"
             default_suspension_r = "Rött / blått kort = rapport och avstängning"
+        elif "floorball" in sport_lower or "innebandy" in sport_lower:
+            default_regular_min = 60
+            default_pts_win = 3
+            default_pts_draw = 1
+            default_pts_loss = 0
+            default_extra_min = 10
+            default_has_pens = True
+            default_tb_desc = "Vid oavgjort i slutspel spelas förlängning (10 min sudden death) följt av straffläggning."
+            default_suspension_y = "2 minuters utvisning"
+            default_suspension_r = "Rött kort / matchstraff"
         elif "volleyball" in sport_lower or "volleyboll" in sport_lower:
+            default_regular_min = 0
             default_pts_win = 3
             default_pts_draw = 0
             default_pts_loss = 0
@@ -187,6 +215,7 @@ class StructureRulesAgent:
             default_suspension_y = "Varning (gult kort)"
             default_suspension_r = "Uteslutning / diskvalificering (rött kort)"
         else:
+            default_regular_min = 90
             default_pts_win = 3
             default_pts_draw = 1
             default_pts_loss = 0
@@ -196,6 +225,7 @@ class StructureRulesAgent:
             default_suspension_y = "2 gula kort = 1 match avstängning"
             default_suspension_r = "1 rött kort = minst 1 match avstängning"
 
+        reg_min = match_fmt.get("regular_time_minutes", default_regular_min)
         pts_win = pts_sys.get("win", bp.get("points_for_win", default_pts_win))
         pts_draw = pts_sys.get("draw", bp.get("points_for_draw", default_pts_draw))
         pts_loss = pts_sys.get("loss", bp.get("points_for_loss", default_pts_loss))
@@ -226,6 +256,7 @@ class StructureRulesAgent:
         teams_adv = adv_logic.get("teams_per_group_advancing") or bp.get("teams_per_group_advancing") or 2
 
         group_rules = GroupStageRules(
+            regular_time_minutes=int(reg_min),
             points_win=int(pts_win),
             points_draw=int(pts_draw),
             points_loss=int(pts_loss),

@@ -118,6 +118,7 @@ class GeneralSetup(BaseModel):
 
 
 class GroupStageRules(BaseModel):
+    regular_time_minutes: int = Field(default=90, description="Standard match duration in minutes e.g. 90 for football, 60 for handball/hockey, 40 for basketball")
     points_win: int = Field(default=3)
     points_draw: int = Field(default=1)
     points_loss: int = Field(default=0)
@@ -380,7 +381,7 @@ class TournamentProspectBlueprint(BaseModel):
                 "loss": self.structure_and_rules_segment.group_stage_rules.points_loss,
             },
             "match_format": {
-                "regular_time_minutes": 90,
+                "regular_time_minutes": self.structure_and_rules_segment.group_stage_rules.regular_time_minutes,
                 "extra_time_minutes": self.structure_and_rules_segment.knockout_rules.extra_time_minutes,
                 "has_penalties": self.structure_and_rules_segment.knockout_rules.has_penalties,
             },

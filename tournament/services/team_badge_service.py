@@ -133,7 +133,7 @@ class TeamBadgeService:
             image_claims = claims.get("P154") or claims.get("P41") or claims.get("P18")
             if image_claims:
                 file_name = image_claims[0].get("mainsnak", {}).get("datavalue", {}).get("value")
-                if file_name:
+                if file_name and not any(bad in file_name.lower() for bad in ['.gif', 'animated', 'animation', '.apng']):
                     safe_file = urllib.parse.quote(file_name.replace(' ', '_'))
                     # Wikimedia special filepath direct thumbnail
                     return f"https://commons.wikimedia.org/wiki/Special:FilePath/{safe_file}"
@@ -252,6 +252,8 @@ Return ONLY valid JSON matching this schema:
                 t_type = ai_data.get("team_type", "CLUB")
                 c_code = (ai_data.get("country_code") or "").lower()
                 e_url = ai_data.get("emblem_url") or ""
+                if e_url and any(bad in e_url.lower() for bad in ['.gif', 'animated', 'animation', '.apng']):
+                    e_url = ""
                 can_name = ai_data.get("canonical_name") or name_clean
                 
                 res_item = TeamBadgeResult(

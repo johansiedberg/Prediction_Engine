@@ -11,13 +11,17 @@ def is_valid_tournament_logo(url: str) -> bool:
     """
     Strictly validates whether a candidate image URL is an authentic isolated tournament emblem/logo,
     rejecting country flags, location maps, trophy photos, stadium pictures, player celebrations,
-    and non-emblem editorial photo noise.
+    animated GIF images, and non-emblem editorial photo noise.
     """
     if not url or not isinstance(url, str):
         return False
 
     url_lower = url.lower().strip()
     if not url_lower.startswith(('http://', 'https://')):
+        return False
+
+    # Strictly reject animated emblems, gifs, animations, and video containers
+    if any(bad in url_lower for bad in ['.gif', 'animated', 'animation', '.apng', '.webp-animated', '.mp4', '.webm']):
         return False
 
     # Rejected non-emblem noise keywords (editorial photos, player celebrations, scenes, maps, trophies)
@@ -67,7 +71,7 @@ class EmblemScout:
     3. Wikipedia Infobox & PageImages API
     4. Official Webpage Open-Graph & HTML <img> Tags (Event/Tournament Logos)
     5. Gemini Flash AI Search Prompt Fallback
-    6. Strict Non-Emblem Filtering Guard
+    6. Strict Non-Emblem & Non-Animated Filtering Guard
     """
 
     HEADERS = {
@@ -95,6 +99,10 @@ class EmblemScout:
         'fiba basketball world cup': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/FIBA_U19_Basketball_World_Cup_logo.svg/500px-FIBA_U19_Basketball_World_Cup_logo.svg.png',
         'world men\'s handball championship': 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e0/2027_World_Men%27s_Handball_Championship_logo.svg/500px-2027_World_Men%27s_Handball_Championship_logo.svg.png',
         'world junior ice hockey': 'https://upload.wikimedia.org/wikipedia/en/thumb/0/07/2027_World_Junior_Ice_Hockey_Championships_logo.svg/500px-2027_World_Junior_Ice_Hockey_Championships_logo.svg.png',
+        'eurohockey': 'https://swisshockey.org/wp-content/uploads/2023/12/Eurohockey-Logo.png',
+        'eurohockey championship': 'https://swisshockey.org/wp-content/uploads/2023/12/Eurohockey-Logo.png',
+        'men\'s eurohockey championship': 'https://swisshockey.org/wp-content/uploads/2023/12/Eurohockey-Logo.png',
+        'women\'s eurohockey championship': 'https://swisshockey.org/wp-content/uploads/2023/12/Eurohockey-Logo.png',
     }
 
     @classmethod

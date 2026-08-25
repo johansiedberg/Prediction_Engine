@@ -192,6 +192,12 @@ class MatchesKnockoutAgent:
         # 1. Group Matches vs Knockout Matches Separation
         group_matches: List[GroupMatchEntry] = []
         extra_knockout_matches: List[Dict[str, Any]] = []
+        seen_group_fixtures: Set[Tuple[str, str, str]] = set()
+        
+        # If the official draw has not taken place yet, reject raw fixtures from past editions/hallucinations
+        if not is_draw_completed:
+            raw_fixtures = []
+
         if raw_fixtures:
             for idx, f in enumerate(raw_fixtures, start=1):
                 if isinstance(f, dict):
@@ -234,6 +240,12 @@ class MatchesKnockoutAgent:
 
                     h_meta = _resolve_team_meta(h_team)
                     a_meta = _resolve_team_meta(a_team)
+
+                    # Deduplicate: Avoid duplicate fixture entries within the same group
+                    fixture_key = (stage_clean.lower(), h_team.strip().lower(), a_team.strip().lower())
+                    if fixture_key in seen_group_fixtures:
+                        continue
+                    seen_group_fixtures.add(fixture_key)
 
                     h_code = str(f.get("home_team_code") or h_meta["code"]).lower()
                     h_flag = f.get("home_team_flag_url") or h_meta["flag_url"] or (f"https://flagcdn.com/w40/{h_code}.png" if len(h_code) == 2 else "")
@@ -410,7 +422,19 @@ class MatchesKnockoutAgent:
 
         # Determine target starting round and stages
         stages_to_add: List[str] = []
-        if raw_knockouts and any(ks.get("matches") for ks in raw_knockouts if isinstance(ks, dict)):
+        if canon_bp and canon_bp.get("knockout_rules", {}).get("starting_round"):
+            start_r = canon_bp["knockout_rules"]["starting_round"]
+            if start_r in ["Play-off", "Play-offs", "Slutspelskval"]:
+                stages_to_add = ["Play-off", "Quarterfinals", "Semifinals", "Final"]
+            elif start_r == "Quarterfinals":
+                stages_to_add = ["Quarterfinals", "Semifinals", "Final"]
+            elif start_r == "Round of 16":
+                stages_to_add = ["Round of 16", "Quarterfinals", "Semifinals", "Final"]
+            elif start_r == "Round of 32":
+                stages_to_add = ["Round of 32", "Round of 16", "Quarterfinals", "Semifinals", "Final"]
+            elif start_r == "Semifinals":
+                stages_to_add = ["Semifinals", "Final"]
+        elif raw_knockouts and any(ks.get("matches") for ks in raw_knockouts if isinstance(ks, dict)):
             # Retain stages if explicit matches are already populated from audit
             stages_to_add = [ks.get("stage_name") for ks in raw_knockouts if isinstance(ks, dict) and ks.get("stage_name")]
 
@@ -422,6 +446,9 @@ class MatchesKnockoutAgent:
             elif "handball" in sport_lower or "handboll" in sport_lower:
                 # Handball: Preliminary -> Main Round -> QF -> SF -> Final
                 stages_to_add = ["Quarterfinals", "Semifinals", "Final"]
+            elif "floorball" in sport_lower or "innebandy" in sport_lower:
+                # Floorball: Groups A/B/C/D -> Play-off -> QF -> SF -> Final
+                stages_to_add = ["Play-off", "Quarterfinals", "Semifinals", "Final"]
             elif groups_count >= 12 or teams_count >= 48:
                 stages_to_add = ["Round of 32", "Round of 16", "Quarterfinals", "Semifinals", "Final"]
             elif groups_count >= 6 or (20 <= teams_count <= 36):
@@ -472,7 +499,22 @@ class MatchesKnockoutAgent:
 
             # Check if this is the FIRST knockout round of the tournament
             if r_idx == 1:
-                if "round of 32" in s_name_lower or "32-dels" in s_name_lower:
+                if "play-off" in s_name_lower or "playoff" in s_name_lower or "slutspelskval" in s_name_lower:
+                    # IFF Floorball WFC format:
+                    # PO1: 3A vs 2D (winner to QF4)
+                    # PO2: 4A vs 1D (winner to QF3)
+                    # PO3: 3B vs 2C (winner to QF2)
+                    # PO4: 4B vs 1C (winner to QF1)
+                    po_pairs = [("3A", "2D", "QF_4"), ("4A", "1D", "QF_3"), ("3B", "2C", "QF_2"), ("4B", "1C", "QF_1")]
+                    for m_idx, (h_p, a_p, w_to) in enumerate(po_pairs, start=1):
+                        match_entries.append(KnockoutMatchEntry(
+                            match_code=f"PO_{m_idx}",
+                            stage_name=s_name,
+                            home_team=h_p,
+                            away_team=a_p,
+                            winner_to=w_to,
+                        ))
+                elif "round of 32" in s_name_lower or "32-dels" in s_name_lower:
                     for m_idx in range(1, 17):
                         match_entries.append(KnockoutMatchEntry(
                             match_code=f"R32_{m_idx}",
@@ -574,21 +616,37 @@ class MatchesKnockoutAgent:
                             prev_stage_matches[2 * (m_idx - 1) + 1].winner_to = m_code
 
                 elif "quarter" in s_name_lower or "kvart" in s_name_lower:
-                    for m_idx in range(1, 5):
-                        p1_code = prev_stage_matches[2 * (m_idx - 1)].match_code if len(prev_stage_matches) >= 2 * m_idx else f"M{m_idx * 2 - 1}"
-                        p2_code = prev_stage_matches[2 * (m_idx - 1) + 1].match_code if len(prev_stage_matches) >= 2 * m_idx else f"M{m_idx * 2}"
-                        m_code = f"QF_{m_idx}"
-                        match_entries.append(KnockoutMatchEntry(
-                            match_code=m_code,
-                            stage_name=s_name,
-                            home_team=f"Vinnare {p1_code}",
-                            away_team=f"Vinnare {p2_code}",
-                            winner_to=f"SF_{(m_idx + 1) // 2}",
-                        ))
-                        # Update previous stage's winner_to
-                        if len(prev_stage_matches) >= 2 * m_idx:
-                            prev_stage_matches[2 * (m_idx - 1)].winner_to = m_code
-                            prev_stage_matches[2 * (m_idx - 1) + 1].winner_to = m_code
+                    if any("PO_" in m.match_code for m in prev_stage_matches):
+                        # Floorball QF with Playoff Winners:
+                        # QF1: 1A vs Vinnare PO_4
+                        # QF2: 2A vs Vinnare PO_3
+                        # QF3: 1B vs Vinnare PO_2
+                        # QF4: 2B vs Vinnare PO_1
+                        qf_floorball = [("1A", "Vinnare PO_4", "SF_1"), ("2A", "Vinnare PO_3", "SF_2"), ("1B", "Vinnare PO_2", "SF_1"), ("2B", "Vinnare PO_1", "SF_2")]
+                        for m_idx, (h_p, a_p, w_to) in enumerate(qf_floorball, start=1):
+                            match_entries.append(KnockoutMatchEntry(
+                                match_code=f"QF_{m_idx}",
+                                stage_name=s_name,
+                                home_team=h_p,
+                                away_team=a_p,
+                                winner_to=w_to,
+                            ))
+                    else:
+                        for m_idx in range(1, 5):
+                            p1_code = prev_stage_matches[2 * (m_idx - 1)].match_code if len(prev_stage_matches) >= 2 * m_idx else f"M{m_idx * 2 - 1}"
+                            p2_code = prev_stage_matches[2 * (m_idx - 1) + 1].match_code if len(prev_stage_matches) >= 2 * m_idx else f"M{m_idx * 2}"
+                            m_code = f"QF_{m_idx}"
+                            match_entries.append(KnockoutMatchEntry(
+                                match_code=m_code,
+                                stage_name=s_name,
+                                home_team=f"Vinnare {p1_code}",
+                                away_team=f"Vinnare {p2_code}",
+                                winner_to=f"SF_{(m_idx + 1) // 2}",
+                            ))
+                            # Update previous stage's winner_to
+                            if len(prev_stage_matches) >= 2 * m_idx:
+                                prev_stage_matches[2 * (m_idx - 1)].winner_to = m_code
+                                prev_stage_matches[2 * (m_idx - 1) + 1].winner_to = m_code
 
                 elif "semi" in s_name_lower:
                     for m_idx in range(1, 3):

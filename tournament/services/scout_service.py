@@ -1678,19 +1678,20 @@ def transfer_scouted_backdrop_to_tournament(scanned, tournament, master_event=No
 
     from tournament.services.backdrop_scout import BackdropScout, is_valid_tournament_backdrop
 
-    if not backdrop_url or not is_valid_tournament_backdrop(backdrop_url):
+    if not backdrop_url or not is_valid_tournament_backdrop(backdrop_url, verify_live=True):
         discovered_backdrop = BackdropScout.discover_backdrop(
             tournament.name,
             official_url=getattr(tournament, 'official_regulations_url', '') or '',
             sport=getattr(tournament, 'sport', 'Football') or 'Football',
+            fallback_to_sport=True,
         )
-        if discovered_backdrop and is_valid_tournament_backdrop(discovered_backdrop):
+        if discovered_backdrop and is_valid_tournament_backdrop(discovered_backdrop, verify_live=True):
             backdrop_url = discovered_backdrop
 
     if not backdrop_url or not isinstance(backdrop_url, str) or not backdrop_url.startswith('http'):
         return
 
-    if not is_valid_tournament_backdrop(backdrop_url):
+    if not is_valid_tournament_backdrop(backdrop_url, verify_live=True):
         return
 
     try:
@@ -2067,7 +2068,7 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
             for sb in sidebets_data:
                 q_text = sb.get('question') if isinstance(sb, dict) else str(sb)
                 q_type = sb.get('question_type', 'TEXT') if isinstance(sb, dict) else 'TEXT'
-                q_pts = sb.get('points', 30) if isinstance(sb, dict) and sb.get('points') is not None else 30
+                q_pts = sb.get('points', 25) if isinstance(sb, dict) and sb.get('points') is not None else 25
                 if q_text:
                     Sidebet.objects.create(
                         tournament=tournament,
@@ -2080,7 +2081,7 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
             Sidebet.objects.create(
                 tournament=tournament,
                 question=f"Vilket lag vinner {tournament.name}?",
-                points=30,
+                points=25,
                 question_type='CHOICES'
             )
 

@@ -227,10 +227,6 @@
                         <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-trophy text-warning me-2"></i>Aktiva Turneringar i {{ league.name }}</h5>
                         <p class="text-white small mb-0 mt-0.5" style="opacity: 0.75;">Mästerskap som aktiverats och konfigurerats för denna specifika pool.</p>
                     </div>
-
-                    <button type="button" class="btn btn-emerald btn-sm fw-bold px-3.5 py-2" onclick="openAddTournamentSection()" style="background: #10b981; color: #ffffff; border-radius: 10px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
-                        <i class="fa-solid fa-plus me-1.5"></i>Lägg till Turnering
-                    </button>
                 </div>
 
                 <div class="card-body p-4">
@@ -255,9 +251,6 @@
                                                 </span>
                                             </div>
                                         </div>
-                                        <span class="badge text-warning px-2 py-1 fw-extrabold font-monospace" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.25);">
-                                            #{{ t.id }}
-                                        </span>
                                     </div>
 
                                     <!-- Tournament mini-metrics -->
@@ -296,10 +289,7 @@
                             <div class="p-4 rounded-4 text-center" style="background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(148, 163, 184, 0.2);">
                                 <i class="fa-solid fa-trophy-slash fs-2 text-secondary mb-2 d-block"></i>
                                 <h6 class="fw-bold text-white mb-1">Inga aktiva turneringar i denna pool</h6>
-                                <p class="small text-white-50 mb-3">Välj från tillgängliga mästerskap i listan nedan för att aktivera dem för {{ league.name }}.</p>
-                                <button type="button" class="btn btn-sm btn-emerald fw-bold px-3.5 py-1.5" onclick="openAddTournamentSection()" style="background: #10b981; color: #ffffff; border-radius: 8px;">
-                                    <i class="fa-solid fa-plus me-1.5"></i>Välj Turnering Nu
-                                </button>
+                                <p class="small text-white-50 mb-0">Välj från tillgängliga mästerskap i listan nedan för att aktivera dem för {{ league.name }}.</p>
                             </div>
                         </div>
                         {% endfor %}
@@ -311,8 +301,8 @@
             <div id="add-tournament-section" class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(59, 130, 246, 0.35) !important; border-radius: 18px;">
                 <div class="card-header border-bottom border-secondary border-opacity-15 py-3.5 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div>
-                        <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-earth-americas text-info me-2"></i>Turneringsväljare (Engine Admin)</h5>
-                        <p class="text-white small mb-0 mt-0.5" style="opacity: 0.75;">Mästerskap som skapats centralt i Engine Admin, indelade i Tillgängliga och Kommande.</p>
+                        <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-earth-americas text-info me-2"></i>Turneringsväljare</h5>
+                        <p class="text-white small mb-0 mt-0.5" style="opacity: 0.75;">Mästerskap indelade i Tillgängliga och Kommande.</p>
                     </div>
 
                     <!-- Filter pills between Available and Coming -->
@@ -335,60 +325,70 @@
 
                         <!-- SUB-TAB 1: TILLGÄNGLIGA TURNERINGAR (AVAILABLE) -->
                         <div class="tab-pane fade show active" id="pills-avail" role="tabpanel">
-                            <div class="row g-3">
+                            <div class="d-flex flex-column" style="gap: 30px;">
                                 {% for t in available_tournaments %}
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="card h-100 border-0 p-3 rounded-4 d-flex flex-column justify-content-between" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.18) !important;">
-                                        <div>
-                                            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
-                                                <div class="d-flex align-items-center gap-2.5">
-                                                    {% if t.icon %}
-                                                    <img src="{{ t.icon.url }}" alt="{{ t.name }}" style="width: 36px; height: 36px; object-fit: contain; border-radius: 6px;">
-                                                    {% else %}
-                                                    <div class="rounded-2 d-flex align-items-center justify-content-center text-info" style="width: 36px; height: 36px; background: rgba(59,130,246,0.15);">
-                                                        <i class="fa-solid fa-trophy"></i>
-                                                    </div>
-                                                    {% endif %}
-                                                    <div>
-                                                        <h6 class="fw-bold text-white mb-0" style="font-size: 0.95rem;">{{ t.name }}</h6>
-                                                        <div class="d-flex flex-wrap align-items-center gap-1.5 mt-1">
-                                                            <span class="badge px-2 py-0.5 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.68rem;">
-                                                                <i class="fa-solid fa-circle-check me-1"></i>Tillgänglig
-                                                            </span>
-                                                            <span class="badge bg-dark border border-secondary border-opacity-30 text-warning px-2 py-0.5" style="font-size: 0.68rem;">
-                                                                {% if t.sport == 'Ice Hockey' or 'hockey' in t.sport|lower %}🏒 Ishockey
-                                                                {% elif t.sport == 'Handball' or 'handboll' in t.sport|lower %}🤾 Handboll
-                                                                {% elif t.sport == 'Basketball' or 'basket' in t.sport|lower %}🏀 Basket
-                                                                {% elif t.sport == 'Floorball' or 'innebandy' in t.sport|lower %}🏑 Innebandy
-                                                                {% else %}⚽ {{ t.sport|default:"Fotboll" }}{% endif %}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <span class="badge text-secondary font-monospace" style="font-size: 0.72rem;">#{{ t.id }}</span>
+                                <div class="position-relative p-3 rounded-4 d-flex flex-wrap align-items-center justify-content-between gap-3 overflow-hidden" style="min-height: 96px; background: linear-gradient(90deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.94) 40%, rgba(15, 23, 42, 0.78) 75%, rgba(15, 23, 42, 0.6) 100%){% if t.backdrop %}, url('{{ t.backdrop.url }}'){% endif %}; background-size: cover; background-position: center right; border: 1px solid rgba(148, 163, 184, 0.22); box-shadow: 0 4px 18px rgba(0,0,0,0.35); transition: transform 0.2s ease, box-shadow 0.2s ease;">
+                                    
+                                    <!-- Subtle Right-Faded Backdrop Accent -->
+                                    {% if t.backdrop %}
+                                    <div class="position-absolute top-0 end-0 bottom-0 w-50 pointer-events-none d-none d-sm-block" style="background: url('{{ t.backdrop.url }}') center right / cover no-repeat; mask-image: linear-gradient(to left, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%); opacity: 0.6; z-index: 0;"></div>
+                                    {% endif %}
+
+                                    <!-- Left: Frameless Emblem + 3-Row Text Stack -->
+                                    <div class="d-flex align-items-center gap-3.5 flex-grow-1 position-relative" style="min-width: 280px; z-index: 1;">
+                                        {% if t.icon %}
+                                        <img src="{{ t.icon.url }}" alt="{{ t.name }}" style="width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));">
+                                        {% else %}
+                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 text-info" style="width: 72px; height: 72px;">
+                                            <i class="fa-solid fa-trophy fs-1"></i>
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="d-flex flex-column justify-content-center">
+                                            <!-- Row 1: Sport -->
+                                            <div>
+                                                <span class="badge bg-dark border border-secondary border-opacity-40 text-warning px-2.5 py-1 fw-bold d-inline-flex align-items-center gap-1.5" style="font-size: 0.82rem;">
+                                                    {% if t.sport == 'Ice Hockey' or 'hockey' in t.sport|lower %}🏒 Ishockey
+                                                    {% elif t.sport == 'Handball' or 'handboll' in t.sport|lower %}🤾 Handboll
+                                                    {% elif t.sport == 'Basketball' or 'basket' in t.sport|lower %}🏀 Basket
+                                                    {% elif t.sport == 'Floorball' or 'innebandy' in t.sport|lower %}🏑 Innebandy
+                                                    {% else %}⚽ {{ t.sport|default:"Fotboll" }}{% endif %}
+                                                </span>
                                             </div>
 
-                                            <div class="text-white small mb-3" style="font-size: 0.78rem; opacity: 0.7;">
-                                                {% if t.start_date %}
-                                                <div class="mb-1 text-white-50"><i class="fa-regular fa-calendar me-1 text-warning"></i>{{ t.start_date|date:"Y-m-d" }}{% if t.end_date %} – {{ t.end_date|date:"Y-m-d" }}{% endif %} {% if t.host_country %}• {{ t.host_country }}{% endif %}</div>
+                                            <!-- Row 2: Name of Tournament -->
+                                            <h5 class="fw-extrabold text-white mb-0 mt-1" style="font-size: 1.12rem; letter-spacing: -0.2px; line-height: 1.25;">
+                                                {{ t.name }}
+                                            </h5>
+
+                                            <!-- Row 3: Location | Dates -->
+                                            <div class="text-white-50 small mt-1 d-flex align-items-center gap-2 flex-wrap" style="font-size: 0.82rem;">
+                                                {% if t.host_country %}
+                                                <span><i class="fa-solid fa-location-dot me-1 text-info"></i>{{ t.host_country }}</span>
+                                                {% if t.start_date %}<span class="opacity-35">|</span>{% endif %}
                                                 {% endif %}
-                                                Redo att aktiveras och konfigureras för {{ league.name }}.
+                                                {% if t.start_date %}
+                                                <span><i class="fa-regular fa-calendar me-1.5 text-warning"></i>{{ t.start_date|date:"Y-m-d" }}{% if t.end_date %} – {{ t.end_date|date:"Y-m-d" }}{% endif %}</span>
+                                                {% endif %}
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <form method="post" action="{% url 'toggle_pool_tournament' league.id t.id %}">
+                                    <!-- Right: Action Button -->
+                                    <div class="d-flex align-items-center ms-auto position-relative" style="z-index: 1;">
+                                        <form method="post" action="{% url 'toggle_pool_tournament' league.id t.id %}" class="m-0">
                                             {% csrf_token %}
                                             <input type="hidden" name="action" value="activate">
                                             <input type="hidden" name="return_to" value="config">
-                                            <button type="submit" class="btn btn-sm w-100 fw-bold py-2" style="background: #10b981; color: #ffffff; border-radius: 8px; font-size: 0.82rem;">
-                                                <i class="fa-solid fa-plus me-1"></i>Aktivera &amp; Konfigurera &rarr;
+                                            <button type="submit" class="btn btn-sm fw-bold px-4 py-2.5 shadow-sm" style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; border: 1px solid rgba(16,185,129,0.5); border-radius: 10px; font-size: 0.86rem; white-space: nowrap; box-shadow: 0 4px 12px rgba(16,185,129,0.35);">
+                                                <i class="fa-solid fa-plus me-1.5"></i>Aktivera &amp; Konfigurera &rarr;
                                             </button>
                                         </form>
                                     </div>
                                 </div>
                                 {% empty %}
-                                <div class="col-12 text-center text-white py-4 small" style="opacity: 0.75;">
-                                    Alla aktiva turneringar i Engine Admin är redan kopplade till denna pool!
+                                <div class="text-center text-white py-4 small" style="opacity: 0.75;">
+                                    Alla tillgängliga turneringar är redan kopplade till denna pool!
                                 </div>
                                 {% endfor %}
                             </div>
@@ -396,57 +396,68 @@
 
                         <!-- SUB-TAB 2: KOMMANDE TURNERINGAR (COMING) -->
                         <div class="tab-pane fade" id="pills-coming" role="tabpanel">
-                            <div class="row g-3">
+                            <div class="d-flex flex-column" style="gap: 30px;">
                                 {% for t in coming_tournaments %}
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="card h-100 border-0 p-3 rounded-4 d-flex flex-column justify-content-between opacity-80" style="background: rgba(15, 23, 42, 0.95); border: 1px dashed rgba(148, 163, 184, 0.25) !important;">
-                                        <div>
-                                            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
-                                                <div class="d-flex align-items-center gap-2.5">
-                                                    {% if t.icon %}
-                                                    <img src="{{ t.icon.url }}" alt="{{ t.name }}" style="width: 36px; height: 36px; object-fit: contain; opacity: 0.6; border-radius: 6px;">
-                                                    {% else %}
-                                                    <div class="rounded-2 d-flex align-items-center justify-content-center text-secondary" style="width: 36px; height: 36px; background: rgba(148,163,184,0.1);">
-                                                        <i class="fa-solid fa-clock"></i>
-                                                    </div>
-                                                    {% endif %}
-                                                    <div>
-                                                        <h6 class="fw-bold text-white mb-0" style="font-size: 0.95rem;">{{ t.name }}</h6>
-                                                        <div class="d-flex flex-wrap align-items-center gap-1.5 mt-1">
-                                                            <span class="badge px-2 py-0.5 fw-bold" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; font-size: 0.68rem;">
-                                                                <i class="fa-solid fa-hourglass-half me-1"></i>Kommande / Planerad
-                                                            </span>
-                                                            <span class="badge bg-dark border border-secondary border-opacity-30 text-warning px-2 py-0.5" style="font-size: 0.68rem;">
-                                                                {% if t.sport == 'Ice Hockey' or 'hockey' in t.sport|lower %}🏒 Ishockey
-                                                                {% elif t.sport == 'Handball' or 'handboll' in t.sport|lower %}🤾 Handboll
-                                                                {% elif t.sport == 'Basketball' or 'basket' in t.sport|lower %}🏀 Basket
-                                                                {% elif t.sport == 'Floorball' or 'innebandy' in t.sport|lower %}🏑 Innebandy
-                                                                {% else %}⚽ {{ t.sport|default:"Fotboll" }}{% endif %}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <span class="badge text-secondary font-monospace" style="font-size: 0.72rem;">#{{ t.id }}</span>
+                                <div class="position-relative p-3 rounded-4 d-flex flex-wrap align-items-center justify-content-between gap-3 overflow-hidden opacity-85" style="min-height: 96px; background: linear-gradient(90deg, rgba(15, 23, 42, 0.98) 0%, rgba(15, 23, 42, 0.94) 40%, rgba(15, 23, 42, 0.78) 75%, rgba(15, 23, 42, 0.6) 100%){% if t.backdrop %}, url('{{ t.backdrop.url }}'){% endif %}; background-size: cover; background-position: center right; border: 1px dashed rgba(148, 163, 184, 0.3); box-shadow: 0 4px 16px rgba(0,0,0,0.35);">
+                                    
+                                    <!-- Subtle Right-Faded Backdrop Accent -->
+                                    {% if t.backdrop %}
+                                    <div class="position-absolute top-0 end-0 bottom-0 w-50 pointer-events-none d-none d-sm-block" style="background: url('{{ t.backdrop.url }}') center right / cover no-repeat; mask-image: linear-gradient(to left, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%); -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 100%); opacity: 0.45; z-index: 0;"></div>
+                                    {% endif %}
+
+                                    <!-- Left: Frameless Emblem + 3-Row Text Stack -->
+                                    <div class="d-flex align-items-center gap-3.5 flex-grow-1 position-relative" style="min-width: 280px; z-index: 1;">
+                                        {% if t.icon %}
+                                        <img src="{{ t.icon.url }}" alt="{{ t.name }}" style="width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; opacity: 0.75; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));">
+                                        {% else %}
+                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 text-secondary" style="width: 72px; height: 72px;">
+                                            <i class="fa-solid fa-clock fs-1"></i>
+                                        </div>
+                                        {% endif %}
+
+                                        <div class="d-flex flex-column justify-content-center">
+                                            <!-- Row 1: Sport + Coming badge -->
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="badge bg-dark border border-secondary border-opacity-40 text-warning px-2.5 py-1 fw-bold d-inline-flex align-items-center gap-1.5" style="font-size: 0.82rem;">
+                                                    {% if t.sport == 'Ice Hockey' or 'hockey' in t.sport|lower %}🏒 Ishockey
+                                                    {% elif t.sport == 'Handball' or 'handboll' in t.sport|lower %}🤾 Handboll
+                                                    {% elif t.sport == 'Basketball' or 'basket' in t.sport|lower %}🏀 Basket
+                                                    {% elif t.sport == 'Floorball' or 'innebandy' in t.sport|lower %}🏑 Innebandy
+                                                    {% else %}⚽ {{ t.sport|default:"Fotboll" }}{% endif %}
+                                                </span>
+                                                <span class="badge px-2 py-0.5 fw-bold d-inline-flex align-items-center gap-1.5" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.76rem;">
+                                                    <i class="fa-solid fa-hourglass-half me-1"></i>Kommande
+                                                </span>
                                             </div>
 
-                                            <div class="text-white small mb-3" style="font-size: 0.78rem; opacity: 0.65;">
-                                                {% if t.start_date %}
-                                                <div class="mb-1 text-white-50"><i class="fa-regular fa-calendar me-1 text-warning"></i>{{ t.start_date|date:"Y-m-d" }}{% if t.end_date %} – {{ t.end_date|date:"Y-m-d" }}{% endif %} {% if t.host_country %}• {{ t.host_country }}{% endif %}</div>
+                                            <!-- Row 2: Name of Tournament -->
+                                            <h5 class="fw-extrabold text-white mb-0 mt-1" style="font-size: 1.12rem; letter-spacing: -0.2px; line-height: 1.25;">
+                                                {{ t.name }}
+                                            </h5>
+
+                                            <!-- Row 3: Location | Dates -->
+                                            <div class="text-white-50 small mt-1 d-flex align-items-center gap-2 flex-wrap" style="font-size: 0.82rem;">
+                                                {% if t.host_country %}
+                                                <span><i class="fa-solid fa-location-dot me-1 text-info"></i>{{ t.host_country }}</span>
+                                                {% if t.start_date %}<span class="opacity-35">|</span>{% endif %}
                                                 {% endif %}
-                                                Denna turnering förbereds i Engine Admin och öppnas snart för aktivering.
+                                                {% if t.start_date %}
+                                                <span><i class="fa-regular fa-calendar me-1.5 text-warning"></i>{{ t.start_date|date:"Y-m-d" }}{% if t.end_date %} – {{ t.end_date|date:"Y-m-d" }}{% endif %}</span>
+                                                {% endif %}
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div>
-                                            <button type="button" class="btn btn-sm w-100 fw-bold py-1.5 btn-outline-secondary text-white-50" disabled style="border-radius: 8px; font-size: 0.8rem;">
-                                                <i class="fa-solid fa-lock me-1"></i>Öppnas snart i Engine
-                                            </button>
-                                        </div>
+                                    <!-- Right: Locked Button -->
+                                    <div class="d-flex align-items-center ms-auto position-relative" style="z-index: 1;">
+                                        <button type="button" class="btn btn-sm fw-bold px-3.5 py-2 btn-outline-secondary text-white-50" disabled style="border-radius: 10px; font-size: 0.84rem; white-space: nowrap;">
+                                            <i class="fa-solid fa-lock me-1.5"></i>Öppnas snart
+                                        </button>
                                     </div>
                                 </div>
                                 {% empty %}
-                                <div class="col-12 text-center text-white py-4 small" style="opacity: 0.75;">
-                                    Inga pausade eller kommande turneringar i Engine Admin just nu.
+                                <div class="text-center text-white py-4 small" style="opacity: 0.75;">
+                                    Inga kommande turneringar just nu.
                                 </div>
                                 {% endfor %}
                             </div>

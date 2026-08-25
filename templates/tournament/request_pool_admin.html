@@ -34,7 +34,7 @@
                 <i class="fa-solid fa-hourglass-half fa-2x mb-2"></i>
                 <h5 class="fw-bold mb-1">Din ansökan behandlas!</h5>
                 <p class="mb-1" style="font-size: 0.88rem;">Du har skickat en ansökan som Pool-Admin för <strong>{{ pending_request.pool_name }}</strong>.</p>
-                <p class="mb-0 text-secondary" style="font-size: 0.78rem;">Ansökan skickades {{ pending_request.created_at|date:"Y-m-d H:i" }}. Engine-Admin granskar ansökningar löpande.</p>
+                <p class="mb-0 text-secondary" style="font-size: 0.78rem;">Ansökan skickades {{ pending_request.created_at|date:"Y-m-d H:i" }}. Ansökningar granskas och behandlas löpande.</p>
             </div>
             {% endif %}
 

@@ -189,7 +189,7 @@ def tournament_sidebet_save_view(request: HttpRequest, tournament_id: int) -> Js
     sidebet_id = request.POST.get('sidebet_id')
     question = request.POST.get('question', '').strip()
     question_type = request.POST.get('question_type', 'TEXT').strip()
-    points_raw = request.POST.get('points', 30)
+    points_raw = request.POST.get('points', 25)
     correct_answers = request.POST.get('correct_answers', '').strip()
 
     if not question:
@@ -198,7 +198,7 @@ def tournament_sidebet_save_view(request: HttpRequest, tournament_id: int) -> Js
     try:
         points = max(1, int(points_raw))
     except (ValueError, TypeError):
-        points = 30
+        points = 25
 
     if question_type not in ['TEAM', 'TEXT']:
         question_type = 'TEXT'

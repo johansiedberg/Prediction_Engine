@@ -213,19 +213,7 @@ class WikipediaScout:
             end_date_extracted = ''
             logo_url = ''
 
-            def is_valid_tournament_logo(url: str) -> bool:
-                if not url or not isinstance(url, str):
-                    return False
-                url_lower = url.lower()
-                flag_patterns = [
-                    'flag_of', 'flag%20of', 'flag%5fof', 'flag-', 'flag_',
-                    'bandeira', 'drapeau', 'bandera', 'flagg',
-                    '/flag', 'flag.', 'flag-icon', 'country-flag'
-                ]
-                for pattern in flag_patterns:
-                    if pattern in url_lower:
-                        return False
-                return True
+            from tournament.services.emblem_scout import is_valid_tournament_logo
 
             if infobox:
                 for img_tag in infobox.find_all('img'):

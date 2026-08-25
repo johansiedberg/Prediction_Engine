@@ -214,6 +214,7 @@ class FormatBlueprintService:
             return {
                 "groups_count": g_count,
                 "teams_count": t_count,
+                "draw_completed": False,
                 "points_system": {"win": 2, "draw": 0, "loss": 1},
                 "advancement_logic": {
                     "teams_per_group_advancing": 2,
@@ -237,10 +238,25 @@ class FormatBlueprintService:
 
         # 6. Handball World Championship / EHF Euro (e.g. "2027 World Men's Handball Championship")
         if "handball" in sport_lower or "handboll" in sport_lower:
+            group_letters = [chr(65 + i) for i in range(8)]
+            groups_data = []
+            for letter in group_letters:
+                groups_data.append({
+                    "name": f"Group {letter}",
+                    "teams": [{"name": f"{letter}{idx} (TBD)", "code": f"{letter}{idx}", "is_placeholder": True} for idx in range(1, 5)]
+                })
+
             return {
                 "groups_count": 8,
                 "teams_count": 32,
+                "draw_completed": False,
+                "groups": groups_data,
                 "points_system": {"win": 2, "draw": 1, "loss": 0},
+                "match_format": {
+                    "regular_time_minutes": 60,
+                    "extra_time_minutes": 10,
+                    "has_penalties": True
+                },
                 "advancement_logic": {
                     "teams_per_group_advancing": 3,
                     "has_best_thirds_table": False,
@@ -257,10 +273,51 @@ class FormatBlueprintService:
                     "extra_time_minutes": 10,
                     "tiebreaker_description": "Vid oavgjort i slutspel tillämpas 2x5 min förlängning, följt av 7-meterskastning (straffar). Match om 3:e pris spelas."
                 },
-                "official_rules_summary": "Handball Championship: Grundomgång i 8 grupper där de 3 bästa avancerar med inbördes poäng till 4 Mellanrundegrupper (Main Round). De två främsta från varje Main Round-grupp bildar slutspelsträdet från Kvartsfinaler till Final inklusive Bronsmatch."
+                "official_rules_summary": "IHF World Championship: 32 lag i 8 grundomgångsgrupper (A–H, 48 matcher). De 3 bästa lagen per grupp avancerar med inbördes poäng till 4 Mellanrundegrupper (Main Round I–IV, 24 nya matcher). De två främsta per Main Round-grupp (8 lag) bildar slutspelsträdet från Kvartsfinaler till Bronsmatch och Final (8 matcher). Totalt 80 mästerskapsmatcher (exklusive Presidents Cup)."
             }
 
-        # 7. Continental Cups with 3rd Place Match (AFCON, Copa América, Asian Cup)
+        # 7. Floorball World Championship (e.g. "2026 Men's World Floorball Championships", "Innebandy-VM")
+        if "floorball" in sport_lower or "innebandy" in sport_lower or "iff" in t_lower:
+            group_letters = ["A", "B", "C", "D"]
+            groups_data = []
+            for letter in group_letters:
+                tier_label = "Toppdivision" if letter in ["A", "B"] else "Nedre division"
+                groups_data.append({
+                    "name": f"Group {letter} ({tier_label})",
+                    "teams": [{"name": f"{letter}{idx} (TBD)", "code": f"{letter}{idx}", "is_placeholder": True} for idx in range(1, 5)]
+                })
+
+            return {
+                "groups_count": 4,
+                "teams_count": 16,
+                "draw_completed": False,
+                "groups": groups_data,
+                "points_system": {"win": 2, "draw": 1, "loss": 0},
+                "match_format": {
+                    "regular_time_minutes": 60,
+                    "extra_time_minutes": 10,
+                    "has_penalties": True
+                },
+                "advancement_logic": {
+                    "teams_per_group_advancing": 2,
+                    "has_best_thirds_table": False,
+                    "best_third_placed_advancing": 0,
+                    "has_runners_up_table": False,
+                    "runners_up_advancing": 0,
+                    "description": "Grupp A & B (Toppdivision): 1:an och 2:an avancerar direkt till Kvartsfinaler. 3:an och 4:an spelar Play-off (Åttondelsfinaler). Grupp C & D (Nedre division): 1:an och 2:an spelar Play-off mot 3:or och 4:or från Grupp A & B om de sista 4 kvartsfinalplatserna."
+                },
+                "knockout_rules": {
+                    "starting_round": "Play-off",
+                    "total_rounds": 4,
+                    "has_penalties": True,
+                    "has_third_place_match": True,
+                    "extra_time_minutes": 10,
+                    "tiebreaker_description": "Vid oavgjort i slutspel spelas förlängning (10 min sudden death, 20 min i final) följt av straffläggning (5 straffar). Match om 3:e pris spelas."
+                },
+                "official_rules_summary": "IFF World Championship: 16 lag i 4 grupper om 4 lag (24 matcher). Topp 2 i Grupp A & B går direkt till Kvartsfinal. 3:or och 4:or i Grupp A & B möter 1:or och 2:or från Grupp C & D i Play-off (4 matcher). Vinnarna möter topplagen i Kvartsfinaler (4 matcher), följt av Semifinaler (2 matcher), Bronsmatch (1 match) och Final (1 match). Totalt 36 mästerskapsmatcher."
+            }
+
+        # 8. Continental Cups with 3rd Place Match (AFCON, Copa América, Asian Cup)
         if "africa cup of nations" in t_lower or "afcon" in t_lower or "copa am" in t_lower:
             return {
                 "knockout_rules": {

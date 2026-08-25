@@ -19,8 +19,8 @@ from tournament.schemas.tournament_prospect_schema import (
     EmblemInfo,
     BackdropInfo,
 )
-from tournament.services.emblem_scout import EmblemScout
-from tournament.services.backdrop_scout import BackdropScout
+from tournament.services.emblem_scout import EmblemScout, is_valid_tournament_logo
+from tournament.services.backdrop_scout import BackdropScout, is_valid_tournament_backdrop
 from tournament.services.wikidata_scout import WikidataScout
 from tournament.services.official_site_scout import OfficialSiteScout
 
@@ -130,10 +130,11 @@ class GeneralDeepScoutAgent:
                 tournament_name, wikipedia_title=wikipedia_title
             ) or ""
 
-        # 4. Emblem resolution
-        if not logo_url:
-            logo_url = existing_logo_url or audit.get("logo_url") or ""
-        if not logo_url:
+        # 4. Emblem resolution (Vector SVG > Transparent PNG > Wikipedia > Official Webpage)
+        candidate_logo = existing_logo_url or audit.get("logo_url") or ""
+        if candidate_logo and is_valid_tournament_logo(candidate_logo):
+            logo_url = candidate_logo
+        else:
             logo_url = EmblemScout.discover_official_emblem(
                 tournament_name=tournament_name,
                 official_url=resolved_official_url,
@@ -151,12 +152,15 @@ class GeneralDeepScoutAgent:
         )
 
         # 4.5 Backdrop resolution (Widescreen header backdrop & key visual)
-        backdrop_url = existing_backdrop_url or audit.get("backdrop_url") or ""
-        if not backdrop_url:
+        candidate_backdrop = existing_backdrop_url or audit.get("backdrop_url") or ""
+        if candidate_backdrop and is_valid_tournament_backdrop(candidate_backdrop, verify_live=True):
+            backdrop_url = candidate_backdrop
+        else:
             backdrop_url = BackdropScout.discover_backdrop(
                 tournament_name=tournament_name,
                 official_url=resolved_official_url,
                 sport=audit.get("sport", "Football"),
+                fallback_to_sport=True,
             ) or ""
 
         backdrop = BackdropInfo(
