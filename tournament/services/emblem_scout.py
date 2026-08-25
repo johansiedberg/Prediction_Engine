@@ -9,8 +9,9 @@ logger = logging.getLogger(__name__)
 
 def is_valid_tournament_logo(url: str) -> bool:
     """
-    Strictly validates whether a candidate image URL is a valid tournament emblem/logo,
-    rejecting country flags, location maps, trophy photos, stadium pictures, and non-emblem noise.
+    Strictly validates whether a candidate image URL is an authentic isolated tournament emblem/logo,
+    rejecting country flags, location maps, trophy photos, stadium pictures, player celebrations,
+    and non-emblem editorial photo noise.
     """
     if not url or not isinstance(url, str):
         return False
@@ -19,24 +20,39 @@ def is_valid_tournament_logo(url: str) -> bool:
     if not url_lower.startswith(('http://', 'https://')):
         return False
 
-    # Rejected non-emblem noise keywords
+    # Rejected non-emblem noise keywords (editorial photos, player celebrations, scenes, maps, trophies)
     invalid_keywords = [
         'flag_of', 'flag%20of', 'flag%5fof', 'flag-', 'flag_',
         'bandeira', 'drapeau', 'bandera', 'flagg', 'flag.', 'flag-icon', 'country-flag',
-        'stadium', 'arena', 'stade', 'venue', 'map_of', 'location_map', 'carte_de',
+        'stadium', 'arena', 'stade', 'venue', 'pitch', 'field', 'court',
+        'map_of', 'location_map', 'carte_de',
         'map.svg', 'map.png', 'map.jpg', 'map.jpeg', '_map', '-map', '%20map', 'associations_map', 'member_associations',
         'trophy', 'pokal', 'trofeo', 'trophe', 'medaille', 'medal',
         'crowd', 'spectators', 'team_photo', 'roster', '_ball.', '-ball.', '/ball.', 'match_ball', 'official_ball',
         'photo-resources', 'photo_resources', 'action-photo', '_vs_', '-vs-', 'vs_', 'vs-',
         'day-1', 'day-2', 'day-3', 'day_1', 'day_2', 'day_3', 'group-a', 'group-b',
-        'bg_', 'background', 'banner_bg', 'header_bg', 'hero_bg', 'afc_bg',
+        'bg_', 'background', 'banner_bg', 'header_bg', 'hero_bg', 'afc_bg', 'hero-image', 'banner-image',
         'fallback', 'fallback-image', 'fallback_image',
-        'avatar', 'user_icon', 'blank.png', 'spacer.gif', 'favicon'
+        'avatar', 'user_icon', 'blank.png', 'spacer.gif', 'favicon',
+        # Player & photo noise
+        'celebrat', 'player', 'players', 'credit', 'action', 'photo', 'gallery',
+        'match_action', 'on-field', 'on_field', 'on-pitch', 'on_pitch',
+        'editorial', 'article', 'press-release', 'press_release', 'news/',
+        'headshot', 'portrait', 'podium', 'presentation', 'handshake',
+        'tackle', 'shot', 'goal', 'save', 'celebration', 'trophy_lift',
+        'cup_lifting', 'standing', 'walking', 'running', 'lifting',
+        '-credit', '_credit', 'credit-', 'credit_',
     ]
-
 
     for pattern in invalid_keywords:
         if pattern in url_lower:
+            return False
+
+    # For JPG/JPEG files: strictly require explicit logo/emblem keywords in URL/filename
+    # to avoid general rectangular photograph ingestion
+    if url_lower.endswith(('.jpg', '.jpeg')) or '.jpg?' in url_lower or '.jpeg?' in url_lower:
+        logo_tokens = ['logo', 'emblem', 'crest', 'badge', 'insignia', 'symbol', 'icon']
+        if not any(token in url_lower for token in logo_tokens):
             return False
 
     return True
@@ -74,6 +90,11 @@ class EmblemScout:
         '2026 fifa world cup': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/2026_FIFA_World_Cup_emblem.svg/500px-2026_FIFA_World_Cup_emblem.svg.png',
         'fifa world cup 2026': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/2026_FIFA_World_Cup_emblem.svg/500px-2026_FIFA_World_Cup_emblem.svg.png',
         'fifa world cup': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/2026_FIFA_World_Cup_emblem.svg/500px-2026_FIFA_World_Cup_emblem.svg.png',
+        'fiba u19': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/FIBA_U19_Basketball_World_Cup_logo.svg/500px-FIBA_U19_Basketball_World_Cup_logo.svg.png',
+        'fiba under-19': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/FIBA_U19_Basketball_World_Cup_logo.svg/500px-FIBA_U19_Basketball_World_Cup_logo.svg.png',
+        'fiba basketball world cup': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/FIBA_U19_Basketball_World_Cup_logo.svg/500px-FIBA_U19_Basketball_World_Cup_logo.svg.png',
+        'world men\'s handball championship': 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e0/2027_World_Men%27s_Handball_Championship_logo.svg/500px-2027_World_Men%27s_Handball_Championship_logo.svg.png',
+        'world junior ice hockey': 'https://upload.wikimedia.org/wikipedia/en/thumb/0/07/2027_World_Junior_Ice_Hockey_Championships_logo.svg/500px-2027_World_Junior_Ice_Hockey_Championships_logo.svg.png',
     }
 
     @classmethod
@@ -259,13 +280,14 @@ class EmblemScout:
     @classmethod
     def _fetch_from_web_search_images(cls, tournament_name: str) -> Optional[str]:
         """
-        Performs web search image discovery for the tournament emblem/logo.
+        Performs web search image discovery for isolated tournament emblem/logo.
+        Strictly prioritizes SVG and transparent PNGs. Rejects editorial JPGs and photographs.
         """
         clean_base = re.sub(r'\s*\b(qualifying|qualification|qualifiers)\b.*', '', tournament_name, flags=re.I).strip()
         queries = [
-            f"{clean_base} official emblem logo",
-            f"{tournament_name} emblem logo",
-            f"{clean_base} tournament logo",
+            f"{clean_base} official vector logo svg transparent",
+            f"{clean_base} official emblem logo png transparent",
+            f"{tournament_name} emblem logo svg png",
         ]
 
         for query in queries:
@@ -288,7 +310,10 @@ class EmblemScout:
                             cand_url = r.get('image') or r.get('thumbnail')
                             if cand_url and is_valid_tournament_logo(cand_url):
                                 cand_lower = cand_url.lower()
-                                if any(k in cand_lower for k in ['logo', 'emblem', 'crest', 'badge', 'brand', 'assets', 'upload', 'commons', 'gstatic', 'googleusercontent']):
+                                # Strictly require vector SVG or PNG format (no full-scene JPGs)
+                                is_vector_or_png = any(cand_lower.endswith(ext) or f"{ext}?" in cand_lower for ext in ['.svg', '.png', '.webp'])
+                                has_logo_keyword = any(k in cand_lower for k in ['logo', 'emblem', 'crest', 'badge', 'brand', 'assets', 'upload', 'commons', 'gstatic', 'googleusercontent'])
+                                if is_vector_or_png and has_logo_keyword:
                                     return cand_url
             except Exception as exc:
                 logger.warning("EmblemScout web search images error for query '%s': %s", query, exc)
@@ -362,7 +387,8 @@ class EmblemScout:
                         src = p_data.get('original', {}).get('source')
                         if src and is_valid_tournament_logo(src):
                             src_lower = src.lower()
-                            if any(k in src_lower for k in ['logo', 'emblem', 'crest', 'badge', 'insignia']) or not any(k in src_lower for k in ['trophy', 'stadium', 'map', 'flag']):
+                            # Only accept pageimage if it is an explicit logo/emblem file
+                            if any(k in src_lower for k in ['logo', 'emblem', 'crest', 'badge', 'insignia', 'symbol']):
                                 return src
             except Exception as exc:
                 logger.warning("EmblemScout PageImages error for '%s': %s", title, exc)
@@ -383,12 +409,15 @@ class EmblemScout:
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(res.content, 'html.parser')
 
-            # 1. Search meta tags (og:image / twitter:image)
+            # 1. Search meta tags (og:image / twitter:image) ONLY if filename explicitly contains logo/emblem
             candidates = []
             for meta in soup.find_all('meta'):
                 prop = meta.get('property', '') or meta.get('name', '')
                 if re.search(r'og:image|twitter:image', prop, re.I) and meta.get('content'):
-                    candidates.append(meta['content'])
+                    cand_content = meta['content']
+                    cand_lower = cand_content.lower()
+                    if any(k in cand_lower for k in ['logo', 'emblem', 'crest', 'badge', 'brand']) and not any(k in cand_lower for k in ['banner', 'hero', 'bg', 'header', 'slide']):
+                        candidates.append(cand_content)
 
             # 2. Search img elements with logo/emblem/brand in alt/class/src
             for img in soup.find_all('img'):
@@ -399,7 +428,7 @@ class EmblemScout:
 
                 if any(k in combined for k in ['emblem', 'event-logo', 'tournament-logo', 'competition-logo', 'header-logo']):
                     candidates.append(src)
-                elif 'logo' in combined and not any(k in combined for k in ['sponsor', 'partner', 'federation-logo']):
+                elif 'logo' in combined and not any(k in combined for k in ['sponsor', 'partner', 'federation-logo', 'banner', 'hero']):
                     candidates.append(src)
 
             for cand in candidates:
