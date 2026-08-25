@@ -42,7 +42,6 @@ class GeminiScoutService:
         return bool(cls.get_api_key())
 
     @classmethod
-    @classmethod
     def generate_json(
         cls,
         prompt: str,
