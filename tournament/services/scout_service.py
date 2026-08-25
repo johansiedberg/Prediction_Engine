@@ -965,7 +965,7 @@ def fetch_and_ingest_gemini_ai_tournaments(count=15, custom_query=None, sync_sco
     """
     from tournament.services.gemini_scout_service import GeminiScoutService
     from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
-    from tournament.services.location_normalizer import normalize_locations
+
     
     if not GeminiScoutService.is_available():
         logger.info("GeminiScoutService unavailable: GEMINI_API_KEY missing.")
@@ -1104,6 +1104,172 @@ def fetch_and_ingest_gemini_ai_tournaments(count=15, custom_query=None, sync_sco
             logger.warning("Error ingesting Gemini AI tournament '%s': %s", t_data.get('name'), exc)
             
     logger.info(f"Gemini AI Scout completed: {created_cnt} created, {updated_cnt} updated.")
+    return created_cnt, updated_cnt, prospects_list
+
+
+from pydantic import BaseModel, Field
+
+class ExternalTournamentSchema(BaseModel):
+    id: Optional[str] = None
+    name: str
+    sport: str
+    category: Optional[str] = "Main"
+    organizer: Optional[str] = "International Federation"
+    host_country: Optional[str] = ""
+    start_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")  # Strict ISO-8601 YYYY-MM-DD
+    end_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    total_teams: Optional[int] = 16
+    official_website_url: Optional[str] = ""
+    wikipedia_url: Optional[str] = None
+    prediction_engine_status: Optional[str] = "NEW"
+    runway_days: Optional[int] = None
+
+
+def fetch_and_ingest_from_api(
+    api_url: str = "http://localhost:3000/api/tournaments",
+    min_runway: int = 30,
+    sport: Optional[str] = None,
+    save_json_files: bool = False,
+    output_dir: str = "tournaments"
+) -> Tuple[int, int, List[Any]]:
+    """
+    Direct REST API Pull:
+    Queries an external AI scout API endpoint (e.g. Google AI Studio agent or local proxy on port 3000),
+    retrieves the validated JSON payload, validates via ExternalTournamentSchema,
+    and ingests tournaments directly into Prediction Engine's ScannedTournament database.
+    """
+    import os
+    from django.conf import settings
+
+    params = {"minRunway": min_runway}
+    if sport:
+        params["sport"] = sport
+
+    logger.info("Fetching tournaments from external API: %s with params %s", api_url, params)
+    
+    headers = {"Accept": "application/json"}
+    api_key = getattr(settings, "SCOUT_EXTERNAL_API_KEY", "")
+    if api_key:
+        headers["X-Scout-API-Key"] = api_key
+
+    res = requests.get(api_url, params=params, headers=headers, timeout=20)
+    res.raise_for_status()
+    data = res.json()
+
+    raw_list = []
+    if isinstance(data, list):
+        raw_list = data
+    elif isinstance(data, dict):
+        raw_list = data.get("tournaments") or data.get("data") or data.get("results") or []
+
+    created_cnt = 0
+    updated_cnt = 0
+    prospects_list = []
+
+    today = datetime.date.today()
+    min_upcoming_date = today + datetime.timedelta(days=min_runway)
+    next_rescan = today + datetime.timedelta(days=7)
+
+    if save_json_files:
+        os.makedirs(output_dir, exist_ok=True)
+
+    for item in raw_list:
+        try:
+            # Validate through Pydantic
+            t = ExternalTournamentSchema(**item)
+
+            if save_json_files:
+                f_id = t.id or t.name.lower().replace(' ', '-').replace("'", '')[:50]
+                file_path = os.path.join(output_dir, f"{f_id}.json")
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(t.model_dump_json(indent=2))
+
+            start_date_val = datetime.date.fromisoformat(t.start_date)
+            end_date_val = datetime.date.fromisoformat(t.end_date)
+
+            # 30-day runway validation
+            if start_date_val < min_upcoming_date or end_date_val < today:
+                logger.info("Skipping API tournament '%s': start date %s is < %s runway cutoff.", t.name, start_date_val, min_upcoming_date)
+                continue
+
+            host_country = normalize_locations(t.host_country or "")
+            master_code = (t.id or t.name.lower().replace(' ', '-').replace("'", '').replace('/', '-'))[:100]
+
+            existing = ScannedTournament.objects.filter(
+                models.Q(master_event_code=master_code) |
+                models.Q(name__iexact=t.name)
+            ).first()
+
+            scout_payload = {
+                "scouting_audit": {
+                    "scan_timestamp": datetime.datetime.now().isoformat(),
+                    "scouting_stage": "SHALLOW",
+                    "completeness_grade": "GRADE_C",
+                    "grade_reason": "Grad C (Inväntar djupscanning): Importerad via REST API scout agent.",
+                    "official_source_url": t.official_website_url or "",
+                    "wikipedia_url": t.wikipedia_url or "",
+                    "wikipedia_title": t.name,
+                    "is_compatible_sport": True,
+                    "draw_date": "",
+                    "next_rescan_date": next_rescan.isoformat(),
+                    "advancement_rules": "",
+                    "wikipedia_audit": None,
+                },
+                "master_event": {
+                    "name": t.name,
+                    "code": master_code,
+                    "sport": t.sport,
+                    "organizer": t.organizer or "International Federation",
+                    "host_country": host_country,
+                    "official_source_url": t.official_website_url or "",
+                    "wikipedia_url": t.wikipedia_url or "",
+                    "start_date": t.start_date,
+                    "end_date": t.end_date,
+                },
+                "tournament_config": {
+                    "name": t.name,
+                    "total_teams": t.total_teams or 16,
+                    "knockout_stages": ["Quarterfinals", "Semifinals", "Final"],
+                },
+                "groups": [],
+                "fixtures_sample": [],
+                "logo_url": "",
+            }
+
+            if existing:
+                existing.start_date = start_date_val
+                existing.end_date = end_date_val
+                if t.official_website_url:
+                    existing.official_source_url = t.official_website_url
+                if t.sport and not existing.sport:
+                    existing.sport = t.sport
+                if host_country and not existing.host_country:
+                    existing.host_country = host_country
+                existing.save()
+                updated_cnt += 1
+                prospects_list.append(existing)
+            else:
+                scanned_obj = ScannedTournament.objects.create(
+                    name=t.name,
+                    master_event_code=master_code,
+                    sport=t.sport,
+                    organizer=t.organizer or "International Federation",
+                    host_country=host_country,
+                    start_date=start_date_val,
+                    end_date=end_date_val,
+                    official_source_url=t.official_website_url or "",
+                    completeness_grade="GRADE_C",
+                    grade_reason="Grad C (Inväntar djupscanning): Importerad via REST API scout agent.",
+                    status="NEW",
+                    payload=scout_payload
+                )
+                created_cnt += 1
+                prospects_list.append(scanned_obj)
+
+        except Exception as exc:
+            logger.warning("Error ingesting tournament item from API: %s (%s)", item, exc)
+
+    logger.info("fetch_and_ingest_from_api completed: %d created, %d updated.", created_cnt, updated_cnt)
     return created_cnt, updated_cnt, prospects_list
 
 

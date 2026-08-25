@@ -2066,3 +2066,89 @@ class ScoutAgentsTestCase(TestCase):
         self.assertEqual(len(result.knockout_bracket), 1)
         self.assertEqual(result.knockout_bracket[0].stage_name, "Final")
 
+
+class RestScoutApiTestCase(TestCase):
+    """Tests for Direct REST API Pull and Pydantic validation ingestion."""
+
+    @patch('tournament.services.scout_service.requests.get')
+    def test_fetch_and_ingest_from_api(self, mock_get):
+        from tournament.services.scout_service import fetch_and_ingest_from_api
+        from tournament.models import ScannedTournament
+        import datetime
+
+        today = datetime.date.today()
+        future_start = (today + datetime.timedelta(days=60)).strftime("%Y-%m-%d")
+        future_end = (today + datetime.timedelta(days=75)).strftime("%Y-%m-%d")
+
+        mock_payload = {
+            "tournaments": [
+                {
+                    "id": "tourn-fifa-wc-2027",
+                    "name": "2027 FIFA Women's World Cup",
+                    "sport": "Football",
+                    "category": "Main",
+                    "organizer": "FIFA",
+                    "host_country": "Brazil",
+                    "start_date": future_start,
+                    "end_date": future_end,
+                    "total_teams": 32,
+                    "official_website_url": "https://www.fifa.com/",
+                    "wikipedia_url": "https://en.wikipedia.org/wiki/2027_FIFA_Women%27s_World_Cup",
+                    "prediction_engine_status": "NEW"
+                }
+            ]
+        }
+
+        mock_resp = mock_get.return_value
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = mock_payload
+
+        created, updated, prospects = fetch_and_ingest_from_api(
+            api_url="http://localhost:3000/api/tournaments",
+            min_runway=30,
+        )
+
+        self.assertEqual(created, 1)
+        self.assertEqual(len(prospects), 1)
+        prospect = ScannedTournament.objects.filter(name="2027 FIFA Women's World Cup").first()
+        self.assertIsNotNone(prospect)
+        self.assertEqual(prospect.sport, "Football")
+        self.assertEqual(prospect.host_country, "Brazil")
+        self.assertEqual(prospect.completeness_grade, "GRADE_C")
+
+    @patch('tournament.services.scout_service.requests.get')
+    def test_fetch_scout_api_management_command(self, mock_get):
+        from django.core.management import call_command
+        from io import StringIO
+        import datetime
+
+        today = datetime.date.today()
+        future_start = (today + datetime.timedelta(days=90)).strftime("%Y-%m-%d")
+        future_end = (today + datetime.timedelta(days=105)).strftime("%Y-%m-%d")
+
+        mock_resp = mock_get.return_value
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "tournaments": [
+                {
+                    "id": "tourn-chl-2027",
+                    "name": "2027–28 Champions Hockey League",
+                    "sport": "Ice Hockey",
+                    "organizer": "IIHF",
+                    "host_country": "Europe",
+                    "start_date": future_start,
+                    "end_date": future_end,
+                    "total_teams": 24,
+                    "official_website_url": "https://www.championshockeyleague.com/",
+                    "prediction_engine_status": "NEW"
+                }
+            ]
+        }
+
+        out = StringIO()
+        call_command("fetch_scout_api", "--url", "http://localhost:3000/api/tournaments", "--min-runway", "30", stdout=out)
+        output = out.getvalue()
+        self.assertIn("REST API Ingestion Completed", output)
+        self.assertIn("Champions Hockey League", output)
+
+
