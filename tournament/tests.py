@@ -2055,9 +2055,10 @@ class ScoutAgentsTestCase(TestCase):
             ]
         }
         agent = MatchesKnockoutAgent()
-        # Create a dummy groups_segment
-        groups_seg = GroupsAndTeamsSegment(groups=[])
+        # Create a dummy groups_segment with confirmed real teams & draw completed
+        groups_seg = GroupsAndTeamsSegment(groups=[], has_real_teams=True)
         result = agent.build_matches_knockout_segment(
+            audit_data={"draw_completed": True},
             tournament_name="Test Tournament",
             groups_segment=groups_seg
         )
@@ -2065,6 +2066,78 @@ class ScoutAgentsTestCase(TestCase):
         self.assertEqual(result.group_matches[0].match_number, 1)
         self.assertEqual(len(result.knockout_bracket), 1)
         self.assertEqual(result.knockout_bracket[0].stage_name, "Final")
+
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=True)
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.scout_matches_and_knockout')
+    def test_ai_studio_matches_schema_normalization(self, mock_gemini, mock_avail):
+        # Test Google AI Studio style nested payload with group_matches and knockout_bracket
+        mock_gemini.return_value = {
+            "total_matches": 66,
+            "fixtures_completed": True,
+            "group_matches": [
+                {
+                    "match_number": 1,
+                    "stage_or_group": "Group A",
+                    "home_team": "Saudi Arabia",
+                    "away_team": "Jordan",
+                    "home_team_code": "SA",
+                    "away_team_code": "JO",
+                    "date_time": "2027-01-07",
+                    "venue": "King Fahd Stadium",
+                    "is_placeholder": False
+                }
+            ],
+            "advancement_fixtures": [
+                {
+                    "match_code": "R16_1",
+                    "stage_name": "Round of 16",
+                    "source_home": "Winner Group A",
+                    "source_away": "Runner-up Group B"
+                }
+            ],
+            "knockout_bracket": [
+                {
+                    "stage_name": "Quarterfinals",
+                    "round_order": 1,
+                    "matches": [
+                        {
+                            "match_code": "QF_1",
+                            "stage_name": "Quarterfinals",
+                            "home_team": "1A",
+                            "away_team": "2B",
+                            "winner_to": "SF_1",
+                            "date_time": "2027-01-25",
+                            "venue": "King Fahd Stadium"
+                        }
+                    ]
+                }
+            ]
+        }
+        agent = MatchesKnockoutAgent()
+        groups_seg = GroupsAndTeamsSegment(groups=[], has_real_teams=True)
+        result = agent.build_matches_knockout_segment(
+            audit_data={"draw_completed": True},
+            tournament_name="2027 AFC Asian Cup",
+            sport="Football",
+            groups_segment=groups_seg,
+            tournament_meta={
+                "name": "2027 AFC Asian Cup",
+                "sport": "Football",
+                "organizer": "AFC",
+                "host_country": "Saudi Arabia",
+                "start_date": "2027-01-07",
+                "end_date": "2027-02-05",
+                "total_teams": 24
+            }
+        )
+        self.assertEqual(len(result.group_matches), 1)
+        self.assertEqual(result.group_matches[0].home_team, "Saudi Arabia")
+        self.assertEqual(result.group_matches[0].home_team_code, "sa")
+        self.assertEqual(result.group_matches[0].home_team_flag_url, "https://flagcdn.com/w40/sa.png")
+        self.assertEqual(len(result.advancement_fixtures), 1)
+        self.assertEqual(result.advancement_fixtures[0].match_code, "R16_1")
+        self.assertEqual(len(result.knockout_bracket), 1)
+        self.assertEqual(result.knockout_bracket[0].matches[0].winner_to, "SF_1")
 
 
 class RestScoutApiTestCase(TestCase):

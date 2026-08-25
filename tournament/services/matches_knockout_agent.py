@@ -44,14 +44,29 @@ class MatchesKnockoutAgent:
         groups_segment: Optional[GroupsAndTeamsSegment] = None,
         tournament_name: str = "",
         sport: str = "Football",
+        tournament_meta: Optional[Dict[str, Any]] = None,
     ) -> MatchesAndKnockoutSegment:
         """
-        Parses confirmed fixtures from audit data or leverages Gemini AI to research official match schedules & knockout trees.
+        Parses confirmed fixtures from audit data or leverages Gemini AI to research official match schedules & knockout trees
+        using full tournament metadata and multi-sport intelligence.
         """
         audit = dict(audit_data or {})
-        raw_fixtures = audit.get("fixtures") or audit.get("fixtures_sample") or []
-        raw_knockouts = audit.get("knockout_stages") or []
-        raw_advancement = audit.get("knockout_mapping_sample") or []
+        raw_fixtures = (
+            audit.get("group_matches")
+            or audit.get("fixtures")
+            or audit.get("fixtures_sample")
+            or []
+        )
+        raw_knockouts = (
+            audit.get("knockout_bracket")
+            or audit.get("knockout_stages")
+            or []
+        )
+        raw_advancement = (
+            audit.get("advancement_fixtures")
+            or audit.get("knockout_mapping_sample")
+            or []
+        )
 
         # 0. Gemini AI Intelligence Enrichment
         # If the draw is not completed, or real teams are not confirmed, or if we ALREADY have
@@ -59,7 +74,7 @@ class MatchesKnockoutAgent:
         has_real_teams = bool(groups_segment and groups_segment.has_real_teams)
         is_draw_completed = bool(audit.get("draw_completed") and has_real_teams)
         already_has_fixtures = bool(raw_fixtures and len(raw_fixtures) >= 4)
-        
+
         from tournament.services.gemini_scout_service import GeminiScoutService
         if GeminiScoutService.is_available() and tournament_name and is_draw_completed and not already_has_fixtures:
             try:
@@ -68,13 +83,26 @@ class MatchesKnockoutAgent:
                     sport=sport,
                     groups_data=[g.model_dump() for g in groups_segment.groups] if groups_segment else None,
                     wikipedia_context=str(audit.get("raw_text", ""))[:4000],
+                    tournament_meta=tournament_meta,
                 ) or {}
-                if gemini_matches.get("fixtures") and (not raw_fixtures or len(raw_fixtures) < len(gemini_matches["fixtures"])):
-                    raw_fixtures = gemini_matches["fixtures"]
+
+                g_fixtures = gemini_matches.get("group_matches") or gemini_matches.get("fixtures") or []
+                if g_fixtures and (not raw_fixtures or len(raw_fixtures) < len(g_fixtures)):
+                    raw_fixtures = g_fixtures
                     audit["fixtures"] = raw_fixtures
-                if gemini_matches.get("knockout_stages") and (not raw_knockouts or len(raw_knockouts) < len(gemini_matches["knockout_stages"])):
-                    raw_knockouts = gemini_matches["knockout_stages"]
+                    audit["group_matches"] = raw_fixtures
+
+                g_knockouts = gemini_matches.get("knockout_bracket") or gemini_matches.get("knockout_stages") or []
+                if g_knockouts and (not raw_knockouts or len(raw_knockouts) < len(g_knockouts)):
+                    raw_knockouts = g_knockouts
                     audit["knockout_stages"] = raw_knockouts
+                    audit["knockout_bracket"] = raw_knockouts
+
+                g_adv = gemini_matches.get("advancement_fixtures") or gemini_matches.get("knockout_mapping_sample") or []
+                if g_adv and (not raw_advancement or len(raw_advancement) < len(g_adv)):
+                    raw_advancement = g_adv
+                    audit["advancement_fixtures"] = raw_advancement
+
                 if "fixtures_completed" in gemini_matches:
                     audit["fixtures_completed"] = gemini_matches["fixtures_completed"]
             except Exception as e:
@@ -100,7 +128,7 @@ class MatchesKnockoutAgent:
             clean = name_str.strip()
             if clean in team_cache:
                 return team_cache[clean]
-            
+
             # Instant 0ms check for bracket slots / match winners / placeholders
             if TeamBadgeService.is_placeholder(clean):
                 ph_meta = {"code": "", "flag_url": "", "emblem_url": "", "is_placeholder": True}
@@ -111,9 +139,11 @@ class MatchesKnockoutAgent:
                 clean, sport=sport, tournament_name=tournament_name, use_gemini_fallback=False
             )
             is_ph = badge_res.is_placeholder or TeamBadgeService.is_placeholder(clean)
+            c_code = (badge_res.code or "").lower()
+            f_url = badge_res.flag_url or (f"https://flagcdn.com/w40/{c_code}.png" if len(c_code) == 2 else "")
             meta = {
-                "code": badge_res.code or "",
-                "flag_url": badge_res.flag_url or "",
+                "code": c_code,
+                "flag_url": f_url,
                 "emblem_url": badge_res.emblem_url or "",
                 "is_placeholder": is_ph,
             }
@@ -130,18 +160,27 @@ class MatchesKnockoutAgent:
                     h_meta = _resolve_team_meta(h_team)
                     a_meta = _resolve_team_meta(a_team)
 
+                    h_code = str(f.get("home_team_code") or h_meta["code"]).lower()
+                    h_flag = f.get("home_team_flag_url") or h_meta["flag_url"] or (f"https://flagcdn.com/w40/{h_code}.png" if len(h_code) == 2 else "")
+                    a_code = str(f.get("away_team_code") or a_meta["code"]).lower()
+                    a_flag = f.get("away_team_flag_url") or a_meta["flag_url"] or (f"https://flagcdn.com/w40/{a_code}.png" if len(a_code) == 2 else "")
+
+                    dt_val = f.get("date_time") or f.get("date")
+                    if dt_val and f.get("time") and f.get("time") not in str(dt_val):
+                        dt_val = f"{dt_val} {f.get('time')}"
+
                     group_matches.append(GroupMatchEntry(
                         match_number=f.get("match_number", idx),
                         stage_or_group=f.get("stage_or_group") or f.get("group") or "Group Stage",
                         home_team=h_team,
                         away_team=a_team,
-                        home_team_code=f.get("home_team_code") or h_meta["code"],
-                        home_team_flag_url=f.get("home_team_flag_url") or h_meta["flag_url"],
+                        home_team_code=h_code,
+                        home_team_flag_url=h_flag,
                         home_team_emblem_url=f.get("home_team_emblem_url") or h_meta["emblem_url"],
-                        away_team_code=f.get("away_team_code") or a_meta["code"],
-                        away_team_flag_url=f.get("away_team_flag_url") or a_meta["flag_url"],
+                        away_team_code=a_code,
+                        away_team_flag_url=a_flag,
                         away_team_emblem_url=f.get("away_team_emblem_url") or a_meta["emblem_url"],
-                        date_time=f.get("date_time") or f.get("date"),
+                        date_time=str(dt_val) if dt_val else None,
                         venue=f.get("venue") or "",
                         is_placeholder=bool(f.get("is_placeholder", False)) or h_meta["is_placeholder"] or a_meta["is_placeholder"],
                     ))
@@ -159,16 +198,21 @@ class MatchesKnockoutAgent:
                         h_meta = _resolve_team_meta(h_team)
                         a_meta = _resolve_team_meta(a_team)
 
+                        h_code = str(t_list[i].code or h_meta["code"]).lower()
+                        h_flag = t_list[i].flag_url or h_meta["flag_url"] or (f"https://flagcdn.com/w40/{h_code}.png" if len(h_code) == 2 else "")
+                        a_code = str(t_list[j].code or a_meta["code"]).lower()
+                        a_flag = t_list[j].flag_url or a_meta["flag_url"] or (f"https://flagcdn.com/w40/{a_code}.png" if len(a_code) == 2 else "")
+
                         group_matches.append(GroupMatchEntry(
                             match_number=match_num,
                             stage_or_group=g.name,
                             home_team=h_team,
                             away_team=a_team,
-                            home_team_code=t_list[i].code or h_meta["code"],
-                            home_team_flag_url=t_list[i].flag_url or h_meta["flag_url"],
+                            home_team_code=h_code,
+                            home_team_flag_url=h_flag,
                             home_team_emblem_url=t_list[i].emblem_url or h_meta["emblem_url"],
-                            away_team_code=t_list[j].code or a_meta["code"],
-                            away_team_flag_url=t_list[j].flag_url or a_meta["flag_url"],
+                            away_team_code=a_code,
+                            away_team_flag_url=a_flag,
                             away_team_emblem_url=t_list[j].emblem_url or a_meta["emblem_url"],
                             is_placeholder=t_list[i].is_placeholder or t_list[j].is_placeholder or h_meta["is_placeholder"] or a_meta["is_placeholder"],
                         ))
@@ -192,6 +236,7 @@ class MatchesKnockoutAgent:
             for r_idx, ks in enumerate(raw_knockouts, start=1):
                 s_name = ks.get("stage_name") if isinstance(ks, dict) else str(ks)
                 m_list = ks.get("matches", []) if isinstance(ks, dict) else []
+                r_order = ks.get("round_order", r_idx) if isinstance(ks, dict) else r_idx
 
                 match_entries: List[KnockoutMatchEntry] = []
                 for m in m_list:
@@ -201,25 +246,30 @@ class MatchesKnockoutAgent:
                         h_meta = _resolve_team_meta(h_team)
                         a_meta = _resolve_team_meta(a_team)
 
+                        h_code = str(m.get("home_team_code") or h_meta["code"]).lower()
+                        h_flag = m.get("home_team_flag_url") or h_meta["flag_url"] or (f"https://flagcdn.com/w40/{h_code}.png" if len(h_code) == 2 else "")
+                        a_code = str(m.get("away_team_code") or a_meta["code"]).lower()
+                        a_flag = m.get("away_team_flag_url") or a_meta["flag_url"] or (f"https://flagcdn.com/w40/{a_code}.png" if len(a_code) == 2 else "")
+
                         match_entries.append(KnockoutMatchEntry(
                             match_code=m.get("match_code", ""),
                             stage_name=s_name,
                             home_team=h_team,
                             away_team=a_team,
-                            home_team_code=m.get("home_team_code") or h_meta["code"],
-                            home_team_flag_url=m.get("home_team_flag_url") or h_meta["flag_url"],
+                            home_team_code=h_code,
+                            home_team_flag_url=h_flag,
                             home_team_emblem_url=m.get("home_team_emblem_url") or h_meta["emblem_url"],
-                            away_team_code=m.get("away_team_code") or a_meta["code"],
-                            away_team_flag_url=m.get("away_team_flag_url") or a_meta["flag_url"],
+                            away_team_code=a_code,
+                            away_team_flag_url=a_flag,
                             away_team_emblem_url=m.get("away_team_emblem_url") or a_meta["emblem_url"],
                             winner_to=m.get("winner_to"),
-                            date_time=m.get("date_time"),
+                            date_time=str(m.get("date_time")) if m.get("date_time") else None,
                             venue=m.get("venue", ""),
                         ))
 
                 knockout_bracket.append(KnockoutStageEntry(
                     stage_name=s_name,
-                    round_order=r_idx,
+                    round_order=r_order,
                     matches=match_entries,
                 ))
 

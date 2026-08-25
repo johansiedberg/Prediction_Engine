@@ -292,15 +292,51 @@ Return ONLY valid JSON:
         sport: str = "Football",
         groups_data: Optional[List[Dict[str, Any]]] = None,
         wikipedia_context: str = "",
+        tournament_meta: Optional[Dict[str, Any]] = None,
+        organizer: str = "",
+        host_country: str = "",
+        start_date: str = "",
+        end_date: str = "",
+        total_teams: int = 0,
+        official_website_url: str = "",
+        wikipedia_url: str = "",
     ) -> Dict[str, Any]:
         """
-        AI Sub-Agent for Matches & Knockout Bracket Tree.
-        Extracts round-robin group fixtures and multi-stage knockout progression trees.
+        AI Sub-Agent for Matches & Knockout Bracket Tree (Google AI Studio Enhanced).
+        Extracts round-robin group fixtures and multi-stage knockout progression trees
+        from structured tournament metadata and search grounded context.
         """
-        groups_summary = json.dumps(groups_data)[:2000] if groups_data else "Groups to be deduced."
-        prompt = f"""
-You are an expert sports competition architect.
-Generate the full match timetable and knockout bracket tree for "{tournament_name}" (Sport: {sport}).
+        meta = dict(tournament_meta or {})
+        t_name = meta.get("name") or tournament_name
+        t_sport = meta.get("sport") or sport or "Sports"
+        t_organizer = meta.get("organizer") or organizer or "Official Organizer"
+        t_host = meta.get("host_country") or host_country or "Worldwide"
+        t_start = meta.get("start_date") or start_date or ""
+        t_end = meta.get("end_date") or end_date or ""
+        t_teams = meta.get("total_teams") or total_teams or 16
+        t_official = meta.get("official_website_url") or official_website_url or ""
+        t_wiki = meta.get("wikipedia_url") or wikipedia_url or ""
+
+        groups_summary = json.dumps(groups_data, ensure_ascii=False)[:3000] if groups_data else "Groups to be deduced from tournament format."
+
+        meta_input = {
+            "name": t_name,
+            "sport": t_sport,
+            "organizer": t_organizer,
+            "host_country": t_host,
+            "start_date": t_start,
+            "end_date": t_end,
+            "total_teams": t_teams,
+            "official_website_url": t_official,
+            "wikipedia_url": t_wiki,
+        }
+
+        prompt = f"""You are an expert Sports Tournament Scheduling & Knockout Bracket Intelligence Agent.
+The user has provided the following tournament metadata as starting point:
+
+```json
+{json.dumps(meta_input, indent=2, ensure_ascii=False)}
+```
 
 Groups Context:
 {groups_summary}
@@ -308,57 +344,153 @@ Groups Context:
 Wikipedia / Web Context:
 {wikipedia_context[:4000] if wikipedia_context else "None provided."}
 
-Return ONLY valid JSON:
+YOUR TASK:
+Find and generate the complete, realistic tournament fixtures and knockout bracket phases for "{t_name}" ({t_sport}, organized by {t_organizer}, host: {t_host}, {t_teams} teams).
+Search the web / official references / Wikipedia ({t_wiki or t_official}) to find:
+1. Tournament structure (League phase / Round-Robin / Group stages like Groups A, B, C... or Regular Season Rounds, plus Play-in / advancement if applicable).
+2. For Club tournaments (e.g. EuroLeague basketball, UEFA Champions League), list the participating clubs, their authentic stadiums/arenas (venues) across Europe/host regions, accurate calendar dates matching start_date "{t_start}" to end_date "{t_end}".
+3. For National team tournaments (e.g. AFC Asian Cup, FIFA World Cup, EuroBasket), find official groups (e.g. Groups A through F), 2-letter ISO country codes in lowercase (e.g. "sa", "es", "gr", "fr", "de", "us", "jp", "kr") for flagcdn URLs `https://flagcdn.com/w40/{{code}}.png`, real venues and cities, and correct dates.
+4. Knockout Phases: Round of 16 / Play-in / Quarter-finals / Semi-finals / 3rd Place / Final with:
+   - `match_code`: e.g. "R16_1", "R16_2", "QF_1", "QF_2", "SF_1", "SF_2", "FINAL"
+   - `stage_name`: e.g. "Play-in", "Round of 16", "Quarterfinals" (or "Quarter-finals"), "Semifinals" (or "Semi-finals"), "Final"
+   - `round_order`: 1, 2, 3, 4 ...
+   - `home_team` and `away_team`: placeholder rules (e.g., "1A", "2B", "Winner Match 37", "Winner QF_1", "Seed 1", "Seed 8") or confirmed teams if known.
+   - `winner_to`: e.g. "QF_1", "SF_1", "FINAL", "Champion / Winner"
+   - `date_time` and `venue`
+5. In `group_matches`, list the individual matches with sequential `match_number` (1, 2, 3, ...), `stage_or_group` (e.g. "Group A", "Round 1", etc.), `home_team`, `away_team`, `home_team_code`, `home_team_flag_url`, `home_team_emblem_url`, `away_team_code`, `away_team_flag_url`, `away_team_emblem_url`, `date_time`, `venue`, and `is_placeholder` (true/false).
+6. In `advancement_fixtures`, list advancement rules (e.g. match_code: "R16_1", stage_name: "Round of 16", source_home: "Winner Group A", source_away: "Runner-up Group B").
+7. Calculate `total_matches` accurately.
+
+YOU MUST STRICTLY RETURN A SINGLE VALID JSON OBJECT matching this exact schema:
+
 {{
-  "fixtures_completed": <true if full match schedule with dates/times is confirmed, else false>,
-  "fixtures": [
-    {{
-      "match_number": 1,
-      "stage_or_group": "Group A",
-      "home_team": "Mexico",
-      "away_team": "South Africa",
-      "date": "2026-06-11",
-      "time": "15:00",
-      "venue": "Estadio Azteca, Mexico City",
-      "is_placeholder": false
-    }}
-  ],
-  "knockout_stages": [
-    {{
-      "stage_name": "Round of 32",
-      "round_order": 1,
-      "matches": [
-        {{"match_code": "R32_M73", "home_team": "1A", "away_team": "3C/E/F", "venue": "Boston"}},
-        {{"match_code": "R32_M74", "home_team": "2A", "away_team": "2B", "venue": "Los Angeles"}}
-      ]
-    }},
-    {{
-      "stage_name": "Round of 16",
-      "round_order": 2,
-      "matches": [
-        {{"match_code": "R16_M89", "home_team": "W73", "away_team": "W74"}}
-      ]
-    }},
-    {{
-      "stage_name": "Quarterfinals",
-      "round_order": 3,
-      "matches": []
-    }},
-    {{
-      "stage_name": "Semifinals",
-      "round_order": 4,
-      "matches": []
-    }},
-    {{
-      "stage_name": "Final",
-      "round_order": 5,
-      "matches": []
-    }}
-  ]
+  "matches_and_knockout_segment": {{
+    "total_matches": 66,
+    "fixtures_completed": false,
+    "group_matches": [
+      {{
+        "match_number": 1,
+        "stage_or_group": "Group A",
+        "home_team": "Team A",
+        "away_team": "Team B",
+        "home_team_code": "code",
+        "home_team_flag_url": "https://flagcdn.com/w40/code.png",
+        "home_team_emblem_url": "",
+        "away_team_code": "code2",
+        "away_team_flag_url": "https://flagcdn.com/w40/code2.png",
+        "away_team_emblem_url": "",
+        "date_time": "YYYY-MM-DD",
+        "venue": "Stadium/Arena Name, City",
+        "is_placeholder": false
+      }}
+    ],
+    "advancement_fixtures": [
+      {{
+        "match_code": "R16_1",
+        "stage_name": "Round of 16",
+        "source_home": "Winner Group A",
+        "source_away": "Runner-up Group B"
+      }}
+    ],
+    "knockout_bracket": [
+      {{
+        "stage_name": "Round of 16",
+        "round_order": 1,
+        "matches": [
+          {{
+            "match_code": "R16_1",
+            "stage_name": "Round of 16",
+            "home_team": "1A",
+            "away_team": "2B",
+            "home_team_code": "",
+            "home_team_flag_url": "",
+            "home_team_emblem_url": "",
+            "away_team_code": "",
+            "away_team_flag_url": "",
+            "away_team_emblem_url": "",
+            "winner_to": "QF_1",
+            "date_time": "YYYY-MM-DD",
+            "venue": "Stadium/Arena, City"
+          }}
+        ]
+      }},
+      {{
+        "stage_name": "Quarterfinals",
+        "round_order": 2,
+        "matches": [
+          {{
+            "match_code": "QF_1",
+            "stage_name": "Quarterfinals",
+            "home_team": "Winner R16_1",
+            "away_team": "Winner R16_2",
+            "home_team_code": "",
+            "home_team_flag_url": "",
+            "home_team_emblem_url": "",
+            "away_team_code": "",
+            "away_team_flag_url": "",
+            "away_team_emblem_url": "",
+            "winner_to": "SF_1",
+            "date_time": null,
+            "venue": ""
+          }}
+        ]
+      }},
+      {{
+        "stage_name": "Semifinals",
+        "round_order": 3,
+        "matches": [
+          {{
+            "match_code": "SF_1",
+            "stage_name": "Semifinals",
+            "home_team": "Winner QF_1",
+            "away_team": "Winner QF_2",
+            "home_team_code": "",
+            "home_team_flag_url": "",
+            "home_team_emblem_url": "",
+            "away_team_code": "",
+            "away_team_flag_url": "",
+            "away_team_emblem_url": "",
+            "winner_to": "FINAL",
+            "date_time": null,
+            "venue": ""
+          }}
+        ]
+      }},
+      {{
+        "stage_name": "Final",
+        "round_order": 4,
+        "matches": [
+          {{
+            "match_code": "FINAL",
+            "stage_name": "Final",
+            "home_team": "Winner SF_1",
+            "away_team": "Winner SF_2",
+            "home_team_code": "",
+            "home_team_flag_url": "",
+            "home_team_emblem_url": "",
+            "away_team_code": "",
+            "away_team_flag_url": "",
+            "away_team_emblem_url": "",
+            "winner_to": "Champion",
+            "date_time": null,
+            "venue": ""
+          }}
+        ]
+      }}
+    ]
+  }}
 }}
+
+Do not include any conversational preamble. Output ONLY valid JSON.
 """
         result = cls.generate_json(prompt, search_grounding=True)
-        return result or {}
+        if not result or not isinstance(result, dict):
+            return {}
+
+        # Normalize root structure if wrapped under matches_and_knockout_segment
+        if "matches_and_knockout_segment" in result and isinstance(result["matches_and_knockout_segment"], dict):
+            return result["matches_and_knockout_segment"]
+        return result
 
     @classmethod
     def discover_upcoming_tournaments(

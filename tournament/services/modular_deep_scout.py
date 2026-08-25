@@ -346,11 +346,23 @@ class ModularDeepScout:
 
         # SEGMENT 5: Matches & Knockout Segment (Timetable & knockout trees via Gemini AI)
         try:
+            tournament_meta = {
+                "name": prospect.name,
+                "sport": prospect.sport or audit.get('sport') or "Football",
+                "organizer": general_seg.organizer or prospect.organizer,
+                "host_country": general_seg.location.host_country or prospect.host_country,
+                "start_date": general_seg.start_date or (prospect.start_date.isoformat() if prospect.start_date else ""),
+                "end_date": general_seg.end_date or (prospect.end_date.isoformat() if prospect.end_date else ""),
+                "total_teams": groups_teams_seg.teams_count or getattr(prospect, 'teams_count', 0),
+                "official_website_url": general_seg.official_website_url or official_url,
+                "wikipedia_url": general_seg.wikipedia_url or wiki_url,
+            }
             matches_ko_seg = self.matches_agent.build_matches_knockout_segment(
                 audit_data=audit,
                 groups_segment=groups_teams_seg,
                 tournament_name=prospect.name,
                 sport=prospect.sport or "Football",
+                tournament_meta=tournament_meta,
             )
         except Exception as exc:
             logger.warning("Segment 5 (Matches & Knockout) exception for '%s': %s. Falling back to default stages.", prospect.name, exc)
