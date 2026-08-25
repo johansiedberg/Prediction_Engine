@@ -128,6 +128,8 @@ class OfficialSiteScout:
             return "https://www.cafonline.com/"
 
         # FIBA (Basketball)
+        if "basketball champions league" in t_lower or "championsleague.basketball" in u_lower:
+            return "https://www.championsleague.basketball/"
         if "fiba.basketball" in u_lower or "fiba" in t_lower or "basketball" in t_lower:
             if "u19" in u_lower or "u19" in t_lower or "under-19" in t_lower:
                 if "women" in t_lower or "dam" in t_lower:

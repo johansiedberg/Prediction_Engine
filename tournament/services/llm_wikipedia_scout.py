@@ -451,7 +451,16 @@ class LLMWikipediaScout:
         venue_suffix_pattern = r'\s+(?:SAP\s+Garden|Porsche.*|Arena.*|Spodek.*|GETEC.*|Wunderino.*|Lanxess.*|ZAG.*|Antalya.*|Tipos.*|Stadion.*|Stadium.*|Hall.*|Centre.*|Center.*|Dome.*|Palace.*|Park.*|Oradea.*|BTarena.*|Cluj.*|Bratislava.*|Katowice.*|Brno.*|Debrecen.*|Innsbruck.*|Basel.*|Vienna.*|Munich|Stuttgart|Kiel|Magdeburg|Hanover|Cologne)$'
         s = re.sub(venue_suffix_pattern, '', s, flags=re.IGNORECASE)
 
-        return s.strip()
+        cleaned = s.strip()
+        # Reject generic summary/metadata tokens
+        if cleaned.lower() in [
+            "total", "totals", "all", "summary", "berth", "berths", "qualifier",
+            "qualified", "qualification", "team", "teams", "nation", "nations",
+            "tba", "tbd", "tbc", "unknown", "n/a", "none", "–", "-", "—"
+        ]:
+            return ""
+
+        return cleaned
 
     @staticmethod
     def _parse_date_string(date_str: str) -> str:

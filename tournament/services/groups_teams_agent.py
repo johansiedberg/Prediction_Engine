@@ -211,7 +211,9 @@ class GroupsTeamsAgent:
                     advancement_description=f"Topp 2 i {g_name} avancerar.",
                 ))
 
-        has_real_teams = real_teams_found >= max(4, total_teams_count // 2)
+        # Real teams require that groups have authentic structure (not 1 gigantic un-drawn list of qualified nations)
+        is_flat_qualified_list = len(parsed_groups) == 1 and total_teams_count > 8
+        has_real_teams = (not is_flat_qualified_list) and (real_teams_found >= max(4, total_teams_count // 2))
 
         return GroupsAndTeamsSegment(
             groups_count=len(parsed_groups),

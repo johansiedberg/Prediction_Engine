@@ -260,11 +260,14 @@ class MatchesKnockoutAgent:
                     ))
 
         # Fallback: Generate round-robin match fixtures ONLY when draw is officially confirmed AND real groups exist
+        # Strictly reject single un-drawn groups of >8 teams (which are lists of qualified nations, not a drawn group)
         can_generate_rr = bool(
             groups_segment
             and groups_segment.groups
             and groups_segment.has_real_teams
             and audit.get("draw_completed")
+            and (len(groups_segment.groups) >= 2 or (len(groups_segment.groups) == 1 and len(groups_segment.groups[0].teams) <= 6))
+            and all(3 <= len(g.teams) <= 8 for g in groups_segment.groups)
         )
         if not group_matches and can_generate_rr:
             match_num = 1
