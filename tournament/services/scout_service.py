@@ -955,6 +955,158 @@ def fetch_and_ingest_major_football_tournaments(sync_scout=True):
     return created_cnt, updated_cnt, prospects_list
 
 
+def fetch_and_ingest_gemini_ai_tournaments(count=15, custom_query=None, sync_scout=True):
+    """
+    Ingests upcoming tournaments and qualifiers discovered via Google Gemini AI with Google Search Grounding.
+    Covers the 3 core pillars:
+    1. Premier Continental Club Tournaments (Champions League, EuroLeague, CHL, Copa Libertadores, etc.)
+    2. Continental & Global Qualifiers (Euro Qualifiers, World Cup Qualifiers, EHF Qualifiers, etc.)
+    3. Major National Team Finals (World Cups, Euros, World Championships)
+    """
+    from tournament.services.gemini_scout_service import GeminiScoutService
+    from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
+    from tournament.services.location_normalizer import normalize_locations
+    
+    if not GeminiScoutService.is_available():
+        logger.info("GeminiScoutService unavailable: GEMINI_API_KEY missing.")
+        return 0, 0, []
+
+    logger.info("Starting Gemini AI Search Grounded Tournament Scout...")
+    discovered = GeminiScoutService.discover_upcoming_tournaments(
+        min_days_ahead=30,
+        count=count,
+        custom_query=custom_query
+    )
+    
+    if not discovered:
+        logger.info("Gemini AI Scout returned 0 prospect candidates.")
+        return 0, 0, []
+        
+    created_cnt = 0
+    updated_cnt = 0
+    prospects_list = []
+    
+    today = datetime.date.today()
+    min_upcoming_date = today + datetime.timedelta(days=30)
+    next_rescan = today + datetime.timedelta(days=7)
+    
+    for t_data in discovered:
+        try:
+            name = (t_data.get("name") or "").strip()
+            if not name:
+                continue
+                
+            sport = t_data.get("sport") or "Sports"
+            organizer = t_data.get("organizer") or "International Federation"
+            host_country = normalize_locations(t_data.get("host_country") or "")
+            official_url = t_data.get("official_website_url") or ""
+            wiki_url = t_data.get("wikipedia_url") or ""
+            total_teams = int(t_data.get("total_teams") or 16)
+            
+            raw_start = t_data.get("start_date") or ""
+            raw_end = t_data.get("end_date") or ""
+            
+            iso_start = LLMWikipediaScout._parse_date_string(raw_start)
+            iso_end = LLMWikipediaScout._parse_date_string(raw_end)
+            
+            start_date_val = None
+            end_date_val = None
+            if iso_start:
+                try:
+                    start_date_val = datetime.date.fromisoformat(iso_start)
+                except Exception:
+                    pass
+            if iso_end:
+                try:
+                    end_date_val = datetime.date.fromisoformat(iso_end)
+                except Exception:
+                    pass
+                    
+            # 30-Day Runway Rule Enforcement
+            if start_date_val and start_date_val < min_upcoming_date:
+                logger.info(f"Gemini AI Scout: Skipping '{name}' (start {start_date_val} is < {min_upcoming_date}).")
+                continue
+            if end_date_val and end_date_val < today:
+                continue
+                
+            master_code = name.lower().replace(' ', '-').replace("'", '').replace('/', '-')[:100]
+            
+            existing = ScannedTournament.objects.filter(
+                models.Q(master_event_code=master_code) |
+                models.Q(name__iexact=name)
+            ).first()
+            
+            scout_payload = {
+                "scouting_audit": {
+                    "scan_timestamp": datetime.datetime.now().isoformat(),
+                    "scouting_stage": "SHALLOW",
+                    "completeness_grade": "GRADE_C",
+                    "grade_reason": f"Grad C (Inväntar djupscanning): Upptäckt via Google Gemini AI & Google Search Grounding. Klicka 'Djupscanna' för fullständig analys.",
+                    "official_source_url": official_url,
+                    "wikipedia_url": wiki_url,
+                    "wikipedia_title": name,
+                    "is_compatible_sport": True,
+                    "draw_date": "",
+                    "next_rescan_date": next_rescan.isoformat(),
+                    "advancement_rules": "",
+                    "wikipedia_audit": None,
+                },
+                "master_event": {
+                    "name": name,
+                    "code": master_code,
+                    "sport": sport,
+                    "organizer": organizer,
+                    "host_country": host_country,
+                    "official_source_url": official_url,
+                    "wikipedia_url": wiki_url,
+                    "start_date": iso_start,
+                    "end_date": iso_end,
+                },
+                "tournament_config": {
+                    "name": name,
+                    "total_teams": total_teams,
+                    "knockout_stages": ["Quarterfinals", "Semifinals", "Final"],
+                },
+                "groups": [],
+                "fixtures_sample": [],
+                "logo_url": "",
+            }
+            
+            if existing:
+                if not existing.start_date and start_date_val:
+                    existing.start_date = start_date_val
+                if not existing.end_date and end_date_val:
+                    existing.end_date = end_date_val
+                if not existing.official_source_url and official_url:
+                    existing.official_source_url = official_url
+                existing.save()
+                updated_cnt += 1
+                prospects_list.append(existing)
+            else:
+                scanned_obj = ScannedTournament.objects.create(
+                    name=name,
+                    master_event_code=master_code,
+                    sport=sport,
+                    organizer=organizer,
+                    host_country=host_country,
+                    start_date=start_date_val,
+                    end_date=end_date_val,
+                    official_source_url=official_url,
+                    completeness_grade="GRADE_C",
+                    grade_reason="Grad C (Inväntar djupscanning): Upptäckt via Google Gemini AI & Google Search Grounding.",
+                    status="NEW",
+                    payload=scout_payload
+                )
+                created_cnt += 1
+                prospects_list.append(scanned_obj)
+                
+        except Exception as exc:
+            logger.warning("Error ingesting Gemini AI tournament '%s': %s", t_data.get('name'), exc)
+            
+    logger.info(f"Gemini AI Scout completed: {created_cnt} created, {updated_cnt} updated.")
+    return created_cnt, updated_cnt, prospects_list
+
+
 def scrape_web_for_tournaments(custom_query=None):
     return sync_all_scout_prospects(custom_query=custom_query)
 
@@ -1093,8 +1245,9 @@ Return ONLY valid JSON matching this schema:
 
 def sync_all_scout_prospects(custom_query=None):
     """
-    Triggers AllSportDB API (v3), Wikipedia Annual Sports Event Crawler, and
-    Major Continental Football Tournaments & Qualifiers Crawler.
+    Triggers AllSportDB API (v3), Wikipedia Annual Sports Event Crawler,
+    Major Continental Football Tournaments & Qualifiers Crawler, and
+    Google Gemini AI Search Grounded Tri-Pillar Tournament Scout.
     Applies multi-step H2H team sport and format filtering, evaluates Grade A/B/C ratings,
     and ingests unique prospects into ScannedTournament for Engine Admin.
     After ingestion, automatically merges duplicate prospects sharing the exact same Wikipedia page,
@@ -1119,25 +1272,32 @@ def sync_all_scout_prospects(custom_query=None):
         sync_scout=True
     )
 
-    # 4. Automatic Deduplication / Merge by Wikipedia Page
+    # 4. Google Gemini AI Search Grounded Tri-Pillar Scout (Club, Qualifiers & Finals)
+    c4, u4, p4 = fetch_and_ingest_gemini_ai_tournaments(
+        count=15,
+        custom_query=custom_query,
+        sync_scout=True
+    )
+
+    # 5. Automatic Deduplication / Merge by Wikipedia Page
     merged_cnt, _ = merge_duplicate_scanned_tournaments_by_wikipedia()
     if merged_cnt > 0:
         logger.info(f"Merged {merged_cnt} duplicate prospects sharing the same Wikipedia page.")
 
-    # 5. Automatic Purge of Past / Completed / Passed Prospects
+    # 6. Automatic Purge of Past / Completed / Passed Prospects
     purged_cnt = purge_completed_past_prospects()
     if purged_cnt > 0:
         logger.info(f"Purged {purged_cnt} past/completed prospects from scout database.")
 
-    # 6. Final Step: Targeted Date Resolution & 30-Day Runway Filter
+    # 7. Final Step: Targeted Date Resolution & 30-Day Runway Filter
     resolved_cnt, discarded_cnt = resolve_and_filter_prospect_dates()
     if resolved_cnt > 0 or discarded_cnt > 0:
         logger.info(f"Targeted Date Resolution: {resolved_cnt} populated with exact YYYY-MM-DD dates, {discarded_cnt} discarded (< 30 days).")
 
     # Re-fetch active non-archived prospects
     all_prospects = list(ScannedTournament.objects.exclude(status='ARCHIVED'))
-    total_created = c1 + c2 + c3
-    total_updated = u1 + u2 + u3
+    total_created = c1 + c2 + c3 + c4
+    total_updated = u1 + u2 + u3 + u4
 
     if custom_query and all_prospects:
         q_lower = custom_query.lower().strip()

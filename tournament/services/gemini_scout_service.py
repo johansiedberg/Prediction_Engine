@@ -375,3 +375,69 @@ Return ONLY valid JSON:
 """
         result = cls.generate_json(prompt, search_grounding=True)
         return result or {}
+
+    @classmethod
+    def discover_upcoming_tournaments(
+        cls,
+        min_days_ahead: int = 30,
+        count: int = 15,
+        custom_query: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        AI Web Scout Engine:
+        Searches the live web and Wikipedia using Google Search Grounding to discover
+        major upcoming head-to-head team sports tournaments across 3 pillars:
+        1. Major Continental Club Tournaments (Champions League, EuroLeague, CHL, Copa Libertadores, etc.)
+        2. Continental & Global Qualifiers (Euro Qualifiers, World Cup Qualifiers, EHF Qualifiers, etc.)
+        3. Major National Team Finals (World Cups, Euros, World Championships)
+        """
+        import datetime
+        today = datetime.date.today()
+        cutoff_date = today + datetime.timedelta(days=min_days_ahead)
+        cutoff_str = cutoff_date.isoformat()
+        current_year = today.year
+
+        system_instruction = f"""You are an autonomous sports intelligence scout for Prediction Engine.
+Your mission: Search the live web and Wikipedia to discover upcoming international and continental HEAD-TO-HEAD TEAM sports tournaments.
+
+COVERAGE SCOPE:
+1. Premier Continental Club Tournaments (e.g. UEFA Champions League, Champions Hockey League, EuroLeague Basketball, Copa Libertadores, UEFA Europa League, UEFA Conference League, EHF Champions League, IFF Champions Cup).
+2. Major Continental & Global Qualifying Stages for all tournaments (e.g. UEFA Euro qualifying, AFC Asian Cup qualification, Africa Cup of Nations qualification, EHF Euro qualification, World Cup qualification).
+3. Major National Team World & Continental Championships (e.g. World Floorball Championships, IIHF World Championship, FIFA Women's World Cup, UEFA Euro, FIBA Basketball World Cup, Africa Cup of Nations, CONCACAF Gold Cup).
+
+STRICT RULES:
+1. Only Head-to-Head (H2H) team sports with tournament/group/knockout format. Exclude individual sports (Tennis, Golf, Chess, etc.) and standalone domestic leagues.
+2. 30-Day Runway Rule: Strictly exclude all tournaments or qualifying phases starting before {cutoff_str} (must start strictly after {cutoff_str}).
+3. Dates: "start_date" and "end_date" MUST be in strict ISO format YYYY-MM-DD. If exact day is unconfirmed, normalize to the 1st of the month (YYYY-MM-01). Never output null, TBD, or empty strings.
+4. Return clean, authoritative Wikipedia URLs and official tournament website URLs."""
+
+        query_context = f" Focused on: {custom_query}" if custom_query else ""
+        prompt = f"""Discover {count} upcoming major international sports tournaments, continental qualifiers, and premier club tournaments scheduled for {current_year}, {current_year + 1}, and {current_year + 2} that start strictly after {cutoff_str}.{query_context}
+
+You MUST return a balanced tri-pillar mix containing:
+1. Major Continental Club Tournaments
+2. Major Qualifying Stages for international tournaments
+3. Premier National Team Final Tournaments
+
+Return ONLY valid JSON matching this schema:
+{{
+  "tournaments": [
+    {{
+      "name": "<Official tournament or qualifier name with year e.g. 2026–27 UEFA Champions League>",
+      "sport": "<Sport e.g. Football, Ice Hockey, Basketball, Handball, Floorball, Volleyball>",
+      "organizer": "<Governing body e.g. UEFA, FIFA, IIHF, FIBA, EHF, IFF, CONMEBOL, CAF, CONCACAF>",
+      "host_country": "<Host country name(s), separated by / if multiple>",
+      "start_date": "<Strict ISO YYYY-MM-DD>",
+      "end_date": "<Strict ISO YYYY-MM-DD>",
+      "total_teams": <Integer team count e.g. 16, 24, 32, 36, 48>,
+      "official_website_url": "<Official tournament or federation website URL>",
+      "wikipedia_url": "<Wikipedia article URL>"
+    }}
+  ]
+}}"""
+
+        res = cls.generate_json(prompt, system_instruction=system_instruction, search_grounding=True)
+        if isinstance(res, dict) and isinstance(res.get("tournaments"), list):
+            return res["tournaments"]
+        return []
+
