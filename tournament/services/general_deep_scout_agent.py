@@ -17,8 +17,10 @@ from tournament.schemas.tournament_prospect_schema import (
     GeneralSegment,
     LocationInfo,
     EmblemInfo,
+    BackdropInfo,
 )
 from tournament.services.emblem_scout import EmblemScout
+from tournament.services.backdrop_scout import BackdropScout
 from tournament.services.wikidata_scout import WikidataScout
 from tournament.services.official_site_scout import OfficialSiteScout
 
@@ -27,11 +29,12 @@ logger = logging.getLogger(__name__)
 
 class GeneralDeepScoutAgent:
     """
-    Agnostic Agent responsible for resolving dates, venues, hosts, and high-fidelity emblems.
+    Agnostic Agent responsible for resolving dates, venues, hosts, high-fidelity emblems, and widescreen backdrops.
     """
 
     def __init__(self):
         self.emblem_scout = EmblemScout()
+        self.backdrop_scout = BackdropScout()
         self.wikidata_scout = WikidataScout()
 
     def build_general_segment(
@@ -41,6 +44,7 @@ class GeneralDeepScoutAgent:
         wikipedia_title: Optional[str] = None,
         official_url: Optional[str] = None,
         existing_logo_url: Optional[str] = None,
+        existing_backdrop_url: Optional[str] = None,
     ) -> GeneralSegment:
         """
         Gathers general tournament metadata across official sites, Wikidata, Wikipedia, and EmblemScout.
@@ -146,6 +150,20 @@ class GeneralDeepScoutAgent:
             source="EmblemScout Multi-Channel & Gemini AI",
         )
 
+        # 4.5 Backdrop resolution (Widescreen header backdrop & key visual)
+        backdrop_url = existing_backdrop_url or audit.get("backdrop_url") or ""
+        if not backdrop_url:
+            backdrop_url = BackdropScout.discover_backdrop(
+                tournament_name=tournament_name,
+                official_url=resolved_official_url,
+                sport=audit.get("sport", "Football"),
+            ) or ""
+
+        backdrop = BackdropInfo(
+            backdrop_url=backdrop_url,
+            source="BackdropScout Multi-Source",
+        )
+
         # 5. Organizer & Wiki URL
         organizer = audit.get("organizer") or audit.get("governing_body") or ""
         wiki_url = audit.get("wikipedia_url") or (
@@ -157,6 +175,7 @@ class GeneralDeepScoutAgent:
             end_date=end_date,
             location=loc_info,
             emblem=emblem,
+            backdrop=backdrop,
             organizer=str(organizer).strip(),
             official_website_url=resolved_official_url,
             wikipedia_url=wiki_url,

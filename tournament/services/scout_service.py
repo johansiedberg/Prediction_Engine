@@ -1658,6 +1658,64 @@ def transfer_scouted_logo_to_tournament(scanned, tournament, master_event=None):
         logger.warning(f"Could not transfer scouted logo from '{logo_url}' to tournament #{tournament.id}: {e}")
 
 
+def transfer_scouted_backdrop_to_tournament(scanned, tournament, master_event=None):
+    """
+    Transfers scouted backdrop/banner image from ScannedTournament (backdrop_url) into
+    Tournament.backdrop (and MasterEvent.backdrop) by downloading the image payload.
+    """
+    if not scanned or not tournament:
+        return
+
+    payload = scanned.payload or {}
+    general_seg = payload.get('general_segment') or {}
+    backdrop_info = general_seg.get('backdrop') or {}
+
+    backdrop_url = (
+        scanned.backdrop_url
+        or (backdrop_info.get('backdrop_url') if isinstance(backdrop_info, dict) else None)
+        or payload.get('backdrop_url')
+    )
+
+    from tournament.services.backdrop_scout import BackdropScout, is_valid_tournament_backdrop
+
+    if not backdrop_url or not is_valid_tournament_backdrop(backdrop_url):
+        discovered_backdrop = BackdropScout.discover_backdrop(
+            tournament.name,
+            official_url=getattr(tournament, 'official_regulations_url', '') or '',
+            sport=getattr(tournament, 'sport', 'Football') or 'Football',
+        )
+        if discovered_backdrop and is_valid_tournament_backdrop(discovered_backdrop):
+            backdrop_url = discovered_backdrop
+
+    if not backdrop_url or not isinstance(backdrop_url, str) or not backdrop_url.startswith('http'):
+        return
+
+    if not is_valid_tournament_backdrop(backdrop_url):
+        return
+
+    try:
+        import requests
+        import urllib.parse
+        import os
+        from django.core.files.base import ContentFile
+
+        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+        res = requests.get(backdrop_url, headers=headers, timeout=10)
+        if res.status_code == 200 and res.content and len(res.content) > 500:
+            parsed_path = urllib.parse.urlparse(backdrop_url).path
+            ext = os.path.splitext(parsed_path)[1].lower()
+            if not ext or len(ext) > 5 or ext not in ['.png', '.jpg', '.jpeg', '.webp']:
+                ext = '.jpg'
+
+            file_name = f"scouted_backdrop_{tournament.id}_{scanned.id}{ext}"
+            tournament.backdrop.save(file_name, ContentFile(res.content), save=True)
+
+            if master_event and (not master_event.backdrop or not hasattr(master_event.backdrop, 'url') or not master_event.backdrop.url):
+                master_event.backdrop.save(file_name, ContentFile(res.content), save=True)
+    except Exception as e:
+        logger.warning(f"Could not transfer scouted backdrop from '{backdrop_url}' to tournament #{tournament.id}: {e}")
+
+
 def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, custom_point_system=None):
     """
     Takes a ScannedTournament prospect and converts it into a full live tournament
@@ -2033,6 +2091,7 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
 
         # Transfer scouted logotype image to Tournament.icon and MasterEvent.icon
         transfer_scouted_logo_to_tournament(scanned, tournament, master_event)
+        transfer_scouted_backdrop_to_tournament(scanned, tournament, master_event)
 
         return tournament, None
 

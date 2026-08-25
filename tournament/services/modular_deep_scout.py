@@ -337,13 +337,14 @@ class ModularDeepScout:
             master_event_code=prospect.master_event_code,
         )
 
-        # SEGMENT 2: General Segment (Dates, venues, transparent vector emblems via Gemini & Wikidata)
+        # SEGMENT 2: General Segment (Dates, venues, transparent vector emblems, and widescreen backdrops)
         general_seg = self.general_agent.build_general_segment(
             tournament_name=prospect.name,
             audit_data=audit,
             wikipedia_title=page_title,
             official_url=official_url,
             existing_logo_url=prospect.logo_url,
+            existing_backdrop_url=prospect.backdrop_url,
         )
 
         # Date validation & Auto-Rejection Rules
@@ -522,6 +523,7 @@ class ModularDeepScout:
         prospect.grade_reason = final_reason
         prospect.sport = head_seg.sport or prospect.sport
         prospect.logo_url = general_seg.emblem.logo_url or prospect.logo_url
+        prospect.backdrop_url = general_seg.backdrop.backdrop_url or prospect.backdrop_url
 
         if final_grade == CompletenessGrade.GRADE_A:
             prospect.status = 'READY'

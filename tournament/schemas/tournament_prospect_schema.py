@@ -81,11 +81,17 @@ class EmblemInfo(BaseModel):
     source: str = Field(default="", description="Emblem source e.g. Wikimedia Commons, Official")
 
 
+class BackdropInfo(BaseModel):
+    backdrop_url: str = Field(default="", description="Tournament landscape backdrop / banner image URL")
+    source: str = Field(default="", description="Backdrop source e.g. Official Site, Key Visual, Google Search")
+
+
 class GeneralSegment(BaseModel):
     start_date: Optional[str] = Field(default=None, description="ISO date YYYY-MM-DD")
     end_date: Optional[str] = Field(default=None, description="ISO date YYYY-MM-DD")
     location: LocationInfo = Field(default_factory=LocationInfo)
     emblem: EmblemInfo = Field(default_factory=EmblemInfo)
+    backdrop: BackdropInfo = Field(default_factory=BackdropInfo)
     organizer: str = Field(default="", description="Governing body e.g. FIFA, UEFA, IIHF")
     official_website_url: str = Field(default="", description="Direct URL to official federation tournament site")
     wikipedia_url: str = Field(default="", description="Wikipedia article URL")

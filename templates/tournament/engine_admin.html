@@ -994,7 +994,8 @@
                          data-stage="{{ item.scouting_stage }}"
                          data-tournament-name="{{ item.prospect.name|escape }}"
                          id="prospect-card-{{ item.prospect.id }}">
-                        <div class="card scout-prospect-card text-white rounded-4 overflow-hidden shadow-sm d-flex flex-row align-items-stretch">
+                        <div class="card scout-prospect-card text-white rounded-4 overflow-hidden shadow-sm d-flex flex-row align-items-stretch"
+                             style="{% if item.backdrop_url %}background: linear-gradient(180deg, rgba(15, 23, 42, 0.84) 0%, rgba(11, 15, 25, 0.95) 100%), url('{{ item.backdrop_url }}'); background-size: cover; background-position: center;{% elif item.prospect.backdrop_url %}background: linear-gradient(180deg, rgba(15, 23, 42, 0.84) 0%, rgba(11, 15, 25, 0.95) 100%), url('{{ item.prospect.backdrop_url }}'); background-size: cover; background-position: center;{% endif %}">
                             <!-- Monochromatic Status Strip -->
                             <div class="scout-grade-strip {% if item.unified_status == 'CONVERTED' %}strip-converted{% elif item.unified_status == 'READY' %}strip-ready{% elif item.unified_status == 'WATCHLIST' %}strip-watchlist{% elif item.unified_status == 'NOT_READY' %}strip-not-ready{% elif item.unified_status == 'ARCHIVED' %}strip-archived{% else %}strip-new{% endif %}"></div>
 
@@ -1096,6 +1097,13 @@
                                                     <span class="text-secondary opacity-40">&bull;</span>
                                                     <a href="{{ item.wikipedia_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-warning border-opacity-40 text-warning text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.75rem;">
                                                         Wiki
+                                                    </a>
+                                                {% endif %}
+
+                                                {% if item.backdrop_url or item.prospect.backdrop_url %}
+                                                    <span class="text-secondary opacity-40">&bull;</span>
+                                                    <a href="{{ item.backdrop_url|default:item.prospect.backdrop_url }}" target="_blank" rel="noopener noreferrer" class="badge bg-dark border border-secondary border-opacity-40 text-secondary text-decoration-none py-1 px-2.5 rounded-pill font-monospace" style="font-size:0.75rem;" title="Visa scoutad widescreen-bakgrund / banner">
+                                                        <i class="fa-regular fa-image me-1 text-emerald"></i>Backdrop
                                                     </a>
                                                 {% endif %}
                                             </div>

@@ -719,6 +719,13 @@ def engine_admin_dashboard_view(request: HttpRequest) -> HttpResponse:
             'has_penalties': raw_mf.get('has_penalties') if raw_mf.get('has_penalties') is not None else struct_seg.get('knockout_rules', {}).get('has_penalties', True),
         }
 
+        backdrop_url_val = (
+            general_seg.get('backdrop', {}).get('backdrop_url')
+            or p.backdrop_url
+            or payload.get('backdrop_url')
+            or ''
+        )
+
         scanned_data.append({
             'prospect': p,
             'unified_status': unified_status,
@@ -741,6 +748,7 @@ def engine_admin_dashboard_view(request: HttpRequest) -> HttpResponse:
             'action_needed': action_needed,
             'official_source_url': p.official_source_url or general_seg.get('official_website_url') or payload.get('master_event', {}).get('official_source_url') or '',
             'logo_url': logo_url_val,
+            'backdrop_url': backdrop_url_val,
             'wikipedia_url': wiki_url_val,
             'official_rules': official_rules_val,
             'points_system': pts_system_dict,

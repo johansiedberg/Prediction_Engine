@@ -1040,6 +1040,7 @@ class ScannedTournament(models.Model):
     official_source_url = models.URLField(max_length=500, blank=True, help_text="Direct URL to official federation/tournament website")
     official_rules = models.TextField(blank=True, default="", help_text="Extracted official format regulations and tiebreakers from LLM scan")
     logo_url = models.URLField(max_length=500, blank=True, help_text="Scouted logotype / emblem image URL")
+    backdrop_url = models.URLField(max_length=500, blank=True, default="", help_text="Scouted landscape backdrop / hero wallpaper image URL")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NEW')
     payload = models.JSONField(default=dict, help_text="Complete JSON payload from Gemini Tournament Scout")
     provenance_metadata = models.JSONField(default=dict, blank=True, help_text="Audit trail of field-level confidence and source URLs")
