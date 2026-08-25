@@ -53,7 +53,17 @@ class StructureRulesAgent:
         """
         audit = dict(audit_data or {})
 
-        # 0. Gemini AI Intelligence Enrichment
+        # 0a. Ingest data from Official Federation Portal if available
+        official_ingest = audit.get("official_ingest") or {}
+        if official_ingest:
+            if official_ingest.get("draw_date") and not audit.get("draw_date"):
+                audit["draw_date"] = official_ingest["draw_date"]
+            if "draw_completed" in official_ingest and not audit.get("draw_completed"):
+                audit["draw_completed"] = official_ingest["draw_completed"]
+            if official_ingest.get("qualification_pathway") and not audit.get("official_rules_summary"):
+                audit["official_rules_summary"] = official_ingest["qualification_pathway"]
+
+        # 0b. Gemini AI Intelligence Enrichment with Search Grounding
         from tournament.services.gemini_scout_service import GeminiScoutService
         gemini_rules = {}
         prior_draw_completed = bool(audit.get("draw_completed") or (audit.get("tournament_blueprint") or {}).get("draw_completed"))
@@ -80,7 +90,7 @@ class StructureRulesAgent:
                         # Do not overwrite confirmed draw_completed=True with False
                         if not prior_draw_completed:
                             audit["draw_completed"] = gemini_rules["draw_completed"]
-                    if gemini_rules.get("official_rules_summary"):
+                    if gemini_rules.get("official_rules_summary") and not audit.get("official_rules_summary"):
                         audit["official_rules_summary"] = gemini_rules["official_rules_summary"]
             except Exception as e:
                 logger.warning("StructureRulesAgent: Gemini rules scout error: %s", e)

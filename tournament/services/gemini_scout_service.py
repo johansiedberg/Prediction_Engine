@@ -24,8 +24,11 @@ class GeminiScoutService:
     """
 
     SUPPORTED_MODELS = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
         "gemini-flash-lite-latest",
-        "gemini-3.5-flash-lite",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash",
     ]
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -116,6 +119,101 @@ class GeminiScoutService:
 
             except requests.Timeout:
                 logger.warning("GeminiScoutService: Query to %s timed out after %.1fs. Abandoning search to keep pipeline moving.", model_name, timeout)
+                return None
+            except Exception as exc:
+                logger.warning("GeminiScoutService: Error calling %s: %s", model_name, exc)
+                return None
+
+        return None
+
+    @classmethod
+    def generate_json_with_metadata(
+        cls,
+        prompt: str,
+        system_instruction: Optional[str] = None,
+        search_grounding: bool = True,
+        temperature: float = 0.1,
+        timeout: float = 10.0,
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Executes a Gemini generation call with Google Search Grounding, parses the JSON response,
+        and extracts all grounded web source URLs and executed search queries.
+        """
+        api_key = cls.get_api_key()
+        if not api_key:
+            logger.warning("GeminiScoutService: GEMINI_API_KEY is not configured.")
+            return None
+
+        headers = {"Content-Type": "application/json"}
+        contents = []
+        if system_instruction:
+            contents.append({
+                "role": "user",
+                "parts": [{"text": f"System Guidelines:\n{system_instruction}\n\nTask:\n{prompt}"}]
+            })
+        else:
+            contents.append({
+                "role": "user",
+                "parts": [{"text": prompt}]
+            })
+
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+
+        for model_name in cls.SUPPORTED_MODELS:
+            url = f"{cls.BASE_URL}/{model_name}:generateContent?key={api_key}"
+            payload: Dict[str, Any] = {
+                "contents": contents,
+                "generationConfig": {
+                    "temperature": temperature,
+                }
+            }
+
+            if search_grounding:
+                payload["tools"] = [{"googleSearch": {}}]
+            else:
+                payload["generationConfig"]["response_mime_type"] = "application/json"
+
+            try:
+                if not GeminiRateLimiter.acquire(timeout=6.0):
+                    logger.warning("GeminiScoutService: Rate limiter acquire timed out for model %s.", model_name)
+                    return None
+
+                res = requests.post(url, headers=headers, json=payload, timeout=timeout)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        cand = candidates[0]
+                        parts = cand.get("content", {}).get("parts", [])
+                        raw_text = parts[0].get("text", "").strip() if parts else ""
+                        clean_json = cls._extract_json_block(raw_text)
+                        parsed_dict = json.loads(clean_json) if clean_json else {}
+
+                        # Extract grounding chunks / sources
+                        grounding_meta = cand.get("groundingMetadata", {})
+                        grounding_chunks = grounding_meta.get("groundingChunks", [])
+                        queries = grounding_meta.get("webSearchQueries", [])
+                        sources = []
+                        for chunk in grounding_chunks:
+                            web = chunk.get("web", {})
+                            if web and web.get("uri"):
+                                sources.append({
+                                    "url": web.get("uri"),
+                                    "title": web.get("title", ""),
+                                })
+
+                        return {
+                            "data": parsed_dict,
+                            "sources": sources,
+                            "search_queries": queries,
+                        }
+                elif res.status_code == 429:
+                    logger.warning("GeminiScoutService: Gemini model %s returned 429 Quota Exceeded. Enforcing backoff.", model_name)
+                    GeminiRateLimiter.record_429()
+                    break
+
+            except requests.Timeout:
+                logger.warning("GeminiScoutService: Query to %s timed out after %.1fs.", model_name, timeout)
                 return None
             except Exception as exc:
                 logger.warning("GeminiScoutService: Error calling %s: %s", model_name, exc)

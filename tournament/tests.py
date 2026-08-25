@@ -2249,3 +2249,69 @@ class DateFormattingAndNormalizationTestCase(TestCase):
         self.assertIsNone(MatchesKnockoutAgent._normalize_match_date(""))
 
 
+class OfficialSiteScoutAndIngestTestCase(TestCase):
+    """Tests for Official Federation Portal Discovery, Source Ranking, and Ingestion Engine."""
+
+    def test_official_source_ranking_scores(self):
+        from tournament.services.official_site_scout import OfficialSiteScout
+
+        # Official federation press release
+        caf_url = "https://www.cafonline.com/afcon2025/news/the-road-to-east-africa-mapped-out-the-qualifier-draw/"
+        meta_caf = OfficialSiteScout.rank_source_url(caf_url, "2027 Africa Cup of Nations")
+        self.assertEqual(meta_caf["category"], "OFFICIAL_FEDERATION")
+        self.assertGreaterEqual(meta_caf["score"], 85)
+
+        # Official CONCACAF regulations
+        concacaf_url = "https://www.concacaf.com/competitions/gold-cup/news/2027-concacaf-gold-cup-qualification-pathway-confirmed/"
+        meta_concacaf = OfficialSiteScout.rank_source_url(concacaf_url, "CONCACAF Gold Cup")
+        self.assertEqual(meta_concacaf["category"], "OFFICIAL_FEDERATION")
+        self.assertGreaterEqual(meta_concacaf["score"], 85)
+
+        # Trusted media
+        bbc_url = "https://www.bbc.com/sport/football/articles/c049d97yv4qo"
+        meta_bbc = OfficialSiteScout.rank_source_url(bbc_url, "2026 FIFA World Cup")
+        self.assertEqual(meta_bbc["category"], "TRUSTED_MEDIA")
+        self.assertGreaterEqual(meta_bbc["score"], 30)
+
+        # Wikipedia / Wiki registries
+        wiki_url = "https://en.wikipedia.org/wiki/2027_Africa_Cup_of_Nations"
+        meta_wiki = OfficialSiteScout.rank_source_url(wiki_url, "2027 Africa Cup of Nations")
+        self.assertEqual(meta_wiki["category"], "OPEN_REGISTRY")
+        self.assertEqual(meta_wiki["score"], 20)
+
+    @patch("requests.get")
+    def test_official_page_ingestion_draw_and_groups(self, mock_get):
+        from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.headers = {"Content-Type": "text/html"}
+        mock_resp.text = """
+        <html>
+          <body>
+            <h1>TotalEnergies CAF Africa Cup of Nations 2027</h1>
+            <p>The official qualifier draw concluded on 19 February 2026 in Cairo.</p>
+            <p>The top 2 teams in each group will advance directly to the final tournament.</p>
+            <div class="groups">
+              <p>Group A: Egypt, Ghana, Uganda, Somalia</p>
+              <p>Group B: Senegal, Mali, Benin, Liberia</p>
+            </div>
+          </body>
+        </html>
+        """
+        mock_get.return_value = mock_resp
+
+        verifier = OfficialRegulationsVerifier()
+        result = verifier.ingest_official_page(
+            "https://www.cafonline.com/afcon2027/news/draw-concluded/",
+            "2027 Africa Cup of Nations"
+        )
+        self.assertTrue(result["verified"])
+        self.assertEqual(result["draw_date"], "2026-02-19")
+        self.assertTrue(result["draw_completed"])
+        self.assertEqual(len(result["groups"]), 2)
+        self.assertEqual(result["groups"][0]["name"], "Group A")
+        self.assertEqual(len(result["groups"][0]["teams"]), 4)
+        self.assertEqual(result["groups"][0]["teams"][0]["name"], "Egypt")
+
+

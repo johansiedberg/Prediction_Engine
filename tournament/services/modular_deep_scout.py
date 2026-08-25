@@ -116,6 +116,17 @@ class ModularDeepScout:
         page_title = self.wiki_scout.get_article_title_from_url(wiki_url)
         if not page_title:
             page_title = scouting_audit.get('wikipedia_title') or ''
+        # 1. Discover Official Federation Portal & Ranked Sources via Google Search Grounding
+        from tournament.services.official_site_scout import OfficialSiteScout
+        ranked_sources = OfficialSiteScout.search_and_rank_tournament_sources(prospect.name, prospect.sport or "Football")
+        if ranked_sources:
+            top_src = ranked_sources[0]
+            if top_src.get("score", 0) >= 30 and top_src.get("url"):
+                official_url = top_src["url"]
+                prospect.official_source_url = official_url
+                payload.setdefault('master_event', {})['official_source_url'] = official_url
+                payload.setdefault('scouting_audit', {})['official_source_url'] = official_url
+
         if not page_title:
             page_title = self.wiki_scout.search_wikipedia_article(prospect.name)
 
@@ -130,24 +141,10 @@ class ModularDeepScout:
             if audit:
                 active_sources.append(f"Official Site Parser ({official_url})")
 
-        if not audit and (not official_url or 'wikipedia.org' in official_url):
-            from tournament.services.official_site_scout import OfficialSiteScout
-            disc_url = OfficialSiteScout.discover_official_site(prospect.name, wikipedia_title=page_title)
-            if disc_url:
-                official_url = disc_url
-                prospect.official_source_url = official_url
-                payload.setdefault('master_event', {})['official_source_url'] = official_url
-                payload.setdefault('scouting_audit', {})['official_source_url'] = official_url
-                prospect.payload = payload
-                prospect.save()
-                audit = self.llm_scout.audit_webpage_content(official_url, prospect.name)
-                if audit:
-                    active_sources.append(f"Official Site Parser ({official_url})")
-
         if not audit and (page_title or official_url):
             from tournament.services.gemini_scout_service import GeminiScoutService
             if GeminiScoutService.is_available():
-                logger.info("ModularDeepScout: Wikipedia unavailable, querying Gemini AI with Google Search Grounding for '%s'", prospect.name)
+                logger.info("ModularDeepScout: Querying Gemini AI with Google Search Grounding for '%s'", prospect.name)
                 gemini_struct = GeminiScoutService.scout_structure_and_rules(
                     tournament_name=prospect.name,
                     sport=prospect.sport or "Football",
@@ -167,6 +164,17 @@ class ModularDeepScout:
                 'ok': False,
                 'error': f'Kunde inte läsa källsida för "{prospect.name}".',
             }
+
+        # 1.4 Ingest Official Federation Portal Content & Press Releases
+        if official_url and 'wikipedia.org' not in official_url:
+            try:
+                official_ingest = self.verifier.ingest_official_page(official_url, prospect.name)
+                if official_ingest.get('verified'):
+                    domain_name = urllib.parse.urlparse(official_url).netloc
+                    active_sources.append(f"Official Federation Intelligence ({domain_name})")
+                audit['official_ingest'] = official_ingest
+            except Exception as exc:
+                logger.debug("ModularDeepScout: Official page ingestion warning for '%s': %s", prospect.name, exc)
 
         # Handle Disambiguation / Split Tournament Portal pages
 
