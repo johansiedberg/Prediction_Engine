@@ -283,8 +283,22 @@ class WikipediaScout:
                     if label_id.lower() not in EXCLUDED_LABELS and label_type.lower() not in EXCLUDED_LABELS:
                         grp_name = f"{label_type} {label_id}"
 
-                        # Find next standings table
+                        # Find next standings table within current section scope
                         tbl = h.find_next('table', class_='wikitable')
+                        next_h = h.find_next(re.compile(r'^h[2-4]$'))
+                        if tbl and next_h:
+                            # If another heading intervenes before the table, the table belongs to another section
+                            tbl_pos = len(list(tbl.previous_elements))
+                            next_h_pos = len(list(next_h.previous_elements))
+                            if tbl_pos > next_h_pos:
+                                tbl = None
+
+                        # Reject non-group tables (seeding pots, rankings, calendar)
+                        if tbl:
+                            th_txt = " ".join([th.get_text() for th in tbl.find_all('th')]).lower()
+                            if any(k in th_txt for k in ['pot 1', 'pot 2', 'pot 3', 'pot 4', 'seeding', 'allocation', 'criteria for final', 'matchday 1', 'matchday 2']):
+                                tbl = None
+
                         teams_in_tbl = []
                         if tbl:
                             for row in tbl.find_all('tr')[1:]:
@@ -310,7 +324,7 @@ class WikipediaScout:
                             groups.append({
                                 'name': grp_name,
                                 'is_second_stage': is_second_stage,
-                                'is_placeholder_group': is_second_stage or any(re.search(r'^[A-Z]\d', t) for t in teams_in_tbl),
+                                'is_placeholder_group': is_second_stage or any(re.search(r'^[A-Z]\d', t) for t in teams_in_tbl) or not teams_in_tbl,
                                 'teams': [{'name': t, 'is_placeholder': is_second_stage or bool(re.search(r'^[A-Z]\d', t))} for t in teams_in_tbl]
                             })
 
@@ -354,12 +368,17 @@ class WikipediaScout:
             # Placeholder code regex: 1E, 2D, W37, W40, A1, B2, TBD, 3C/D/F, 1st, 2nd etc.
             PLACEHOLDER_RE = re.compile(
                 r'^(?:TBD|TBC|[1-9][A-Z]|[A-Z][1-9]|[Ww]\d{1,3}|[1-9][a-z]{2}|'
-                r'[0-9]+[A-Z][/A-Z]*|Runner[\s\-]?up|Winner|Host)$',
+                r'[0-9]+[A-Z][/A-Z]*|Runner[\s\-]?up|Winner(?:\s+Match\s+\d+|\s+SF\d+|\s+QF\d+)?|Host)$',
                 re.IGNORECASE
             )
 
             def is_placeholder_team(name):
                 """Returns True if the name looks like a knockout bracket placeholder code."""
+                if not name:
+                    return True
+                from tournament.services.team_badge_service import TeamBadgeService
+                if TeamBadgeService.is_placeholder(name):
+                    return True
                 return bool(PLACEHOLDER_RE.match(name.strip()))
 
             def get_preceding_stage(elem):
@@ -376,9 +395,12 @@ class WikipediaScout:
                 group_part = ""
                 for h in headings:
                     t = re.sub(r'\[edit\]', '', h.get_text().strip(), flags=re.I).strip()
+                    # Filter out non-match section headers: criteria, ranking, seeding, tiebreakers, overview, etc.
+                    if re.search(r'\b(?:criteria|ranking|seeding|pot|allocation|tiebreaker|overview|format|schedule)\b', t, re.I):
+                        continue
                     if re.search(r'\b(?:league|division)\s+[A-D]\b', t, re.IGNORECASE) and not league_part:
                         league_part = t
-                    if re.search(r'\b(?:group|pool)\s+[A-Z0-9]\b|quarter|semi|final|round|playoff', t, re.IGNORECASE) and not group_part:
+                    if re.search(r'\b(?:group|pool)\s+[A-Z0-9]\b|quarter|semi|final|round\s+of|playoff', t, re.IGNORECASE) and not group_part:
                         group_part = t
 
                 if league_part and group_part and league_part.lower() not in group_part.lower():
@@ -470,36 +492,37 @@ class WikipediaScout:
                 away_t  = away_el.get_text().strip()  if away_el  else ''
                 venue_t = venue_el.get_text().strip() if venue_el else ''
 
-                full_text = ' '.join(fbox.get_text().split())
-                date_m = re.search(DATE_RE, full_text)
-                time_m = re.search(TIME_RE, full_text)
+                if home_t and away_t:
+                    full_text = ' '.join(fbox.get_text().split())
+                    date_m = re.search(DATE_RE, full_text)
+                    time_m = re.search(TIME_RE, full_text)
 
-                # --- Strategy 1b: NLP Placeholder Fallback ---
-                # When class-based extraction returns empty (knockout placeholder matches),
-                # parse the raw text block for codes like '1E Match 39 2D' or 'W37 Match 46 W40'
-                if (not home_t or not away_t):
-                    # Pattern: [CODE] Match [NUM] [CODE]  (knockout bracket placeholder)
-                    m_ko = re.search(
-                        r'\b((?:[0-9]+[A-Za-z/]+|[A-Za-z]+[0-9]+|TBD|[Ww]\d+))\s+'
-                        r'Match\s+(\d+)\s+'
-                        r'((?:[0-9]+[A-Za-z/]+|[A-Za-z]+[0-9]+|TBD|[Ww]\d+))\b',
-                        full_text, re.IGNORECASE
-                    )
-                    if m_ko:
-                        home_t  = m_ko.group(1).upper()
-                        away_t  = m_ko.group(3).upper()
-                        match_num_ko = int(m_ko.group(2))
-                        add_fixture(fbox, home_t, away_t,
-                                    date_m.group(1) if date_m else '',
-                                    time_m.group(1) if time_m else '',
-                                    venue_t, 'Strategy_1b_Footballbox_KO_Placeholder',
-                                    match_num=match_num_ko)
-                        continue  # already added, skip generic add below
+                    # --- Strategy 1b: NLP Placeholder Fallback ---
+                    # When class-based extraction returns empty (knockout placeholder matches),
+                    # parse the raw text block for codes like '1E Match 39 2D' or 'W37 Match 46 W40'
+                    if (not home_t or not away_t):
+                        # Pattern: [CODE] Match [NUM] [CODE]  (knockout bracket placeholder)
+                        m_ko = re.search(
+                            r'\b((?:[0-9]+[A-Za-z/]+|[A-Za-z]+[0-9]+|TBD|[Ww]\d+))\s+'
+                            r'Match\s+(\d+)\s+'
+                            r'((?:[0-9]+[A-Za-z/]+|[A-Za-z]+[0-9]+|TBD|[Ww]\d+))\b',
+                            full_text, re.IGNORECASE
+                        )
+                        if m_ko:
+                            home_t  = m_ko.group(1).upper()
+                            away_t  = m_ko.group(3).upper()
+                            match_num_ko = int(m_ko.group(2))
+                            add_fixture(fbox, home_t, away_t,
+                                        date_m.group(1) if date_m else '',
+                                        time_m.group(1) if time_m else '',
+                                        venue_t, 'Strategy_1b_Footballbox_KO_Placeholder',
+                                        match_num=match_num_ko)
+                            continue  # already added, skip generic add below
 
-                add_fixture(fbox, home_t, away_t,
-                            date_m.group(1) if date_m else '',
-                            time_m.group(1) if time_m else '',
-                            venue_t, 'Strategy_1_Footballbox')
+                    add_fixture(fbox, home_t, away_t,
+                                date_m.group(1) if date_m else '',
+                                time_m.group(1) if time_m else '',
+                                venue_t, 'Strategy_1_Footballbox')
 
             # --- Strategy 2: Class Containers (vevent, fevent, handballbox, basketballbox, icehockeybox) ---
             match_containers = soup.find_all(
@@ -571,15 +594,24 @@ class WikipediaScout:
                                 venue_t, 'Strategy_3b_NLP_TableMining')
 
             # --- Strategy 5: Cross-Table & Group-Adjacent Match Matrix Mining ---
-            # Supports round-robin & Nations League group tables where home/away fixture dates or scores
-            # are embedded as a cross-table matrix (e.g. 2026–27 UEFA Nations League).
+            # Supports round-robin group tables ONLY where home/away fixture dates or scores
+            # are embedded as a cross-table matrix (header row and first column have matching teams).
             matrix_count = 0
             for tbl in soup.find_all('table', class_=re.compile(r'wikitable')):
                 prev_h = tbl.find_previous(re.compile(r'^h[2-4]$'))
-                gname = prev_h.get_text().strip() if prev_h else 'Gruppspel'
+                prev_h_txt = prev_h.get_text().strip() if prev_h else ''
+                # Strictly reject tables under non-fixture headers (criteria, seeding, rankings, tiebreakers)
+                if re.search(r'\b(?:criteria|ranking|seeding|pot|allocation|tiebreaker|overview|format|schedule|standings)\b', prev_h_txt, re.I):
+                    continue
 
                 rows = tbl.find_all('tr')
                 if len(rows) < 3:
+                    continue
+
+                # Check if header row contains standings keywords
+                header_row = rows[0]
+                th_headers = [th.get_text().strip() for th in header_row.find_all(['th', 'td'])]
+                if any(h in ['Pts', 'Pld', 'W', 'D', 'L', 'GF', 'GA', 'GD', 'Pos', 'Team', 'Lag', 'P', 'V', 'O', 'F', 'GM', 'IM', 'MS'] for h in th_headers):
                     continue
 
                 teams_in_matrix = []
@@ -592,7 +624,7 @@ class WikipediaScout:
                     for cell in tds[:3]:
                         txt = cell.get_text().strip()
                         clean = re.sub(r'^\d+\s*', '', txt).strip()
-                        if clean and not clean.isdigit() and len(clean) > 2 and not re.search(r'qualification|promotion|relegation|play.?off', clean, re.IGNORECASE):
+                        if clean and not clean.isdigit() and len(clean) > 2 and not re.search(r'qualification|promotion|relegation|play.?off|criteria|ranking|seeding|pot', clean, re.IGNORECASE):
                             tname = clean
                             break
                     if tname:

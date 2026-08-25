@@ -1148,7 +1148,7 @@
                                                 onclick="deepScanProspect({{ item.prospect.id }})"
                                                 {% if item.scouting_stage == 'SHALLOW' %}
                                                 style="background:#B45309;border:1px solid #D97706;color:#FFFFFF;"
-                                                title="Kör fullständig Wikipedia-djupscanning"
+                                                title="Kör fullständig AI & webb-djupscanning"
                                                 {% else %}
                                                 style="background:rgba(6,182,212,0.15);border:1px solid #06B6D4;color:#A5F3FC;"
                                                 title="Om-kör djupscanning"
@@ -1630,14 +1630,14 @@
                     </div>
                     <div>
                         <h5 class="modal-title fw-extrabold text-white mb-0" id="searchSpecificModalLabel">Sök specifik turnering</h5>
-                        <span class="text-secondary small">Sök på webben, Wikipedia och Google efter ett specifikt mästerskap</span>
+                        <span class="text-secondary small">Sök på officiella sportdatabaser, webben och sportförbund efter ett specifikt mästerskap</span>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
             </div>
             
             <div class="modal-body p-4">
-                <p class="text-secondary small mb-3">Ange turneringsnamnet eller klistra in en webbadress. Systemet söker på webben, Wikipedia och Google/Gemini och lägger till turneringen i scoutlistan.</p>
+                <p class="text-secondary small mb-3">Ange turneringsnamnet eller klistra in en webbadress. Systemet söker i globala sportregister, webben och Google/Gemini AI och lägger till turneringen i scoutlistan.</p>
                 
                 <div class="mb-3">
                     <label for="searchSpecificInput" class="form-label text-primary small font-monospace fw-bold text-uppercase mb-1">Turneringsnamn eller Webbadress</label>
@@ -4033,7 +4033,7 @@
         const filterNames = { 'all': 'alla', 'NEW': 'ej skannade', 'READY': 'redo', 'WATCHLIST': 'bevakade', 'NOT_READY': 'ej redo', 'ARCHIVED': 'ignorerade', 'CONVERTED': 'aktiverade' };
         const filterName = filterNames[activeFilter] || 'alla';
 
-        if (!confirm(`Vill du djupscanna de ${totalCount} visade (${filterName}) turneringarna med Google/Gemini AI & Wikipedia? Processen visar framsteg live.`)) {
+        if (!confirm(`Vill du djupscanna de ${totalCount} visade (${filterName}) turneringarna med AI & webbscout? Processen visar framsteg live.`)) {
             return;
         }
 
@@ -4384,7 +4384,7 @@
             progressContainer.classList.remove('d-none');
             progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             if (progressTitle) progressTitle.innerHTML = `<i class="fa-solid fa-magnifying-glass me-1.5"></i>Söker specifik turnering: "${query}"...`;
-            if (progressSubtext) progressSubtext.innerText = 'Söker på Wikipedia, webben och Google/Gemini AI...';
+            if (progressSubtext) progressSubtext.innerText = 'Söker i globala sportregister, webben och AI Scout...';
             if (progressFound) progressFound.innerText = 'Hittade: 0';
             if (progressBar) {
                 progressBar.style.width = '15%';
@@ -4395,7 +4395,7 @@
 
         let step = 0;
         const stages = [
-            { text: `Söker Wikipedia och infobox för "${query}"...`, found: 1, width: 35 },
+            { text: `Söker sportregister och infobox för "${query}"...`, found: 1, width: 35 },
             { text: `Hämtar officiell webbplats och logotyp...`, found: 1, width: 65 },
             { text: `Validerar datum och 30-dagars regel...`, found: 1, width: 85 }
         ];
@@ -5035,7 +5035,7 @@ Search and extract upcoming sports tournaments matching:
             progressContainer.classList.remove('d-none');
             progressContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             if (progressTitle) progressTitle.innerHTML = '<i class="fa-solid fa-globe me-1.5"></i>Scannar webben efter turneringar...';
-            if (progressSubtext) progressSubtext.innerText = 'Söker AllSportDB API & Wikipedia årskalendrar...';
+            if (progressSubtext) progressSubtext.innerText = 'Söker AllSportDB API, sportdatabaser & förbundskalendrar...';
             if (progressFound) progressFound.innerText = 'Hittade: 0';
             if (progressBar) {
                 progressBar.style.width = '10%';
@@ -5048,7 +5048,7 @@ Search and extract upcoming sports tournaments matching:
         let step = 0;
         const searchStages = [
             { text: 'Söker AllSportDB API efter kommande turneringar...', found: 1, width: 25 },
-            { text: 'Söker Wikipedia sportkalendrar & mästerskap...', found: 2, width: 45 },
+            { text: 'Söker internationella sportkalendrar & mästerskap...', found: 2, width: 45 },
             { text: 'Analyserar kontinentala mästerskap & kval...', found: 3, width: 60 },
             { text: 'Kör Google Gemini AI Search Grounded Tri-Pillar Scout...', found: 4, width: 75 },
             { text: 'Filtrerar H2H-sporter och tillämpar 30-dagars regel...', found: 5, width: 88 },

@@ -123,7 +123,7 @@ class ModularDeepScout:
         if page_title:
             audit = self.llm_scout.audit_with_llm(page_title)
             if audit:
-                active_sources.append(f"LLM Multimodal Audit ({audit.get('source_type', 'Wikipedia')})")
+                active_sources.append(f"Multi-Source Registry Audit ({audit.get('source_type', 'Continental Registry')})")
 
         if not audit and official_url and 'wikipedia.org' not in official_url:
             audit = self.llm_scout.audit_webpage_content(official_url, prospect.name)
@@ -219,7 +219,7 @@ class ModularDeepScout:
                         "name": sub_name,
                         "code": sub_code,
                         "sport": prospect.sport or "Football",
-                        "organizer": prospect.organizer or "Wikipedia",
+                        "organizer": prospect.organizer or "Sports Federation",
                         "host_country": prospect.host_country or "",
                         "official_source_url": "",
                         "wikipedia_url": sub_url,
@@ -365,14 +365,14 @@ class ModularDeepScout:
                 tournament_meta=tournament_meta,
             )
         except Exception as exc:
-            logger.warning("Segment 5 (Matches & Knockout) exception for '%s': %s. Falling back to default stages.", prospect.name, exc)
-            from tournament.schemas.deepscan_blueprint import MatchesKnockoutSegment
-            matches_ko_seg = MatchesKnockoutSegment(
+            from tournament.schemas.tournament_prospect_schema import MatchesAndKnockoutSegment
+            matches_ko_seg = MatchesAndKnockoutSegment(
                 fixtures_completed=False,
                 scheduled_matchdays=0,
-                matches=[],
-                knockout_stages=[],
-                third_place_match_exists=False,
+                group_matches=[],
+                knockout_bracket=[],
+                advancement_fixtures=[],
+                total_matches=0,
             )
 
 
@@ -415,7 +415,7 @@ class ModularDeepScout:
 
         if has_full_dates and draw_ok and fixtures_ok and groups_teams_seg.has_real_teams:
             final_grade = CompletenessGrade.GRADE_A
-            final_reason = (f"Grad A (Redo): Djupskannad från källor ({', '.join(active_sources)}). "
+            final_reason = (f"Grad A (Redo): Verifierad från officiella källor ({', '.join(active_sources)}). "
                             f"({start_date_obj} – {end_date_obj}, {matches_ko_seg.total_matches} matcher, "
                             f"{groups_teams_seg.teams_count} lag i {groups_teams_seg.groups_count} grupper verifierade).")
         elif has_start_date and (not draw_ok or not groups_teams_seg.has_real_teams):

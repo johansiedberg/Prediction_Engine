@@ -9,6 +9,8 @@ Agnostic Deepscan Agent that parses fixtures, advancement formulas, and knockout
 """
 
 import logging
+import re
+import datetime
 from typing import Optional, Dict, Any, List
 
 from tournament.schemas.tournament_prospect_schema import (
@@ -187,13 +189,37 @@ class MatchesKnockoutAgent:
             team_cache[clean] = meta
             return meta
 
-        # 1. Group Matches Parsing
+        # 1. Group Matches vs Knockout Matches Separation
         group_matches: List[GroupMatchEntry] = []
+        extra_knockout_matches: List[Dict[str, Any]] = []
         if raw_fixtures:
             for idx, f in enumerate(raw_fixtures, start=1):
                 if isinstance(f, dict):
-                    h_team = f.get("home_team") or f.get("home") or ""
-                    a_team = f.get("away_team") or f.get("away") or ""
+                    h_team = (f.get("home_team") or f.get("home") or "").strip()
+                    a_team = (f.get("away_team") or f.get("away") or "").strip()
+                    stage_raw = (f.get("stage_or_group") or f.get("group") or "Group Stage").strip()
+
+                    # Sanitize stage name: remove non-match suffixes (criteria, ranking, seeding, tiebreakers, etc.)
+                    stage_clean = re.sub(r'\s*-\s*(?:criteria.*|ranking.*|seeding.*|pots.*|tiebreaker.*|overview.*|format.*)$', '', stage_raw, flags=re.I).strip()
+                    if not stage_clean:
+                        stage_clean = "Group Stage"
+
+                    # Detect if fixture is a knockout / playoff / bracket match
+                    is_ko_stage = bool(re.search(r'\b(?:final|finals|semi|quarter|playoff|bracket|knockout|3rd\s*place|third\s*place|round\s*of\s*\d+)\b', stage_clean, re.I))
+                    h_is_winner_ph = bool(re.search(r'\b(?:winner|loser|runner-up)\s+(?:match|m\d+|game|qf|sf)\b', h_team, re.I))
+                    a_is_winner_ph = bool(re.search(r'\b(?:winner|loser|runner-up)\s+(?:match|m\d+|game|qf|sf)\b', a_team, re.I))
+
+                    if is_ko_stage or h_is_winner_ph or a_is_winner_ph:
+                        # Route bracket fixture to knockout list rather than group matches
+                        extra_knockout_matches.append({
+                            "stage": stage_clean,
+                            "home_team": h_team,
+                            "away_team": a_team,
+                            "date_time": f.get("date_time") or f.get("date"),
+                            "venue": f.get("venue") or "",
+                        })
+                        continue
+
                     h_meta = _resolve_team_meta(h_team)
                     a_meta = _resolve_team_meta(a_team)
 
@@ -206,8 +232,8 @@ class MatchesKnockoutAgent:
                     dt_clean = cls._normalize_match_date(dt_raw, f.get("time"))
 
                     group_matches.append(GroupMatchEntry(
-                        match_number=f.get("match_number", idx),
-                        stage_or_group=f.get("stage_or_group") or f.get("group") or "Group Stage",
+                        match_number=len(group_matches) + 1,
+                        stage_or_group=stage_clean,
                         home_team=h_team,
                         away_team=a_team,
                         home_team_code=h_code,
@@ -221,8 +247,14 @@ class MatchesKnockoutAgent:
                         is_placeholder=bool(f.get("is_placeholder", False)) or h_meta["is_placeholder"] or a_meta["is_placeholder"],
                     ))
 
-        # Fallback: Generate round-robin match fixtures from groups if fixtures empty
-        if not group_matches and groups_segment and groups_segment.groups:
+        # Fallback: Generate round-robin match fixtures ONLY when draw is officially confirmed AND real groups exist
+        can_generate_rr = bool(
+            groups_segment
+            and groups_segment.groups
+            and groups_segment.has_real_teams
+            and audit.get("draw_completed")
+        )
+        if not group_matches and can_generate_rr:
             match_num = 1
             for g in groups_segment.groups:
                 t_list = g.teams
