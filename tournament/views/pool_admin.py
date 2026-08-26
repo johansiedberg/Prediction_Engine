@@ -379,10 +379,33 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
     stages_qs = tournament.knockout_stages.all().order_by('order', 'id')
     stages_list = list(stages_qs)
 
+    def _clean_stage_name(stage_name):
+        low = stage_name.lower()
+        if 'second group' in low or 'andra grupp' in low or 'mellanrunda' in low or 'main round' in low:
+            return 'Andra gruppspelet'
+        elif '32' in low or 'play-off' in low or 'playoff' in low or 'sextondel' in low:
+            return 'Sextondelsfinal'
+        elif '16' in low or 'åttondel' in low or 'eighth' in low:
+            return 'Åttondelsfinal'
+        elif 'quarter' in low or 'kvarts' in low or 'qf' in low:
+            return 'Kvartsfinal'
+        elif 'semi' in low or 'sf' in low:
+            return 'Semifinal'
+        elif 'bronze' in low or '3rd' in low or '3:e' in low or 'tredje' in low or 'brons' in low:
+            return 'Bronsmatch'
+        elif 'final' in low or 'guld' in low:
+            return 'Final'
+        else:
+            return stage_name
+
+    knockout_stages_list = []
     if stages_list:
-        first_stage = stages_list[0].name
+        for s in stages_list:
+            knockout_stages_list.append(_clean_stage_name(s.name))
+        first_stage = knockout_stages_list[0]
         knockout_summary = f"Startar med {first_stage} ({len(stages_list)} slutspelsomgångar)."
     else:
+        knockout_stages_list = ['Åttondelsfinal', 'Kvartsfinal', 'Semifinal', 'Final']
         knockout_summary = "Slutspelsträd enligt officiellt spelschema."
 
     def _map_stage(stage_name, default_order=0):
@@ -446,6 +469,7 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
         'teams_per_group_advancing': teams_per_group_adv,
         'qualifying_summary': qualifying_summary,
         'knockout_summary': knockout_summary,
+        'knockout_stages': knockout_stages_list,
         'points_win': points_win,
         'points_draw': points_draw,
         'points_loss': points_loss,

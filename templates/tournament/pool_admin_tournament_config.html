@@ -161,9 +161,13 @@
                                 </li>
                                 <li class="py-2 d-flex flex-column">
                                     <span class="text-secondary mb-1">Slutspelsstruktur (Knockout Stage):</span>
-                                    <strong class="text-white">
-                                        {{ structure_data.knockout_summary }}
-                                    </strong>
+                                    <div class="d-flex flex-column" style="gap: 2px;">
+                                        {% for stage_name in structure_data.knockout_stages %}
+                                        <strong class="text-white">{{ stage_name }}</strong>
+                                        {% empty %}
+                                        <strong class="text-white">{{ structure_data.knockout_summary }}</strong>
+                                        {% endfor %}
+                                    </div>
                                 </li>
                             </ul>
                         </div>
