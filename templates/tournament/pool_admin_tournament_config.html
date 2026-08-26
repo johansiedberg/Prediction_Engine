@@ -932,10 +932,9 @@
                                 </td>
                                 <td class="text-center py-2 px-2">
                                     {% if p.last_login %}
-                                    <div class="d-inline-flex flex-column align-items-center justify-content-center px-2 py-1 rounded-2" style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); line-height: 1.2;" title="Senaste inloggning: {{ p.last_login|date:'Y-m-d H:i:s' }}">
-                                        <span class="fw-bold" style="color: #93c5fd; font-size: 0.74rem;">{{ p.last_login|date:"Y-m-d" }}</span>
-                                        <span class="text-white-50" style="font-size: 0.65rem;">{{ p.last_login|date:"H:i" }}</span>
-                                    </div>
+                                    <span class="badge px-2 py-1.5 fw-bold d-inline-flex align-items-center rounded-2" style="background: rgba(59, 130, 246, 0.12); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.25); font-size: 0.74rem;" title="Senaste inloggning: {{ p.last_login|date:'Y-m-d H:i:s' }}">
+                                        {{ p.last_login|date:"Y-m-d" }}
+                                    </span>
                                     {% else %}
                                     <span class="badge px-2 py-1.5 fw-bold d-inline-flex align-items-center gap-1 rounded-2" style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.22); font-size: 0.74rem;">
                                         <i class="fa-solid fa-user-clock opacity-50"></i>Aldrig
