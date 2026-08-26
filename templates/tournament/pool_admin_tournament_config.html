@@ -58,7 +58,7 @@
     </div>
 
     <!-- STICKY FLOW NAVIGATOR -->
-    <div id="flow-nav-container" class="sticky-top flow-nav-bar py-2.5 px-4 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2" style="top: 0; z-index: 1040;">
+    <div id="flow-nav-container" class="sticky-top flow-nav-bar py-2.5 px-4 mb-4 d-flex align-items-center" style="top: 0; z-index: 1040;">
         <div class="d-flex flex-wrap align-items-center gap-1.5" style="font-size: 0.88rem;">
             <span id="flow-nav-sec-set-points" class="flow-nav-item flow-nav-active" onclick="scrollToSection('sec-set-points')">
                 <i class="fa-solid fa-calculator me-1 text-warning"></i>1. Poängregler
@@ -74,11 +74,6 @@
             <span class="text-white opacity-40 mx-1">&rarr;</span>
             <span id="flow-nav-sec-progress-matrix" class="flow-nav-item" onclick="scrollToSection('sec-progress-matrix')">
                 <i class="fa-solid fa-chart-simple me-1 text-primary"></i>4. Deltagarmatris &amp; Status
-            </span>
-        </div>
-        <div class="d-none d-md-flex align-items-center gap-2 pe-1">
-            <span class="badge px-2.5 py-1 text-white fw-bold" style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.2); font-size: 0.78rem;">
-                <i class="fa-solid fa-trophy text-warning me-1"></i>{{ tournament.name }}
             </span>
         </div>
     </div>
