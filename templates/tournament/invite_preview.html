@@ -1,0 +1,358 @@
+{% extends "tournament/base.html" %}
+{% load static %}
+
+{% block title %}Inbjudningsmall & HTML-struktur – Preview{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 1000px;">
+
+    <!-- Top Navigation / Breadcrumb -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'pool_admin_hub' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                <i class="fa-solid fa-arrow-left me-1"></i>Tillbaka till Pooler
+            </a>
+            <span class="badge bg-dark border border-secondary text-info px-3 py-1.5 fw-bold">
+                <i class="fa-solid fa-envelope-open-text me-1.5"></i>Inbjudningsmall Preview (Draft)
+            </span>
+        </div>
+        <div>
+            <span class="text-white-50 small">Interaktiv förhandsgranskning &amp; HTML-struktur</span>
+        </div>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="row g-4">
+
+        <!-- LEFT COLUMN: Live Controls & Inputs -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(148, 163, 184, 0.2) !important; border-radius: 16px;">
+                <div class="card-header border-bottom border-secondary border-opacity-20 py-3 px-4">
+                    <h6 class="fw-bold text-white mb-0"><i class="fa-solid fa-sliders text-warning me-2"></i>Variabler &amp; Parametrar</h6>
+                </div>
+                <div class="card-body p-4">
+                    <form id="inviteForm" onsubmit="event.preventDefault(); updatePreview();">
+                        <div class="mb-3">
+                            <label class="form-label text-white small fw-semibold">Turnering</label>
+                            <input type="text" id="inputTournament" class="form-control form-control-sm bg-dark text-white border-secondary" value="2026 Men's World Floorball Championship">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white small fw-semibold">Poolnamn</label>
+                            <input type="text" id="inputLeague" class="form-control form-control-sm bg-dark text-white border-secondary" value="Herrklubben Mästerskap 2026">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white small fw-semibold">Pool ID / Inbjudningskod</label>
+                            <input type="text" id="inputInviteCode" class="form-control form-control-sm bg-dark text-white border-secondary font-monospace" value="HK2026">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white small fw-semibold">Deltagarens Namn</label>
+                            <input type="text" id="inputPlayerName" class="form-control form-control-sm bg-dark text-white border-secondary" value="Alexander Isak">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white small fw-semibold">Deltagarens E-post</label>
+                            <input type="email" id="inputPlayerEmail" class="form-control form-control-sm bg-dark text-white border-secondary" value="alexander.isak@example.com">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white small fw-semibold">Avsändare (Pool Admin)</label>
+                            <input type="text" id="inputAdminName" class="form-control form-control-sm bg-dark text-white border-secondary" value="Johan S">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-white small fw-semibold">Inloggnings- / Direktlänk</label>
+                            <input type="text" id="inputLoginUrl" class="form-control form-control-sm bg-dark text-white border-secondary font-monospace" value="http://127.0.0.1:2028/login/">
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Interactive Tabs & Preview Card -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(59, 130, 246, 0.3) !important; border-radius: 16px;">
+                <div class="card-header border-bottom border-secondary border-opacity-20 py-3 px-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <!-- Nav Tabs -->
+                    <ul class="nav nav-pills gap-1 p-1 rounded-3" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.2);">
+                        <li class="nav-item">
+                            <button class="nav-link active btn-sm py-1 px-3 fw-bold" id="tab-visual-btn" data-bs-toggle="pill" data-bs-target="#tab-visual" type="button" style="border-radius: 6px; font-size: 0.8rem;">
+                                <i class="fa-solid fa-eye me-1.5"></i>Visuell E-post
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link btn-sm py-1 px-3 fw-bold" id="tab-plain-btn" data-bs-toggle="pill" data-bs-target="#tab-plain" type="button" style="border-radius: 6px; font-size: 0.8rem;">
+                                <i class="fa-solid fa-align-left me-1.5"></i>Klartext (Text)
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link btn-sm py-1 px-3 fw-bold" id="tab-html-btn" data-bs-toggle="pill" data-bs-target="#tab-html" type="button" style="border-radius: 6px; font-size: 0.8rem;">
+                                <i class="fa-solid fa-code me-1.5"></i>HTML-Källkod
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-info rounded-pill fw-bold px-3" onclick="copyCurrentContent()" id="copyMainBtn">
+                            <i class="fa-solid fa-copy me-1.5"></i>Kopiera
+                        </button>
+                        <a id="liveMailtoBtn" href="#" class="btn btn-sm btn-success rounded-pill fw-bold px-3.5 shadow-sm" style="color: #ffffff;">
+                            <i class="fa-solid fa-paper-plane me-1.5"></i>Testa Mailto
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="tab-content">
+
+                        <!-- TAB 1: VISUELL HTML E-POSTMALL -->
+                        <div class="tab-pane fade show active" id="tab-visual" role="tabpanel">
+                            <!-- Simulated Email Client Container -->
+                            <div class="p-3 mb-3 rounded-3" style="background: rgba(11, 15, 25, 0.95); border: 1px solid rgba(148, 163, 184, 0.2);">
+                                <div class="d-flex align-items-center gap-2 small text-white-50 mb-1">
+                                    <strong class="text-white">Till:</strong> <span id="previewToEmail">alexander.isak@example.com</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 small text-white-50">
+                                    <strong class="text-white">Ämne:</strong> <span id="previewSubject" class="text-warning fw-semibold">Inbjudan: Var med och tippa 2026 Men's World Floorball Championship i Herrklubben Mästerskap 2026!</span>
+                                </div>
+                            </div>
+
+                            <!-- Styled Email Card with Full 100% Dark Canvas Wrapper -->
+                            <div id="emailCardHtml" style="width: 100%;">
+                                <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#0b0f19" style="background-color: #0b0f19; width: 100% !important; min-width: 100% !important; margin: 0; padding: 20px 0; border-collapse: collapse; -webkit-text-size-adjust: 100%;">
+                                    <tr>
+                                        <td align="center" valign="top" bgcolor="#0b0f19" style="background-color: #0b0f19; padding: 0 12px;">
+                                            <!-- Fluid Inner Card (Responsive max-width: 560px) -->
+                                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; width: 100%; margin: 0 auto; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                                                
+                                                <!-- Email Header with Gradient & Branding -->
+                                                <tr>
+                                                    <td align="center" style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); padding: 30px 24px 22px 24px; border-bottom: 1px solid #334155;">
+                                                        <div style="margin-bottom: 10px;">
+                                                            <img id="emailCardLogoImg" src="{% static 'tournament/img/main_logo.webp' %}" alt="Mästerskapstips" style="height: 65px; max-width: 170px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));" />
+                                                        </div>
+                                                        <h2 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.3px; text-transform: uppercase;" id="emailCardLeagueName">Herrklubben Mästerskap 2026</h2>
+                                                        <div style="margin-top: 5px; color: #94a3b8; font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">Mästerskapstips</div>
+                                                    </td>
+                                                </tr>
+
+                                                <!-- Email Body -->
+                                                <tr>
+                                                    <td style="padding: 28px 24px;">
+                                                        <h3 style="margin: 0 0 12px 0; color: #ffffff; font-size: 18px; font-weight: 700;">
+                                                            Hej <span id="emailCardPlayerName">Alexander Isak</span>! 👋
+                                                        </h3>
+                                                        
+                                                        <p style="margin: 0 0 20px 0; color: #cbd5e1; font-size: 15px; line-height: 1.65;">
+                                                            Nu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i <strong style="color: #fbbf24;" id="emailCardTournament">2026 Men's World Floorball Championship</strong> i vår pool <strong style="color: #ffffff;" id="emailCardLeague">Herrklubben Mästerskap 2026</strong>. Här står ära, prestige och evig berömmelse på spel – sätt tipparna på plats och visa vem som är mästerskapets sanna expert!
+                                                        </p>
+
+                                                        <!-- Highlight Box: Instructions -->
+                                                        <div style="background: #1e293b; border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 12px; padding: 18px 20px; margin-bottom: 24px;">
+                                                            <div style="font-size: 12px; font-weight: 800; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;">
+                                                                ⚡ SÅ HÄR GÖR DU FÖR ATT DELTA:
+                                                            </div>
+                                                            <div style="font-size: 13px; color: #e2e8f0; line-height: 1.65;">
+                                                                <div style="margin-bottom: 8px;"><strong style="color: #3b82f6;">1.</strong> Klicka på den gröna knappen nedan (eller din personliga direktlänk).</div>
+                                                                <div style="margin-bottom: 8px;"><strong style="color: #3b82f6;">2.</strong> Välj ditt lösenord för ditt konto: <span style="font-family: monospace; color: #34d399; font-weight: 700;" id="emailCardEmailBox">alexander.isak@example.com</span>.</div>
+                                                                <div style="margin-bottom: 8px;"><strong style="color: #3b82f6;">3.</strong> Fyll i dina mästartips för <strong>Gruppspel</strong>, <strong>Slutspel</strong> samt <strong>Bonusfrågor</strong>.</div>
+                                                                <div><strong style="color: #3b82f6;">4.</strong> Följ dina tips och klättra i poängtabellen mot evig ära!</div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Call To Action Button -->
+                                                        <div style="text-align: center; margin-bottom: 24px;">
+                                                            <a id="emailCardCtaBtn" href="https://217.35.171.173:2028/login/" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; text-decoration: none; font-weight: 800; font-size: 14px; padding: 13px 32px; border-radius: 10px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+                                                                Aktivera Konto &amp; Fyll i dina Tips &rarr;
+                                                            </a>
+                                                        </div>
+
+                                                        <p style="margin: 0; color: #94a3b8; font-size: 13px; line-height: 1.5; text-align: center;">
+                                                            Lycka till och må bäste tippare vinna! 🎯
+                                                        </p>
+                                                    </td>
+                                                </tr>
+
+                                                <!-- Email Footer -->
+                                                <tr>
+                                                    <td align="center" style="background-color: #0b0f19; padding: 18px 20px; text-align: center; border-top: 1px solid #1e293b; color: #94a3b8; font-size: 12px;">
+                                                        Inbjudan skickad av <strong style="color: #ffffff;" id="emailCardAdmin">Johan S</strong> (Pool-Administratör)
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: KLARTEXT (PLAIN TEXT) -->
+                        <div class="tab-pane fade" id="tab-plain" role="tabpanel">
+                            <p class="text-white-50 small mb-2">Standardiserad klartext för e-postmeddelanden och meddelandeappar (WhatsApp / Slack / SMS):</p>
+                            <textarea id="plainTextOutput" class="form-control font-monospace text-white small" rows="16" style="background: #0b0f19; border: 1px solid rgba(148,163,184,0.25); line-height: 1.55;" readonly></textarea>
+                        </div>
+
+                        <!-- TAB 3: HTML-KÄLLKOD -->
+                        <div class="tab-pane fade" id="tab-html" role="tabpanel">
+                            <p class="text-white-50 small mb-2">Ren inline-HTML redo för utskick via e-posttjänster (SendGrid, Mailgun, SMTP eller Outlook):</p>
+                            <textarea id="htmlCodeOutput" class="form-control font-monospace text-info small" rows="16" style="background: #0b0f19; border: 1px solid rgba(148,163,184,0.25); line-height: 1.45;" readonly></textarea>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+function getFormData() {
+    return {
+        tournament: document.getElementById('inputTournament').value.trim() || "2026–27 UEFA Nations League",
+        league: document.getElementById('inputLeague').value.trim() || "Process Improvement",
+        playerName: document.getElementById('inputPlayerName').value.trim() || "Deltagare",
+        playerEmail: document.getElementById('inputPlayerEmail').value.trim() || "terece.siedberg@gmail.com",
+        adminName: document.getElementById('inputAdminName').value.trim() || "Pool-Admin",
+        loginUrl: document.getElementById('inputLoginUrl').value.trim() || "https://217.35.171.173:2028/login/"
+    };
+}
+
+function updatePreview() {
+    const data = getFormData();
+    const subject = `Inbjudan: Var med och tippa ${data.tournament} i ${data.league}!`;
+
+    // 1. Update Simulated Header
+    document.getElementById('previewToEmail').innerText = `${data.playerName} <${data.playerEmail}>`;
+    document.getElementById('previewSubject').innerText = subject;
+
+    // 2. Update Visual Email Card
+    document.getElementById('emailCardLeagueName').innerText = data.league;
+    document.getElementById('emailCardPlayerName').innerText = data.playerName;
+    document.getElementById('emailCardTournament').innerText = data.tournament;
+    document.getElementById('emailCardLeague').innerText = data.league;
+    document.getElementById('emailCardEmailBox').innerText = data.playerEmail;
+    document.getElementById('emailCardAdmin').innerText = data.adminName;
+    document.getElementById('emailCardCtaBtn').href = data.loginUrl;
+
+    // 3. Build Plain Text Format
+    const plainText = `Ämne: ${subject}
+
+Hej ${data.playerName}!
+
+Nu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i turneringen ${data.tournament} i vår pool "${data.league}". Här står ära, prestige och evig berömmelse på spel – sätt tipparna på plats och visa vem som är mästerskapets sanna expert!
+
+--------------------------------------------------
+SÅ HÄR GÖR DU FÖR ATT DELTA:
+1. Klicka på din personliga direktlänk: ${data.loginUrl || 'https://217.35.171.173:2028'}
+2. Välj ditt lösenord för ditt konto (${data.playerEmail}).
+3. Fyll i dina mästartips för Gruppspel, Slutspel samt Bonusfrågor.
+4. Följ dina tips och klättra i poängtabellen mot evig ära!
+--------------------------------------------------
+
+Lycka till och må bäste tippare vinna!
+
+Vänliga hälsningar,
+${data.adminName}
+Pool-Administratör för ${data.league}`;
+
+    document.getElementById('plainTextOutput').value = plainText;
+
+    // 4. Build Full Standalone HTML with Absolute Image URLs
+    const emailClone = document.getElementById('emailCardHtml').cloneNode(true);
+    emailClone.querySelectorAll('img').forEach(img => {
+        const src = img.getAttribute('src');
+        if (src && src.startsWith('/')) {
+            img.setAttribute('src', window.location.origin + src);
+        }
+    });
+
+    const emailHtmlMarkup = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>${subject}</title></head>
+<body style="margin: 0; padding: 20px; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+${emailClone.outerHTML}
+</body>
+</html>`;
+    document.getElementById('htmlCodeOutput').value = emailHtmlMarkup;
+
+    // 5. Update Live Mailto URL with Safe Encoding
+    const mailtoBody = `Hej ${data.playerName}!\n\nNu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i ${data.tournament} i vår pool "${data.league}". Här står ära, prestige och evig berömmelse på spel – visa vem som är mästerskapets sanna expert!\n\n--------------------------------------------------\nSÅ HÄR GÖR DU FÖR ATT DELTA:\n1. Gå till: https://217.35.171.173:2028\n2. Logga in med din e-post: ${data.playerEmail}\n3. Fyll i dina tips för gruppspel, slutspel och bonusfrågor.\n4. Följ dina tips och klättra i poängtabellen mot evig ära!\n--------------------------------------------------\n\nLycka till!\n\nVänliga hälsningar,\n${data.adminName} (${data.league})`;
+
+    const mailtoHref = `mailto:${encodeURIComponent(data.playerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailtoBody)}`;
+    document.getElementById('liveMailtoBtn').href = mailtoHref;
+}
+
+function copyCurrentContent() {
+    const activeTab = document.querySelector('.nav-pills .nav-link.active').id;
+    const btn = document.getElementById('copyMainBtn');
+    
+    if (activeTab === 'tab-visual-btn') {
+        const richEl = document.getElementById('emailCardHtml');
+        const plainText = document.getElementById('plainTextOutput').value;
+        if (richEl && window.ClipboardItem && navigator.clipboard) {
+            const clone = richEl.cloneNode(true);
+            const originalImages = richEl.querySelectorAll('img');
+            const cloneImages = clone.querySelectorAll('img');
+
+            cloneImages.forEach((img, idx) => {
+                const origImg = originalImages[idx];
+                let converted = false;
+                if (origImg && origImg.complete && origImg.naturalWidth > 0) {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = origImg.naturalWidth;
+                        canvas.height = origImg.naturalHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(origImg, 0, 0);
+                        const dataUrl = canvas.toDataURL('image/png');
+                        if (dataUrl && dataUrl.startsWith('data:image/png')) {
+                            img.setAttribute('src', dataUrl);
+                            converted = true;
+                        }
+                    } catch (e) {
+                        console.warn('Canvas error:', e);
+                    }
+                }
+                if (!converted) {
+                    const src = img.getAttribute('src');
+                    if (src && src.startsWith('/')) {
+                        img.setAttribute('src', window.location.origin + src);
+                    }
+                }
+            });
+
+            const htmlBlob = new Blob([clone.outerHTML], { type: 'text/html' });
+            const textBlob = new Blob([plainText], { type: 'text/plain' });
+            const item = new ClipboardItem({
+                'text/html': htmlBlob,
+                'text/plain': textBlob
+            });
+            navigator.clipboard.write([item]).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles text-success me-1.5"></i>Formatering Kopierad!';
+                setTimeout(() => { btn.innerHTML = orig; }, 2000);
+            });
+            return;
+        }
+    }
+    
+    let textToCopy = (activeTab === 'tab-html-btn') ? document.getElementById('htmlCodeOutput').value : document.getElementById('plainTextOutput').value;
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check text-success me-1.5"></i>Kopierad!';
+            setTimeout(() => { btn.innerHTML = orig; }, 2000);
+        });
+    }
+}
+
+// Attach event listeners for real-time live typing updates
+document.addEventListener('DOMContentLoaded', () => {
+    ['inputTournament', 'inputLeague', 'inputInviteCode', 'inputPlayerName', 'inputPlayerEmail', 'inputAdminName', 'inputLoginUrl'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updatePreview);
+    });
+    updatePreview();
+});
+</script>
+{% endblock %}

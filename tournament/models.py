@@ -722,6 +722,10 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, verbose_name="Profilbild / Avatar")
     last_selected_tournament = models.ForeignKey(Tournament, on_delete=models.SET_NULL, null=True, blank=True, related_name='selected_by_profiles')
+    must_set_password = models.BooleanField(default=False, verbose_name="Måste välja lösenord")
+    terms_accepted = models.BooleanField(default=False, verbose_name="Godkänt Användaravtal")
+    terms_accepted_at = models.DateTimeField(null=True, blank=True, verbose_name="Godkände Användaravtal datum")
+    terms_version = models.CharField(max_length=20, default="2026-08-26", verbose_name="Avtalsversion")
 
     def get_avatar_url(self):
         if self.avatar and hasattr(self.avatar, 'url'):

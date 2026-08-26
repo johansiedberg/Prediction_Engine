@@ -2373,8 +2373,14 @@ class PoolAdminTournamentConfigTestCase(TestCase):
 
     def setUp(self):
         self.admin = User.objects.create_user(username='poolboss', email='boss@example.com', password='password123', first_name='Boss')
+        self.admin.profile.terms_accepted = True
+        self.admin.profile.save()
         self.player1 = User.objects.create_user(username='player1', email='p1@example.com', password='password123', first_name='Anna')
+        self.player1.profile.terms_accepted = True
+        self.player1.profile.save()
         self.player2 = User.objects.create_user(username='player2', email='p2@example.com', password='password123', first_name='Björn')
+        self.player2.profile.terms_accepted = True
+        self.player2.profile.save()
 
         self.league = League.objects.create(name='Test Poolen', admin=self.admin, invite_code='TESTP1')
         LeagueMember.objects.create(league=self.league, player=self.admin, is_verified=True)
@@ -2461,8 +2467,8 @@ class PoolAdminTournamentConfigTestCase(TestCase):
         kalle = User.objects.get(email='kalle@example.com')
         self.assertEqual(kalle.first_name, 'Kalle')
 
-        # Verify user in league members
-        self.assertTrue(LeagueMember.objects.filter(league=self.league, player=kalle).exists())
+        # Verify user NOT in pool/league members (only tournament-specific)
+        self.assertFalse(LeagueMember.objects.filter(league=self.league, player=kalle).exists())
 
         # Verify user linked to tournament
         self.assertTrue(self.tournament.players.filter(id=kalle.id).exists())
@@ -2490,6 +2496,209 @@ class PoolAdminTournamentConfigTestCase(TestCase):
         )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.tournament.players.count(), 0)
+
+    def test_toggle_tournament_submission_verification(self):
+        client = Client()
+        client.force_login(self.admin)
+
+        # Toggle on
+        resp = client.post(
+            f'/pool-admin/{self.league.id}/tournament/{self.tournament.id}/verify-submission/{self.player1.id}/',
+            HTTP_HOST='localhost:2028',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['is_verified'])
+
+        # Toggle off
+        resp2 = client.post(
+            f'/pool-admin/{self.league.id}/tournament/{self.tournament.id}/verify-submission/{self.player1.id}/',
+            HTTP_HOST='localhost:2028',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(resp2.status_code, 200)
+        data2 = resp2.json()
+        self.assertTrue(data2['success'])
+        self.assertFalse(data2['is_verified'])
+
+
+class MagicLinkAuthTestCase(TestCase):
+    """Verifies magic link passwordless login, forced password setup, and Pool Admin magic link workflows."""
+
+    def setUp(self):
+        self.admin = User.objects.create_user(username='admin_boss', email='boss@pool.test', password='password123', first_name='Boss')
+        self.admin.profile.terms_accepted = True
+        self.admin.profile.save()
+        self.league = League.objects.create(name='Magic Pool', admin=self.admin, invite_code='MAGIC1')
+        LeagueMember.objects.create(league=self.league, player=self.admin, is_verified=True)
+
+        self.tournament = Tournament.objects.create(
+            name="World Championship 2026",
+            sport="Football",
+            admin=self.admin,
+            start_date=datetime.date(2026, 6, 1),
+            end_date=datetime.date(2026, 7, 1)
+        )
+        self.league.tournaments.add(self.tournament)
+
+    def test_magic_token_generation_and_verification(self):
+        from tournament.utils.magic_link import generate_magic_token, verify_magic_token
+        user = User.objects.create_user(username='newbie', email='newbie@test.com', first_name='New')
+        token = generate_magic_token(user, self.league.id)
+        self.assertIsInstance(token, str)
+
+        payload = verify_magic_token(token)
+        self.assertIsNotNone(payload)
+        self.assertEqual(payload['user_id'], user.id)
+        self.assertEqual(payload['league_id'], self.league.id)
+
+    def test_magic_login_forces_password_setup_for_unusable_password_user(self):
+        from tournament.utils.magic_link import generate_magic_token
+        user = User.objects.create(username='invited_user', email='invited@test.com', first_name='Invited')
+        user.set_unusable_password()
+        user.save()
+        user.profile.must_set_password = True
+        user.profile.save()
+
+        token = generate_magic_token(user, self.league.id)
+        client = Client()
+        resp = client.get(f'/auth/magic/{token}/', HTTP_HOST='localhost:2028', follow=True)
+        self.assertEqual(resp.status_code, 200)
+
+        # Verified that user is logged in
+        self.assertEqual(int(client.session['_auth_user_id']), user.id)
+        # Verified that user is redirected to set_password page
+        self.assertTemplateUsed(resp, 'tournament/set_password.html')
+
+    def test_set_password_view_and_middleware(self):
+        user = User.objects.create(username='setpwd_user', email='setpwd@test.com', first_name='SetPwd')
+        user.set_unusable_password()
+        user.save()
+        user.profile.must_set_password = True
+        user.profile.terms_accepted = False
+        user.profile.save()
+
+        client = Client()
+        client.force_login(user)
+
+        # 1. Middleware should block dashboard and force redirect to /auth/set-password/
+        resp = client.get('/dashboard/', HTTP_HOST='localhost:2028', follow=False)
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(resp.url, '/auth/set-password/')
+
+        # 2. Submit valid password but without accepting terms
+        resp_no_terms = client.post('/auth/set-password/', {'password': 'mypassword123', 'confirm_password': 'mypassword123'}, HTTP_HOST='localhost:2028')
+        self.assertEqual(resp_no_terms.status_code, 200)
+        user.profile.refresh_from_db()
+        self.assertFalse(user.profile.terms_accepted)
+        self.assertTrue(user.profile.must_set_password)
+
+        # 3. Submit mismatched passwords with terms
+        resp_bad = client.post('/auth/set-password/', {'password': 'mypassword', 'confirm_password': 'different', 'accept_terms': 'on'}, HTTP_HOST='localhost:2028')
+        self.assertEqual(resp_bad.status_code, 200)
+        user.profile.refresh_from_db()
+        self.assertTrue(user.profile.must_set_password)
+
+        # 4. Submit valid password AND accept terms
+        resp_good = client.post('/auth/set-password/', {'password': 'mypassword123', 'confirm_password': 'mypassword123', 'accept_terms': 'on'}, HTTP_HOST='localhost:2028', follow=True)
+        self.assertEqual(resp_good.status_code, 200)
+
+        user.refresh_from_db()
+        user.profile.refresh_from_db()
+        self.assertFalse(user.profile.must_set_password)
+        self.assertTrue(user.profile.terms_accepted)
+        self.assertIsNotNone(user.profile.terms_accepted_at)
+        self.assertEqual(user.profile.terms_version, "2026-08-26")
+        self.assertTrue(user.check_password('mypassword123'))
+
+        # 5. Now dashboard is fully accessible
+        resp_dash = client.get('/dashboard/', HTTP_HOST='localhost:2028')
+        self.assertEqual(resp_dash.status_code, 200)
+
+    def test_terms_page_and_registration(self):
+        client = Client()
+
+        # 1. Public Terms page works
+        resp = client.get('/terms/', HTTP_HOST='localhost:2028')
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "ANVÄNDARAVTAL")
+        self.assertContains(resp, "TJÄNSTENS SYFTE OCH BEGRÄNSNINGAR")
+        self.assertContains(resp, "Stödlinjen")
+        self.assertContains(resp, "Spelpaus")
+
+        # 2. Registration requires terms acceptance
+        resp_reg_fail = client.post('/register/', {
+            'first_name': 'Kalle',
+            'last_name': 'Anka',
+            'email': 'kalle@anka.test',
+            'password1': 'secretPass123',
+            'password2': 'secretPass123',
+        }, HTTP_HOST='localhost:2028')
+        self.assertEqual(resp_reg_fail.status_code, 200)
+        self.assertFalse(User.objects.filter(email='kalle@anka.test').exists())
+
+        # 3. Registration succeeds when terms accepted
+        resp_reg_ok = client.post('/register/', {
+            'first_name': 'Kalle',
+            'last_name': 'Anka',
+            'email': 'kalle@anka.test',
+            'password1': 'secretPass123',
+            'password2': 'secretPass123',
+            'accept_terms': 'on'
+        }, HTTP_HOST='localhost:2028', follow=True)
+        self.assertEqual(resp_reg_ok.status_code, 200)
+
+        created_user = User.objects.filter(email='kalle@anka.test').first()
+        self.assertIsNotNone(created_user)
+        self.assertTrue(created_user.profile.terms_accepted)
+        self.assertEqual(created_user.profile.terms_version, "2026-08-26")
+
+    def test_pool_admin_add_participant_without_password(self):
+        client = Client()
+        client.force_login(self.admin)
+
+        resp = client.post(
+            f'/pool-admin/{self.league.id}/add-player/',
+            {
+                'first_name': 'Zlatan',
+                'last_name': 'Ibrahimovic',
+                'email': 'zlatan@milan.test',
+                'tournament_id': self.tournament.id
+            },
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        created_user = User.objects.filter(email='zlatan@milan.test').first()
+        self.assertIsNotNone(created_user)
+        self.assertEqual(created_user.first_name, 'Zlatan')
+        self.assertFalse(created_user.has_usable_password())
+        self.assertTrue(created_user.profile.must_set_password)
+
+    def test_pool_admin_reset_player_password_endpoint(self):
+        player = User.objects.create_user(username='regular_player', email='reg@test.com', password='oldpassword123', first_name='Reg')
+        self.league.members.create(player=player, is_verified=True)
+
+        client = Client()
+        client.force_login(self.admin)
+
+        resp = client.post(
+            f'/pool-admin/{self.league.id}/player/{player.id}/reset-password/',
+            HTTP_HOST='localhost:2028',
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertIn('/auth/magic/', data['magic_link'])
+
+        player.profile.refresh_from_db()
+        self.assertTrue(player.profile.must_set_password)
+
+
 
 
 

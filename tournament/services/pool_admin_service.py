@@ -3,9 +3,9 @@ from django.utils import timezone
 from tournament.models import League, LeagueMember, Tournament, Match, MatchPrediction, TournamentSubmission, Sidebet, SidebetAnswer
 
 def get_player_progress_matrix(league, tournament):
-    """Compute shallow player progress monitoring matrix for Pool-Admin.
+    """Compute player progress monitoring matrix for Pool-Admin.
     Returns list of dicts with player info and prediction completion status."""
-    members = LeagueMember.objects.filter(league=league).select_related('player')
+    players = tournament.players.all().distinct().order_by('first_name', 'last_name', 'email')
     players_data = []
     
     all_group_matches = Match.objects.filter(tournament=tournament, group__isnull=False)
@@ -16,8 +16,8 @@ def get_player_progress_matrix(league, tournament):
     total_knockout = all_knockout_matches.count()
     total_sidebets = all_sidebets.count()
     
-    for member in members:
-        player = member.player
+    for player in players:
+        member = LeagueMember.objects.filter(league=league, player=player).first()
         submission = TournamentSubmission.objects.filter(tournament=tournament, player=player).first()
         
         group_preds = MatchPrediction.objects.filter(match__in=all_group_matches, player=player).count()
@@ -40,7 +40,7 @@ def get_player_progress_matrix(league, tournament):
             'email': player.email,
             'date_joined': player.date_joined,
             'last_login': player.last_login,
-            'is_verified': member.is_verified,
+            'is_verified': member.is_verified if member else True,
             'has_started': has_any_pred,
             'group_predicted': group_preds,
             'group_total': total_group,

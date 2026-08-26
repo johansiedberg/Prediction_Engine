@@ -85,6 +85,11 @@ class UserRegistrationForm(forms.Form):
             'style': 'letter-spacing: 1.5px; font-weight: 700; color: #FBBF24;'
         })
     )
+    accept_terms = forms.BooleanField(
+        required=True,
+        label="Jag godkänner Användaravtalet",
+        error_messages={'required': 'Du måste godkänna Användaravtalet (Terms & Conditions) för att skapa ett konto.'}
+    )
 
     def clean_email(self):
         email = self.cleaned_data['email']

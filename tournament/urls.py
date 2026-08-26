@@ -3,6 +3,7 @@ from django.contrib.auth.views import LogoutView
 from .views import (
     CustomLoginView, register_view, dashboard_view, predictions_view, upload_avatar_view,
     hub_view, join_league_view, switch_league_view, sso_login_view,
+    magic_login_view, set_password_view, terms_view, accept_terms_view,
     # Engine Admin (Port 2029)
     engine_admin_dashboard_view, engine_admin_validate_tournament,
     engine_admin_simulate_tournament, engine_admin_reset_simulation,
@@ -29,15 +30,22 @@ from .views import (
     pool_admin_add_player_view, pool_admin_remove_player_view,
     update_pool_points_view, add_pool_sidebet_view,
     pool_admin_add_self_view, pool_admin_reset_password_view,
+    pool_admin_reset_player_password_view,
     toggle_tournament_player_view, toggle_pool_tournament_view,
     pool_admin_bulk_toggle_players_view,
     update_pool_admin_email_view,
+    toggle_tournament_submission_verification_view,
+    invite_preview_view,
 )
 
 urlpatterns = [
     path('', CustomLoginView.as_view(), name='login'),
     path('login/', CustomLoginView.as_view(), name='login_explicit'),
     path('register/', register_view, name='register'),
+    path('auth/magic/<str:token>/', magic_login_view, name='magic_login'),
+    path('auth/set-password/', set_password_view, name='set_password'),
+    path('terms/', terms_view, name='terms'),
+    path('terms/accept/', accept_terms_view, name='accept_terms'),
     path('sso/login/', sso_login_view, name='sso_login'),
     path('hub/', hub_view, name='hub'),
     path('dashboard/', dashboard_view, name='dashboard'),
@@ -52,6 +60,7 @@ urlpatterns = [
     path('pool-admin/', pool_admin_hub_view, name='pool_admin_hub'),
     path('pool-admin/create/', create_pool_direct_view, name='create_pool_direct'),
     path('pool-admin/update-email/', update_pool_admin_email_view, name='update_pool_admin_email'),
+    path('pool-admin/invite-preview/', invite_preview_view, name='invite_preview'),
     path('pool-admin/request/', request_pool_admin_view, name='request_pool_admin'),
     path('pool-admin/<int:league_id>/', pool_admin_dashboard_view, name='pool_admin_dashboard'),
     path('pool-admin/<int:league_id>/tournament/<int:tournament_id>/', pool_admin_tournament_config_view, name='pool_admin_tournament_config'),
@@ -62,10 +71,12 @@ urlpatterns = [
     path('pool-admin/<int:league_id>/add-self/', pool_admin_add_self_view, name='pool_admin_add_self'),
     path('pool-admin/<int:league_id>/remove-player/<int:member_id>/', pool_admin_remove_player_view, name='pool_admin_remove_player'),
     path('pool-admin/<int:league_id>/reset-password/<int:member_id>/', pool_admin_reset_password_view, name='pool_admin_reset_password'),
+    path('pool-admin/<int:league_id>/player/<int:player_id>/reset-password/', pool_admin_reset_player_password_view, name='pool_admin_reset_player_password'),
     path('pool-admin/<int:league_id>/points/', update_pool_points_view, name='update_pool_points'),
     path('pool-admin/<int:league_id>/sidebet/', add_pool_sidebet_view, name='add_pool_sidebet'),
     path('pool-admin/<int:league_id>/toggle-player/<int:tournament_id>/<int:user_id>/', toggle_tournament_player_view, name='toggle_tournament_player'),
     path('pool-admin/<int:league_id>/toggle-tournament/<int:tournament_id>/', toggle_pool_tournament_view, name='toggle_pool_tournament'),
+    path('pool-admin/<int:league_id>/tournament/<int:tournament_id>/verify-submission/<int:user_id>/', toggle_tournament_submission_verification_view, name='toggle_tournament_submission_verification'),
 
     # Engine Admin Routes (Port 2029)
     path('engine-admin/', engine_admin_dashboard_view, name='engine_admin'),

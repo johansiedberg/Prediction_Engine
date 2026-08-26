@@ -115,6 +115,13 @@ def register_view(request):
                 last_name=last_name,
             )
 
+            # Set terms accepted
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.terms_accepted = True
+            profile.terms_accepted_at = timezone.now()
+            profile.terms_version = "2026-08-26"
+            profile.save()
+
             # Auto-join league if invite code provided
             if invite_code:
                 league = League.objects.filter(invite_code__iexact=invite_code, is_active=True).first()
@@ -175,4 +182,126 @@ def sso_login_view(request):
     login(request, user)
     
     return redirect('hub')
+
+
+def magic_login_view(request, token):
+    """
+    Passwordless login via signed one-click magic link.
+    Authenticates user, sets active pool context, and redirects to mandatory password setup if needed.
+    """
+    from tournament.utils.magic_link import verify_magic_token
+    payload = verify_magic_token(token)
+    if not payload or not payload.get('user_id'):
+        messages.error(request, "Inbjudningslänken är ogiltig eller har gått ut. Kontakta din pool-administratör.")
+        return redirect('login')
+
+    user = User.objects.filter(id=payload['user_id']).first()
+    if not user:
+        messages.error(request, "Användarkontot kunde inte hittas.")
+        return redirect('login')
+
+    # Authenticate and login session
+    login(request, user, backend='tournament.backends.EmailAuthBackend')
+
+    league_id = payload.get('league_id')
+    if league_id:
+        league = League.objects.filter(id=league_id, is_active=True).first()
+        if league:
+            LeagueMember.objects.get_or_create(league=league, player=user)
+            request.session['active_league_id'] = league.id
+
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    if profile.must_set_password or not user.has_usable_password() or not profile.terms_accepted:
+        messages.info(request, f"Välkommen {user.first_name or user.username}! Välj ditt lösenord och godkänn användaravtalet för att aktivera ditt konto.")
+        return redirect('set_password')
+
+    messages.success(request, f"Välkommen tillbaka, {user.first_name or user.username}!")
+    return redirect('/dashboard/?tab=predictions')
+
+
+def terms_view(request):
+    """
+    Publicly accessible Terms and Conditions view (Användaravtal).
+    """
+    return render(request, 'tournament/terms.html')
+
+
+@login_required
+def accept_terms_view(request):
+    """
+    Dedicated view/modal fallback for existing authenticated users to review and accept terms.
+    """
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        accept = request.POST.get('accept_terms')
+        if not accept:
+            messages.error(request, "Du måste markera att du godkänner Användaravtalet för att fortsätta.")
+            return render(request, 'tournament/terms.html', {'require_acceptance': True})
+
+        profile.terms_accepted = True
+        profile.terms_accepted_at = timezone.now()
+        profile.terms_version = "2026-08-26"
+        profile.save()
+
+        messages.success(request, "Tack! Du har godkänt Användaravtalet.")
+        next_url = request.POST.get('next', request.GET.get('next', '/dashboard/?tab=predictions'))
+        return redirect(next_url)
+
+    if profile.terms_accepted:
+        return redirect('/dashboard/?tab=predictions')
+
+    return render(request, 'tournament/terms.html', {'require_acceptance': True})
+
+
+@login_required
+def set_password_view(request):
+    """
+    Mandatory first-time password setup and Terms & Conditions acceptance view for invited users.
+    """
+    from django.contrib.auth import update_session_auth_hash
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        password = request.POST.get('password', '').strip()
+        confirm_password = request.POST.get('confirm_password', '').strip()
+        accept_terms = request.POST.get('accept_terms')
+
+        if not accept_terms:
+            messages.error(request, "Du måste läsa och godkänna Användaravtalet för att aktivera ditt konto.")
+            return render(request, 'tournament/set_password.html', {'profile': profile})
+
+        if not password:
+            messages.error(request, "Vänligen ange ett lösenord.")
+            return render(request, 'tournament/set_password.html', {'profile': profile})
+
+        if len(password) < 4:
+            messages.error(request, "Lösenordet måste innehålla minst 4 tecken.")
+            return render(request, 'tournament/set_password.html', {'profile': profile})
+
+        if password != confirm_password:
+            messages.error(request, "Lösenorden matchar inte varandra.")
+            return render(request, 'tournament/set_password.html', {'profile': profile})
+
+        # Save new password and mark terms accepted
+        request.user.set_password(password)
+        request.user.save()
+
+        profile.must_set_password = False
+        profile.terms_accepted = True
+        profile.terms_accepted_at = timezone.now()
+        profile.terms_version = "2026-08-26"
+        profile.save()
+
+        # Keep user logged in with updated password hash
+        update_session_auth_hash(request, request.user)
+
+        messages.success(request, "Ditt lösenord har sparats och användaravtalet är godkänt! Välkommen till mästerskapstipset.")
+        return redirect('/dashboard/?tab=predictions')
+
+    return render(request, 'tournament/set_password.html', {
+        'profile': profile,
+    })
+
 

@@ -1,0 +1,146 @@
+{% load static %}<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="sv">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Inbjudan till {{ tournament.name }}</title>
+    <style type="text/css">
+        @media only screen and (max-width: 600px) {
+            .email-container { width: 100% !important; border-radius: 8px !important; }
+            .header-cell { padding: 24px 16px !important; }
+            .body-cell { padding: 20px 16px !important; }
+            .cta-btn { display: block !important; width: 100% !important; box-sizing: border-box !important; padding: 14px 10px !important; }
+            .step-box { padding: 14px 12px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc; -webkit-font-smoothing: antialiased;">
+
+    <!-- Wrapper Table -->
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #0b0f19; table-layout: fixed; padding: 20px 8px;">
+        <tr>
+            <td align="center" valign="top">
+                
+                <!-- Fluid Container Card (Responsive max-width: 560px) -->
+                <table class="email-container" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);">
+                    
+                    <!-- 1. Header Banner with Dynamic/Default Logo -->
+                    <tr>
+                        <td class="header-cell" align="center" style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); padding: 30px 24px 22px 24px; border-bottom: 1px solid #334155;">
+                            <div style="margin-bottom: 12px;">
+                                {% if league.logo %}
+                                <img src="{{ request.scheme }}://{{ request.get_host }}{{ league.logo.url }}" alt="{{ league.name }}" style="height: 65px; max-width: 180px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));" />
+                                {% else %}
+                                <img src="{{ request.scheme }}://{{ request.get_host }}{% static 'tournament/img/main_logo.webp' %}" alt="Mästerskapstips" style="height: 65px; max-width: 180px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));" />
+                                {% endif %}
+                            </div>
+                            <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.3px; text-transform: uppercase;">
+                                {{ league.name }}
+                            </h1>
+                            <div style="margin-top: 5px; color: #94a3b8; font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">
+                                Mästerskapstips
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- 2. Main Content Body -->
+                    <tr>
+                        <td class="body-cell" style="padding: 28px 24px;">
+                            
+                            <!-- Greeting & High-Energy Intro -->
+                            <div style="font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 12px;">
+                                Hej {{ p.name }}! 👋
+                            </div>
+                            
+                            <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.65; color: #cbd5e1;">
+                                Nu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i <strong style="color: #fbbf24;">{{ tournament.name }}</strong> i vår pool <strong style="color: #ffffff;">{{ league.name }}</strong>. Här står ära, prestige och evig berömmelse på spel – sätt tipparna på plats och visa vem som är mästerskapets sanna expert!
+                            </p>
+
+                            <!-- Clean 4-Step Instructions Box -->
+                            <table class="step-box" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #1e293b; border: 1px solid #3b82f6; border-radius: 12px; margin-bottom: 24px;">
+                                <tr>
+                                    <td style="padding: 18px 20px;">
+                                        <div style="color: #60a5fa; font-size: 12px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 14px;">
+                                            ⚡ SÅ HÄR GÖR DU FÖR ATT DELTA:
+                                        </div>
+                                        
+                                        <!-- Step 1: Click Link / Button -->
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 10px;">
+                                            <tr>
+                                                <td width="24" valign="top" style="color: #3b82f6; font-weight: 800; font-size: 14px;">1.</td>
+                                                <td style="color: #e2e8f0; font-size: 14px; line-height: 1.5;">
+                                                    Klicka på den gröna knappen nedan (eller din personliga direktlänk).
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <!-- Step 2: Set Password -->
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 10px;">
+                                            <tr>
+                                                <td width="24" valign="top" style="color: #3b82f6; font-weight: 800; font-size: 14px;">2.</td>
+                                                <td style="color: #e2e8f0; font-size: 14px; line-height: 1.5;">
+                                                    Välj ditt lösenord för ditt konto: <strong style="color: #34d399; font-family: monospace;">{{ p.email|default:player_email }}</strong>.
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <!-- Step 3: Predictions -->
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 10px;">
+                                            <tr>
+                                                <td width="24" valign="top" style="color: #3b82f6; font-weight: 800; font-size: 14px;">3.</td>
+                                                <td style="color: #e2e8f0; font-size: 14px; line-height: 1.5;">
+                                                    Fyll i dina mästartips för <strong>Gruppspel</strong>, <strong>Slutspel</strong> samt <strong>Bonusfrågor</strong>.
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                        <!-- Step 4: Leaderboard Climb -->
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                            <tr>
+                                                <td width="24" valign="top" style="color: #3b82f6; font-weight: 800; font-size: 14px;">4.</td>
+                                                <td style="color: #e2e8f0; font-size: 14px; line-height: 1.5;">
+                                                    Följ dina tips och klättra i poängtabellen mot evig ära!
+                                                </td>
+                                            </tr>
+                                        </table>
+
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Call To Action Button -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 22px;">
+                                <tr>
+                                    <td align="center">
+                                        <a class="cta-btn" href="{{ magic_link|default:'https://217.35.171.173:2028/login/' }}" target="_blank" style="display: inline-block; background-color: #10b981; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 800; padding: 13px 32px; border-radius: 10px; text-align: center; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+                                            Aktivera Konto &amp; Fyll i dina Tips &rarr;
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #94a3b8; text-align: center;">
+                                Lycka till och må bäste tippare vinna! 🎯
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- 3. Clean Footer -->
+                    <tr>
+                        <td align="center" style="background-color: #0b0f19; padding: 18px 20px; border-top: 1px solid #1e293b;">
+                            <div style="font-size: 13px; color: #94a3b8;">
+                                Inbjudan skickad av <strong>{{ league.admin.get_full_name|default:league.admin.email }}</strong> (Pool-Administratör)
+                            </div>
+                        </td>
+                    </tr>
+
+                </table>
+                <!-- End Fluid Container -->
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

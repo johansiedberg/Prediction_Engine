@@ -96,6 +96,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'tournament.middleware.EngineAdminPortMiddleware',
+    'tournament.middleware.MustSetPasswordMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'

@@ -39,8 +39,39 @@ class EngineAdminPortMiddleware:
                 return self.get_response(request)
             else:
                 return redirect('/')
-        else:
-            if path.startswith('/engine-admin/'):
-                raise Http404("Engine Admin does not exist on this port.")
+        return self.get_response(request)
+
+
+class MustSetPasswordMiddleware:
+    """
+    Forces any logged-in user whose profile has must_set_password=True or terms_accepted=False
+    to complete password selection and Terms & Conditions acceptance before accessing any other application pages.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated:
+            if request.user.is_superuser:
+                return self.get_response(request)
+
+            path = request.path
+            allowed_prefixes = (
+                '/auth/set-password/',
+                '/terms/',
+                '/logout/',
+                '/engine-admin/',
+                '/static/',
+                '/media/',
+            )
+            if not any(path.startswith(prefix) for prefix in allowed_prefixes):
+                if hasattr(request.user, 'profile'):
+                    profile = request.user.profile
+                    if profile.must_set_password or not request.user.has_usable_password():
+                        return redirect('set_password')
+                    if not profile.terms_accepted:
+                        return redirect('accept_terms')
 
         return self.get_response(request)
+
+

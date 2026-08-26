@@ -6,7 +6,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
-from tournament.models import League, LeagueMember, Tournament, PoolAdminRequest, MasterEvent
+from tournament.models import League, LeagueMember, Tournament, PoolAdminRequest, MasterEvent, TournamentSubmission, Sidebet, LeaguePointSystem, UserProfile
 from tournament.services.pool_admin_service import get_player_progress_matrix
 
 
@@ -215,6 +215,9 @@ def pool_admin_dashboard_view(request, league_id):
     if league.admin != request.user and not request.user.is_superuser:
         return HttpResponseForbidden("Du har inte behörighet att administrera denna liga.")
 
+    # Synchronize session so global header and player views stay aligned with currently administered pool
+    request.session['active_league_id'] = league.id
+
     # All user's managed leagues for fast header switcher
     if request.user.is_superuser:
         all_managed_leagues = League.objects.all().order_by('name')
@@ -232,7 +235,10 @@ def pool_admin_dashboard_view(request, league_id):
     coming_tournaments = Tournament.objects.filter(is_active=False)
 
     # Members in this pool
-    members = league.members.all().select_related('player').order_by('player__first_name', 'player__email')
+    members = list(league.members.all().select_related('player').order_by('player__first_name', 'player__email'))
+    from tournament.utils.magic_link import build_magic_login_url
+    for m in members:
+        m.magic_link = build_magic_login_url(request, m.player, league.id)
 
     # Check if admin is enrolled as player
     is_admin_enrolled = league.members.filter(player=request.user).exists()
@@ -258,6 +264,9 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
 
     if league.admin != request.user and not request.user.is_superuser:
         return HttpResponseForbidden("Du har inte behörighet att administrera denna liga.")
+
+    # Synchronize session so global header and player views stay aligned with currently administered pool
+    request.session['active_league_id'] = league.id
 
     tournament = get_object_or_404(Tournament, id=tournament_id)
     is_active_in_pool = league.tournaments.filter(id=tournament.id).exists()
@@ -448,8 +457,15 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
 
     sidebets = Sidebet.objects.filter(tournament=tournament)
     players_data = get_player_progress_matrix(league, tournament)
-    enrolled_user_ids = set(tournament.players.values_list('id', flat=True))
-    members = league.members.all().select_related('player').order_by('player__first_name', 'player__email')
+    from tournament.utils.magic_link import build_magic_login_url
+    for p in players_data:
+        p['magic_link'] = build_magic_login_url(request, p['player'], league.id)
+
+    enrolled_players = tournament.players.all().order_by('first_name', 'email')
+    enrolled_user_ids = set(enrolled_players.values_list('id', flat=True))
+    members = list(league.members.all().select_related('player').order_by('player__first_name', 'player__email'))
+    for m in members:
+        m.magic_link = build_magic_login_url(request, m.player, league.id)
 
     context = {
         'league': league,
@@ -461,6 +477,7 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
         'sidebets': sidebets,
         'players_data': players_data,
         'enrolled_user_ids': enrolled_user_ids,
+        'enrolled_players': enrolled_players,
         'members': members,
     }
     return render(request, 'tournament/pool_admin_tournament_config.html', context)
@@ -607,48 +624,90 @@ def pool_admin_add_player_view(request, league_id):
     first_name = request.POST.get('first_name', '').strip()
     last_name = request.POST.get('last_name', '').strip()
     email = request.POST.get('email', '').strip().lower()
-    password = request.POST.get('password', '').strip()
     tournament_id = request.POST.get('tournament_id')
 
-    if not first_name or not email or not password:
-        messages.error(request, "Förnamn, e-post och lösenord krävs.")
+    if not first_name or not email:
+        messages.error(request, "Förnamn och e-post krävs.")
         if tournament_id:
             return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament_id])}#sec-participants")
         return redirect('pool_admin_dashboard', league_id=league.id)
 
-    # Check if user exists or create new
-    existing_user = DjangoUser.objects.filter(email__iexact=email).first()
+    # Check if user exists or create new without requiring manual password
+    existing_user = User.objects.filter(email__iexact=email).first()
     if existing_user:
         player_user = existing_user
+        if first_name and not player_user.first_name:
+            player_user.first_name = first_name
+        if last_name and not player_user.last_name:
+            player_user.last_name = last_name
+        player_user.save()
     else:
         username = email.lower()
-        player_user = DjangoUser.objects.create_user(
+        player_user = User(
             username=username,
             email=email,
-            password=password,
             first_name=first_name,
             last_name=last_name
         )
+        player_user.set_unusable_password()
+        player_user.save()
+        profile, _ = UserProfile.objects.get_or_create(user=player_user)
+        profile.must_set_password = True
+        profile.save()
 
-    # Add to LeagueMember
+    if tournament_id:
+        tournament = get_object_or_404(Tournament, id=tournament_id)
+        league.tournaments.add(tournament)
+        tournament.players.add(player_user)
+        messages.success(request, f"Deltagaren {first_name} ({email}) har skapats och kopplats till {tournament.name}!")
+        return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament.id])}#sec-participants")
+
+    # Add to LeagueMember (only when added at the pool level)
     member, created = LeagueMember.objects.get_or_create(
         league=league,
         player=player_user,
         defaults={'is_verified': True}
     )
 
-    if tournament_id:
-        tournament = get_object_or_404(Tournament, id=tournament_id)
-        league.tournaments.add(tournament)
-        tournament.players.add(player_user)
-        messages.success(request, f"Deltagaren {first_name} ({email}) har lagts till i poolen och kopplats direkt till {tournament.name}!")
-        return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament.id])}#sec-participants")
-
     if created:
-        messages.success(request, f"Spelaren {first_name} ({email}) har skapats och lagts till i poolen!")
+        messages.success(request, f"Spelaren {first_name} ({email}) har lagts till i poolen!")
     else:
         messages.info(request, f"Spelaren {first_name} ({email}) fanns redan och har säkerställts som deltagare i poolen.")
 
+    return redirect('pool_admin_dashboard', league_id=league.id)
+
+
+@login_required
+@require_POST
+def pool_admin_reset_player_password_view(request, league_id, player_id):
+    """
+    Forces a player to set a new password on their next login and generates a fresh one-click magic link.
+    """
+    league = get_object_or_404(League, id=league_id)
+    if league.admin != request.user and not request.user.is_superuser:
+        return HttpResponseForbidden("Åtkomst nekad.")
+
+    player = get_object_or_404(User, id=player_id)
+    profile, _ = UserProfile.objects.get_or_create(user=player)
+    profile.must_set_password = True
+    profile.save()
+
+    from tournament.utils.magic_link import build_magic_login_url
+    magic_link = build_magic_login_url(request, player, league.id)
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', ''):
+        return JsonResponse({
+            'success': True,
+            'message': f"Inloggningslänk för {player.get_full_name() or player.email} har genererats.",
+            'magic_link': magic_link,
+            'player_email': player.email,
+            'player_name': player.get_full_name() or player.email,
+        })
+
+    messages.success(request, f"Inloggningslänk aktiverad för {player.get_full_name() or player.email}.")
+    tournament_id = request.POST.get('tournament_id')
+    if tournament_id:
+        return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament_id])}#sec-participants")
     return redirect('pool_admin_dashboard', league_id=league.id)
 
 
@@ -687,23 +746,34 @@ def pool_admin_add_self_view(request, league_id):
 @login_required
 @require_POST
 def pool_admin_reset_password_view(request, league_id, member_id):
-    """Resets a player's password and generates mailto link context."""
+    """
+    Activates mandatory password reset for the player and generates a fresh one-click magic link.
+    """
     league = get_object_or_404(League, id=league_id)
     if league.admin != request.user and not request.user.is_superuser:
         return HttpResponseForbidden("Åtkomst nekad.")
 
     member = get_object_or_404(LeagueMember, id=member_id, league=league)
-    new_pwd = request.POST.get('new_password', '').strip()
+    player = member.player
 
-    if not new_pwd:
-        messages.error(request, "Vänligen ange ett nytt lösenord.")
-        return redirect('pool_admin_dashboard', league_id=league.id)
+    profile, _ = UserProfile.objects.get_or_create(user=player)
+    profile.must_set_password = True
+    profile.save()
 
-    member.player.set_password(new_pwd)
-    member.player.save()
+    from tournament.utils.magic_link import build_magic_login_url
+    magic_link = build_magic_login_url(request, player, league.id)
 
-    player_name = member.player.get_full_name() or member.player.email
-    messages.success(request, f"Lösenordet för {player_name} har återställts till '{new_pwd}'. Klicka på e-postikonen bredvid deltagaren för att skicka inloggningsuppgifterna!")
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('accept', ''):
+        return JsonResponse({
+            'success': True,
+            'message': f"Inloggningslänk för {player.get_full_name() or player.email} har genererats.",
+            'magic_link': magic_link,
+            'player_email': player.email,
+            'player_name': player.get_full_name() or player.email,
+        })
+
+    player_name = player.get_full_name() or player.email
+    messages.success(request, f"Inloggningslänk för {player_name} är redo. Spelaren uppmanas att välja sitt nya lösenord vid inloggning.")
     return redirect('pool_admin_dashboard', league_id=league.id)
 
 
@@ -828,3 +898,54 @@ def add_pool_sidebet_view(request, league_id):
 
     messages.success(request, f"Egen bonusfråga '{question}' ({points}p) har skapats för {tournament.name}!")
     return redirect('pool_admin_tournament_config', league_id=league.id, tournament_id=tournament.id)
+
+
+@login_required
+@require_POST
+def toggle_tournament_submission_verification_view(request, league_id, tournament_id, user_id):
+    """Allows Pool Admin to toggle verification and lock-in of a player's predictions for a tournament."""
+    from django.urls import reverse
+    from tournament.services.cache_service import invalidate_tournament_cache
+    
+    league = get_object_or_404(League, id=league_id)
+    if league.admin != request.user and not request.user.is_superuser:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'Åtkomst nekad.'}, status=403)
+        return HttpResponseForbidden("Åtkomst nekad.")
+
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    player = get_object_or_404(User, id=user_id)
+
+    submission, created = TournamentSubmission.objects.get_or_create(
+        tournament=tournament,
+        player=player,
+        defaults={'is_saved': True, 'is_verified': True}
+    )
+    if not created:
+        submission.is_verified = not submission.is_verified
+        if submission.is_verified:
+            submission.is_saved = True
+        submission.save()
+
+    invalidate_tournament_cache(tournament.id)
+    
+    player_name = player.get_full_name() or player.email
+    status_str = "låsts och verifierats" if submission.is_verified else "låsts upp"
+    msg = f"Tipsen för {player_name} har {status_str}."
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'is_verified': submission.is_verified,
+            'message': msg,
+            'user_id': player.id
+        })
+
+    messages.success(request, msg)
+    return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament.id])}#sec-progress-matrix")
+
+
+@login_required
+def invite_preview_view(request):
+    """Interactive preview workbench for testing and refining the HTML and text invite structure."""
+    return render(request, 'tournament/invite_preview.html')

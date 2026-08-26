@@ -2,7 +2,10 @@
 # All view functions are re-exported here to maintain 100% backward compatibility
 # with urls.py and middleware.py imports.
 
-from tournament.views.auth import CustomLoginView, superuser_or_staff_required, register_view, sso_login_view
+from tournament.views.auth import (
+    CustomLoginView, superuser_or_staff_required, register_view, sso_login_view,
+    magic_login_view, set_password_view, terms_view, accept_terms_view
+)
 from tournament.views.dashboard import dashboard_view, hub_view
 from tournament.views.predictions import predictions_view, upload_avatar_view
 from tournament.views.leagues import join_league_view, switch_league_view
@@ -62,10 +65,13 @@ from tournament.views.pool_admin import (
     add_pool_sidebet_view,
     pool_admin_add_self_view,
     pool_admin_reset_password_view,
+    pool_admin_reset_player_password_view,
     toggle_tournament_player_view,
     toggle_pool_tournament_view,
     pool_admin_bulk_toggle_players_view,
     update_pool_admin_email_view,
+    toggle_tournament_submission_verification_view,
+    invite_preview_view,
 )
 
 __all__ = [

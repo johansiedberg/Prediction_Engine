@@ -102,6 +102,17 @@
                         {% endif %}
                     </div>
 
+                    <!-- Terms & Conditions Acceptance Checkbox -->
+                    <div class="form-check mb-4">
+                        <input class="form-check-input bg-dark border-secondary border-opacity-40" type="checkbox" name="accept_terms" id="registerAcceptTerms" required style="cursor: pointer;">
+                        <label class="form-check-label text-white small" for="registerAcceptTerms" style="line-height: 1.45; cursor: pointer;">
+                            Jag godkänner <a href="#" data-bs-toggle="modal" data-bs-target="#registerTermsModal" class="text-info text-decoration-underline fw-bold">Användaravtalet (Terms &amp; Conditions)</a> för Sports Prediction.
+                        </label>
+                        {% if form.accept_terms.errors %}
+                        <div class="text-danger mt-1" style="font-size: 0.75rem;">{{ form.accept_terms.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
                     <button type="submit" class="btn w-100 fw-bold py-3" id="register-btn"
                         style="background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 12px; font-size: 1rem; border: none;">
                         <i class="fa-solid fa-user-check me-2"></i>Skapa konto
@@ -119,6 +130,31 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+<!-- TERMS & CONDITIONS MODAL -->
+<div class="modal fade" id="registerTermsModal" tabindex="-1" aria-labelledby="registerTermsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-white border-secondary border-opacity-30 rounded-4" style="background: rgba(15, 23, 42, 0.98) !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-20 py-3 px-4">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="registerTermsModalLabel">
+                    <i class="fa-solid fa-scale-balanced text-info"></i>Användaravtal (Terms &amp; Conditions)
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            <div class="modal-body p-4">
+                {% include 'tournament/terms_modal_body.html' %}
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-20 py-2.5 px-4 d-flex justify-content-between">
+                <a href="{% url 'terms' %}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Fullständig sida
+                </a>
+                <button type="button" class="btn btn-sm btn-info rounded-pill px-4 fw-bold" data-bs-dismiss="modal" onclick="document.getElementById('registerAcceptTerms').checked = true;">
+                    <i class="fa-solid fa-check me-1.5"></i>Jag accepterar
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

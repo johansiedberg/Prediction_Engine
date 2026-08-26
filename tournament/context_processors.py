@@ -28,8 +28,15 @@ def league_context(request):
     if not active_league:
         active_league = League.objects.filter(is_active=True).first()
 
+    if request.user.is_superuser:
+        managed_leagues = list(League.objects.filter(is_active=True).order_by('name'))
+    else:
+        managed_leagues = list(League.objects.filter(admin=request.user, is_active=True).order_by('name'))
+
     return {
         'user_leagues': user_leagues,
+        'managed_leagues': managed_leagues,
         'active_league': active_league,
         'has_multiple_leagues': len(user_leagues) > 1,
+        'has_managed_leagues': len(managed_leagues) > 0,
     }
