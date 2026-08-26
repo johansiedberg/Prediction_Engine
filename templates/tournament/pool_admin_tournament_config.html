@@ -808,11 +808,11 @@
                             <div class="list-group list-group-flush border-0" id="all-pool-members-list">
                                 {% for member in members %}
                                 <div class="list-group-item bg-transparent text-white px-2 py-2 border-bottom border-secondary border-opacity-15 d-flex align-items-center justify-content-between" id="pool-member-row-{{ member.player.id }}">
-                                    <div class="d-flex align-items-center gap-3">
+                                    <div class="d-flex align-items-center">
                                         {% if member.player == league.admin %}
-                                        <span style="font-size: 1.15rem; line-height: 1;" title="Pool Admin">🛠️</span>
+                                        <span style="width: 34px; height: 34px; min-width: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; line-height: 1; border: 1.5px solid #f59e0b; background: rgba(245, 158, 11, 0.18); box-shadow: 0 0 10px rgba(245, 158, 11, 0.35); margin-right: 10px; flex-shrink: 0;" title="Pool-Admin">🛠️</span>
                                         {% else %}
-                                        <span style="font-size: 1.1rem; line-height: 1;" title="Spelare">👟</span>
+                                        <span style="width: 34px; height: 34px; min-width: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.18rem; line-height: 1; border: 1.5px solid #38bdf8; background: rgba(56, 189, 248, 0.15); box-shadow: 0 0 8px rgba(56, 189, 248, 0.25); margin-right: 10px; flex-shrink: 0;" title="Spelare">👟</span>
                                         {% endif %}
                                         <div>
                                             <div class="fw-bold text-white small">{{ member.player.get_full_name|default:member.player.email }}</div>
@@ -849,11 +849,11 @@
                             <div class="list-group list-group-flush border-0" id="tournament-enrolled-list">
                                 {% for player in enrolled_players %}
                                 <div class="list-group-item bg-transparent text-white px-2 py-2 border-bottom border-secondary border-opacity-15 d-flex align-items-center justify-content-between" id="enrolled-row-{{ player.id }}">
-                                    <div class="d-flex align-items-center gap-3">
+                                    <div class="d-flex align-items-center">
                                         {% if player == league.admin %}
-                                        <span style="font-size: 1.15rem; line-height: 1;" title="Pool Admin">🛠️</span>
+                                        <span style="width: 34px; height: 34px; min-width: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; line-height: 1; border: 1.5px solid #f59e0b; background: rgba(245, 158, 11, 0.18); box-shadow: 0 0 10px rgba(245, 158, 11, 0.35); margin-right: 10px; flex-shrink: 0;" title="Pool-Admin">🛠️</span>
                                         {% else %}
-                                        <span style="font-size: 1.1rem; line-height: 1;" title="Spelare">👟</span>
+                                        <span style="width: 34px; height: 34px; min-width: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.18rem; line-height: 1; border: 1.5px solid #38bdf8; background: rgba(56, 189, 248, 0.15); box-shadow: 0 0 8px rgba(56, 189, 248, 0.25); margin-right: 10px; flex-shrink: 0;" title="Spelare">👟</span>
                                         {% endif %}
                                         <div>
                                             <div class="fw-bold text-white small">{{ player.get_full_name|default:player.email }}</div>
@@ -905,18 +905,15 @@
                             {% for p in players_data %}
                             <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
                                 <td class="ps-4 py-3">
-                                    <div class="d-flex align-items-center gap-2.5">
+                                    <div class="d-flex align-items-center">
                                         {% if p.player == league.admin %}
-                                        <span style="font-size: 1.15rem; line-height: 1;" title="Pool Admin">🛠️</span>
+                                        <span style="width: 36px; height: 36px; min-width: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; line-height: 1; border: 1.5px solid #f59e0b; background: rgba(245, 158, 11, 0.18); box-shadow: 0 0 10px rgba(245, 158, 11, 0.35); margin-right: 10px; flex-shrink: 0;" title="Pool-Admin">🛠️</span>
                                         {% else %}
-                                        <span style="font-size: 1.1rem; line-height: 1;" title="Spelare">👟</span>
+                                        <span style="width: 36px; height: 36px; min-width: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.22rem; line-height: 1; border: 1.5px solid #38bdf8; background: rgba(56, 189, 248, 0.15); box-shadow: 0 0 8px rgba(56, 189, 248, 0.25); margin-right: 10px; flex-shrink: 0;" title="Spelare">👟</span>
                                         {% endif %}
                                         <div>
                                             <div class="fw-bold text-white" style="font-size: 0.92rem;">
                                                 {{ p.name }}
-                                                {% if p.player == league.admin %}
-                                                <span class="badge px-1.5 py-0.5 ms-1 text-warning fw-bold" style="font-size: 0.68rem; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3);">ADMIN</span>
-                                                {% endif %}
                                             </div>
                                             <div class="text-white small" style="font-size: 0.75rem; opacity: 0.65;">{{ p.email }}</div>
                                         </div>

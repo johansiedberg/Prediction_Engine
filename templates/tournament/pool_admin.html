@@ -94,18 +94,15 @@
                                 {% for m in members %}
                                 <tr style="border-bottom: 1px solid rgba(148,163,184,0.1);">
                                     <td class="ps-4 py-3">
-                                        <div class="d-flex align-items-center gap-3">
+                                        <div class="d-flex align-items-center">
                                             {% if m.player == league.admin %}
-                                            <span style="font-size: 1.25rem;" title="Pool Admin">🛠️</span>
+                                            <span style="width: 36px; height: 36px; min-width: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; line-height: 1; border: 1.5px solid #f59e0b; background: rgba(245, 158, 11, 0.18); box-shadow: 0 0 10px rgba(245, 158, 11, 0.35); margin-right: 10px; flex-shrink: 0;" title="Pool-Admin">🛠️</span>
                                             {% else %}
-                                            <span style="font-size: 1.2rem;" title="Spelare">👟</span>
+                                            <span style="width: 36px; height: 36px; min-width: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 1.22rem; line-height: 1; border: 1.5px solid #38bdf8; background: rgba(56, 189, 248, 0.15); box-shadow: 0 0 8px rgba(56, 189, 248, 0.25); margin-right: 10px; flex-shrink: 0;" title="Spelare">👟</span>
                                             {% endif %}
                                             <div>
                                                 <div class="fw-bold text-white" style="font-size: 0.92rem;">
                                                     {{ m.player.get_full_name|default:m.player.email }}
-                                                    {% if m.player == league.admin %}
-                                                    <span class="badge px-1.5 py-0.5 ms-1 text-warning fw-bold" style="font-size: 0.68rem; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3);">ADMIN</span>
-                                                    {% endif %}
                                                 </div>
                                                 <div class="text-white small" style="font-size: 0.75rem; opacity: 0.65;">{{ m.player.email }}</div>
                                             </div>
