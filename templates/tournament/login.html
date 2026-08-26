@@ -12,12 +12,12 @@
 
         <!-- Role Selector Switcher (Player vs Pool-Admin) -->
         <div class="p-1 rounded-pill mb-4 d-flex align-items-center justify-content-between border border-secondary border-opacity-30" style="background: rgba(15, 23, 42, 0.85);">
-            <button type="button" id="roleBtnPlayer" class="btn btn-sm rounded-pill flex-grow-1 fw-bold py-2 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all {% if active_role != 'pool_admin' %}active-player-btn{% else %}text-secondary{% endif %}" onclick="setLoginRole('player')">
-                <i class="fa-solid fa-trophy text-emerald"></i>
+            <button type="button" id="roleBtnPlayer" class="btn btn-sm rounded-pill flex-grow-1 role-toggle-btn {% if active_role != 'pool_admin' %}active-player-btn{% else %}inactive-player-btn{% endif %}" onclick="setLoginRole('player')">
+                <i class="fa-solid fa-trophy role-icon"></i>
                 <span>Spelare</span>
             </button>
-            <button type="button" id="roleBtnPoolAdmin" class="btn btn-sm rounded-pill flex-grow-1 fw-bold py-2 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all {% if active_role == 'pool_admin' %}active-pooladmin-btn{% else %}text-secondary{% endif %}" onclick="setLoginRole('pool_admin')">
-                <i class="fa-solid fa-shield-halved text-info"></i>
+            <button type="button" id="roleBtnPoolAdmin" class="btn btn-sm rounded-pill flex-grow-1 role-toggle-btn {% if active_role == 'pool_admin' %}active-pooladmin-btn{% else %}inactive-pooladmin-btn{% endif %}" onclick="setLoginRole('pool_admin')">
+                <i class="fa-solid fa-shield-halved role-icon"></i>
                 <span>Pool-Admin</span>
             </button>
         </div>
@@ -85,15 +85,53 @@
 </div>
 
 <style>
+.role-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px !important;
+    padding: 8px 16px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+/* Inactive states */
+.inactive-player-btn {
+    background: transparent !important;
+    color: #94a3b8 !important;
+}
+.inactive-player-btn .role-icon {
+    color: #10b981 !important;
+}
+
+.inactive-pooladmin-btn {
+    background: transparent !important;
+    color: #94a3b8 !important;
+}
+.inactive-pooladmin-btn .role-icon {
+    color: #0284c7 !important;
+}
+
+/* Active / Toggled states */
 .active-player-btn {
     background: #10b981 !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4) !important;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.45) !important;
 }
+.active-player-btn .role-icon {
+    color: #000000 !important;
+}
+
 .active-pooladmin-btn {
     background: #0284c7 !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4) !important;
+    box-shadow: 0 2px 10px rgba(2, 132, 199, 0.45) !important;
+}
+.active-pooladmin-btn .role-icon {
+    color: #000000 !important;
 }
 </style>
 
@@ -113,8 +151,8 @@ function setLoginRole(role) {
     roleInput.value = role;
 
     if (role === 'pool_admin') {
-        roleBtnPlayer.className = 'btn btn-sm rounded-pill flex-grow-1 fw-bold py-2 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all text-secondary';
-        roleBtnPoolAdmin.className = 'btn btn-sm rounded-pill flex-grow-1 fw-bold py-2 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all active-pooladmin-btn';
+        roleBtnPlayer.className = 'btn btn-sm rounded-pill flex-grow-1 role-toggle-btn inactive-player-btn';
+        roleBtnPoolAdmin.className = 'btn btn-sm rounded-pill flex-grow-1 role-toggle-btn active-pooladmin-btn';
         
         roleIconBox.style = 'background: rgba(2, 132, 199, 0.15); border-color: rgba(56, 189, 248, 0.35) !important; color: #38bdf8;';
         roleIcon.className = 'fa-solid fa-shield-halved text-info fa-2x';
@@ -127,8 +165,8 @@ function setLoginRole(role) {
         
         if (poolAdminHelp) poolAdminHelp.style.display = 'block';
     } else {
-        roleBtnPlayer.className = 'btn btn-sm rounded-pill flex-grow-1 fw-bold py-2 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all active-player-btn';
-        roleBtnPoolAdmin.className = 'btn btn-sm rounded-pill flex-grow-1 fw-bold py-2 d-inline-flex align-items-center justify-content-center gap-1.5 transition-all text-secondary';
+        roleBtnPlayer.className = 'btn btn-sm rounded-pill flex-grow-1 role-toggle-btn active-player-btn';
+        roleBtnPoolAdmin.className = 'btn btn-sm rounded-pill flex-grow-1 role-toggle-btn inactive-pooladmin-btn';
         
         roleIconBox.style = 'background: rgba(16, 185, 129, 0.15); border-color: rgba(52, 211, 153, 0.35) !important; color: #10B981;';
         roleIcon.className = 'fa-solid fa-trophy text-emerald fa-2x';
