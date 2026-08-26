@@ -57,8 +57,8 @@
         </div>
     </div>
 
-    <!-- STICKY FLOW NAVIGATOR (DOCKED HEADER CEILING ON SCROLL) -->
-    <div class="sticky-top py-2.5 px-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2" style="top: 0; background: rgba(11, 15, 25, 0.98); backdrop-filter: blur(16px); border-bottom: 2px solid rgba(16, 185, 129, 0.5); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7); z-index: 1040; margin-left: -12px; margin-right: -12px; border-radius: 0 0 12px 12px;">
+    <!-- STICKY FLOW NAVIGATOR -->
+    <div id="flow-nav-container" class="sticky-top flow-nav-bar py-2.5 px-4 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2" style="top: 0; z-index: 1040;">
         <div class="d-flex flex-wrap align-items-center gap-1.5" style="font-size: 0.88rem;">
             <span id="flow-nav-sec-set-points" class="flow-nav-item flow-nav-active" onclick="scrollToSection('sec-set-points')">
                 <i class="fa-solid fa-calculator me-1 text-warning"></i>1. Poängregler
@@ -84,6 +84,21 @@
     </div>
 
     <style>
+    .flow-nav-bar {
+        background: rgba(15, 23, 42, 0.92);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        border-radius: 14px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        transition: background 0.2s ease, border-color 0.2s ease, border-radius 0.2s ease, box-shadow 0.2s ease;
+    }
+    .flow-nav-bar.is-stuck {
+        background: rgba(11, 15, 25, 0.98);
+        border-color: rgba(16, 185, 129, 0.5);
+        border-top: none;
+        border-radius: 0 0 14px 14px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.85);
+    }
     #sec-set-points,
     #sec-sidebets,
     #sec-participants,
@@ -1251,7 +1266,17 @@ function setActiveFlowNav(activeSectionId) {
 // Scroll-spy observer to keep sticky flow nav in sync with scroll position
 document.addEventListener('DOMContentLoaded', () => {
     const sectionIds = ['sec-set-points', 'sec-sidebets', 'sec-participants', 'sec-progress-matrix'];
+    const navBar = document.getElementById('flow-nav-container');
+
     window.addEventListener('scroll', () => {
+        if (navBar) {
+            if (window.scrollY > 80) {
+                navBar.classList.add('is-stuck');
+            } else {
+                navBar.classList.remove('is-stuck');
+            }
+        }
+
         const scrollPos = window.scrollY + 140;
         let currentSectionId = sectionIds[0];
         for (const sId of sectionIds) {
