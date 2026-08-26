@@ -57,9 +57,9 @@
         </div>
     </div>
 
-    <!-- STICKY FLOW NAVIGATOR -->
-    <div class="sticky-top py-2.5 px-4 mb-4 rounded-4 shadow-lg d-flex align-items-center" style="top: 15px; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(16px); border: 1px solid rgba(16, 185, 129, 0.4); z-index: 1020;">
-        <div class="d-flex flex-wrap align-items-center gap-2" style="font-size: 0.88rem;">
+    <!-- STICKY FLOW NAVIGATOR (DOCKED HEADER CEILING ON SCROLL) -->
+    <div class="sticky-top py-2.5 px-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2" style="top: 0; background: rgba(11, 15, 25, 0.98); backdrop-filter: blur(16px); border-bottom: 2px solid rgba(16, 185, 129, 0.5); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7); z-index: 1040; margin-left: -12px; margin-right: -12px; border-radius: 0 0 12px 12px;">
+        <div class="d-flex flex-wrap align-items-center gap-1.5" style="font-size: 0.88rem;">
             <span id="flow-nav-sec-set-points" class="flow-nav-item flow-nav-active" onclick="scrollToSection('sec-set-points')">
                 <i class="fa-solid fa-calculator me-1 text-warning"></i>1. Poängregler
             </span>
@@ -76,12 +76,23 @@
                 <i class="fa-solid fa-chart-simple me-1 text-primary"></i>4. Deltagarmatris &amp; Status
             </span>
         </div>
+        <div class="d-none d-md-flex align-items-center gap-2 pe-1">
+            <span class="badge px-2.5 py-1 text-white fw-bold" style="background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(148, 163, 184, 0.2); font-size: 0.78rem;">
+                <i class="fa-solid fa-trophy text-warning me-1"></i>{{ tournament.name }}
+            </span>
+        </div>
     </div>
 
     <style>
+    #sec-set-points,
+    #sec-sidebets,
+    #sec-participants,
+    #sec-progress-matrix {
+        scroll-margin-top: 85px;
+    }
     .flow-nav-item {
         font-weight: 500;
-        opacity: 0.7;
+        opacity: 0.75;
         color: #cbd5e1;
         cursor: pointer;
         transition: all 0.2s ease;
@@ -91,7 +102,7 @@
     .flow-nav-item:hover {
         opacity: 1;
         color: #ffffff;
-        background: rgba(255,255,255,0.05);
+        background: rgba(255,255,255,0.08);
     }
     .flow-nav-active {
         font-weight: 700 !important;
@@ -1253,6 +1264,22 @@ function setActiveFlowNav(activeSectionId) {
         activeNav.classList.add('flow-nav-active');
     }
 }
+
+// Scroll-spy observer to keep sticky flow nav in sync with scroll position
+document.addEventListener('DOMContentLoaded', () => {
+    const sectionIds = ['sec-set-points', 'sec-sidebets', 'sec-participants', 'sec-progress-matrix'];
+    window.addEventListener('scroll', () => {
+        const scrollPos = window.scrollY + 140;
+        let currentSectionId = sectionIds[0];
+        for (const sId of sectionIds) {
+            const sec = document.getElementById(sId);
+            if (sec && sec.offsetTop <= scrollPos) {
+                currentSectionId = sId;
+            }
+        }
+        setActiveFlowNav(currentSectionId);
+    });
+});
 
 // AJAX Handler for toggling tournament participant without full page reload
 function toggleParticipantAjax(event, form, userId) {
