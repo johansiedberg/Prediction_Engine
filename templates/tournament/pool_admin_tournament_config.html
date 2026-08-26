@@ -893,12 +893,13 @@
                             <tr style="background: rgba(15,23,42,0.95); font-size: 0.78rem; text-transform: uppercase;">
                                 <th class="ps-4 py-3 text-white fw-bold">Deltagare</th>
                                 <th class="text-center py-3 text-white fw-bold">Inbjudan</th>
+                                <th class="text-center py-3 text-white fw-bold">Nytt Lösenord</th>
                                 <th class="text-center py-3 text-white fw-bold">Inloggad</th>
                                 <th class="text-center py-3 text-white fw-bold">Gruppspel</th>
                                 <th class="text-center py-3 text-white fw-bold">Slutspel</th>
                                 <th class="text-center py-3 text-white fw-bold">Bonusfrågor</th>
                                 <th class="text-center py-3 text-white fw-bold">Tippningsstatus</th>
-                                <th class="text-center py-3 text-white fw-bold pe-4">Verifierad / Lås</th>
+                                <th class="text-center py-3 text-white fw-bold pe-4">Låsstatus</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -922,6 +923,11 @@
                                 <td class="text-center py-3">
                                     <button type="button" class="btn btn-xs rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1.5 fw-bold" data-bs-toggle="modal" data-bs-target="#inviteModal{{ p.player.id }}" style="background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); font-size: 0.75rem;">
                                         <i class="fa-solid fa-paper-plane"></i>Inbjudan
+                                    </button>
+                                </td>
+                                <td class="text-center py-3">
+                                    <button type="button" class="btn btn-xs rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1.5 fw-bold" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ p.player.id }}" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-size: 0.75rem;" title="Skicka direktlänk för att välja nytt lösenord">
+                                        <i class="fa-solid fa-key"></i>Nytt lösenord
                                     </button>
                                 </td>
                                 <td class="text-center py-3">
@@ -964,21 +970,21 @@
                                         {% csrf_token %}
                                         <div id="verify-btn-container-{{ p.player.id }}">
                                             {% if p.is_verified_submission %}
-                                            <button type="submit" class="badge px-2.5 py-1.5 fw-bold border-0 cursor-pointer shadow-sm d-inline-flex align-items-center gap-1.5" style="background: rgba(16, 185, 129, 0.22); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4) !important;" title="Tipsen är låsta och godkända. Klicka för att låsa upp">
-                                                <i class="fa-solid fa-lock text-success"></i>Låst &amp; Verifierad
-                                            </button>
-                                            {% else %}
-                                            <button type="submit" class="badge px-2.5 py-1.5 fw-bold border-0 cursor-pointer shadow-sm d-inline-flex align-items-center gap-1.5" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35) !important;" title="Klicka för att godkänna och låsa in tipsen">
-                                                <i class="fa-solid fa-lock-open text-warning"></i>Ej låst / Verifiera
-                                            </button>
-                                            {% endif %}
+                                             <button type="submit" class="badge px-2.5 py-1.5 fw-bold border-0 cursor-pointer shadow-sm d-inline-flex align-items-center gap-1.5" style="background: rgba(16, 185, 129, 0.22); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4) !important;" title="Tipsen är låsta. Klicka för att låsa upp">
+                                                 <i class="fa-solid fa-lock text-success"></i>Låst
+                                             </button>
+                                             {% else %}
+                                             <button type="submit" class="badge px-2.5 py-1.5 fw-bold border-0 cursor-pointer shadow-sm d-inline-flex align-items-center gap-1.5" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35) !important;" title="Tipsen är inte låsta. Klicka för att låsa in">
+                                                 <i class="fa-solid fa-lock-open text-warning"></i>Inte låst
+                                             </button>
+                                             {% endif %}
                                         </div>
                                     </form>
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="8" class="text-center text-white py-4" style="opacity: 0.7;">Inga deltagare i matrisen.</td>
+                                <td colspan="9" class="text-center text-white py-4" style="opacity: 0.7;">Inga deltagare i matrisen.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -1124,6 +1130,45 @@ Pool-Administratör för {{ league.name }}</div>
                         <i class="fa-solid fa-wand-magic-sparkles me-1.5"></i>Kopiera Formaterad E-post
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: RESET PASSWORD & SEND MAGIC LINK FOR PARTICIPANT -->
+<div class="modal fade" id="resetPasswordModal{{ p.player.id }}" tabindex="-1" aria-labelledby="resetPasswordModalLabel{{ p.player.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white" style="background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7);">
+            <div class="modal-header border-bottom border-secondary border-opacity-20 px-4 py-3">
+                <h6 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="resetPasswordModalLabel{{ p.player.id }}">
+                    <i class="fa-solid fa-key text-info"></i>Nytt Lösenord &amp; Inloggningslänk
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="small text-white mb-2">
+                    Deltagare: <strong class="text-white">{{ p.name }}</strong> (<span class="text-info font-monospace">{{ p.email }}</span>)
+                </p>
+                <div class="alert border-0 rounded-3 py-2.5 px-3 small mb-3" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25) !important; color: #bae6fd;">
+                    <i class="fa-solid fa-wand-magic-sparkles me-1.5 text-info"></i>
+                    Spelaren loggas in med ett klick via denna länk och tvingas välja sitt personliga lösenord.
+                    {% if p.player.profile.terms_accepted %}
+                    <div class="mt-1 text-emerald"><i class="fa-solid fa-circle-check me-1"></i>Användaravtalet är redan godkänt och behöver inte godkännas igen.</div>
+                    {% endif %}
+                </div>
+                <label class="form-label text-white small fw-bold mb-1">Direktlänk (Magic Link):</label>
+                <div class="input-group mb-3">
+                    <input type="text" id="resetMagicLinkInput{{ p.player.id }}" class="form-control form-control-sm font-monospace bg-dark text-white border-secondary border-opacity-40" value="{{ p.magic_link }}" readonly>
+                    <button class="btn btn-sm btn-info fw-bold px-3" type="button" onclick="navigator.clipboard.writeText(document.getElementById('resetMagicLinkInput{{ p.player.id }}').value); alert('Inloggningslänk kopierad till urklipp!');">
+                        <i class="fa-regular fa-copy me-1"></i>Kopiera
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-20 py-2.5 px-4 d-flex justify-content-between">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Stäng</button>
+                <a href="mailto:{{ p.email }}?subject={{ 'Ny inloggningslänk till '|urlencode }}{{ league.name|urlencode }}&body={{ 'Hej '|urlencode }}{{ p.name|urlencode }}!%0A%0AHär är din personliga direktlänk för att välja nytt lösenord och logga in i {{ league.name }}:%0A{{ p.magic_link|urlencode }}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
+                    <i class="fa-solid fa-paper-plane me-1"></i>Öppna i e-post
+                </a>
             </div>
         </div>
     </div>
@@ -1314,14 +1359,14 @@ function toggleVerificationAjax(event, form, userId) {
             if (container) {
                 if (data.is_verified) {
                     container.innerHTML = `
-                        <button type="submit" class="badge px-2.5 py-1.5 fw-bold border-0 cursor-pointer shadow-sm d-inline-flex align-items-center gap-1.5" style="background: rgba(16, 185, 129, 0.22); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4) !important;" title="Tipsen är låsta och godkända. Klicka för att låsa upp">
-                            <i class="fa-solid fa-lock text-success"></i>Låst &amp; Verifierad
+                        <button type="submit" class="badge px-2.5 py-1.5 fw-bold border-0 cursor-pointer shadow-sm d-inline-flex align-items-center gap-1.5" style="background: rgba(16, 185, 129, 0.22); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4) !important;" title="Tipsen är låsta. Klicka för att låsa upp">
+                            <i class="fa-solid fa-lock text-success"></i>Låst
                         </button>
                     `;
                 } else {
                     container.innerHTML = `
-                        <button type="submit" class="badge px-2.5 py-1.5 fw-bold border-0 cursor-pointer shadow-sm d-inline-flex align-items-center gap-1.5" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35) !important;" title="Klicka för att godkänna och låsa in tipsen">
-                            <i class="fa-solid fa-lock-open text-warning"></i>Ej låst / Verifiera
+                        <button type="submit" class="badge px-2.5 py-1.5 fw-bold border-0 cursor-pointer shadow-sm d-inline-flex align-items-center gap-1.5" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35) !important;" title="Tipsen är inte låsta. Klicka för att låsa in">
+                            <i class="fa-solid fa-lock-open text-warning"></i>Inte låst
                         </button>
                     `;
                 }

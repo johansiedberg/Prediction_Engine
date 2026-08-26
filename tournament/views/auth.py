@@ -268,7 +268,7 @@ def set_password_view(request):
         confirm_password = request.POST.get('confirm_password', '').strip()
         accept_terms = request.POST.get('accept_terms')
 
-        if not accept_terms:
+        if not profile.terms_accepted and not accept_terms:
             messages.error(request, "Du måste läsa och godkänna Användaravtalet för att aktivera ditt konto.")
             return render(request, 'tournament/set_password.html', {'profile': profile})
 
@@ -284,20 +284,21 @@ def set_password_view(request):
             messages.error(request, "Lösenorden matchar inte varandra.")
             return render(request, 'tournament/set_password.html', {'profile': profile})
 
-        # Save new password and mark terms accepted
+        # Save new password and mark terms accepted if not already done
         request.user.set_password(password)
         request.user.save()
 
         profile.must_set_password = False
-        profile.terms_accepted = True
-        profile.terms_accepted_at = timezone.now()
-        profile.terms_version = "2026-08-26"
+        if not profile.terms_accepted:
+            profile.terms_accepted = True
+            profile.terms_accepted_at = timezone.now()
+            profile.terms_version = "2026-08-26"
         profile.save()
 
         # Keep user logged in with updated password hash
         update_session_auth_hash(request, request.user)
 
-        messages.success(request, "Ditt lösenord har sparats och användaravtalet är godkänt! Välkommen till mästerskapstipset.")
+        messages.success(request, "Ditt lösenord har sparats! Välkommen till mästerskapstipset.")
         return redirect('/dashboard/?tab=predictions')
 
     return render(request, 'tournament/set_password.html', {
