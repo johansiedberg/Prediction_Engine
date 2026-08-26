@@ -926,44 +926,44 @@
                                     </button>
                                 </td>
                                 <td class="text-center py-2 px-2">
-                                    <button type="button" class="btn btn-xs rounded-pill px-2 py-0.5 d-inline-flex align-items-center gap-1 fw-bold" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ p.player.id }}" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-size: 0.72rem;" title="Skicka direktlänk för att återställa lösenord">
-                                        <i class="fa-solid fa-key"></i>Återställ
+                                    <button type="button" class="btn btn-sm p-0 rounded-circle border-0 cursor-pointer shadow-sm d-inline-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#resetPasswordModal{{ p.player.id }}" style="width: 30px; height: 30px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4) !important;" title="Skicka direktlänk för att återställa lösenord till {{ p.name }}">
+                                        <span style="font-size: 1.05rem; line-height: 1;">🔑</span>
                                     </button>
                                 </td>
                                 <td class="text-center py-2 px-2">
                                     {% if p.last_login %}
-                                    <div class="d-inline-flex flex-column align-items-center justify-content-center px-1.5 py-0.5 rounded" style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); line-height: 1.15;" title="Senaste inloggning: {{ p.last_login|date:'Y-m-d H:i:s' }}">
-                                        <span class="fw-bold" style="color: #93c5fd; font-size: 0.72rem;">{{ p.last_login|date:"Y-m-d" }}</span>
-                                        <span class="text-white-50" style="font-size: 0.64rem;">{{ p.last_login|date:"H:i" }}</span>
+                                    <div class="d-inline-flex flex-column align-items-center justify-content-center px-2 py-1 rounded-2" style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); line-height: 1.2;" title="Senaste inloggning: {{ p.last_login|date:'Y-m-d H:i:s' }}">
+                                        <span class="fw-bold" style="color: #93c5fd; font-size: 0.74rem;">{{ p.last_login|date:"Y-m-d" }}</span>
+                                        <span class="text-white-50" style="font-size: 0.65rem;">{{ p.last_login|date:"H:i" }}</span>
                                     </div>
                                     {% else %}
-                                    <span class="badge px-1.5 py-0.5 fw-bold d-inline-flex align-items-center gap-1" style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.22); font-size: 0.72rem;">
+                                    <span class="badge px-2 py-1.5 fw-bold d-inline-flex align-items-center gap-1 rounded-2" style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.22); font-size: 0.74rem;">
                                         <i class="fa-solid fa-user-clock opacity-50"></i>Aldrig
                                     </span>
                                     {% endif %}
                                 </td>
-                                <td class="text-center py-2 px-1.5">
-                                    <span class="badge px-1.5 py-0.5 {% if p.group_predicted == p.group_total and p.group_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}" style="font-size: 0.72rem;">
+                                <td class="text-center py-2 px-2">
+                                    <span class="badge px-2.5 py-1.5 rounded-2 {% if p.group_predicted == p.group_total and p.group_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}" style="font-size: 0.75rem;">
                                         {{ p.group_predicted }}/{{ p.group_total }}
                                     </span>
                                 </td>
-                                <td class="text-center py-2 px-1.5">
-                                    <span class="badge px-1.5 py-0.5 {% if p.knockout_predicted == p.knockout_total and p.knockout_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}" style="font-size: 0.72rem;">
+                                <td class="text-center py-2 px-2">
+                                    <span class="badge px-2.5 py-1.5 rounded-2 {% if p.knockout_predicted == p.knockout_total and p.knockout_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}" style="font-size: 0.75rem;">
                                         {{ p.knockout_predicted }}/{{ p.knockout_total }}
                                     </span>
                                 </td>
-                                <td class="text-center py-2 px-1.5">
-                                    <span class="badge px-1.5 py-0.5 {% if p.sidebets_answered == p.sidebets_total and p.sidebets_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}" style="font-size: 0.72rem;">
+                                <td class="text-center py-2 px-2">
+                                    <span class="badge px-2.5 py-1.5 rounded-2 {% if p.sidebets_answered == p.sidebets_total and p.sidebets_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}" style="font-size: 0.75rem;">
                                         {{ p.sidebets_answered }}/{{ p.sidebets_total }}
                                     </span>
                                 </td>
                                 <td class="text-center py-2 px-2">
                                     {% if p.overall_status == 'Complete' %}
-                                    <span class="badge px-2 py-0.5 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.72rem;">Färdig</span>
+                                    <span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.75rem;">Färdig</span>
                                     {% elif p.overall_status == 'In Progress' %}
-                                    <span class="badge px-2 py-0.5 fw-bold" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.72rem;">Påbörjad</span>
+                                    <span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.75rem;">Påbörjad</span>
                                     {% else %}
-                                    <span class="badge px-2 py-0.5 fw-bold" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 0.72rem;">Ej klar</span>
+                                    <span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 0.75rem;">Ej klar</span>
                                     {% endif %}
                                 </td>
                                 <td class="text-center pe-3 ps-2 py-2">
