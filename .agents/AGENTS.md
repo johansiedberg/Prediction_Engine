@@ -1,11 +1,14 @@
 # Project Rules for Prediction Engine
 
-## Development Server
-- **Prediction (Player Application)**: Default port **2028**
-  - Start command: `./venv/bin/python manage.py runserver` (or `./venv/bin/python manage.py runserver 2028`)
-  - Access at: http://127.0.0.1:2028
-- **Engine Admin**: Default port **2029**
-  - Start command: `./venv/bin/python manage.py runserver_admin` (or `./venv/bin/python manage.py runserver 2029`)
+## System Architecture & Master Release Blueprint
+- **Master Release Blueprint**: For full architectural specifications, schema migrations (`0061`–`0064`), service ports, and deployment runbooks, see [PRD_RELEASE_BLUEPRINT.md](file:///Users/johansiedberg/Documents/GitHub/Prediction_Engine/PRD_RELEASE_BLUEPRINT.md).
+
+## Development & Production Server Ports
+- **Prediction (Player Application)**: Default external port **2028** (bound locally to `127.0.0.1:8028` behind Caddy reverse proxy)
+  - Start command: `./venv/bin/python manage.py runserver 127.0.0.1:8028`
+  - Access at: http://127.0.0.1:2028 (or https:// in HTTPS-enabled environments)
+- **Engine Admin**: Default external port **2029** (bound locally to `127.0.0.1:8029` behind Caddy reverse proxy)
+  - Start command: `./venv/bin/python manage.py runserver_admin`
   - Access at: http://127.0.0.1:2029 (or https:// in HTTPS-enabled environments)
 
 ## Server Updates & Deployment Protocol

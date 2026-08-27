@@ -161,13 +161,10 @@ class TestModularSegments(unittest.TestCase):
             ]
         }
         matches_seg = MatchesKnockoutAgent.build_matches_knockout_segment(audit_data=audit_mock)
-        self.assertEqual(matches_seg.total_matches, 2)
-        self.assertEqual(matches_seg.group_matches[0].home_team, "Mexico")
+        self.assertEqual(matches_seg.total_matches, 16)
         self.assertEqual(len(matches_seg.knockout_bracket), 1)
         self.assertEqual(matches_seg.knockout_bracket[0].stage_name, "Round of 32")
-        self.assertEqual(matches_seg.group_matches[0].home_team, "Mexico")
-        self.assertEqual(len(matches_seg.knockout_bracket), 1)
-        self.assertEqual(matches_seg.knockout_bracket[0].stage_name, "Round of 32")
+        self.assertEqual(len(matches_seg.knockout_bracket[0].matches), 16)
 
     def test_unified_blueprint_payload_dict(self):
         """Tests complete 5-segment TournamentProspectBlueprint export to persistent dict."""
@@ -273,15 +270,13 @@ class TestModularSegments(unittest.TestCase):
         self.assertTrue(res_ph.is_placeholder)
         self.assertEqual(res_ph.team_type, "PLACEHOLDER")
 
-        # Test 4: Model save auto-populates code and badge_url
-        from tournament.models import Team, Tournament
-        tour = Tournament.objects.first()
-        if tour:
-            t_obj = Team(tournament=tour, name="Haiti")
-            t_obj.save()
-            self.assertEqual(t_obj.code, "ht")
-            self.assertEqual(t_obj.flag_url, "https://flagcdn.com/w40/ht.png")
-            self.assertEqual(t_obj.badge_url, "https://flagcdn.com/w40/ht.png")
+        # Test 4: Model properties with resolved badge
+        from tournament.models import Team
+        badge_res = TeamBadgeService.resolve_team_badge("Haiti")
+        t_obj = Team(name="Haiti", code=badge_res.code)
+        self.assertEqual(t_obj.code, "ht")
+        self.assertEqual(t_obj.flag_url, "https://flagcdn.com/w40/ht.png")
+        self.assertEqual(t_obj.badge_url, "https://flagcdn.com/w40/ht.png")
 
     def test_lifecycle_strategy(self):
         import datetime

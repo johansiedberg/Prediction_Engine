@@ -1,4 +1,7 @@
-# Project Overview and Architecture: Prediction Engine v2.0
+# Project Overview and Architecture: Prediction Engine v2.5
+
+> [!NOTE]
+> **Production Specification & Recent Changelog**: See [PRD_RELEASE_BLUEPRINT.md](file:///Users/johansiedberg/Documents/GitHub/Prediction_Engine/PRD_RELEASE_BLUEPRINT.md) for the complete August 24–27, 2026 system release notes, database migration index (`0061`–`0064`), and Ubuntu PRD activation runbook.
 
 ## 1. Background and Objectives
 
