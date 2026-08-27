@@ -247,6 +247,7 @@ class GeminiScoutService:
         tournament_name: str,
         sport: str = "Football",
         wikipedia_context: str = "",
+        official_url: str = "",
     ) -> Dict[str, Any]:
         """
         AI Sub-Agent for General Information & Emblem.
@@ -260,6 +261,8 @@ Research the sports tournament "{tournament_name}" (Sport: {sport}).
 Context from Wikipedia (if available):
 {wikipedia_context[:4000] if wikipedia_context else "None provided."}
 
+{"If an official website is provided (" + official_url + "), explicitly use Google Search to find specific subpages such as '/draws/' or regulation documents (e.g., 'documents.uefa.com') related to this domain." if official_url else ""}
+
 Return ONLY valid JSON matching this schema:
 {{
   "start_date": "<ISO YYYY-MM-DD or readable start date e.g. 2026-06-11>",
@@ -270,7 +273,13 @@ Return ONLY valid JSON matching this schema:
   "organizer": "<Governing body e.g. FIFA, UEFA, CONCACAF, IIHF, FIBA, IOC>",
   "official_website_url": "<Official tournament or confederation website URL>",
   "logo_url": "<URL to official logo / SVG emblem / Wikimedia Commons image>",
-  "tournament_summary": "<2-sentence overview of the tournament edition>"
+  "tournament_summary": "<2-sentence overview of the tournament edition>",
+  "audit_note": "Perform a meticulous deep scan of official federation regulations, Wikipedia format sections, and official web documentation.
+CRITICAL MANDATE: Treat this tournament as a UNIQUE INDIVIDUAL EVENT (\"unique butterfly\"). Do NOT rely on generic defaults or copy rules from other tournaments. Carefully analyze the exact regulations of THIS SPECIFIC EDITION to determine:
+1. Exact points system and tiebreaker hierarchy
+2. Advancement logic: how many teams advance per group directly
+3. Qualifying tables: whether a secondary ranking table is used for best 3rd-placed teams or runners-up, and exactly how many advance
+4. Knockout rules: starting round, extra time, penalty shootout, and whether a 3rd-place / bronze match (Bronsmatch) is played in this edition."
 }}
 """
         result = cls.generate_json(prompt, search_grounding=True)
@@ -283,6 +292,7 @@ Return ONLY valid JSON matching this schema:
         sport: str = "Football",
         teams_count: Optional[int] = None,
         wikipedia_context: str = "",
+        official_url: str = "",
     ) -> Dict[str, Any]:
         """
         AI Sub-Agent for Structure & Rules.
@@ -294,8 +304,12 @@ Return ONLY valid JSON matching this schema:
 You are an expert sports competition auditor.
 Audit the official rules, regulations, and tournament structure for "{tournament_name}" (Sport: {sport}, Teams: {teams_count or 'Unknown'}).
 
+CRITICAL MANDATE: Treat this tournament as a UNIQUE INDIVIDUAL EVENT ("unique butterfly"). Do NOT rely on generic defaults or copy rules from other tournaments. Carefully analyze the exact regulations of THIS SPECIFIC EDITION to extract its precise advancement logic, qualifying tables, tiebreakers, knockout rounds, and whether a 3rd-place / bronze match (Bronsmatch) is played in this edition.
+
 Context:
 {wikipedia_context[:5000] if wikipedia_context else "None provided."}
+
+{"If an official website is provided (" + official_url + "), explicitly use Google Search to find specific subpages such as '/draws/' or regulation documents (e.g., 'documents.uefa.com') related to this domain to find the actual draw date, pots, and rules." if official_url else ""}
 
 Extract the complete structural and regulation specifications. Return ONLY valid JSON:
 {{
@@ -345,6 +359,7 @@ Extract the complete structural and regulation specifications. Return ONLY valid
         tournament_name: str,
         sport: str = "Football",
         wikipedia_context: str = "",
+        official_url: str = "",
     ) -> Dict[str, Any]:
         """
         AI Sub-Agent for Groups & Teams.
@@ -356,6 +371,8 @@ Extract the official groups and participating teams for "{tournament_name}" (Spo
 
 Context:
 {wikipedia_context[:5000] if wikipedia_context else "None provided."}
+
+{"If an official website is provided (" + official_url + "), explicitly use Google Search to find specific subpages such as '/draws/' or regulation documents related to this domain to find the actual groups and team assignments." if official_url else ""}
 
 CRITICAL RULES:
 1. If the official draw HAS NOT taken place yet, set "draw_completed": false, provide the "draw_date" if known, and generate standard skeleton placeholders (e.g. Group A: ["A1 (TBD)", "A2 (TBD)", "A3 (TBD)", "A4 (TBD)"]).
@@ -445,6 +462,7 @@ Wikipedia / Web Context:
 YOUR TASK:
 Find and generate the complete, realistic tournament fixtures and knockout bracket phases for "{t_name}" ({t_sport}, organized by {t_organizer}, host: {t_host}, {t_teams} teams).
 Search the web / official references / Wikipedia ({t_wiki or t_official}) to find:
+{"Explicitly search within the official domain " + t_official + " (and its subpages like /draws/ or document portals like documents.uefa.com) if provided." if t_official else ""}
 1. Tournament structure (League phase / Round-Robin / Group stages like Groups A, B, C... or Regular Season Rounds, plus Play-in / advancement if applicable).
 2. For Club tournaments (e.g. EuroLeague basketball, UEFA Champions League), list the participating clubs, their authentic stadiums/arenas (venues) across Europe/host regions, accurate calendar dates matching start_date "{t_start}" to end_date "{t_end}".
 3. For National team tournaments (e.g. AFC Asian Cup, FIFA World Cup, EuroBasket), find official groups (e.g. Groups A through F), 2-letter ISO country codes in lowercase (e.g. "sa", "es", "gr", "fr", "de", "us", "jp", "kr") for flagcdn URLs `https://flagcdn.com/w40/{{code}}.png`, real venues and cities, and correct dates.

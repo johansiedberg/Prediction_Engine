@@ -3148,12 +3148,12 @@
                 <div class="card bg-dark bg-opacity-60 border border-secondary border-opacity-30 rounded-3 p-3 shadow-sm" id="sidebet-card-${sb.id}">
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2 pb-2 border-bottom border-secondary border-opacity-20">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-secondary bg-opacity-40 text-light font-monospace small">#${idx + 1}</span>
-                            <span class="badge ${sb.question_type === 'TEAM' ? 'bg-primary bg-opacity-20 text-primary border border-primary border-opacity-30' : 'bg-info bg-opacity-20 text-info border border-info border-opacity-30'} rounded-pill font-monospace small">
-                                ${sb.question_type === 'TEAM' ? 'Lagval (Dropdown)' : 'Fritext / Spelare'}
+                            <span class="text-secondary fw-bold fs-7 me-1">#${idx + 1}</span>
+                            <span class="badge ${sb.question_type === 'TEAM' ? 'bg-primary' : 'bg-info'} bg-opacity-10 ${sb.question_type === 'TEAM' ? 'text-primary' : 'text-info'} border ${sb.question_type === 'TEAM' ? 'border-primary' : 'border-info'} border-opacity-25 rounded-pill fw-bold" style="padding: 0.35em 0.65em;">
+                                ${sb.question_type === 'TEAM' ? '<i class="fa-solid fa-flag me-1.5"></i>Lagval' : '<i class="fa-solid fa-keyboard me-1.5"></i>Fritext'}
                             </span>
-                            <span class="badge bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 rounded-pill font-monospace small">
-                                ${sb.points} poäng
+                            <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill fw-bold" style="padding: 0.35em 0.65em;">
+                                <i class="fa-solid fa-star me-1.5"></i>${sb.points} p
                             </span>
                         </div>
                         <div class="d-flex align-items-center gap-2">
@@ -3196,7 +3196,7 @@
     function showAddSidebetForm() {
         const card = document.getElementById('newSidebetCard');
         card.classList.remove('d-none');
-        document.getElementById('new_sb_points').value = 30;
+        document.getElementById('new_sb_points').value = 25;
         document.getElementById('new_sb_question').focus();
     }
 
@@ -4461,14 +4461,6 @@
                         <div class="p-3.5 rounded-3 border border-secondary border-opacity-25 bg-dark bg-opacity-50">
                             <h6 class="fw-bold text-white mb-3"><i class="fa-solid fa-sliders me-1 text-success"></i>Konfiguration:</h6>
 
-                            <div class="mb-3">
-                                <label class="form-label text-secondary small fw-bold mb-1">Publiceringsläge:</label>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="convertIsActiveSwitch" checked>
-                                    <label class="form-check-label text-white small" for="convertIsActiveSwitch">Publicera & Gör Aktiv direkt</label>
-                                </div>
-                            </div>
-
                             <hr class="border-secondary border-opacity-20 my-3">
 
                             <div class="mb-3">
@@ -4500,7 +4492,7 @@
     function convertDirect(prospectId, prospectName) {
         const csrfToken = getCSRFToken();
         const formData = new FormData();
-        formData.append('is_active', 'true');
+        formData.append('is_active', 'false');
 
         fetch(`/engine-admin/scout/convert/${prospectId}/`, {
             method: 'POST',
@@ -4528,7 +4520,7 @@
         if (!currentReviewProspectId) return;
 
         const btn = document.getElementById('confirmConvertBtn');
-        const isActive = document.getElementById('convertIsActiveSwitch')?.checked ?? true;
+        const isActive = false;
 
         if (btn) {
             btn.disabled = true;
@@ -4537,7 +4529,7 @@
 
         const csrfToken = getCSRFToken();
         const formData = new FormData();
-        formData.append('is_active', isActive ? 'true' : 'false');
+        formData.append('is_active', 'false');
 
         fetch(`/engine-admin/scout/convert/${currentReviewProspectId}/`, {
             method: 'POST',

@@ -245,7 +245,9 @@ def scout_convert_view(request: HttpRequest, prospect_id: int) -> JsonResponse:
 
     """Converts a ScannedTournament prospect into a full live tournament."""
     try:
-        is_active = request.POST.get('is_active') in ['true', '1', 'on']
+        # A tournament created from Scout must never be active immediately.
+        # It must be verified by Engine Admin and have points/sidebets configured first.
+        is_active = False
         
         # Optional custom point system payload
         custom_pts = None

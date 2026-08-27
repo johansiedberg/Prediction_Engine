@@ -87,6 +87,7 @@ class StructureRulesAgent:
                     sport=sport,
                     teams_count=teams_count,
                     wikipedia_context=str(audit.get("raw_text", ""))[:5000],
+                    official_url=audit.get("official_source_url") or "",
                 ) or {}
                 if gemini_rules:
                     if gemini_rules.get("points_system"):

@@ -210,6 +210,7 @@ class ModularDeepScout:
                     tournament_name=prospect.name,
                     sport=prospect.sport or "Football",
                     teams_count=getattr(prospect, 'teams_count', None) or payload.get('tournament_config', {}).get('total_teams'),
+                    official_url=official_url,
                 )
                 if gemini_struct:
                     audit = gemini_struct

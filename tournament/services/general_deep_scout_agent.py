@@ -79,6 +79,7 @@ class GeneralDeepScoutAgent:
                     tournament_name=tournament_name,
                     sport=audit.get("sport", "Football"),
                     wikipedia_context=str(audit.get("raw_text", ""))[:4000],
+                    official_url=resolved_official_url,
                 ) or {}
                 if gemini_gen.get("start_date") and (start_date is None) and not has_audit_start:
                     start_date = gemini_gen.get("start_date")

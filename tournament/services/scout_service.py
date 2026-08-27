@@ -184,6 +184,8 @@ def parse_and_save_scouted_json(payload):
     name = tournament_config.get('name') or master_event_data.get('name')
     if not name:
         return None, False, "Saknar turneringsnamn ('name' under master_event eller tournament_config)."
+    
+    name = normalize_tournament_name_year(name)
 
     master_code = master_event_data.get('code') or name.lower().replace(' ', '-').replace("'", '')
     sport = master_event_data.get('sport', 'Football')
@@ -725,6 +727,22 @@ def normalize_brand_key(name: str) -> str:
     clean = re.sub(r'\b(19\d{2}|20\d{2}(?:[–\-]\d{2,4})?)\b', '', name)
     clean = re.sub(r'[^a-zA-Z0-9]', '', clean).lower()
     return clean
+
+
+def normalize_tournament_name_year(name: str) -> str:
+    """
+    Normalizes a tournament name by moving the year/season to the end of the string.
+    e.g. '2026–27 UEFA Nations League' -> 'UEFA Nations League 2026-27'
+         '2026 FIFA World Cup' -> 'FIFA World Cup 2026'
+    """
+    if not name:
+        return ""
+    name = name.strip()
+    match = re.match(r'^(19\d{2}|20\d{2}(?:[–\-]\d{2,4})?)\s+(.*)$', name)
+    if match:
+        year_part = match.group(1).replace('–', '-')
+        return f"{match.group(2).strip()} {year_part}"
+    return name
 
 
 def merge_duplicate_scanned_tournaments_by_wikipedia():
@@ -1540,6 +1558,59 @@ def ensure_complete_knockout_bracket(tournament, base_dt=None, start_match_numbe
 
     match_counter = start_match_number or (tournament.matches.aggregate(models.Max('match_number')).get('match_number__max') or 0)
 
+    first_stage = stages_list[0]
+    # Check if first stage has 0 matches but later stages have matches referencing groups or missing
+    if not first_stage.matches.exists():
+        has_misplaced_group_matches = False
+        for stage in stages_list[1:]:
+            for m in stage.matches.all():
+                if 'group' in (m.home_team or '').lower() or 'group' in (m.away_team or '').lower():
+                    has_misplaced_group_matches = True
+                    break
+
+        if has_misplaced_group_matches or len(stages_list) >= 4:
+            # Delete misplaced downstream matches
+            for stage in stages_list[1:]:
+                stage.matches.all().delete()
+
+            group_count = tournament.tournament_groups.count()
+            groups_qs = list(tournament.tournament_groups.all())
+            group_letters = [g.name.split()[-1] if ' ' in g.name else chr(65 + i) for i, g in enumerate(groups_qs)]
+
+            first_match_num = (tournament.matches.filter(group__isnull=False).aggregate(models.Max('match_number')).get('match_number__max') or 0) + 1
+
+            if group_count >= 6:
+                r16_pairings = [
+                    (f"Winner Group {group_letters[0]}", "3rd Group C/D/E/F"),
+                    (f"Runner-up Group {group_letters[0]}", f"Runner-up Group {group_letters[1]}"),
+                    (f"Winner Group {group_letters[1]}", "3rd Group A/C/D/E/F"),
+                    (f"Winner Group {group_letters[2]}", f"Runner-up Group {group_letters[5]}"),
+                    (f"Winner Group {group_letters[4]}", f"Runner-up Group {group_letters[3]}"),
+                    (f"Winner Group {group_letters[3]}", "3rd Group A/B/C/E/F"),
+                    (f"Winner Group {group_letters[5]}", f"Runner-up Group {group_letters[4]}"),
+                    (f"Runner-up Group {group_letters[2]}", "3rd Group A/B/D/E/F"),
+                ]
+            else:
+                r16_pairings = [
+                    (f"Winner Group {group_letters[0]}", f"Runner-up Group {group_letters[1]}"),
+                    (f"Winner Group {group_letters[1]}", f"Runner-up Group {group_letters[0]}"),
+                    (f"Winner Group {group_letters[2]}", f"Runner-up Group {group_letters[3]}"),
+                    (f"Winner Group {group_letters[3]}", f"Runner-up Group {group_letters[2]}"),
+                ]
+
+            for m_idx, (h_p, a_p) in enumerate(r16_pairings):
+                m_dt = base_dt + datetime.timedelta(days=7 + m_idx)
+                if timezone.is_naive(m_dt):
+                    m_dt = timezone.make_aware(m_dt, timezone.get_current_timezone())
+                Match.objects.create(
+                    tournament=tournament,
+                    stage=first_stage,
+                    match_number=first_match_num + m_idx,
+                    home_team=h_p,
+                    away_team=a_p,
+                    date_time=m_dt
+                )
+
     for idx, stage in enumerate(stages_list):
         if stage.matches.exists():
             continue
@@ -1562,7 +1633,44 @@ def ensure_complete_knockout_bracket(tournament, base_dt=None, start_match_numbe
         match_counter = prev_max_num
 
         num_prev = len(prev_matches)
-        if num_prev >= 2:
+        if num_prev == 2:
+            t_name_lower = tournament.name.lower()
+            sport_lower = (getattr(tournament, 'sport', '') or '').lower()
+            is_uefa_euro = ("euro" in t_name_lower or "em" in t_name_lower) and "qualif" not in t_name_lower and "handball" not in sport_lower and "hockey" not in sport_lower
+            has_bronze = not is_uefa_euro
+
+            h_m = prev_matches[0]
+            a_m = prev_matches[1]
+
+            if has_bronze:
+                match_counter += 1
+                m_dt_bronze = base_dt + datetime.timedelta(days=7 + idx * 3)
+                if timezone.is_naive(m_dt_bronze):
+                    m_dt_bronze = timezone.make_aware(m_dt_bronze, timezone.get_current_timezone())
+                Match.objects.create(
+                    tournament=tournament,
+                    stage=stage,
+                    match_number=match_counter,
+                    home_team=f"Loser Match {h_m.match_number}",
+                    away_team=f"Loser Match {a_m.match_number}",
+                    date_time=m_dt_bronze
+                )
+
+            match_counter += 1
+            m_dt_final = base_dt + datetime.timedelta(days=7 + idx * 3 + (1 if has_bronze else 0))
+            if timezone.is_naive(m_dt_final):
+                m_dt_final = timezone.make_aware(m_dt_final, timezone.get_current_timezone())
+            Match.objects.create(
+                tournament=tournament,
+                stage=stage,
+                match_number=match_counter,
+                home_team=f"Winner Match {h_m.match_number}",
+                away_team=f"Winner Match {a_m.match_number}",
+                date_time=m_dt_final
+            )
+            continue
+
+        if num_prev > 2:
             num_new_matches = num_prev // 2
             
             for m_idx in range(num_new_matches):
@@ -1858,6 +1966,10 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
             or struct_segment.get('has_host_ranking_table', False)
             or bool(re.search(r'co-host|värdnation', off_rules, re.IGNORECASE))
         )
+        adv_logic = struct_segment.get('advancement_logic') or payload.get('advancement_logic') or {}
+        teams_adv_count = int(adv_logic.get('teams_per_group_advancing') or 2)
+        if teams_adv_count >= 2:
+            has_runners_up = False
 
         tournament, _ = Tournament.objects.update_or_create(
             name=scanned.name,
@@ -2076,14 +2188,6 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                         points=q_pts,
                         question_type=q_type
                     )
-        else:
-            # Auto-create standard tournament winner sidebet
-            Sidebet.objects.create(
-                tournament=tournament,
-                question=f"Vilket lag vinner {tournament.name}?",
-                points=25,
-                question_type='CHOICES'
-            )
 
         # Mark ScannedTournament as converted and link to live tournament
         scanned.status = 'CONVERTED'

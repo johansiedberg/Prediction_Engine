@@ -118,6 +118,7 @@ class GroupsTeamsAgent:
                     tournament_name=tournament_name,
                     sport=sport,
                     wikipedia_context=str(audit.get("raw_text", ""))[:4000],
+                    official_url=audit.get("official_source_url") or "",
                 ) or {}
                 if gemini_groups.get("groups"):
                     if not raw_groups or (not prior_has_real and gemini_groups.get("has_real_teams")) or (len(raw_groups) < len(gemini_groups["groups"]) and not prior_has_real):

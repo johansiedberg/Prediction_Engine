@@ -307,9 +307,37 @@ def engine_admin_preview_tournament(request: HttpRequest, tournament_id: int) ->
     """Renders detailed structure preview (groups, standings, matches, knockouts) for tournament review."""
     tournament = get_object_or_404(Tournament, id=tournament_id)
     
+    from tournament.models import ScannedTournament
+    scanned = ScannedTournament.objects.filter(converted_tournament=tournament).first()
+    adv_logic = scanned.payload.get('advancement_logic', {}) if scanned and scanned.payload else {}
+    teams_adv = adv_logic.get('teams_per_group_advancing') or 2
+    total_groups = tournament.tournament_groups.count()
+
+    runners_up_adv = adv_logic.get('runners_up_advancing') or (total_groups if teams_adv >= 2 else 0)
+    best_thirds_adv = adv_logic.get('best_third_placed_advancing') or (4 if (tournament.has_best_thirds_table or total_groups == 6) else 0)
+
+    runners_up_table = tournament.get_runners_up_ranking_table()
+    host_ranking_table = tournament.get_host_ranking_table()
+    best_thirds_table = tournament.get_best_thirds_ranking_table()
+
+    # Rule: If 2 or more teams per group advance directly, ALL runners-up advance directly. No runners-up ranking table is needed!
+    if teams_adv >= 2 or (runners_up_adv > 0 and runners_up_adv >= total_groups):
+        runners_up_table = None
+
     groups_data = []
     for group in tournament.tournament_groups.all():
         standings = group.get_standings()
+        has_qual = (runners_up_table is not None or best_thirds_table is not None)
+        for idx, row in enumerate(standings, start=1):
+            row['is_last_advancing'] = (idx == teams_adv and has_qual)
+            row['is_last_qualifying'] = (has_qual and idx == teams_adv + 1) or (not has_qual and idx == teams_adv)
+            if idx <= teams_adv:
+                row['advancement_status'] = 'ADVANCING'
+            elif has_qual and idx == teams_adv + 1:
+                row['advancement_status'] = 'QUALIFYING'
+            else:
+                row['advancement_status'] = 'OUT'
+                
         matches_list = []
         for m in group.matches.all():
             matches_list.append({
@@ -340,30 +368,36 @@ def engine_admin_preview_tournament(request: HttpRequest, tournament_id: int) ->
                 'is_finished': m.is_finished,
                 'date_time': m.date_time,
             })
-        knockout_data.append({
-            'stage': stage,
-            'matches': matches_list,
-        })
 
-    # Requirement: in View section, always show Round of 32 also, even if not applicable for the specific tournament
-    has_r32 = any(
-        '32' in (s.name or '').lower() or '16-del' in (s.name or '').lower()
-        for s in tournament.knockout_stages.all()
-    )
-    if not has_r32:
-        class VirtualRoundOf32Stage:
-            name = "Round of 32 (16-delsfinal)"
+        # Separate Bronze match and Final match if present in the same final stage
+        bronze_matches = [
+            m for m in matches_list
+            if 'loser' in str(m['home_info'].get('display_name', '')).lower()
+            or 'loser' in str(m['away_info'].get('display_name', '')).lower()
+            or 'brons' in stage.name.lower()
+            or '3rd' in stage.name.lower()
+            or 'tredje' in stage.name.lower()
+        ]
+        final_matches = [m for m in matches_list if m not in bronze_matches]
 
-        knockout_data.insert(0, {
-            'stage': VirtualRoundOf32Stage(),
-            'matches': [],
-            'not_applicable': True,
-            'note': 'Ej tillämplig för detta format (Gruppspelet avancerar direkt till Åttondelsfinal/Slutspel)'
-        })
+        if bronze_matches and final_matches:
+            knockout_data.append({
+                'stage_name': 'Bronsmatch',
+                'is_bronze': True,
+                'matches': bronze_matches,
+            })
+            knockout_data.append({
+                'stage_name': stage.name or 'Final',
+                'is_bronze': False,
+                'matches': final_matches,
+            })
+        else:
+            knockout_data.append({
+                'stage_name': stage.name,
+                'is_bronze': 'brons' in stage.name.lower() or '3:e' in stage.name.lower() or 'third' in stage.name.lower(),
+                'matches': matches_list,
+            })
 
-    runners_up_table = tournament.get_runners_up_ranking_table()
-    host_ranking_table = tournament.get_host_ranking_table()
-    best_thirds_table = tournament.get_best_thirds_ranking_table()
     chk_status = get_tournament_checklist_status(tournament)
     tot_status = get_tournament_total_status(tournament, chk_status)
 
@@ -375,6 +409,8 @@ def engine_admin_preview_tournament(request: HttpRequest, tournament_id: int) ->
         'host_ranking_table': host_ranking_table,
         'best_thirds_table': best_thirds_table,
         'total_status': tot_status,
+        'runners_up_adv': runners_up_adv,
+        'best_thirds_adv': best_thirds_adv,
     }
     return render(request, 'tournament/engine_admin_preview_modal.html', context)
 
