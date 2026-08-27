@@ -77,6 +77,8 @@ class SpecialEditionTestCase(TestCase):
 class EngineHubTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('user1', 'u1@test.com', 'password', first_name='John', last_name='Doe')
+        self.user.profile.terms_accepted = True
+        self.user.profile.save()
         self.admin = User.objects.create_superuser('johansiedberg', 'admin@test.com', 'password')
         self.tournament = Tournament.objects.create(name='Test Tournament', admin=self.admin, is_active=True)
         self.league = League.objects.create(name='Test League', admin=self.admin, invite_code='ENGINE8')
@@ -186,6 +188,8 @@ class EmailUserIdentificationTestCase(TestCase):
             first_name='Anna',
             last_name='Andersson'
         )
+        self.user.profile.terms_accepted = True
+        self.user.profile.save()
 
     def test_authenticate_with_email_exact(self):
         from django.contrib.auth import authenticate
@@ -211,6 +215,7 @@ class EmailUserIdentificationTestCase(TestCase):
             'email': 'bengt@exempel.se',
             'password1': 'bengtpass123',
             'password2': 'bengtpass123',
+            'accept_terms': 'on',
         }, follow=True)
         self.assertEqual(response.status_code, 200)
         bengt = User.objects.filter(email='bengt@exempel.se').first()
@@ -233,6 +238,8 @@ class EmailUserIdentificationTestCase(TestCase):
 class WANHTTPSAccessTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('wan_user', 'wan@test.com', 'password123', first_name='WAN', last_name='Tester')
+        self.user.profile.terms_accepted = True
+        self.user.profile.save()
         self.admin = User.objects.create_superuser('johansiedberg', 'admin@wan.test', 'adminpass123')
 
     def test_player_app_wan_https_access(self):
@@ -916,9 +923,10 @@ class LLMWikipediaScoutTestCase(TestCase):
         self.assertEqual(norm['start_date'], '2027-06-11')
         self.assertEqual(norm['end_date'], '2027-07-19')
 
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False)
     @patch('tournament.services.wikidata_scout.WikidataScout.fetch_wikidata_entity')
     @patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout.audit_with_llm')
-    def test_deep_scan_retains_incomplete_date_as_grade_c(self, mock_audit, mock_wikidata):
+    def test_deep_scan_retains_incomplete_date_as_grade_c(self, mock_audit, mock_wikidata, mock_gemini):
         """_run_deep_scan_on_prospect sets Grade C and preserves prospect when start_date is unconfirmed."""
         from tournament.models import ScannedTournament
         from tournament.views.engine_admin import _run_deep_scan_on_prospect
@@ -1995,9 +2003,9 @@ class ScoutAgentsTestCase(TestCase):
         mock_gemini.return_value = {
             "start_date": "2026-06-11",
             "host_country": "USA",
-            "logo_url": "gemini_logo.png"
+            "logo_url": "https://example.com/gemini_logo.png"
         }
-        mock_emblem.return_value = "emblem_logo.png"
+        mock_emblem.return_value = "https://example.com/emblem_logo.png"
         mock_official.return_value = "https://example.com"
         mock_wiki.return_value = {"wikidata_qid": "Q123", "official_website_url": "https://example.com"}
 
@@ -2009,7 +2017,7 @@ class ScoutAgentsTestCase(TestCase):
 
         self.assertEqual(result.start_date, "2026-06-11")
         self.assertEqual(result.location.host_country, "USA")
-        self.assertEqual(result.emblem.logo_url, "gemini_logo.png")
+        self.assertEqual(result.emblem.logo_url, "https://example.com/gemini_logo.png")
         self.assertEqual(result.official_website_url, "https://example.com")
 
     @patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=True)

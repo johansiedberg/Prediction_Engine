@@ -15,14 +15,7 @@
             <p class="text-secondary small mb-0">Systemkontroll &amp; Övervakning (Server Port 2029)</p>
         </div>
 
-        {% if messages %}
-        {% for message in messages %}
-        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-3 small py-2 mb-3" role="alert">
-            <i class="fa-solid fa-triangle-exclamation me-1.5"></i> {{ message }}
-            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endfor %}
-        {% endif %}
+
 
         <form action="/login/" method="post">
             {% csrf_token %}

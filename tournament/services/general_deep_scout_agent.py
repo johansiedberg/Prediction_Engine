@@ -131,7 +131,7 @@ class GeneralDeepScoutAgent:
             ) or ""
 
         # 4. Emblem resolution (Vector SVG > Transparent PNG > Wikipedia > Official Webpage)
-        candidate_logo = existing_logo_url or audit.get("logo_url") or ""
+        candidate_logo = existing_logo_url or logo_url or audit.get("logo_url") or ""
         if candidate_logo and is_valid_tournament_logo(candidate_logo):
             logo_url = candidate_logo
         else:

@@ -15,7 +15,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 
 from tournament.models import (League, LeagueMember, MatchPrediction,
-                               ScannedTournament, Tournament)
+                               ScannedTournament, Tournament, Match, TournamentSubmission)
 from tournament.services.tournament_admin import (
     get_tournament_checklist_status, get_tournament_total_status)
 from tournament.views.auth import superuser_or_staff_required
@@ -83,93 +83,75 @@ def engine_admin_dashboard_view(request: HttpRequest) -> HttpResponse:
     total_tournaments = Tournament.objects.count()
     active_tournaments_count = Tournament.objects.filter(is_active=True).count()
     
-    # 2. Friend Pools / Leagues Overview Table
-    leagues_query = League.objects.select_related('admin', 'master_event').prefetch_related('members').annotate(
-        member_count=Count('members', distinct=True),
-        verified_count=Count('members', filter=Q(members__is_verified=True), distinct=True),
-        last_member_login=Max('members__player__last_login')
-    ).order_by('-created_at')
-
-    leagues_data = []
-    admin_emails_set = set()
-
-    for leg in leagues_query:
-        if leg.admin and leg.admin.email:
-            admin_emails_set.add(leg.admin.email.strip())
-        
-        member_ids = leg.members.values_list('player_id', flat=True)
-        league_predictions_count = MatchPrediction.objects.filter(player_id__in=member_ids).count()
-        
-        last_active = leg.last_member_login
-        latest_pred_obj = MatchPrediction.objects.filter(player_id__in=member_ids).order_by('-id').first()
-        if latest_pred_obj and hasattr(latest_pred_obj, 'updated_at') and latest_pred_obj.updated_at:
-            if not last_active or latest_pred_obj.updated_at > last_active:
-                last_active = latest_pred_obj.updated_at
-
-        leagues_data.append({
-            'league': leg,
-            'admin': leg.admin,
-            'admin_name': (leg.admin.get_full_name() or leg.admin.email) if leg.admin else '-',
-            'admin_email': leg.admin.email if leg.admin else '-',
-            'tournament_name': leg.master_event.name if leg.master_event else '-',
-            'member_count': leg.member_count,
-            'verified_count': leg.verified_count,
-            'predictions_count': league_predictions_count,
-            'last_active': last_active,
-        })
-
-    admin_emails_list = sorted(list(admin_emails_set))
-    admin_emails_str = ", ".join(admin_emails_list)
-
-    # 3. Player Directory & Activity Logger (Connecting Pool to Player, multiple rows per pool membership)
-    player_rows = []
-    memberships = LeagueMember.objects.select_related('league', 'player', 'league__admin', 'league__master_event').order_by('-player__last_login', '-joined_at')
+    # 2. Tournament-Centric Monitor & Actionable Alerts
+    monitor_tournaments_data = []
+    needs_attention_alerts = []
     
-    users_with_pools = set()
-    for m in memberships:
-        users_with_pools.add(m.player_id)
-        tour_id = m.league.master_event_id if m.league and m.league.master_event else None
-        if tour_id:
-            preds_cnt = MatchPrediction.objects.filter(player=m.player, match__tournament_id=tour_id).count()
-        else:
-            preds_cnt = MatchPrediction.objects.filter(player=m.player).count()
-
-        player_rows.append({
-            'player': m.player,
-            'player_name': m.player.get_full_name() or m.player.email,
-            'player_email': m.player.email,
-            'league': m.league,
-            'league_name': m.league.name if m.league else '-',
-            'admin': m.league.admin if m.league else None,
-            'admin_name': (m.league.admin.get_full_name() or m.league.admin.email) if (m.league and m.league.admin) else '-',
-            'admin_email': m.league.admin.email if (m.league and m.league.admin) else '-',
-            'tournament_name': m.league.master_event.name if (m.league and m.league.master_event) else '-',
-            'is_verified': m.is_verified,
-            'joined_at': m.joined_at,
-            'last_login': m.player.last_login,
-            'predictions_count': preds_cnt,
+    now = timezone.now()
+    missing_scores_count = Match.objects.filter(is_finished=False, date_time__lt=now, home_goals__isnull=True).count()
+    if missing_scores_count > 0:
+        needs_attention_alerts.append({
+            'type': 'danger',
+            'icon': 'fa-triangle-exclamation',
+            'title': 'Saknade matchresultat',
+            'message': f'Det finns {missing_scores_count} avslutade matcher som saknar inrapporterat slutresultat. Poängräkning kan vara blockerad!'
         })
-
-    standalone_users = User.objects.exclude(id__in=users_with_pools).order_by('-last_login', '-date_joined')
-    for u in standalone_users:
-        preds_cnt = MatchPrediction.objects.filter(player=u).count()
-        player_rows.append({
-            'player': u,
-            'player_name': u.get_full_name() or u.email,
-            'player_email': u.email,
-            'league': None,
-            'league_name': '-',
-            'admin': None,
-            'admin_name': '-',
-            'admin_email': '-',
-            'tournament_name': '-',
-            'is_verified': False,
-            'joined_at': u.date_joined,
-            'last_login': u.last_login,
-            'predictions_count': preds_cnt,
+        
+    active_tournaments = Tournament.objects.filter(is_active=True).order_by('start_date')
+    admin_emails_set = set()
+    
+    for tour in active_tournaments:
+        pools = League.objects.filter(tournaments=tour).select_related('admin').annotate(
+            member_count=Count('members', distinct=True)
+        )
+        
+        tour_expected_submissions = 0
+        tour_actual_submissions = 0
+        pools_data = []
+        
+        for leg in pools:
+            if leg.admin and leg.admin.email:
+                admin_emails_set.add(leg.admin.email.strip())
+            
+            member_ids = LeagueMember.objects.filter(league=leg).values_list('player_id', flat=True)
+            leg_submissions = TournamentSubmission.objects.filter(tournament=tour, player_id__in=member_ids).count()
+            
+            missing_count = max(0, leg.member_count - leg_submissions)
+            tour_expected_submissions += leg.member_count
+            tour_actual_submissions += leg_submissions
+            
+            pools_data.append({
+                'league': leg,
+                'admin_name': (leg.admin.get_full_name() or leg.admin.email) if leg.admin else '-',
+                'member_count': leg.member_count,
+                'submissions_count': leg_submissions,
+                'missing_count': missing_count
+            })
+            
+        tour_missing = max(0, tour_expected_submissions - tour_actual_submissions)
+        
+        if tour.start_date:
+            days_until_start = (tour.start_date - now.date()).days
+            if 0 <= days_until_start <= 7 and tour_missing > 0:
+                needs_attention_alerts.append({
+                    'type': 'warning',
+                    'icon': 'fa-clock',
+                    'title': f'Risk för saknade tips: {tour.name}',
+                    'message': f'Turneringen startar om {days_until_start} dagar, men {tour_missing} tips saknas från anslutna tipsgrupper.'
+                })
+        
+        monitor_tournaments_data.append({
+            'tournament': tour,
+            'pools_count': pools.count(),
+            'expected_submissions': tour_expected_submissions,
+            'actual_submissions': tour_actual_submissions,
+            'missing_submissions': tour_missing,
+            'pools_data': pools_data
         })
+        
+    admin_emails_list = sorted(list(admin_emails_set))
 
-    # 4. Tournaments for Lifecycle Management
+    # 4\. Tournaments for Lifecycle Management
     tournaments_list = Tournament.objects.select_related('admin').prefetch_related(
         'teams', 'tournament_groups', 'matches', 'knockout_stages'
     ).order_by('-id')
@@ -783,10 +765,9 @@ def engine_admin_dashboard_view(request: HttpRequest) -> HttpResponse:
         'total_predictions': total_predictions,
         'total_tournaments': total_tournaments,
         'active_tournaments_count': active_tournaments_count,
-        'leagues_data': leagues_data,
         'admin_emails_list': admin_emails_list,
-        'admin_emails_str': admin_emails_str,
-        'player_rows': player_rows,
+        'monitor_tournaments_data': monitor_tournaments_data,
+        'needs_attention_alerts': needs_attention_alerts,
         'tournaments_data': tournaments_data,
         'scanned_tournaments': scanned_data,
         'scout_counts': scout_counts,
