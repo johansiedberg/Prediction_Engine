@@ -14,11 +14,7 @@
         </div>
         <div class="p-4 d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-3">
-                {% if tournament.icon %}
-                <img src="{{ tournament.icon.url }}" alt="{{ tournament.name }}" style="height: 48px; width: 48px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.8));">
-                {% else %}
-                <i class="fa-solid fa-trophy text-warning fs-2"></i>
-                {% endif %}
+                <img src="{{ tournament.icon_url }}" alt="{{ tournament.name }}" style="height: 48px; width: 48px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.8));">
                 <div>
                     <h3 class="fw-extrabold text-white mb-0">{{ tournament.name }}</h3>
                     <span class="text-secondary small font-monospace">ID: #{{ tournament.id }}</span>
@@ -92,14 +88,42 @@
                         <div class="text-secondary fs-7 text-uppercase fw-bold mb-2">Matcher:</div>
                         {% for m in g_data.matches %}
                         <div class="d-flex align-items-center justify-content-between py-1.5 px-2.5 rounded-3 mb-1 border border-secondary border-opacity-15 bg-transparent text-white small">
-                            <span class="text-secondary font-monospace">Match #{{ m.match_number }}</span>
-                            <div class="fw-semibold text-center flex-grow-1 px-2">
-                                <span>{% if m.home_info.flag_url %}<img src="{{ m.home_info.flag_url }}" class="me-1" style="width: 18px;">{% endif %}{{ m.home_info.display_name }}</span>
-                                <span class="badge bg-dark border border-secondary border-opacity-30 mx-2 text-warning font-monospace">
-                                    {% if m.home_goals != None %}{{ m.home_goals }} - {{ m.away_goals }}{% else %}VS{% endif %}
-                                </span>
-                                <span>{% if m.away_info.flag_url %}<img src="{{ m.away_info.flag_url }}" class="ms-1" style="width: 18px;">{% endif %}{{ m.away_info.display_name }}</span>
+                            <span class="text-secondary font-monospace flex-shrink-0" style="width: 70px;">Match #{{ m.match_number }}</span>
+                            <div class="d-flex align-items-center justify-content-center flex-grow-1" style="gap: 10px; min-width: 0;">
+                                <!-- Left Side: Home Team & Flag (50% width, Aligned Right) -->
+                                <div class="d-flex align-items-center justify-content-end text-end" style="flex: 1 1 0%; min-width: 0; gap: 10px;">
+                                    <span class="fw-semibold text-white text-truncate" title="{{ m.home_info.display_name }}">
+                                        {{ m.home_info.display_name }}
+                                    </span>
+                                    {% if m.home_info.emblem_url %}
+                                    <img src="{{ m.home_info.emblem_url }}" class="rounded-1 border border-secondary border-opacity-30 flex-shrink-0" style="width: 18px; height: 18px; object-fit: contain;" alt="">
+                                    {% elif m.home_info.flag_url %}
+                                    <img src="{{ m.home_info.flag_url }}" class="rounded-1 border border-secondary border-opacity-30 flex-shrink-0" style="width: 18px; height: 13px; object-fit: cover;" alt="">
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Center Pillar: vs / Score (Frameless, Perfect Horizontal Center) -->
+                                {% if m.home_goals != None %}
+                                <span class="fw-bold text-warning font-monospace flex-shrink-0 text-center" style="min-width: 32px; font-size: 0.85rem;">{{ m.home_goals }} - {{ m.away_goals }}</span>
+                                {% else %}
+                                <span class="text-info font-monospace flex-shrink-0 text-center" style="min-width: 32px; font-size: 0.84rem;">vs</span>
+                                {% endif %}
+                                
+                                <!-- Right Side: Flag & Away Team (50% width, Aligned Left) -->
+                                <div class="d-flex align-items-center justify-content-start text-start" style="flex: 1 1 0%; min-width: 0; gap: 10px;">
+                                    {% if m.away_info.emblem_url %}
+                                    <img src="{{ m.away_info.emblem_url }}" class="rounded-1 border border-secondary border-opacity-30 flex-shrink-0" style="width: 18px; height: 18px; object-fit: contain;" alt="">
+                                    {% elif m.away_info.flag_url %}
+                                    <img src="{{ m.away_info.flag_url }}" class="rounded-1 border border-secondary border-opacity-30 flex-shrink-0" style="width: 18px; height: 13px; object-fit: cover;" alt="">
+                                    {% endif %}
+                                    <span class="fw-semibold text-white text-truncate" title="{{ m.away_info.display_name }}">
+                                        {{ m.away_info.display_name }}
+                                    </span>
+                                </div>
                             </div>
+                            <span class="text-secondary font-monospace fs-8 text-end flex-shrink-0" style="width: 70px;">
+                                {% if m.date_time %}{{ m.date_time|date:"j M" }}{% endif %}
+                            </span>
                         </div>
                         {% empty %}
                         <span class="text-secondary fs-7">Inga matcher schemalagda.</span>
@@ -350,19 +374,45 @@
                     <div class="d-flex flex-column gap-2">
                         {% for m in st_data.matches %}
                         <div class="p-2.5 rounded-3 border border-secondary border-opacity-20 bg-transparent text-white">
-                            <div class="d-flex align-items-center justify-content-between text-secondary fs-7 mb-1 font-monospace">
+                            <div class="d-flex align-items-center justify-content-between text-secondary fs-7 mb-1.5 font-monospace">
                                 <span>Match #{{ m.match_number }}</span>
                                 {% if m.is_finished %}
                                 <span class="badge bg-success bg-opacity-20 text-success fs-8">KLAR</span>
+                                {% elif m.date_time %}
+                                <span class="text-secondary fs-8">{{ m.date_time|date:"j/n H:i" }}</span>
                                 {% endif %}
                             </div>
-                            <div class="d-flex align-items-center justify-content-between py-1">
-                                <span class="fw-semibold">{% if m.home_info.flag_url %}<img src="{{ m.home_info.flag_url }}" class="me-1" style="width: 18px;">{% endif %}{{ m.home_info.display_name }}</span>
-                                <span class="fw-extrabold text-warning font-monospace ms-2">{% if m.home_goals != None %}{{ m.home_goals }}{% else %}-{% endif %}</span>
-                            </div>
-                            <div class="d-flex align-items-center justify-content-between py-1 border-top border-secondary border-opacity-10">
-                                <span class="fw-semibold">{% if m.away_info.flag_url %}<img src="{{ m.away_info.flag_url }}" class="me-1" style="width: 18px;">{% endif %}{{ m.away_info.display_name }}</span>
-                                <span class="fw-extrabold text-warning font-monospace ms-2">{% if m.away_goals != None %}{{ m.away_goals }}{% else %}-{% endif %}</span>
+                            <div class="d-flex align-items-center justify-content-center py-1 font-monospace" style="gap: 10px; min-width: 0;">
+                                <!-- Left Side: Home Team & Flag (50% width, Aligned Right) -->
+                                <div class="d-flex align-items-center justify-content-end text-end" style="flex: 1 1 0%; min-width: 0; gap: 10px;">
+                                    <span class="fw-semibold text-white text-truncate" style="font-size: 0.84rem;" title="{{ m.home_info.display_name }}">
+                                        {{ m.home_info.display_name }}
+                                    </span>
+                                    {% if m.home_info.emblem_url %}
+                                    <img src="{{ m.home_info.emblem_url }}" class="rounded-1 border border-secondary border-opacity-30 flex-shrink-0" style="width: 18px; height: 18px; object-fit: contain;" alt="">
+                                    {% elif m.home_info.flag_url %}
+                                    <img src="{{ m.home_info.flag_url }}" class="rounded-1 border border-secondary border-opacity-30 flex-shrink-0" style="width: 18px; height: 13px; object-fit: cover;" alt="">
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Center Pillar: vs / Score (Frameless, Perfect Horizontal Center) -->
+                                {% if m.home_goals != None %}
+                                <span class="fw-bold text-warning font-monospace flex-shrink-0 text-center" style="min-width: 32px; font-size: 0.85rem;">{{ m.home_goals }} - {{ m.away_goals }}</span>
+                                {% else %}
+                                <span class="text-info font-monospace flex-shrink-0 text-center" style="min-width: 32px; font-size: 0.84rem;">vs</span>
+                                {% endif %}
+                                
+                                <!-- Right Side: Flag & Away Team (50% width, Aligned Left) -->
+                                <div class="d-flex align-items-center justify-content-start text-start" style="flex: 1 1 0%; min-width: 0; gap: 10px;">
+                                    {% if m.away_info.emblem_url %}
+                                    <img src="{{ m.away_info.emblem_url }}" class="rounded-1 border border-secondary border-opacity-30 flex-shrink-0" style="width: 18px; height: 18px; object-fit: contain;" alt="">
+                                    {% elif m.away_info.flag_url %}
+                                    <img src="{{ m.away_info.flag_url }}" class="rounded-1 border border-secondary border-opacity-30 flex-shrink-0" style="width: 18px; height: 13px; object-fit: cover;" alt="">
+                                    {% endif %}
+                                    <span class="fw-semibold text-white text-truncate" style="font-size: 0.84rem;" title="{{ m.away_info.display_name }}">
+                                        {{ m.away_info.display_name }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         {% empty %}

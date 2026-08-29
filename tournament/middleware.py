@@ -44,8 +44,10 @@ class EngineAdminPortMiddleware:
 
 class MustSetPasswordMiddleware:
     """
-    Forces any logged-in user whose profile has must_set_password=True or terms_accepted=False
-    to complete password selection and Terms & Conditions acceptance before accessing any other application pages.
+    Forces sequential 2-step onboarding for invited and unverified users:
+    1. Must read and accept full Terms & Conditions first (/terms/ or /terms/accept/)
+    2. Must choose personal password (/auth/set-password/)
+    Only when both steps are satisfied is full access granted to the application.
     """
     def __init__(self, get_response):
         self.get_response = get_response
@@ -56,21 +58,29 @@ class MustSetPasswordMiddleware:
                 return self.get_response(request)
 
             path = request.path
-            allowed_prefixes = (
-                '/auth/set-password/',
-                '/terms/',
+            exempt_prefixes = (
                 '/logout/',
                 '/engine-admin/',
                 '/static/',
                 '/media/',
             )
-            if not any(path.startswith(prefix) for prefix in allowed_prefixes):
-                if hasattr(request.user, 'profile'):
-                    profile = request.user.profile
-                    if profile.must_set_password or not request.user.has_usable_password():
-                        return redirect('set_password')
-                    if not profile.terms_accepted:
+            if any(path.startswith(prefix) for prefix in exempt_prefixes):
+                return self.get_response(request)
+
+            if hasattr(request.user, 'profile'):
+                profile = request.user.profile
+
+                # Step 1: Enforce Terms & Conditions acceptance first
+                if not profile.terms_accepted:
+                    if not path.startswith('/terms/'):
                         return redirect('accept_terms')
+                    return self.get_response(request)
+
+                # Step 2: Enforce Password selection
+                if profile.must_set_password or not request.user.has_usable_password():
+                    if not path.startswith('/auth/set-password/') and not path.startswith('/terms/'):
+                        return redirect('set_password')
+                    return self.get_response(request)
 
         return self.get_response(request)
 

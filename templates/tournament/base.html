@@ -39,8 +39,8 @@
             {% if request.user.is_authenticated %}
             <!-- Row 1: Logged in as User, Change Pool & Logout Button with 10px gap -->
             <div class="d-flex flex-wrap align-items-center justify-content-center mt-1" style="gap: 10px;">
-                <!-- Clickable User Name Badge (opens Change Email modal) -->
-                <button type="button" class="header-badge btn border-0 text-start d-inline-flex align-items-center py-1 px-3" data-bs-toggle="modal" data-bs-target="#changeAdminEmailModal" title="Klicka för att ändra e-postadress" style="cursor: pointer; background: rgba(15, 23, 42, 0.85); border-radius: 20px; transition: all 0.2s ease;">
+                <!-- Clickable User Name Badge (opens User Account modal) -->
+                <button type="button" class="header-badge btn border-0 text-start d-inline-flex align-items-center py-1 px-3" data-bs-toggle="modal" data-bs-target="#changeAdminEmailModal" title="Klicka för att hantera e-post och lösenord" style="cursor: pointer; background: rgba(15, 23, 42, 0.85); border-radius: 20px; transition: all 0.2s ease;">
                     <i class="fa-solid fa-user-check me-1.5 text-emerald"></i>
                     <span class="text-white-50">Inloggad som:</span>
                     <strong class="text-white ms-1 text-decoration-underline">{% if request.user.get_full_name %}{{ request.user.get_full_name }}{% elif request.user.first_name %}{{ request.user.first_name }} {{ request.user.last_name }}{% else %}{{ request.user.email }}{% endif %}</strong>
@@ -115,34 +115,62 @@
     </footer>
 
     {% if request.user.is_authenticated %}
-    <!-- GLOBAL MODAL: ÄNDRA E-POSTADRESS -->
-    <div class="modal fade" id="changeAdminEmailModal" tabindex="-1" aria-hidden="true" style="z-index: 10000;">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
+    <!-- GLOBAL MODAL: KONTOADMINISTRATION (E-POST & LÖSENORD) -->
+    <div class="modal fade" id="changeAdminEmailModal" tabindex="-1" aria-labelledby="userAccountModalLabel" aria-hidden="true" style="z-index: 10000;">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white border-secondary border-opacity-30 rounded-4" style="background: rgba(15, 23, 42, 0.98) !important; border: 1px solid rgba(56, 189, 248, 0.3) !important;">
                 <div class="modal-header border-bottom border-secondary border-opacity-20 py-3 px-4">
-                    <h5 class="modal-title fw-bold text-white"><i class="fa-solid fa-envelope-circle-check text-info me-2"></i>Ändra min E-post</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="userAccountModalLabel">
+                        <i class="fa-solid fa-user-gear text-info"></i>Kontoinställningar
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
                 </div>
                 <form method="post" action="{% url 'update_pool_admin_email' %}">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.path }}">
                     <div class="modal-body text-start p-4">
-                        <p class="small text-white-50 mb-3">
-                            E-postadressen är ditt unika användar-ID för inloggning på ditt konto.
-                        </p>
-                        <div class="mb-3">
-                            <label class="form-label text-white small fw-bold">Nuvarande E-post</label>
-                            <input type="text" class="form-control" value="{{ request.user.email }}" disabled style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148,163,184,0.2); color: #94a3b8;">
+                        
+                        <!-- Section 1: E-postadress -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom border-secondary border-opacity-25">
+                                <i class="fa-solid fa-envelope text-info"></i>
+                                <span class="text-white small fw-bold text-uppercase font-monospace" style="font-size: 0.75rem;">E-postadress (Användarnamn)</span>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label text-white-50 small fw-semibold mb-1">Nuvarande E-post</label>
+                                <input type="text" class="form-control form-control-sm font-monospace" value="{{ request.user.email }}" disabled style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148,163,184,0.2); color: #94a3b8;">
+                            </div>
+                            <div>
+                                <label class="form-label text-white small fw-bold mb-1">Ny E-postadress</label>
+                                <input type="email" name="email" class="form-control form-control-sm font-monospace text-white" placeholder="{{ request.user.email }}" value="{{ request.user.email }}" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(56,189,248,0.4);">
+                            </div>
                         </div>
-                        <div class="mb-1">
-                            <label class="form-label text-white small fw-bold">Ny E-postadress <span class="text-danger">*</span></label>
-                            <input type="email" name="email" class="form-control" placeholder="ny.epost@exempel.se" required autofocus style="background: rgba(15,23,42,0.95); border: 1px solid rgba(56,189,248,0.4); color: #ffffff;">
+
+                        <!-- Section 2: Ändra Lösenord -->
+                        <div class="mb-2">
+                            <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom border-secondary border-opacity-25">
+                                <i class="fa-solid fa-key text-emerald"></i>
+                                <span class="text-white small fw-bold text-uppercase font-monospace" style="font-size: 0.75rem;">Ändra Lösenord</span>
+                            </div>
+                            <p class="small text-white-50 mb-2.5" style="font-size: 0.78rem;">
+                                Lämna lösenordsfälten tomma om du inte vill ändra ditt befintliga lösenord.
+                            </p>
+                            <div class="mb-2.5">
+                                <label class="form-label text-white small fw-semibold mb-1">Nytt Lösenord</label>
+                                <input type="password" name="password" class="form-control form-control-sm text-white" placeholder="Minst 4 tecken (valfritt)" minlength="4" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3);">
+                            </div>
+                            <div>
+                                <label class="form-label text-white small fw-semibold mb-1">Bekräfta Nytt Lösenord</label>
+                                <input type="password" name="confirm_password" class="form-control form-control-sm text-white" placeholder="Upprepa nytt lösenord" minlength="4" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3);">
+                            </div>
                         </div>
+
                     </div>
-                    <div class="modal-footer border-top border-secondary border-opacity-20 py-3 px-4">
-                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Avbryt</button>
-                        <button type="submit" class="btn btn-info btn-sm fw-bold px-3" style="color: #ffffff; border-radius: 8px;">
-                            <i class="fa-solid fa-floppy-disk me-1.5"></i>Spara Ny E-post
+                    <div class="modal-footer border-top border-secondary border-opacity-20 py-3 px-4 d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Avbryt</button>
+                        <button type="submit" class="btn btn-success btn-sm fw-bold px-4 rounded-pill shadow-sm d-inline-flex align-items-center gap-1.5" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Spara Ändringar</span>
                         </button>
                     </div>
                 </form>

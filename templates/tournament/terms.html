@@ -11,19 +11,29 @@
     
     <!-- Top Return / Navigation -->
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        {% if require_acceptance %}
+        <span class="badge px-3.5 py-2 rounded-pill fw-bold text-white d-inline-flex align-items-center gap-2 shadow-sm" style="background: #0284c7; font-size: 0.9rem; letter-spacing: 0.3px;">
+            <i class="fa-solid fa-file-contract"></i>
+            <span>Steg 1 av 2: Användaravtal</span>
+        </span>
+        {% else %}
         <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'login' %}{% endif %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3.5 d-inline-flex align-items-center gap-2">
             <i class="fa-solid fa-arrow-left"></i>Tillbaka
         </a>
-        <span class="badge bg-dark border border-secondary border-opacity-30 text-white px-3 py-1.5 font-monospace small">
-            Version: 2026-08-26
-        </span>
+        {% endif %}
     </div>
 
     <!-- Main Terms Card -->
-    <div class="card border-0 shadow-2xl rounded-4 overflow-hidden" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(148, 163, 184, 0.25) !important;">
+    <div class="card border-0 shadow-2xl rounded-4 overflow-hidden position-relative" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(148, 163, 184, 0.25) !important;">
         
         <!-- Header Banner -->
-        <div class="p-4 p-md-5 border-bottom border-secondary border-opacity-25" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);">
+        <div class="p-4 p-md-5 border-bottom border-secondary border-opacity-25 position-relative" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);">
+            
+            <!-- Version in Top-Right Corner of the Terms Frame (No Frame/Box) -->
+            <div class="position-absolute top-0 end-0 p-3 p-md-4 text-white-50 small font-monospace" style="font-size: 0.82rem; opacity: 0.75;">
+                Version: 2026-08-26
+            </div>
+
             <div class="d-flex align-items-center gap-3 mb-3">
                 <div class="d-flex align-items-center justify-content-center rounded-3" style="width: 52px; height: 52px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4);">
                     <i class="fa-solid fa-scale-balanced text-info fs-3"></i>
@@ -33,6 +43,14 @@
                     <div class="text-info small fw-bold text-uppercase tracking-wider">Terms &amp; Conditions &bull; Sports Prediction</div>
                 </div>
             </div>
+            {% if require_acceptance %}
+            <div class="alert border-0 rounded-3 py-2.5 px-3 small mb-3 d-flex align-items-center gap-2.5" style="background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3) !important; color: #bae6fd;">
+                <i class="fa-solid fa-circle-info text-info fs-5 flex-shrink-0"></i>
+                <div>
+                    Vänligen scrolla ner och läs igenom hela användaravtalet. Klicka på <strong>"Jag accepterar"</strong> längst ner för att gå vidare till lösenordsval.
+                </div>
+            </div>
+            {% endif %}
             <p class="text-white mb-0" style="font-size: 1rem; line-height: 1.65; color: #f8fafc !important;">
                 Välkommen till <strong>Sports Prediction</strong>. Genom att skapa ett konto och använda denna tjänst godkänner du följande villkor. Läs igenom dem noggrant.
             </p>
@@ -208,13 +226,15 @@
                 {% csrf_token %}
                 <input type="hidden" name="accept_terms" value="on">
                 <input type="hidden" name="next" value="{{ request.GET.next|default:'/dashboard/?tab=predictions' }}">
-                <button type="submit" class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-sm">
-                    <i class="fa-solid fa-check me-1.5"></i>Jag accepterar
+                <button type="submit" class="btn btn-success rounded-pill px-4 py-2 fw-extrabold shadow-sm d-inline-flex align-items-center gap-2" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; font-size: 0.95rem;">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Jag accepterar</span>
                 </button>
             </form>
             {% else %}
-            <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'login' %}{% endif %}" class="btn btn-sm btn-info rounded-pill px-4 fw-bold">
-                <i class="fa-solid fa-check me-1.5"></i>Jag accepterar
+            <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'login' %}{% endif %}" class="btn btn-sm btn-info rounded-pill px-4 py-1.5 fw-bold d-inline-flex align-items-center gap-2">
+                <i class="fa-solid fa-check"></i>
+                <span>Jag accepterar</span>
             </a>
             {% endif %}
         </div>

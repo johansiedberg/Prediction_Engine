@@ -88,29 +88,66 @@ def create_pool_direct_view(request):
 @login_required
 @require_POST
 def update_pool_admin_email_view(request):
-    """Allows a pool admin to change the email address of their own account."""
+    """Allows any logged-in user to update their email address and/or change their password."""
+    from django.contrib.auth import update_session_auth_hash
     from django.db.models import Q
+
     new_email = request.POST.get('email', '').strip().lower()
-    next_url = request.POST.get('next', '').strip() or request.META.get('HTTP_REFERER') or '/pool-admin/'
+    new_password = request.POST.get('password', '').strip()
+    confirm_password = request.POST.get('confirm_password', '').strip()
+    next_url = request.POST.get('next', '').strip() or request.META.get('HTTP_REFERER') or '/dashboard/'
 
-    if not new_email or '@' not in new_email or '.' not in new_email:
-        messages.error(request, "Vänligen ange en giltig e-postadress.")
-        return redirect(next_url)
+    updated_items = []
 
-    # Check if another user is already using this email or username
-    conflict = User.objects.filter(
-        Q(email__iexact=new_email) | Q(username__iexact=new_email)
-    ).exclude(id=request.user.id).exists()
+    # 1. Update Email if changed
+    if new_email and new_email != request.user.email.lower():
+        if '@' not in new_email or '.' not in new_email:
+            messages.error(request, "Vänligen ange en giltig e-postadress.")
+            return redirect(next_url)
 
-    if conflict:
-        messages.error(request, f"Det finns redan ett konto registrerat med e-postadressen '{new_email}'.")
-        return redirect(next_url)
+        # Check if another user is already using this email or username
+        conflict = User.objects.filter(
+            Q(email__iexact=new_email) | Q(username__iexact=new_email)
+        ).exclude(id=request.user.id).exists()
 
-    request.user.email = new_email
-    request.user.username = new_email
-    request.user.save(update_fields=['email', 'username'])
+        if conflict:
+            messages.error(request, f"Det finns redan ett konto registrerat med e-postadressen '{new_email}'.")
+            return redirect(next_url)
 
-    messages.success(request, f"Din e-postadress har ändrats till '{new_email}'.")
+        request.user.email = new_email
+        request.user.username = new_email
+        request.user.save(update_fields=['email', 'username'])
+        updated_items.append("e-postadress")
+
+    # 2. Update Password if provided
+    if new_password or confirm_password:
+        if not new_password:
+            messages.error(request, "Vänligen ange ett lösenord.")
+            return redirect(next_url)
+
+        if len(new_password) < 4:
+            messages.error(request, "Det nya lösenordet måste innehålla minst 4 tecken.")
+            return redirect(next_url)
+
+        if new_password != confirm_password:
+            messages.error(request, "Lösenorden matchar inte varandra.")
+            return redirect(next_url)
+
+        request.user.set_password(new_password)
+        request.user.save(update_fields=['password'])
+
+        if hasattr(request.user, 'profile'):
+            request.user.profile.must_set_password = False
+            request.user.profile.save(update_fields=['must_set_password'])
+
+        update_session_auth_hash(request, request.user)
+        updated_items.append("lösenord")
+
+    if updated_items:
+        messages.success(request, f"Dina kontouppgifter ({' och '.join(updated_items)}) har sparats!")
+    else:
+        messages.info(request, "Inga ändringar sparades.")
+
     return redirect(next_url)
 
 
@@ -481,6 +518,7 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
 
     sidebets = Sidebet.objects.filter(tournament=tournament)
     players_data = get_player_progress_matrix(league, tournament)
+    pending_verification_count = sum(1 for p in players_data if p.get('submission_status') == 'saved_pending')
     from tournament.utils.magic_link import build_magic_login_url
     for p in players_data:
         p['magic_link'] = build_magic_login_url(request, p['player'], league.id)
@@ -500,6 +538,7 @@ def pool_admin_tournament_config_view(request, league_id, tournament_id):
         'tournament_knockout_stages': tournament_knockout_stages,
         'sidebets': sidebets,
         'players_data': players_data,
+        'pending_verification_count': pending_verification_count,
         'enrolled_user_ids': enrolled_user_ids,
         'enrolled_players': enrolled_players,
         'members': members,
@@ -844,15 +883,18 @@ def verify_member_view(request, member_id):
 @login_required
 @require_POST
 def update_pool_points_view(request, league_id):
-    """Updates LeaguePointSystem values for the pool."""
+    """Updates LeaguePointSystem values for the pool and acts as the activation trigger for the tournament."""
     league = get_object_or_404(League, id=league_id)
     if league.admin != request.user and not request.user.is_superuser:
         return HttpResponseForbidden("Åtkomst nekad.")
 
     tournament_id = request.POST.get('tournament_id')
+    t_obj = None
+    was_already_active = False
     if tournament_id:
         t_obj = Tournament.objects.filter(id=tournament_id).first()
         if t_obj:
+            was_already_active = league.tournaments.filter(id=t_obj.id).exists()
             league.tournaments.add(t_obj)
 
     point_system, _ = LeaguePointSystem.objects.get_or_create(league=league)
@@ -887,7 +929,12 @@ def update_pool_points_view(request, league_id):
     point_system.knockout_final = int(request.POST.get('knockout_final', 10))
 
     point_system.save()
-    messages.success(request, "Poängreglerna har sparats för din pool!")
+
+    if t_obj and not was_already_active:
+        messages.success(request, f"Poängreglerna har sparats och turneringen '{t_obj.name}' är nu aktiverad i din pool! Du kan nu ansluta och bjuda in deltagare.")
+    else:
+        messages.success(request, "Poängreglerna har sparats för din pool!")
+
     if tournament_id:
         return redirect('pool_admin_tournament_config', league_id=league.id, tournament_id=tournament_id)
     return redirect('pool_admin_dashboard', league_id=league.id)
@@ -940,6 +987,13 @@ def toggle_tournament_submission_verification_view(request, league_id, tournamen
     tournament = get_object_or_404(Tournament, id=tournament_id)
     player = get_object_or_404(User, id=user_id)
 
+    if tournament.is_locked_by_time:
+        msg = "Mästerskapet har redan startat. Alla tips är permanent låsta och kan inte ändras."
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': msg}, status=400)
+        messages.error(request, msg)
+        return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament.id])}#sec-progress-matrix")
+
     submission, created = TournamentSubmission.objects.get_or_create(
         tournament=tournament,
         player=player,
@@ -949,18 +1003,44 @@ def toggle_tournament_submission_verification_view(request, league_id, tournamen
         submission.is_verified = not submission.is_verified
         if submission.is_verified:
             submission.is_saved = True
+        else:
+            submission.is_saved = False
         submission.save()
 
     invalidate_tournament_cache(tournament.id)
     
     player_name = player.get_full_name() or player.email
-    status_str = "låsts och verifierats" if submission.is_verified else "låsts upp"
+    status_str = "låsts och verifierats" if submission.is_verified else "låsts upp (tippning krävs på nytt)"
     msg = f"Tipsen för {player_name} har {status_str}."
+
+    if submission.is_verified:
+        sub_status = 'verified'
+        status_label = 'Låst'
+    elif submission.is_saved:
+        sub_status = 'saved_pending'
+        status_label = 'Sparad • Väntar på lås'
+    else:
+        # Check if player has any predictions
+        all_group_matches = Match.objects.filter(tournament=tournament, group__isnull=False)
+        all_knockout_matches = Match.objects.filter(tournament=tournament, stage__isnull=False)
+        all_sidebets = Sidebet.objects.filter(tournament=tournament)
+        group_preds = MatchPrediction.objects.filter(match__in=all_group_matches, player=player).count()
+        ko_preds = MatchPrediction.objects.filter(match__in=all_knockout_matches, player=player).count()
+        sb_answers = SidebetAnswer.objects.filter(sidebet__in=all_sidebets, player=player).count()
+        if (group_preds + ko_preds + sb_answers) > 0:
+            sub_status = 'in_progress'
+            status_label = 'Påbörjad'
+        else:
+            sub_status = 'not_started'
+            status_label = 'Ej startad'
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({
             'success': True,
             'is_verified': submission.is_verified,
+            'is_saved': submission.is_saved,
+            'submission_status': sub_status,
+            'status_label': status_label,
             'message': msg,
             'user_id': player.id
         })

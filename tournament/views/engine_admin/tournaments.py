@@ -440,7 +440,7 @@ def engine_admin_delete_tournament_view(request: HttpRequest, tournament_id: int
 def engine_admin_tournament_details_view(request: HttpRequest, tournament_id: int) -> JsonResponse:
     """Returns full metadata JSON for a live Tournament."""
     tournament = get_object_or_404(Tournament, id=tournament_id)
-    icon_url = tournament.icon.url if tournament.icon else None
+    icon_url = tournament.icon_url
     backdrop_url = tournament.backdrop.url if tournament.backdrop else None
     
     return JsonResponse({
@@ -551,7 +551,7 @@ def engine_admin_update_tournament(request: HttpRequest, tournament_id: int) -> 
     tournament.save()
     invalidate_tournament_cache(tournament.id)
 
-    icon_url = tournament.icon.url if tournament.icon else None
+    icon_url = tournament.icon_url
     backdrop_url = tournament.backdrop.url if tournament.backdrop else None
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', '') or request.POST.get('ajax') == '1':

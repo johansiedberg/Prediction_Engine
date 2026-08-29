@@ -41,11 +41,19 @@ def verify_magic_token(token: str, max_age_seconds: int = 60 * 60 * 24 * 30) -> 
 def build_magic_login_url(request: Optional[HttpRequest], user: User, league_id: Optional[int] = None) -> str:
     """
     Builds the full absolute magic login URL for the given user and optional pool.
+    Resolves to PUBLIC_BASE_URL (https://217.31.171.173:2028) when accessed locally
+    or sent in external emails so that links opened in Gmail/external clients always work.
     """
+    from django.conf import settings
     token = generate_magic_token(user, league_id)
     path = reverse('magic_login', args=[token])
     
-    if request:
-        return request.build_absolute_uri(path)
+    public_base = getattr(settings, 'PUBLIC_BASE_URL', 'https://217.31.171.173:2028').rstrip('/')
     
-    return f"https://217.35.171.173:2028{path}"
+    if request:
+        host = request.get_host().lower()
+        # If the request is from a public domain/IP (not localhost or test runner), use current host
+        if not host.startswith(('127.0.0.1', 'localhost', 'testserver', '0.0.0.0')):
+            return request.build_absolute_uri(path)
+    
+    return f"{public_base}{path}"

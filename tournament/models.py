@@ -16,6 +16,16 @@ class MasterEvent(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def icon_url(self):
+        if self.icon:
+            try:
+                return self.icon.url
+            except Exception:
+                pass
+        from django.templatetags.static import static
+        return static('tournament/img/default_tournament_emblem.webp')
+
 
 class League(models.Model):
     master_event = models.ForeignKey(MasterEvent, on_delete=models.CASCADE, related_name='leagues', null=True, blank=True)
@@ -96,6 +106,40 @@ class Tournament(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def icon_url(self):
+        """Returns tournament icon URL if available, otherwise default tournament emblem."""
+        if self.icon:
+            try:
+                return self.icon.url
+            except Exception:
+                pass
+        from django.templatetags.static import static
+        return static('tournament/img/default_tournament_emblem.webp')
+
+    def get_icon_url(self):
+        return self.icon_url
+
+    @property
+    def first_match_date_time(self):
+        """Returns date_time of the earliest scheduled match in the tournament."""
+        first_m = self.matches.filter(date_time__isnull=False).order_by('date_time').first()
+        return first_m.date_time if first_m else None
+
+    @property
+    def is_locked_by_time(self):
+        """
+        Returns True if the tournament's first match has started (or start_date has passed).
+        When True, all predictions across all participants are automatically considered locked & verified.
+        """
+        now = timezone.now()
+        first_m = self.matches.filter(date_time__isnull=False).order_by('date_time').first()
+        if first_m and first_m.date_time:
+            return now >= first_m.date_time
+        if self.start_date:
+            return now.date() >= self.start_date
+        return False
 
     def get_runners_up_ranking_table(self, user_predictions=None):
         """

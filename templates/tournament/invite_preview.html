@@ -219,6 +219,7 @@ function getFormData() {
 function updatePreview() {
     const data = getFormData();
     const subject = `Inbjudan: Var med och tippa ${data.tournament} i ${data.league}!`;
+    const firstName = data.playerName.split(' ')[0] || data.playerName;
 
     // 1. Update Simulated Header
     document.getElementById('previewToEmail').innerText = `${data.playerName} <${data.playerEmail}>`;
@@ -226,7 +227,7 @@ function updatePreview() {
 
     // 2. Update Visual Email Card
     document.getElementById('emailCardLeagueName').innerText = data.league;
-    document.getElementById('emailCardPlayerName').innerText = data.playerName;
+    document.getElementById('emailCardPlayerName').innerText = firstName;
     document.getElementById('emailCardTournament').innerText = data.tournament;
     document.getElementById('emailCardLeague').innerText = data.league;
     document.getElementById('emailCardEmailBox').innerText = data.playerEmail;
@@ -236,16 +237,17 @@ function updatePreview() {
     // 3. Build Plain Text Format
     const plainText = `Ämne: ${subject}
 
-Hej ${data.playerName}!
+Hej ${firstName}!
 
 Nu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i turneringen ${data.tournament} i vår pool "${data.league}". Här står ära, prestige och evig berömmelse på spel – sätt tipparna på plats och visa vem som är mästerskapets sanna expert!
 
 --------------------------------------------------
 SÅ HÄR GÖR DU FÖR ATT DELTA:
-1. Klicka på din personliga direktlänk: ${data.loginUrl || 'https://217.35.171.173:2028'}
-2. Välj ditt lösenord för ditt konto (${data.playerEmail}).
-3. Fyll i dina mästartips för Gruppspel, Slutspel samt Bonusfrågor.
-4. Följ dina tips och klättra i poängtabellen mot evig ära!
+1. Klicka på din personliga direktlänk: ${data.loginUrl || 'https://217.31.171.173:2028'}
+2. Läs och godkänn användaravtalet.
+3. Välj ditt lösenord för ditt konto (${data.playerEmail}).
+4. Fyll i dina mästartips för Gruppspel, Slutspel samt Bonusfrågor.
+5. Följ dina tips och klättra i poängtabellen mot evig ära!
 --------------------------------------------------
 
 Lycka till och må bäste tippare vinna!
@@ -275,7 +277,7 @@ ${emailClone.outerHTML}
     document.getElementById('htmlCodeOutput').value = emailHtmlMarkup;
 
     // 5. Update Live Mailto URL with Safe Encoding
-    const mailtoBody = `Hej ${data.playerName}!\n\nNu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i ${data.tournament} i vår pool "${data.league}". Här står ära, prestige och evig berömmelse på spel – visa vem som är mästerskapets sanna expert!\n\n--------------------------------------------------\nSÅ HÄR GÖR DU FÖR ATT DELTA:\n1. Gå till: https://217.35.171.173:2028\n2. Logga in med din e-post: ${data.playerEmail}\n3. Fyll i dina tips för gruppspel, slutspel och bonusfrågor.\n4. Följ dina tips och klättra i poängtabellen mot evig ära!\n--------------------------------------------------\n\nLycka till!\n\nVänliga hälsningar,\n${data.adminName} (${data.league})`;
+    const mailtoBody = `Hej ${firstName}!\n\nNu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i ${data.tournament} i vår pool "${data.league}". Här står ära, prestige och evig berömmelse på spel – visa vem som är mästerskapets sanna expert!\n\n--------------------------------------------------\nSÅ HÄR GÖR DU FÖR ATT DELTA:\n1. Gå till: https://217.31.171.173:2028\n2. Läs och godkänn användaravtalet.\n3. Välj ditt lösenord för ditt konto (${data.playerEmail}).\n4. Fyll i dina tips för gruppspel, slutspel och bonusfrågor.\n5. Följ dina tips och klättra i poängtabellen mot evig ära!\n--------------------------------------------------\n\nLycka till!\n\nVänliga hälsningar,\n${data.adminName} (${data.league})`;
 
     const mailtoHref = `mailto:${encodeURIComponent(data.playerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailtoBody)}`;
     document.getElementById('liveMailtoBtn').href = mailtoHref;

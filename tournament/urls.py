@@ -51,6 +51,7 @@ urlpatterns = [
     path('dashboard/', dashboard_view, name='dashboard'),
     path('predictions/', predictions_view, name='predictions'),
     path('profile/avatar/', upload_avatar_view, name='upload_avatar'),
+    path('profile/account/', update_pool_admin_email_view, name='update_user_account'),
     path('league/join/', join_league_view, name='join_league'),
     path('league/switch/<int:league_id>/', switch_league_view, name='switch_league'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),

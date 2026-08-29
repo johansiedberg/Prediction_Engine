@@ -49,7 +49,7 @@
                             
                             <!-- Greeting & High-Energy Intro -->
                             <div style="font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 12px;">
-                                Hej {{ p.name }}! 👋
+                                Hej {{ p.first_name|default:player_first_name|default:p.player.first_name|default:p.name }}! 👋
                             </div>
                             
                             <p style="margin: 0 0 20px 0; font-size: 15px; line-height: 1.65; color: #cbd5e1;">
@@ -112,7 +112,7 @@
                             <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 22px;">
                                 <tr>
                                     <td align="center">
-                                        <a class="cta-btn" href="{{ magic_link|default:'https://217.35.171.173:2028/login/' }}" target="_blank" style="display: inline-block; background-color: #10b981; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 800; padding: 13px 32px; border-radius: 10px; text-align: center; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+                                        <a class="cta-btn" href="{{ magic_link|default:'https://217.31.171.173:2028/login/' }}" target="_blank" style="display: inline-block; background-color: #10b981; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 800; padding: 13px 32px; border-radius: 10px; text-align: center; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
                                             Aktivera Konto &amp; Fyll i dina Tips &rarr;
                                         </a>
                                     </td>

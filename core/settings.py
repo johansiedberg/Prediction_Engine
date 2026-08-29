@@ -44,6 +44,9 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'True').strip().lower() in ('true', '1', 'yes'
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',') if h.strip()] 
 
+# Public Base URL for externally shared magic links, invite emails, and external access
+PUBLIC_BASE_URL = os.getenv('PUBLIC_BASE_URL', 'https://217.31.171.173:2028').rstrip('/')
+
 CSRF_TRUSTED_ORIGINS = [
     # Production (external IP via Caddy HTTPS)
     'https://217.31.171.173:2028',

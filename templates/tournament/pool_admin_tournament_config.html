@@ -20,9 +20,7 @@
                 </ol>
             </nav>
             <div class="d-flex align-items-center gap-3 mt-1">
-                {% if tournament.icon %}
-                <img src="{{ tournament.icon.url }}" alt="{{ tournament.name }}" style="width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); border-radius: 8px;">
-                {% endif %}
+                <img src="{{ tournament.icon_url }}" alt="{{ tournament.name }}" style="width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); border-radius: 8px;">
                 <div>
                     <h1 class="fw-extrabold text-white mb-0" style="font-size: 1.75rem; letter-spacing: -0.5px;">
                         {{ tournament.name }}
@@ -41,19 +39,22 @@
             <a href="{% url 'pool_admin_dashboard' league.id %}" class="btn btn-outline-secondary btn-sm fw-bold px-3 py-2" style="border-radius: 10px;">
                 <i class="fa-solid fa-arrow-left me-1.5"></i>Tillbaka till {{ league.name }}
             </a>
-            <form method="post" action="{% url 'toggle_pool_tournament' league.id tournament.id %}">
+            {% if is_active_in_pool %}
+            <span class="badge px-3 py-2 fw-bold d-inline-flex align-items-center gap-1.5" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 10px; font-size: 0.82rem;">
+                <i class="fa-solid fa-circle-check"></i>Aktiverad i poolen
+            </span>
+            <form method="post" action="{% url 'toggle_pool_tournament' league.id tournament.id %}" class="d-inline">
                 {% csrf_token %}
                 <input type="hidden" name="return_to" value="config">
-                {% if is_active_in_pool %}
-                <button type="submit" class="btn btn-outline-danger btn-sm fw-bold px-3 py-2" style="border-radius: 10px;" onclick="return confirm('Är du säker på att du vill inaktivera denna turnering från din pool?');">
-                    <i class="fa-solid fa-unlink me-1.5"></i>Inaktivera för poolen
+                <button type="submit" class="btn btn-outline-danger btn-sm fw-semibold px-2.5 py-1.5" style="border-radius: 8px; font-size: 0.75rem;" onclick="return confirm('Är du säker på att du vill inaktivera denna turnering från din pool?');" title="Inaktivera turneringen för poolen">
+                    <i class="fa-solid fa-power-off me-1"></i>Inaktivera
                 </button>
-                {% else %}
-                <button type="submit" class="btn btn-emerald btn-sm fw-bold px-3.5 py-2" style="background: #10b981; color: #ffffff; border-radius: 10px;">
-                    <i class="fa-solid fa-check me-1.5"></i>Aktivera för poolen
-                </button>
-                {% endif %}
             </form>
+            {% else %}
+            <span class="badge px-3 py-2 fw-bold d-inline-flex align-items-center gap-1.5" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 10px; font-size: 0.82rem;">
+                <i class="fa-solid fa-triangle-exclamation"></i>Ej aktiverad &bull; Spara regler nedan
+            </span>
+            {% endif %}
         </div>
     </div>
 
@@ -61,7 +62,7 @@
     <div id="flow-nav-container" class="sticky-top flow-nav-bar py-2.5 px-4 mb-4 d-flex align-items-center" style="top: 0; z-index: 1040;">
         <div class="d-flex flex-wrap align-items-center gap-1.5" style="font-size: 0.88rem;">
             <span id="flow-nav-sec-set-points" class="flow-nav-item flow-nav-active" onclick="scrollToSection('sec-set-points')">
-                <i class="fa-solid fa-calculator me-1 text-warning"></i>1. Poängregler
+                <i class="fa-solid fa-calculator me-1 text-warning"></i>1. Poängregler {% if not is_active_in_pool %}<span class="badge bg-warning text-dark ms-1 py-0.5 px-1.5 fw-bold" style="font-size: 0.65rem;">Krävs</span>{% endif %}
             </span>
             <span class="text-white opacity-40 mx-1">&rarr;</span>
             <span id="flow-nav-sec-sidebets" class="flow-nav-item" onclick="scrollToSection('sec-sidebets')">
@@ -69,11 +70,11 @@
             </span>
             <span class="text-white opacity-40 mx-1">&rarr;</span>
             <span id="flow-nav-sec-participants" class="flow-nav-item" onclick="scrollToSection('sec-participants')">
-                <i class="fa-solid fa-user-check me-1 text-success"></i>3. Koppla Deltagare
+                <i class="fa-solid fa-user-check me-1 text-success"></i>3. Koppla Deltagare {% if not is_active_in_pool %}<i class="fa-solid fa-lock text-warning opacity-75 ms-0.5" style="font-size: 0.75rem;" title="Låst tills poängreglerna sparats"></i>{% endif %}
             </span>
             <span class="text-white opacity-40 mx-1">&rarr;</span>
             <span id="flow-nav-sec-progress-matrix" class="flow-nav-item" onclick="scrollToSection('sec-progress-matrix')">
-                <i class="fa-solid fa-chart-simple me-1 text-primary"></i>4. Deltagarmatris &amp; Status
+                <i class="fa-solid fa-chart-simple me-1 text-primary"></i>4. Deltagarmatris &amp; Inbjudan {% if not is_active_in_pool %}<i class="fa-solid fa-lock text-warning opacity-75 ms-0.5" style="font-size: 0.75rem;" title="Låst tills poängreglerna sparats"></i>{% endif %}
             </span>
         </div>
     </div>
@@ -695,9 +696,17 @@
 
                                 </div>
 
-                                <div class="mt-4 pt-2">
-                                    <button type="submit" class="btn fw-extrabold px-4 py-2.5" style="background: #f59e0b; color: #0f172a; border-radius: 10px; font-size: 0.95rem;">
-                                        <i class="fa-solid fa-save me-1.5"></i>Spara Poängregler
+                                <div class="mt-4 pt-3 border-top border-secondary border-opacity-20 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                                    <div class="text-white small" style="opacity: 0.85;">
+                                        {% if is_active_in_pool %}
+                                        <span class="text-emerald fw-bold"><i class="fa-solid fa-circle-check me-1"></i>Turneringen är aktiverad.</span> Klicka för att spara uppdaterade poängregler.
+                                        {% else %}
+                                        <span class="text-warning fw-bold"><i class="fa-solid fa-bolt me-1"></i>Aktivering:</span> Spara poängreglerna för att aktivera turneringen och låsa upp inbjudningsflödet!
+                                        {% endif %}
+                                    </div>
+                                    <button type="submit" class="btn {% if not is_active_in_pool %}btn-success px-4 py-2.5 fw-extrabold shadow-lg{% else %}btn-warning px-4 py-2.5 fw-bold{% endif %} d-inline-flex align-items-center gap-2" {% if not is_active_in_pool %}style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 10px; font-size: 0.96rem;"{% else %}style="border-radius: 10px; font-size: 0.92rem;"{% endif %}>
+                                        <i class="fa-solid fa-floppy-disk"></i>
+                                        <span>{% if not is_active_in_pool %}Spara Poängregler &amp; Aktivera Turnering{% else %}Spara Poängregler{% endif %}</span>
                                     </button>
                                 </div>
                             </form>
@@ -780,6 +789,7 @@
                     <p class="text-white mb-0 mt-0.5 small" style="opacity: 0.85;">Hantera deltagare som ska delta och tippa i {{ tournament.name }}.</p>
                 </div>
                 <div class="d-flex align-items-center flex-wrap gap-2">
+                    {% if is_active_in_pool %}
                     <button type="button" class="btn btn-sm btn-outline-success rounded-pill fw-bold px-3" data-bs-toggle="modal" data-bs-target="#addNewParticipantModal">
                         <i class="fa-solid fa-user-plus me-1.5"></i>Ny deltagare
                     </button>
@@ -797,9 +807,29 @@
                             <i class="fa-solid fa-user-xmark me-1.5"></i>Koppla bort alla
                         </button>
                     </form>
+                    {% else %}
+                    <span class="badge px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.8rem;">
+                        <i class="fa-solid fa-lock"></i>Låst &bull; Spara regler först
+                    </span>
+                    {% endif %}
                 </div>
             </div>
             <div class="card-body p-4">
+                {% if not is_active_in_pool %}
+                <div class="alert border-0 rounded-4 p-4 text-center my-2" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35) !important;">
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle p-3 mb-2" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
+                        <i class="fa-solid fa-lock fa-2x"></i>
+                    </div>
+                    <h5 class="fw-bold text-white mb-2">Turneringen måste sparas och aktiveras först</h5>
+                    <p class="text-white small mb-3 mx-auto" style="max-width: 620px; opacity: 0.88; line-height: 1.6;">
+                        För att säkerställa att alla deltagare tävlar under samma förutsättningar måste du granska och spara poängreglerna ovan (<strong>1. Sätt Poängregler</strong>) innan du ansluter och bjuder in deltagare till turneringen.
+                    </p>
+                    <button type="button" class="btn btn-warning btn-sm fw-bold px-4 py-2 rounded-pill shadow-sm d-inline-flex align-items-center gap-2" onclick="scrollToSection('sec-set-points')">
+                        <i class="fa-solid fa-arrow-up"></i>
+                        <span>Gå till 1. Sätt Poängregler &amp; Spara</span>
+                    </button>
+                </div>
+                {% else %}
                 <p class="text-white small mb-4" style="opacity: 0.85;">
                     Välj vilka av {{ league.name }}s deltagare som ska delta i {{ tournament.name }}. Klicka på <strong>+ Lägg till</strong> för att registrera en deltagare utan sidomladdning eller använd <strong>Ny deltagare</strong> för att skapa och koppla direkt.
                 </p>
@@ -883,6 +913,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
             </div>
         </div>
 
@@ -893,8 +924,42 @@
                     <h5 class="fw-bold text-white mb-0"><i class="fa-solid fa-chart-simple me-2 text-primary"></i>4. Deltagarmatris &amp; Tippningsstatus</h5>
                     <p class="text-white mb-0 mt-1 small" style="opacity: 0.85;">Övervaka inbjudningar, inloggningar, tippningsstatus och verifiera/lås in deltagarnas tips i {{ tournament.name }}.</p>
                 </div>
+                <div>
+                    {% if is_active_in_pool %}
+                        {% if pending_verification_count > 0 %}
+                        <span class="badge px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.45); font-size: 0.8rem;">
+                            <i class="fa-solid fa-bell"></i>{{ pending_verification_count }} tips sparade &bull; Redo att låsas
+                        </span>
+                        {% else %}
+                        <span class="badge px-2.5 py-1 fw-bold" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
+                            <i class="fa-solid fa-circle-check me-1"></i>Redo för inbjudningar
+                        </span>
+                        {% endif %}
+                    {% else %}
+                    <span class="badge px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.8rem;">
+                        <i class="fa-solid fa-lock"></i>Låst &bull; Spara regler först
+                    </span>
+                    {% endif %}
+                </div>
             </div>
             <div class="card-body p-0">
+                {% if not is_active_in_pool %}
+                <div class="p-4 text-center">
+                    <div class="alert border-0 rounded-4 p-4 text-center mb-0" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35) !important;">
+                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle p-3 mb-2" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">
+                            <i class="fa-solid fa-lock fa-2x"></i>
+                        </div>
+                        <h5 class="fw-bold text-white mb-2">Inbjudningsmatrisen är låst</h5>
+                        <p class="text-white small mb-3 mx-auto" style="max-width: 620px; opacity: 0.88; line-height: 1.6;">
+                            Inbjudningar och personliga inloggningslänkar kan skickas ut så snart turneringens poängregler har sparats och aktiverats i din pool.
+                        </p>
+                        <button type="button" class="btn btn-warning btn-sm fw-bold px-4 py-2 rounded-pill shadow-sm d-inline-flex align-items-center gap-2" onclick="scrollToSection('sec-set-points')">
+                            <i class="fa-solid fa-arrow-up"></i>
+                            <span>Gå till 1. Sätt Poängregler &amp; Spara</span>
+                        </button>
+                    </div>
+                </div>
+                {% else %}
                 <div class="table-responsive">
                     <table class="table table-dark table-hover mb-0 align-middle" style="background: transparent;">
                         <thead>
@@ -907,7 +972,7 @@
                                 <th class="text-center py-2.5 px-1.5 text-white fw-bold">Slutspel</th>
                                 <th class="text-center py-2.5 px-1.5 text-white fw-bold">Bonus</th>
                                 <th class="text-center py-2.5 px-2 text-white fw-bold">Status</th>
-                                <th class="text-center py-2.5 pe-3 ps-2 text-white fw-bold">Lås</th>
+                                <th class="text-center py-2.5 pe-3 ps-2 text-white fw-bold">LÅST</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -929,7 +994,7 @@
                                     </div>
                                 </td>
                                 <td class="text-center py-2 px-2">
-                                    <button type="button" class="btn btn-sm p-0 rounded-circle border-0 cursor-pointer shadow-sm d-inline-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#inviteModal{{ p.player.id }}" style="width: 30px; height: 30px; background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.4) !important;" title="Öppna inbjudan till {{ p.name }}">
+                                    <button type="button" class="btn btn-sm p-0 rounded-circle border-0 cursor-pointer shadow-sm d-inline-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#inviteModal{{ p.player.id }}" style="width: 30px; height: 30px; background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.4) !important;" title="Öppna inbjudan till {{ p.name }} ({{ p.email }})">
                                         <i class="fa-solid fa-paper-plane" style="color: #60a5fa; font-size: 0.88rem;"></i>
                                     </button>
                                 </td>
@@ -949,28 +1014,56 @@
                                     </span>
                                     {% endif %}
                                 </td>
-                                <td class="text-center py-2 px-2">
-                                    <span class="badge px-2.5 py-1.5 rounded-2 {% if p.group_predicted == p.group_total and p.group_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}" style="font-size: 0.75rem;">
-                                        {{ p.group_predicted }}/{{ p.group_total }}
-                                    </span>
-                                </td>
-                                <td class="text-center py-2 px-2">
-                                    <span class="badge px-2.5 py-1.5 rounded-2 {% if p.knockout_predicted == p.knockout_total and p.knockout_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}" style="font-size: 0.75rem;">
-                                        {{ p.knockout_predicted }}/{{ p.knockout_total }}
-                                    </span>
-                                </td>
-                                <td class="text-center py-2 px-2">
-                                    <span class="badge px-2.5 py-1.5 rounded-2 {% if p.sidebets_answered == p.sidebets_total and p.sidebets_total > 0 %}bg-success bg-opacity-20 text-success{% else %}bg-secondary bg-opacity-20 text-white-50{% endif %}" style="font-size: 0.75rem;">
-                                        {{ p.sidebets_answered }}/{{ p.sidebets_total }}
-                                    </span>
-                                </td>
-                                <td class="text-center py-2 px-2">
-                                    {% if p.overall_status == 'Complete' %}
-                                    <span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.75rem;">Färdig</span>
-                                    {% elif p.overall_status == 'In Progress' %}
-                                    <span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.75rem;">Påbörjad</span>
+                                <td class="text-center py-2 px-1.5">
+                                    {% if not p.has_group %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill text-secondary" style="background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.15); font-size: 0.72rem;">–</span>
+                                    {% elif p.group_stage_completed %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem;"><i class="fa-solid fa-check"></i> Klar</span>
+                                    {% elif p.group_stage_started %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.72rem;">Påbörjad</span>
                                     {% else %}
-                                    <span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 0.75rem;">Ej klar</span>
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill" style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); font-size: 0.72rem;">Ej startad</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center py-2 px-1.5">
+                                    {% if not p.has_knockout %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill text-secondary" style="background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.15); font-size: 0.72rem;">–</span>
+                                    {% elif p.knockout_stage_completed %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem;"><i class="fa-solid fa-check"></i> Klar</span>
+                                    {% elif p.knockout_stage_started %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.72rem;">Påbörjad</span>
+                                    {% else %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill" style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); font-size: 0.72rem;">Ej startad</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center py-2 px-1.5">
+                                    {% if not p.has_sidebets %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill text-secondary" style="background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.15); font-size: 0.72rem;">–</span>
+                                    {% elif p.sidebets_completed %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.72rem;"><i class="fa-solid fa-check"></i> Klar</span>
+                                    {% elif p.sidebets_started %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.72rem;">Påbörjad</span>
+                                    {% else %}
+                                    <span class="badge px-2 py-1 fw-bold rounded-pill" style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2); font-size: 0.72rem;">Ej startad</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center py-2 px-2" id="status-cell-{{ p.player.id }}">
+                                    {% if p.submission_status == 'verified' %}
+                                    <span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.75rem;">
+                                        <i class="fa-solid fa-shield-halved me-1"></i>Låst
+                                    </span>
+                                    {% elif p.submission_status == 'saved_pending' %}
+                                    <span class="badge px-2.5 py-1.5 fw-bold rounded-2 shadow-sm" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.45); font-size: 0.75rem;" title="Deltagaren har sparat sina tips. Klicka på låsikonen för att verifiera/låsa.">
+                                        <i class="fa-solid fa-clock me-1"></i>Sparad &bull; Väntar på lås
+                                    </span>
+                                    {% elif p.submission_status == 'in_progress' %}
+                                    <span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.75rem;">
+                                        Påbörjad
+                                    </span>
+                                    {% else %}
+                                    <span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 0.75rem;">
+                                        Ej startad
+                                    </span>
                                     {% endif %}
                                 </td>
                                 <td class="text-center pe-3 ps-2 py-2">
@@ -979,11 +1072,11 @@
                                         <div id="verify-btn-container-{{ p.player.id }}">
                                             {% if p.is_verified_submission %}
                                              <button type="submit" class="btn btn-sm p-0 rounded-circle border-0 cursor-pointer shadow-sm d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: rgba(16, 185, 129, 0.22); border: 1px solid rgba(16, 185, 129, 0.45) !important;" title="Låst (klicka för att låsa upp)">
-                                                 <span style="font-size: 1.05rem; line-height: 1;">🔒</span>
+                                                 <i class="fa-solid fa-lock" style="color: #34d399; font-size: 0.88rem;"></i>
                                              </button>
                                              {% else %}
-                                             <button type="submit" class="btn btn-sm p-0 rounded-circle border-0 cursor-pointer shadow-sm d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.4) !important;" title="Inte låst (klicka för att låsa in)">
-                                                 <span style="font-size: 1.05rem; line-height: 1;">🔓</span>
+                                             <button type="submit" class="btn btn-sm p-0 rounded-circle border-0 cursor-pointer shadow-sm d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: rgba(148, 163, 184, 0.14); border: 1px solid rgba(148, 163, 184, 0.3) !important;" title="Inte låst (klicka för att låsa in)">
+                                                 <i class="fa-solid fa-lock-open" style="color: #94a3b8; font-size: 0.88rem;"></i>
                                              </button>
                                              {% endif %}
                                         </div>
@@ -998,6 +1091,7 @@
                         </tbody>
                     </table>
                 </div>
+                {% endif %}
             </div>
         </div>
 
@@ -1005,137 +1099,142 @@
 
 </div>
 
-<!-- ALL PARTICIPANT INVITATION MODALS (OUTSIDE TABLE FOR RELIABLE BOOTSTRAP 5 RENDERING) -->
+<!-- ALL PARTICIPANT MODALS (OUTSIDE TABLE FOR RELIABLE BOOTSTRAP 5 RENDERING) -->
 {% for p in players_data %}
+
+<!-- MODAL: INBJUDAN TILL DELTAGARE -->
 <div class="modal fade" id="inviteModal{{ p.player.id }}" tabindex="-1" aria-labelledby="inviteModalLabel{{ p.player.id }}" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content text-white" style="background: #0f172a; border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7);">
+        <div class="modal-content text-white" style="background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 18px; box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.8);">
             <div class="modal-header border-bottom border-secondary border-opacity-20 px-4 py-3">
-                <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="inviteModalLabel{{ p.player.id }}">
+                <h6 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="inviteModalLabel{{ p.player.id }}">
                     <i class="fa-solid fa-envelope-open-text text-info"></i>Inbjudan till {{ p.name }}
-                </h5>
+                </h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
             </div>
-            <div class="modal-body px-4 py-3">
-                <div class="mb-3">
-                    <label class="form-label text-white-50 small fw-semibold mb-1">Mottagare</label>
-                    <div class="p-2 rounded-3 text-white fw-bold font-monospace small" style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.2);">
-                        {{ p.name }} &lt;{{ p.email }}&gt;
+            <div class="modal-body p-3 p-md-4">
+                
+                <!-- Meta Info Bar (Recipient & Subject) -->
+                <div class="p-2.5 rounded-3 mb-3 small" style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(148, 163, 184, 0.2);">
+                    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-1">
+                        <div>
+                            <span class="text-white-50 fw-semibold">Mottagare:</span>
+                            <strong class="text-white ms-1">{{ p.name }}</strong>
+                            <span class="text-info font-monospace ms-1">&lt;{{ p.email }}&gt;</span>
+                        </div>
                     </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label text-white-50 small fw-semibold mb-1">Ämne (Subject)</label>
-                    <input type="text" readonly class="form-control form-control-sm text-white font-monospace" style="background: rgba(15,23,42,0.8); border: 1px solid rgba(148,163,184,0.2);" value="Inbjudan: Var med och tippa {{ tournament.name }} i {{ league.name }}!">
-                </div>
-
-                <!-- VISUELL HTML E-POST STRUKTUR MATCHAD MOT SIDAN -->
-                <div class="mb-2">
-                    <label class="form-label text-white-50 small fw-semibold mb-1">Förhandsgranskning av formaterad inbjudan</label>
-                    <div id="invite-rich-email-{{ p.player.id }}" class="p-0 rounded-3 overflow-hidden" style="background: #0b0f19; border: 1px solid rgba(148,163,184,0.25); max-height: 440px; overflow-y: auto;">
-                        <table border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#0b0f19" style="background-color: #0b0f19; width: 100% !important; min-width: 100% !important; margin: 0; padding: 20px 0; border-collapse: collapse; -webkit-text-size-adjust: 100%;">
-                            <tr>
-                                <td align="center" valign="top" bgcolor="#0b0f19" style="background-color: #0b0f19; padding: 0 12px;">
-                                    <!-- Inner Centered Card (Responsive Fluid Width max 560px) -->
-                                    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 560px; width: 100%; margin: 0 auto; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-                                        <tr>
-                                            <td align="center" style="background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); padding: 26px 20px 20px 20px; border-bottom: 1px solid #334155;">
-                                                <div style="margin-bottom: 10px;">
-                                                    {% if league.logo %}
-                                                    <img src="{{ league.logo.url }}" alt="{{ league.name }}" style="height: 60px; max-width: 170px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));" />
-                                                    {% else %}
-                                                    <img src="{% static 'tournament/img/main_logo.webp' %}" alt="Mästerskapstips" style="height: 60px; max-width: 170px; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));" />
-                                                    {% endif %}
-                                                </div>
-                                                <h2 style="margin: 0; color: #ffffff; font-size: 19px; font-weight: 800; letter-spacing: -0.3px; text-transform: uppercase;">{{ league.name }}</h2>
-                                                <div style="margin-top: 4px; color: #94a3b8; font-size: 13px; font-weight: 600; letter-spacing: 0.5px;">Mästerskapstips</div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 24px 20px;">
-                                                <h3 style="margin: 0 0 10px 0; color: #ffffff; font-size: 16px; font-weight: 700;">Hej {{ p.name }}! 👋</h3>
-                                                <p style="margin: 0 0 18px 0; color: #cbd5e1; font-size: 14px; line-height: 1.65;">
-                                                    Nu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i <strong style="color: #fbbf24;">{{ tournament.name }}</strong> i vår pool <strong style="color: #ffffff;">{{ league.name }}</strong>. Här står ära, prestige och evig berömmelse på spel – sätt tipparna på plats och visa vem som är mästerskapets sanna expert!
-                                                </p>
-                                                <div style="background-color: #1e293b; border: 1px solid #3b82f6; border-radius: 12px; padding: 16px 18px; margin-bottom: 22px;">
-                                                    <div style="font-size: 12px; font-weight: 800; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;">
-                                                        ⚡ SÅ HÄR GÖR DU FÖR ATT DELTA:
-                                                    </div>
-                                                    <div style="font-size: 13px; color: #e2e8f0; line-height: 1.65;">
-                                                        <div style="margin-bottom: 8px;">
-                                                            <strong style="color: #3b82f6;">1.</strong> Klicka på den gröna knappen nedan (eller din personliga direktlänk).
-                                                        </div>
-                                                        <div style="margin-bottom: 8px;">
-                                                            <strong style="color: #3b82f6;">2.</strong> Välj ditt lösenord för ditt konto: <strong style="color: #34d399; font-family: monospace;">{{ p.email }}</strong>.
-                                                        </div>
-                                                        <div style="margin-bottom: 8px;">
-                                                            <strong style="color: #3b82f6;">3.</strong> Fyll i dina mästartips för <strong>Gruppspel</strong>, <strong>Slutspel</strong> samt <strong>Bonusfrågor</strong>.
-                                                        </div>
-                                                        <div>
-                                                            <strong style="color: #3b82f6;">4.</strong> Följ dina tips och klättra i poängtabellen mot evig ära!
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div style="text-align: center; margin-bottom: 20px;">
-                                                    <a href="{{ p.magic_link }}" target="_blank" style="display: inline-block; background-color: #10b981; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; font-weight: 800; font-size: 14px; padding: 13px 32px; border-radius: 9px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); text-align: center;">
-                                                        Aktivera Konto &amp; Fyll i dina Tips &rarr;
-                                                    </a>
-                                                </div>
-                                                <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center;">
-                                                    Lycka till och må bäste tippare vinna! 🎯
-                                                </p>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td align="center" style="background-color: #0b0f19; padding: 16px 20px; border-top: 1px solid #1e293b; color: #94a3b8; font-size: 12px;">
-                                                Inbjudan skickad av <strong>{{ league.admin.get_full_name|default:league.admin.email }}</strong> (Pool-Administratör)
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </td>
-                            </tr>
-                        </table>
+                    <div>
+                        <span class="text-white-50 fw-semibold">Ämne:</span>
+                        <span class="text-warning fw-bold ms-1">Inbjudan: Var med och tippa {{ tournament.name }} i {{ league.name }}!</span>
                     </div>
                 </div>
 
-                <!-- Hidden Plain Text Element for Fallbacks -->
-                <div id="invite-email-text-{{ p.player.id }}" style="display: none;">Hej {{ p.name }}!
+                <!-- Main Frame: Populated Body Preview -->
+                <div class="main-invite-frame p-3 p-md-4 rounded-4" style="background: #0b0f19; border: 1px solid rgba(56, 189, 248, 0.25); max-height: 460px; overflow-y: auto;">
+                    
+                    <div id="invite-rich-email-{{ p.player.id }}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc; max-width: 540px; margin: 0 auto;">
+                        
+                        <!-- Header Banner inside frame -->
+                        <div style="text-align: center; padding: 20px 16px 16px 16px; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-radius: 12px 12px 0 0; border: 1px solid #334155; border-bottom: none;">
+                            {% if league.logo %}
+                            <img src="{{ league.logo.url }}" alt="{{ league.name }}" style="height: 55px; max-width: 160px; object-fit: contain; margin-bottom: 8px;" />
+                            {% else %}
+                            <img src="{% static 'tournament/img/main_logo.webp' %}" alt="Mästerskapstips" style="height: 55px; max-width: 160px; object-fit: contain; margin-bottom: 8px;" />
+                            {% endif %}
+                            <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: 800; text-transform: uppercase;">
+                                {{ league.name }}
+                            </h2>
+                            <div style="margin-top: 4px; color: #94a3b8; font-size: 12px; font-weight: 600;">
+                                Mästerskapstips
+                            </div>
+                        </div>
 
-Nu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i turneringen {{ tournament.name }} i vår pool "{{ league.name }}". Här står ära, prestige och evig berömmelse på spel – sätt tipparna på plats och visa vem som är mästerskapets sanna expert!
+                        <!-- Body content inside frame -->
+                        <div style="padding: 22px 20px; background: #0f172a; border-radius: 0 0 12px 12px; border: 1px solid #334155; border-top: none;">
+                            <div style="font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 12px;">
+                                Hej {{ p.first_name|default:p.name }}! 👋
+                            </div>
+                            
+                            <p style="margin: 0 0 18px 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+                                Nu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i <strong style="color: #fbbf24;">{{ tournament.name }}</strong> i vår pool <strong style="color: #ffffff;">{{ league.name }}</strong>. Här står ära, prestige och evig berömmelse på spel – sätt tipparna på plats och visa vem som är mästerskapets sanna expert!
+                            </p>
+
+                            <!-- Step Box -->
+                            <div style="background: #1e293b; border: 1px solid #3b82f6; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+                                <div style="color: #60a5fa; font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 12px;">
+                                    ⚡ SÅ HÄR GÖR DU FÖR ATT DELTA:
+                                </div>
+                                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.55; margin-bottom: 8px;">
+                                    <strong style="color: #3b82f6;">1.</strong> Klicka på din personliga direktlänk nedan.
+                                </div>
+                                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.55; margin-bottom: 8px;">
+                                    <strong style="color: #3b82f6;">2.</strong> Läs och godkänn användaravtalet.
+                                </div>
+                                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.55; margin-bottom: 8px;">
+                                    <strong style="color: #3b82f6;">3.</strong> Välj personligt lösenord för ditt konto (<span style="color: #38bdf8; font-family: monospace;">{{ p.email }}</span>).
+                                </div>
+                                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.55;">
+                                    <strong style="color: #3b82f6;">4.</strong> Fyll i dina mästartips för Gruppspel, Slutspel och Bonusfrågor!
+                                </div>
+                            </div>
+
+                            <!-- CTA Button -->
+                            <div style="text-align: center; margin-bottom: 18px;">
+                                <a href="{{ p.magic_link }}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 800; padding: 12px 28px; border-radius: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
+                                    Aktivera Konto &amp; Fyll i dina Tips &rarr;
+                                </a>
+                                <div style="margin-top: 8px; font-size: 11px; color: #94a3b8; word-break: break-all;">
+                                    Direktlänk: <a href="{{ p.magic_link }}" target="_blank" style="color: #38bdf8; text-decoration: underline;">{{ p.magic_link }}</a>
+                                </div>
+                            </div>
+
+                            <p style="margin: 0; font-size: 13px; color: #94a3b8; text-align: center;">
+                                Lycka till och må bäste tippare vinna! 🎯<br>
+                                <span style="font-size: 12px;">Hälsningar, <strong>{{ league.admin.get_full_name|default:league.admin.email }}</strong> (Pool-Administratör)</span>
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <!-- Hidden plain text for reliable clipboard copy -->
+                    <pre id="invite-plain-text-{{ p.player.id }}" style="display: none;">Hej {{ p.first_name|default:p.name }}!
+
+Nu är det upp till bevis! Du har blivit handplockad att delta och lägga dina mästartips i {{ tournament.name }} i vår pool "{{ league.name }}".
 
 --------------------------------------------------
 SÅ HÄR GÖR DU FÖR ATT DELTA:
-1. Klicka på din personliga direktlänk: {{ p.magic_link }}
-2. Välj ditt personliga lösenord för ditt konto ({{ p.email }}).
-3. Fyll i dina mästartips för Gruppspel, Slutspel samt Bonusfrågor.
-4. Följ dina tips och klättra i poängtabellen mot evig ära!
+1. Klicka på din personliga direktlänk:
+{{ p.magic_link }}
+
+2. Läs och godkänn användaravtalet.
+3. Välj ditt personliga lösenord för ditt konto ({{ p.email }}).
+4. Fyll i dina mästartips för Gruppspel, Slutspel samt Bonusfrågor.
+5. Följ dina tips och klättra i poängtabellen mot evig ära!
 --------------------------------------------------
 
 Lycka till och må bäste tippare vinna!
 
 Vänliga hälsningar,
 {{ league.admin.get_full_name|default:league.admin.email }}
-Pool-Administratör för {{ league.name }}</div>
-            </div>
-            <div class="modal-footer border-top border-secondary border-opacity-20 px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Stäng</button>
-                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill fw-bold px-3" onclick="navigator.clipboard.writeText('{{ p.magic_link }}'); alert('Inloggningslänk kopierad till urklipp!');" title="Kopiera direktinloggningslänk">
-                        <i class="fa-solid fa-key me-1.5"></i>Kopiera Direktlänk
-                    </button>
-                    <form method="post" action="{% url 'pool_admin_reset_player_password' league.id p.player.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="tournament_id" value="{{ tournament.id }}">
-                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill fw-bold px-2.5" title="Tvinga deltagaren att sätta nytt lösenord">
-                            <i class="fa-solid fa-arrows-rotate me-1"></i>Tvinga Nytt Lösenord
-                        </button>
-                    </form>
+Pool-Administratör för {{ league.name }}</pre>
+
                 </div>
+
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-20 py-3 px-4 d-flex justify-content-between flex-wrap gap-2">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3.5" data-bs-dismiss="modal">Stäng</button>
+                
                 <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-light rounded-pill fw-bold px-3" onclick="copyInviteText({{ p.player.id }})" id="copy-text-btn-{{ p.player.id }}">
-                        <i class="fa-solid fa-align-left me-1.5"></i>Kopiera Text
+                    <!-- Copy message button -->
+                    <button type="button" id="copy-msg-btn-{{ p.player.id }}" class="btn btn-outline-info btn-sm rounded-pill px-3.5 fw-bold d-inline-flex align-items-center gap-1.5" onclick="copyInviteMessage({{ p.player.id }});">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>Kopiera meddelande</span>
                     </button>
-                    <button type="button" class="btn btn-sm btn-success rounded-pill fw-bold px-3.5 shadow-sm" onclick="copyRichEmail({{ p.player.id }})" id="copy-rich-btn-{{ p.player.id }}">
-                        <i class="fa-solid fa-wand-magic-sparkles me-1.5"></i>Kopiera Formaterad E-post
+
+                    <!-- Create email button -->
+                    <button type="button" id="create-email-btn-{{ p.player.id }}" class="btn btn-success btn-sm rounded-pill px-4 fw-extrabold shadow-sm d-inline-flex align-items-center gap-1.5" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;" onclick="createAndOpenEmail({{ p.player.id }}, '{{ p.email|escapejs }}', '{{ 'Inbjudan: Var med och tippa '|escapejs }}{{ tournament.name|escapejs }}{{ ' i '|escapejs }}{{ league.name|escapejs }}!');">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Skapa e-post</span>
                     </button>
                 </div>
             </div>
@@ -1145,38 +1244,132 @@ Pool-Administratör för {{ league.name }}</div>
 
 <!-- MODAL: RESET PASSWORD & SEND MAGIC LINK FOR PARTICIPANT -->
 <div class="modal fade" id="resetPasswordModal{{ p.player.id }}" tabindex="-1" aria-labelledby="resetPasswordModalLabel{{ p.player.id }}" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content text-white" style="background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7);">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content text-white" style="background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 18px; box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.8);">
             <div class="modal-header border-bottom border-secondary border-opacity-20 px-4 py-3">
                 <h6 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="resetPasswordModalLabel{{ p.player.id }}">
-                    <i class="fa-solid fa-key text-info"></i>Nytt Lösenord &amp; Inloggningslänk
+                    <i class="fa-solid fa-key text-info"></i>Återställ Lösenord för {{ p.name }}
                 </h6>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
             </div>
-            <div class="modal-body p-4">
-                <p class="small text-white mb-2">
-                    Deltagare: <strong class="text-white">{{ p.name }}</strong> (<span class="text-info font-monospace">{{ p.email }}</span>)
-                </p>
-                <div class="alert border-0 rounded-3 py-2.5 px-3 small mb-3" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.25) !important; color: #bae6fd;">
-                    <i class="fa-solid fa-wand-magic-sparkles me-1.5 text-info"></i>
-                    Spelaren loggas in med ett klick via denna länk och tvingas välja sitt personliga lösenord.
-                    {% if p.player.profile.terms_accepted %}
-                    <div class="mt-1 text-emerald"><i class="fa-solid fa-circle-check me-1"></i>Användaravtalet är redan godkänt och behöver inte godkännas igen.</div>
-                    {% endif %}
+            <div class="modal-body p-3 p-md-4">
+                
+                <!-- Meta Info Bar (Recipient & Subject) -->
+                <div class="p-2.5 rounded-3 mb-3 small" style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(148, 163, 184, 0.2);">
+                    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-1">
+                        <div>
+                            <span class="text-white-50 fw-semibold">Mottagare:</span>
+                            <strong class="text-white ms-1">{{ p.name }}</strong>
+                            <span class="text-info font-monospace ms-1">&lt;{{ p.email }}&gt;</span>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-white-50 fw-semibold">Ämne:</span>
+                        <span class="text-warning fw-bold ms-1">Återställning av lösenord: Inloggningslänk till {{ league.name }}</span>
+                    </div>
                 </div>
-                <label class="form-label text-white small fw-bold mb-1">Direktlänk (Magic Link):</label>
-                <div class="input-group mb-3">
-                    <input type="text" id="resetMagicLinkInput{{ p.player.id }}" class="form-control form-control-sm font-monospace bg-dark text-white border-secondary border-opacity-40" value="{{ p.magic_link }}" readonly>
-                    <button class="btn btn-sm btn-info fw-bold px-3" type="button" onclick="navigator.clipboard.writeText(document.getElementById('resetMagicLinkInput{{ p.player.id }}').value); alert('Inloggningslänk kopierad till urklipp!');">
-                        <i class="fa-regular fa-copy me-1"></i>Kopiera
+
+                <!-- Main Frame: Populated Body Preview -->
+                <div class="main-invite-frame p-3 p-md-4 rounded-4" style="background: #0b0f19; border: 1px solid rgba(56, 189, 248, 0.25); max-height: 460px; overflow-y: auto;">
+                    
+                    <div id="reset-rich-email-{{ p.player.id }}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc; max-width: 540px; margin: 0 auto;">
+                        
+                        <!-- Header Banner inside frame -->
+                        <div style="text-align: center; padding: 20px 16px 16px 16px; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); border-radius: 12px 12px 0 0; border: 1px solid #334155; border-bottom: none;">
+                            {% if league.logo %}
+                            <img src="{{ league.logo.url }}" alt="{{ league.name }}" style="height: 55px; max-width: 160px; object-fit: contain; margin-bottom: 8px;" />
+                            {% else %}
+                            <img src="{% static 'tournament/img/main_logo.webp' %}" alt="Mästerskapstips" style="height: 55px; max-width: 160px; object-fit: contain; margin-bottom: 8px;" />
+                            {% endif %}
+                            <h2 style="margin: 0; color: #ffffff; font-size: 18px; font-weight: 800; text-transform: uppercase;">
+                                {{ league.name }}
+                            </h2>
+                            <div style="margin-top: 4px; color: #94a3b8; font-size: 12px; font-weight: 600;">
+                                Mästerskapstips
+                            </div>
+                        </div>
+
+                        <!-- Body content inside frame -->
+                        <div style="padding: 22px 20px; background: #0f172a; border-radius: 0 0 12px 12px; border: 1px solid #334155; border-top: none;">
+                            <div style="font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 12px;">
+                                Hej {{ p.first_name|default:p.name }}! 👋
+                            </div>
+                            
+                            <p style="margin: 0 0 18px 0; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+                                Här är din personliga direktlänk för att välja ett nytt lösenord till ditt konto för <strong style="color: #ffffff;">{{ league.name }}</strong>.
+                            </p>
+
+                            <!-- Step Box -->
+                            <div style="background: #1e293b; border: 1px solid #3b82f6; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+                                <div style="color: #60a5fa; font-size: 11px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 12px;">
+                                    🔑 SÅ HÄR VÄLJER DU NYTT LÖSENORD:
+                                </div>
+                                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.55; margin-bottom: 8px;">
+                                    <strong style="color: #3b82f6;">1.</strong> Klicka på din personliga direktlänk nedan.
+                                </div>
+                                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.55; margin-bottom: 8px;">
+                                    <strong style="color: #3b82f6;">2.</strong> Välj ditt nya lösenord för ditt konto (<span style="color: #38bdf8; font-family: monospace;">{{ p.email }}</span>).
+                                </div>
+                                <div style="font-size: 13px; color: #e2e8f0; line-height: 1.55;">
+                                    <strong style="color: #3b82f6;">3.</strong> Du loggas in direkt och kan fortsätta tippa och följa tabellen!
+                                </div>
+                            </div>
+
+                            <!-- CTA Button -->
+                            <div style="text-align: center; margin-bottom: 18px;">
+                                <a href="{{ p.magic_link }}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 800; padding: 12px 28px; border-radius: 8px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
+                                    Välj Nytt Lösenord &amp; Logga in &rarr;
+                                </a>
+                                <div style="margin-top: 8px; font-size: 11px; color: #94a3b8; word-break: break-all;">
+                                    Direktlänk: <a href="{{ p.magic_link }}" target="_blank" style="color: #38bdf8; text-decoration: underline;">{{ p.magic_link }}</a>
+                                </div>
+                            </div>
+
+                            <p style="margin: 0; font-size: 13px; color: #94a3b8; text-align: center;">
+                                Vänliga hälsningar,<br>
+                                <strong>{{ league.admin.get_full_name|default:league.admin.email }}</strong> (Pool-Administratör)
+                            </p>
+                        </div>
+
+                    </div>
+
+                    <!-- Hidden plain text for reliable clipboard copy -->
+                    <pre id="reset-plain-text-{{ p.player.id }}" style="display: none;">Hej {{ p.first_name|default:p.name }}!
+
+Här är din personliga direktlänk för att välja ett nytt lösenord och logga in i {{ league.name }}:
+
+--------------------------------------------------
+SÅ HÄR VÄLJER DU NYTT LÖSENORD:
+1. Klicka på din personliga direktlänk:
+{{ p.magic_link }}
+
+2. Välj ditt nya lösenord för ditt konto ({{ p.email }}).
+3. Du loggas in direkt och kan fortsätta tippa och följa tabellen!
+--------------------------------------------------
+
+Vänliga hälsningar,
+{{ league.admin.get_full_name|default:league.admin.email }}
+Pool-Administratör för {{ league.name }}</pre>
+
+                </div>
+
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-20 py-3 px-4 d-flex justify-content-between flex-wrap gap-2">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3.5" data-bs-dismiss="modal">Stäng</button>
+                
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Copy message button -->
+                    <button type="button" id="copy-reset-btn-{{ p.player.id }}" class="btn btn-outline-info btn-sm rounded-pill px-3.5 fw-bold d-inline-flex align-items-center gap-1.5" onclick="copyResetMessage({{ p.player.id }});">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>Kopiera meddelande</span>
+                    </button>
+
+                    <!-- Create email button -->
+                    <button type="button" id="create-reset-email-btn-{{ p.player.id }}" class="btn btn-success btn-sm rounded-pill px-4 fw-extrabold shadow-sm d-inline-flex align-items-center gap-1.5" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none;" onclick="createAndOpenResetEmail({{ p.player.id }}, '{{ p.email|escapejs }}', '{{ 'Återställning av lösenord: Inloggningslänk till '|escapejs }}{{ league.name|escapejs }}');">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Skapa e-post</span>
                     </button>
                 </div>
-            </div>
-            <div class="modal-footer border-top border-secondary border-opacity-20 py-2.5 px-4 d-flex justify-content-between">
-                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Stäng</button>
-                <a href="mailto:{{ p.email }}?subject={{ 'Ny inloggningslänk till '|urlencode }}{{ league.name|urlencode }}&body={{ 'Hej '|urlencode }}{{ p.name|urlencode }}!%0A%0AHär är din personliga direktlänk för att välja nytt lösenord och logga in i {{ league.name }}:%0A{{ p.magic_link|urlencode }}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
-                    <i class="fa-solid fa-paper-plane me-1"></i>Öppna i e-post
-                </a>
             </div>
         </div>
     </div>
@@ -1394,15 +1587,27 @@ function toggleVerificationAjax(event, form, userId) {
                 if (data.is_verified) {
                     container.innerHTML = `
                         <button type="submit" class="btn btn-sm p-0 rounded-circle border-0 cursor-pointer shadow-sm d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: rgba(16, 185, 129, 0.22); border: 1px solid rgba(16, 185, 129, 0.45) !important;" title="Låst (klicka för att låsa upp)">
-                            <span style="font-size: 1.05rem; line-height: 1;">🔒</span>
+                            <i class="fa-solid fa-lock" style="color: #34d399; font-size: 0.88rem;"></i>
                         </button>
                     `;
                 } else {
                     container.innerHTML = `
-                        <button type="submit" class="btn btn-sm p-0 rounded-circle border-0 cursor-pointer shadow-sm d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.4) !important;" title="Inte låst (klicka för att låsa in)">
-                            <span style="font-size: 1.05rem; line-height: 1;">🔓</span>
+                        <button type="submit" class="btn btn-sm p-0 rounded-circle border-0 cursor-pointer shadow-sm d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px; background: rgba(148, 163, 184, 0.14); border: 1px solid rgba(148, 163, 184, 0.3) !important;" title="Inte låst (klicka för att låsa in)">
+                            <i class="fa-solid fa-lock-open" style="color: #94a3b8; font-size: 0.88rem;"></i>
                         </button>
                     `;
+                }
+            }
+            const statusCell = document.getElementById('status-cell-' + userId);
+            if (statusCell) {
+                if (data.submission_status === 'verified') {
+                    statusCell.innerHTML = `<span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.75rem;"><i class="fa-solid fa-shield-halved me-1"></i>Låst</span>`;
+                } else if (data.submission_status === 'saved_pending') {
+                    statusCell.innerHTML = `<span class="badge px-2.5 py-1.5 fw-bold rounded-2 shadow-sm" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.45); font-size: 0.75rem;" title="Deltagaren har sparat sina tips. Klicka på låsikonen för att verifiera/låsa."><i class="fa-solid fa-clock me-1"></i>Sparad &bull; Väntar på lås</span>`;
+                } else if (data.submission_status === 'in_progress') {
+                    statusCell.innerHTML = `<span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.75rem;">Påbörjad</span>`;
+                } else {
+                    statusCell.innerHTML = `<span class="badge px-2.5 py-1.5 fw-bold rounded-2" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); font-size: 0.75rem;">Ej startad</span>`;
                 }
             }
         }
@@ -1412,88 +1617,176 @@ function toggleVerificationAjax(event, form, userId) {
     });
 }
 
-function copyInviteText(userId) {
-    const el = document.getElementById('invite-email-text-' + userId);
-    const btn = document.getElementById('copy-text-btn-' + userId) || document.getElementById('copy-btn-' + userId);
-    if (el && navigator.clipboard) {
-        navigator.clipboard.writeText(el.innerText).then(() => {
-            if (btn) {
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i class="fa-solid fa-check me-1.5 text-success"></i>Kopierad!';
-                setTimeout(() => {
-                    btn.innerHTML = originalHtml;
-                }, 2000);
+function copyInviteMessage(userId) {
+    const richEl = document.getElementById('invite-rich-email-' + userId);
+    const plainEl = document.getElementById('invite-plain-text-' + userId);
+    const btn = document.getElementById('copy-msg-btn-' + userId);
+
+    if (!richEl && !plainEl) return Promise.resolve(false);
+
+    let copyPromise;
+
+    if (richEl && window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        const clone = richEl.cloneNode(true);
+        // Ensure absolute URLs
+        clone.querySelectorAll('a').forEach(a => {
+            const href = a.getAttribute('href');
+            if (href && href.startsWith('/')) {
+                a.setAttribute('href', window.location.origin + href);
             }
         });
-    }
-}
-
-function copyRichEmail(userId) {
-    const richEl = document.getElementById('invite-rich-email-' + userId);
-    const plainEl = document.getElementById('invite-email-text-' + userId);
-    const btn = document.getElementById('copy-rich-btn-' + userId);
-
-    if (richEl && window.ClipboardItem && navigator.clipboard) {
-        const clone = richEl.cloneNode(true);
-        const originalImages = richEl.querySelectorAll('img');
-        const cloneImages = clone.querySelectorAll('img');
-
-        // Convert images to self-contained Base64 PNG data URIs so received emails embed the actual graphic
-        cloneImages.forEach((img, idx) => {
-            const origImg = originalImages[idx];
-            let converted = false;
-            if (origImg && origImg.complete && origImg.naturalWidth > 0) {
-                try {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = origImg.naturalWidth;
-                    canvas.height = origImg.naturalHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(origImg, 0, 0);
-                    const dataUrl = canvas.toDataURL('image/png');
-                    if (dataUrl && dataUrl.startsWith('data:image/png')) {
-                        img.setAttribute('src', dataUrl);
-                        converted = true;
-                    }
-                } catch (e) {
-                    console.warn('Canvas toDataURL fallback:', e);
-                }
-            }
-            if (!converted) {
-                const src = img.getAttribute('src');
-                if (src && src.startsWith('/')) {
-                    img.setAttribute('src', window.location.origin + src);
-                }
+        clone.querySelectorAll('img').forEach(img => {
+            const src = img.getAttribute('src');
+            if (src && src.startsWith('/')) {
+                img.setAttribute('src', window.location.origin + src);
             }
         });
 
         const htmlBlob = new Blob([clone.innerHTML], { type: 'text/html' });
-        const textBlob = new Blob([plainEl ? plainEl.innerText : richEl.innerText], { type: 'text/plain' });
+        const textBlob = new Blob([plainEl ? plainEl.innerText.trim() : richEl.innerText.trim()], { type: 'text/plain' });
         const item = new ClipboardItem({
             'text/html': htmlBlob,
             'text/plain': textBlob
         });
-        navigator.clipboard.write([item]).then(() => {
-            if (btn) {
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i class="fa-solid fa-check me-1.5"></i>Formatering Kopierad!';
-                setTimeout(() => {
-                    btn.innerHTML = originalHtml;
-                }, 2500);
-            }
-        }).catch(err => {
-            // Fallback to text copy
-            copyInviteText(userId);
-        });
+
+        copyPromise = navigator.clipboard.write([item]);
+    } else if (plainEl && navigator.clipboard && navigator.clipboard.writeText) {
+        copyPromise = navigator.clipboard.writeText(plainEl.innerText.trim());
     } else {
-        copyInviteText(userId);
+        const textarea = document.createElement('textarea');
+        textarea.value = plainEl ? plainEl.innerText.trim() : (richEl ? richEl.innerText.trim() : '');
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        copyPromise = Promise.resolve();
     }
+
+    return copyPromise.then(() => {
+        if (btn) {
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check me-1.5 text-success"></i>Kopierat!';
+            setTimeout(() => { btn.innerHTML = origHtml; }, 2500);
+        }
+        return true;
+    }).catch(err => {
+        console.warn('Clipboard rich copy failed, using plain text:', err);
+        if (plainEl && navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(plainEl.innerText.trim()).then(() => {
+                if (btn) {
+                    const origHtml = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-check me-1.5 text-success"></i>Kopierat!';
+                    setTimeout(() => { btn.innerHTML = origHtml; }, 2500);
+                }
+                return true;
+            });
+        }
+        return false;
+    });
 }
 
-function openMailtoInvite(email, subject, userId) {
-    const el = document.getElementById('invite-email-text-' + userId);
-    const bodyText = el ? el.innerText : '';
-    const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
-    window.location.href = mailtoUrl;
+function createAndOpenEmail(userId, email, subject) {
+    const btn = document.getElementById('create-email-btn-' + userId);
+
+    // 1. Copy formatted message to clipboard for easy pasting into composer
+    const p = copyInviteMessage(userId) || Promise.resolve();
+
+    p.finally(() => {
+        if (btn) {
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check me-1.5"></i>E-post öppnad (klistra in meddelande)';
+            setTimeout(() => { btn.innerHTML = origHtml; }, 4000);
+        }
+
+        // 2. Open mailto: with Recipient and Subject pre-filled
+        const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}`;
+        window.location.href = mailtoUrl;
+    });
 }
+
+function copyResetMessage(userId) {
+    const richEl = document.getElementById('reset-rich-email-' + userId);
+    const plainEl = document.getElementById('reset-plain-text-' + userId);
+    const btn = document.getElementById('copy-reset-btn-' + userId);
+
+    if (!richEl && !plainEl) return Promise.resolve(false);
+
+    let copyPromise;
+
+    if (richEl && window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+        const clone = richEl.cloneNode(true);
+        clone.querySelectorAll('a').forEach(a => {
+            const href = a.getAttribute('href');
+            if (href && href.startsWith('/')) {
+                a.setAttribute('href', window.location.origin + href);
+            }
+        });
+        clone.querySelectorAll('img').forEach(img => {
+            const src = img.getAttribute('src');
+            if (src && src.startsWith('/')) {
+                img.setAttribute('src', window.location.origin + src);
+            }
+        });
+
+        const htmlBlob = new Blob([clone.innerHTML], { type: 'text/html' });
+        const textBlob = new Blob([plainEl ? plainEl.innerText.trim() : richEl.innerText.trim()], { type: 'text/plain' });
+        const item = new ClipboardItem({
+            'text/html': htmlBlob,
+            'text/plain': textBlob
+        });
+
+        copyPromise = navigator.clipboard.write([item]);
+    } else if (plainEl && navigator.clipboard && navigator.clipboard.writeText) {
+        copyPromise = navigator.clipboard.writeText(plainEl.innerText.trim());
+    } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = plainEl ? plainEl.innerText.trim() : (richEl ? richEl.innerText.trim() : '');
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        copyPromise = Promise.resolve();
+    }
+
+    return copyPromise.then(() => {
+        if (btn) {
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check me-1.5 text-success"></i>Kopierat!';
+            setTimeout(() => { btn.innerHTML = origHtml; }, 2500);
+        }
+        return true;
+    }).catch(err => {
+        console.warn('Clipboard reset copy fallback:', err);
+        if (plainEl && navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(plainEl.innerText.trim()).then(() => {
+                if (btn) {
+                    const origHtml = btn.innerHTML;
+                    btn.innerHTML = '<i class="fa-solid fa-check me-1.5 text-success"></i>Kopierat!';
+                    setTimeout(() => { btn.innerHTML = origHtml; }, 2500);
+                }
+                return true;
+            });
+        }
+        return false;
+    });
+}
+
+function createAndOpenResetEmail(userId, email, subject) {
+    const btn = document.getElementById('create-reset-email-btn-' + userId);
+
+    const p = copyResetMessage(userId) || Promise.resolve();
+
+    p.finally(() => {
+        if (btn) {
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check me-1.5"></i>E-post öppnad (klistra in meddelande)';
+            setTimeout(() => { btn.innerHTML = origHtml; }, 4000);
+        }
+
+        const mailtoUrl = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}`;
+        window.location.href = mailtoUrl;
+    });
+}
+
 </script>
 {% endblock %}

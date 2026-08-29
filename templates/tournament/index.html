@@ -53,19 +53,19 @@
                 }
             </style>
 
-            <!-- Inner Main Frame Navigation Bar -->
-            <div class="d-flex flex-column flex-xl-row align-items-center justify-content-between pb-3 mb-4 border-bottom border-secondary border-opacity-20 gap-3">
+            <!-- Inner Main Frame Navigation Bar (Single Row) -->
+            <div class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom border-secondary border-opacity-20 gap-3 flex-nowrap w-100">
                 
                 <!-- Left: Icon + Pop-Out Tournament Badge & Clean Text Menu Links -->
-                <div class="d-flex align-items-center gap-3 flex-wrap justify-content-center justify-content-xl-start">
-                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill position-relative tournament-banner-pill" 
+                <div class="d-flex align-items-center gap-3 flex-nowrap overflow-x-auto py-1" style="scrollbar-width: none; -ms-overflow-style: none;">
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill position-relative tournament-banner-pill text-nowrap flex-shrink-0" 
                          style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34D399; font-weight: 700; font-size: 0.9rem; transition: all 0.2s ease; {% if has_multiple_tournaments %}cursor: pointer;{% endif %}"
                          {% if has_multiple_tournaments %}data-bs-toggle="modal" data-bs-target="#tournamentSelectModal" title="Klicka för att välja turnering"{% endif %}>
                         
                         {% if active_tournament.icon %}
                             <img src="{{ active_tournament.icon.url }}" alt="{{ active_tournament.name }}" style="height: 64px; width: 64px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(52, 211, 153, 0.95)) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.9)); margin: -16px 0 -16px -10px; z-index: 10;">
                         {% else %}
-                            <img src="{% static 'tournament/img/EURO28_Icon.webp' %}" alt="UEFA Euro 2028 Icon" style="height: 64px; width: 64px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(52, 211, 153, 0.95)) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.9)); margin: -16px 0 -16px -10px; z-index: 10;">
+                            <img src="{% static 'tournament/img/default_tournament_emblem.webp' %}" alt="{{ active_tournament.name }}" style="height: 64px; width: 64px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(52, 211, 153, 0.95)) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.9)); margin: -16px 0 -16px -10px; z-index: 10;">
                         {% endif %}
                         
                         <span style="z-index: 5;">{{ active_tournament.name|default:"UEFA Euro 2028" }}</span>
@@ -81,55 +81,53 @@
 
                     </div>
 
-
-
                     <!-- Clean Text Navigation Menu (No buttons, no emojis) -->
-                    <ul class="nav gap-2 align-items-center mb-0" id="mainMenuNav" role="tablist">
-                        {% if is_verified or is_admin %}
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link {% if active_tab_name == 'home' %}active{% endif %}" id="tab-home-link" data-bs-toggle="tab" data-bs-target="#tab-home" type="button" role="tab" aria-controls="tab-home" aria-selected="{% if active_tab_name == 'home' %}true{% else %}false{% endif %}">Hem</button>
+                    <ul class="nav gap-2 align-items-center mb-0 flex-nowrap flex-shrink-0" id="mainMenuNav" role="tablist">
+                        {% if is_verified %}
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'home' %}active{% endif %}" id="tab-home-link" data-bs-toggle="tab" data-bs-target="#tab-home" type="button" role="tab" aria-controls="tab-home" aria-selected="{% if active_tab_name == 'home' %}true{% else %}false{% endif %}">Hem</button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link {% if active_tab_name == 'results' %}active{% endif %}" id="tab-results-link" data-bs-toggle="tab" data-bs-target="#tab-results" type="button" role="tab" aria-controls="tab-results" aria-selected="{% if active_tab_name == 'results' %}true{% else %}false{% endif %}">Resultat</button>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'results' %}active{% endif %}" id="tab-results-link" data-bs-toggle="tab" data-bs-target="#tab-results" type="button" role="tab" aria-controls="tab-results" aria-selected="{% if active_tab_name == 'results' %}true{% else %}false{% endif %}">Resultat</button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link {% if active_tab_name == 'leaderboard' %}active{% endif %}" id="tab-leaderboard-link" data-bs-toggle="tab" data-bs-target="#tab-leaderboard" type="button" role="tab" aria-controls="tab-leaderboard" aria-selected="{% if active_tab_name == 'leaderboard' %}true{% else %}false{% endif %}">Topplista</button>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'leaderboard' %}active{% endif %}" id="tab-leaderboard-link" data-bs-toggle="tab" data-bs-target="#tab-leaderboard" type="button" role="tab" aria-controls="tab-leaderboard" aria-selected="{% if active_tab_name == 'leaderboard' %}true{% else %}false{% endif %}">Topplista</button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link {% if active_tab_name == 'insights' %}active{% endif %}" id="tab-insights-link" data-bs-toggle="tab" data-bs-target="#tab-insights" type="button" role="tab" aria-controls="tab-insights" aria-selected="{% if active_tab_name == 'insights' %}true{% else %}false{% endif %}">Analys & Insikter</button>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'insights' %}active{% endif %}" id="tab-insights-link" data-bs-toggle="tab" data-bs-target="#tab-insights" type="button" role="tab" aria-controls="tab-insights" aria-selected="{% if active_tab_name == 'insights' %}true{% else %}false{% endif %}">Analys & Insikter</button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link {% if active_tab_name == 'predictions' %}active{% endif %}" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="{% if active_tab_name == 'predictions' %}true{% else %}false{% endif %}">Mina Tips</button>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'predictions' %}active{% endif %}" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="{% if active_tab_name == 'predictions' %}true{% else %}false{% endif %}">Mina Tips</button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link {% if active_tab_name == 'rules' %}active{% endif %}" id="tab-rules-link" data-bs-toggle="tab" data-bs-target="#tab-rules" type="button" role="tab" aria-controls="tab-rules" aria-selected="{% if active_tab_name == 'rules' %}true{% else %}false{% endif %}">Regler & Poäng</button>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'rules' %}active{% endif %}" id="tab-rules-link" data-bs-toggle="tab" data-bs-target="#tab-rules" type="button" role="tab" aria-controls="tab-rules" aria-selected="{% if active_tab_name == 'rules' %}true{% else %}false{% endif %}">Regler & Poäng</button>
                         </li>
                         {% else %}
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
                                 <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Hem
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
                                 <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Resultat
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
                                 <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Topplista
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
                                 <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Analys & Insikter
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link active" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="true">Mina Tips</button>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap active" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="true">Mina Tips</button>
                         </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="main-nav-link text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
                                 <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Regler & Poäng
                             </button>
                         </li>
@@ -137,11 +135,11 @@
                     </ul>
                 </div>
 
-                <!-- Right: Admin Button (If Staff) -->
-                {% if is_admin %}
-                <div class="d-flex align-items-center gap-2">
-                    <a href="/admin/" class="btn btn-outline-glass btn-sm py-1 px-3">
-                        <i class="fa-solid fa-gears me-1"></i>Admin
+                <!-- Right: Pool-Admin Button (If Pool Admin / Staff) -->
+                {% if is_pool_admin %}
+                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                    <a href="{% if active_league and active_league.admin == request.user %}{% url 'pool_admin_dashboard' active_league.id %}{% else %}{% url 'pool_admin_hub' %}{% endif %}" class="btn btn-outline-glass btn-sm py-1 px-3 d-inline-flex align-items-center gap-1.5 text-nowrap shadow-sm" title="Gå till Pool-Admin">
+                        <i class="fa-solid fa-shield-halved text-info"></i><span>Pool-Admin</span>
                     </a>
                 </div>
                 {% endif %}
@@ -151,7 +149,7 @@
             <!-- MAIN TAB CONTENT CONTAINER (Starts right at top of glass frame!) -->
             <div class="tab-content" id="mainMenuTabContent">
                 
-                {% if is_verified or is_admin %}
+                {% if is_verified %}
                 <!-- 1. HEM TAB (Dashboard overview) -->
                 <div class="tab-pane fade {% if active_tab_name == 'home' %}show active{% endif %}" id="tab-home" role="tabpanel" aria-labelledby="tab-home-link">
                     <style>
@@ -1527,10 +1525,10 @@
                                                 <tr>
                                                     <th class="py-2.5 px-3 text-center" style="width: 80px;">Rank</th>
                                                     <th class="py-2.5 px-3">Spelare</th>
-                                                    <th class="text-end py-2.5 px-3">Poäng</th>
                                                     <th class="text-center py-2.5 px-3">Fullpottmatcher</th>
                                                     <th class="text-center py-2.5 px-3">Rätt antal mål</th>
                                                     <th class="text-center py-2.5 px-3">Rätt tecken</th>
+                                                    <th class="text-end py-2.5 px-3">Poäng</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1547,10 +1545,10 @@
                                                             <span>{{ item.name }}</span>
                                                         </div>
                                                     </td>
-                                                    <td class="text-end py-2 px-3 fw-extrabold text-emerald fs-6">{{ item.points }} p</td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.45); color: #FBBF24; font-size: 0.82rem;">{{ item.fullpott }}</span></td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.45); color: #60A5FA; font-size: 0.82rem;">{{ item.ratt_mal }}</span></td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.45); color: #34D399; font-size: 0.82rem;">{{ item.ratt_tecken }}</span></td>
+                                                    <td class="text-end py-2 px-3 fw-extrabold text-emerald fs-6">{{ item.points }} p</td>
                                                 </tr>
                                                 {% empty %}
                                                 <tr><td colspan="6" class="text-center text-muted py-3">Ingen data tillgänglig ännu.</td></tr>
@@ -1574,10 +1572,10 @@
                                                             <span>Spelare</span>
                                                         </div>
                                                     </th>
-                                                    <th class="text-end py-2.5 px-3">Poäng</th>
                                                     <th class="text-center py-2.5 px-3">Rätt placering</th>
                                                     <th class="text-center py-2.5 px-3">Rätt lagpoäng</th>
                                                     <th class="text-center py-2.5 px-3">Rätt målskillnad</th>
+                                                    <th class="text-end py-2.5 px-3">Poäng</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1594,10 +1592,10 @@
                                                             <span>{{ item.name }}</span>
                                                         </div>
                                                     </td>
-                                                    <td class="text-end py-2 px-3 fw-extrabold text-emerald fs-6">{{ item.points }} p</td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.45); color: #34D399; font-size: 0.82rem;">{{ item.ratt_placering }}</span></td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.45); color: #FBBF24; font-size: 0.82rem;">{{ item.ratt_lagpoang }}</span></td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.45); color: #60A5FA; font-size: 0.82rem;">{{ item.ratt_malskillnad }}</span></td>
+                                                    <td class="text-end py-2 px-3 fw-extrabold text-emerald fs-6">{{ item.points }} p</td>
                                                 </tr>
                                                 {% empty %}
                                                 <tr><td colspan="6" class="text-center text-muted py-3">Ingen data tillgänglig ännu.</td></tr>
@@ -1621,8 +1619,8 @@
                                                             <span>Spelare</span>
                                                         </div>
                                                     </th>
-                                                    <th class="text-end py-2.5 px-3">Poäng</th>
                                                     <th class="text-center py-2.5 px-3">Antal rätt lag</th>
+                                                    <th class="text-end py-2.5 px-3">Poäng</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1639,8 +1637,8 @@
                                                             <span>{{ item.name }}</span>
                                                         </div>
                                                     </td>
-                                                    <td class="text-end py-2 px-3 fw-extrabold text-emerald fs-6">{{ item.points }} p</td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.45); color: #FBBF24; font-size: 0.82rem;">{{ item.ratt_lag }}</span></td>
+                                                    <td class="text-end py-2 px-3 fw-extrabold text-emerald fs-6">{{ item.points }} p</td>
                                                 </tr>
                                                 {% empty %}
                                                 <tr><td colspan="4" class="text-center text-muted py-3">Ingen data tillgänglig ännu.</td></tr>
@@ -1664,10 +1662,10 @@
                                                             <span>Spelare</span>
                                                         </div>
                                                     </th>
-                                                    <th class="text-end py-2.5 px-3">Poäng</th>
                                                     <th class="text-center py-2.5 px-3">Fullpottmatcher</th>
                                                     <th class="text-center py-2.5 px-3">Rätt antal mål</th>
                                                     <th class="text-center py-2.5 px-3">Rätt tecken</th>
+                                                    <th class="text-end py-2.5 px-3">Poäng</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1684,10 +1682,10 @@
                                                             <span>{{ item.name }}</span>
                                                         </div>
                                                     </td>
-                                                    <td class="text-end py-2 px-3 fw-extrabold text-emerald fs-6">{{ item.points }} p</td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.45); color: #FBBF24; font-size: 0.82rem;">{{ item.fullpott }}</span></td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.45); color: #60A5FA; font-size: 0.82rem;">{{ item.ratt_mal }}</span></td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.45); color: #34D399; font-size: 0.82rem;">{{ item.ratt_tecken }}</span></td>
+                                                    <td class="text-end py-2 px-3 fw-extrabold text-emerald fs-6">{{ item.points }} p</td>
                                                 </tr>
                                                 {% empty %}
                                                 <tr><td colspan="6" class="text-center text-muted py-3">Ingen data tillgänglig ännu.</td></tr>
@@ -1711,8 +1709,8 @@
                                                             <span>Spelare</span>
                                                         </div>
                                                     </th>
-                                                    <th class="text-end py-2.5 px-3">Poäng</th>
                                                     <th class="text-center py-2.5 px-3">Antal rätt</th>
+                                                    <th class="text-end py-2.5 px-3">Poäng</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1729,8 +1727,8 @@
                                                             <span>{{ item.name }}</span>
                                                         </div>
                                                     </td>
-                                                    <td class="text-end py-2 px-3 fw-extrabold text-emerald fs-6">{{ item.points }} p</td>
                                                     <td class="text-center py-2 px-3"><span class="badge px-3 py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 38px; background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.45); color: #34D399; font-size: 0.82rem;">{{ item.ratt_antal }}</span></td>
+                                                    <td class="text-end py-2 px-3 fw-extrabold text-emerald fs-6">{{ item.points }} p</td>
                                                 </tr>
                                                 {% empty %}
                                                 <tr><td colspan="4" class="text-center text-muted py-4">Ingen data tillgänglig ännu.</td></tr>
@@ -2223,7 +2221,7 @@
                     {% include 'tournament/predictions_content.html' %}
                 </div>
 
-                {% if is_verified or is_admin %}
+                {% if is_verified %}
                 <!-- 6. REGLER & POÄNG TAB (Two Distinct Sections: Tournament Rules & Tip Scoring System) -->
                 <div class="tab-pane fade {% if active_tab_name == 'rules' %}show active{% endif %}" id="tab-rules" role="tabpanel" aria-labelledby="tab-rules-link">
                     <div class="p-4 p-md-5 rounded-4" style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255, 255, 255, 0.12); color: #cbd5e1; font-size: 0.76rem;">
@@ -2437,7 +2435,7 @@
                                     {% if item.icon_url %}
                                         <img src="{{ item.icon_url }}" alt="{{ item.name }}" style="height: 54px; width: 54px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
                                     {% else %}
-                                        <img src="{% static 'tournament/img/EURO28_Icon.webp' %}" alt="{{ item.name }}" style="height: 54px; width: 54px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
+                                        <img src="{% static 'tournament/img/default_tournament_emblem.webp' %}" alt="{{ item.name }}" style="height: 54px; width: 54px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
                                     {% endif %}
                                     <div>
                                         <h5 class="fw-extrabold text-white mb-1" style="font-size: 1.1rem; font-family: 'Outfit', sans-serif;">{{ item.name }}</h5>

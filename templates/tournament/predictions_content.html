@@ -105,49 +105,96 @@
             justify-content: center !important;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
         }
+        #save-predictions-btn {
+            border-radius: 9999px !important;
+            transition: all 0.2s ease-in-out !important;
+            white-space: nowrap !important;
+        }
+        #save-predictions-btn:disabled {
+            background: rgba(148, 163, 184, 0.14) !important;
+            border: 1px solid rgba(148, 163, 184, 0.28) !important;
+            color: #94a3b8 !important;
+            opacity: 0.55 !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
+            filter: grayscale(80%) !important;
+            pointer-events: none !important;
+            transform: none !important;
+        }
+        #save-predictions-btn:not(:disabled) {
+            background: #10b981 !important;
+            border: 1px solid #34d399 !important;
+            color: #ffffff !important;
+            opacity: 1 !important;
+            cursor: pointer !important;
+            box-shadow: 0 0 18px rgba(16, 185, 129, 0.45) !important;
+        }
+        #save-predictions-btn:not(:disabled):hover {
+            background: #059669 !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.7) !important;
+        }
     </style>
 
     {% if is_verified %}
     <!-- Informative Banner for Verified & Locked Predictions -->
     <div class="p-3.5 p-md-4 rounded-4 mb-4 d-flex align-items-center gap-3 shadow-lg" 
          style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(52, 211, 153, 0.5); border-left: 5px solid #34D399; backdrop-filter: blur(12px);">
-        <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-success bg-opacity-25 border border-success border-opacity-50" style="width: 44px; height: 44px; color: #34D399;">
-            <i class="fa-solid fa-lock fs-5"></i>
+        <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-success bg-opacity-25 border border-success border-opacity-50 text-white" style="width: 44px; height: 44px;">
+            <i class="fa-solid fa-lock fs-5 text-white"></i>
         </div>
         <div class="flex-grow-1">
-            <div class="d-flex align-items-center gap-2.5 flex-wrap mb-1">
-                <h5 class="fw-extrabold mb-0" style="font-size: 1.05rem; color: #34D399 !important;">
-                    Dina tips är sparade och verifierade
-                </h5>
-                <span class="badge bg-success text-dark fw-bold px-2.5 py-1 rounded-pill shadow-sm" style="font-size: 0.72rem; letter-spacing: 0.3px;">
-                    Låst kupong
-                </span>
-            </div>
+            <h5 class="fw-extrabold mb-1" style="font-size: 1.05rem; color: #34D399 !important;">
+                Dina tips är sparade och verifierade
+            </h5>
             <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #E2E8F0;">
-                Eftersom dina tips har sparats och verifierats kan inga ändringar göras i tipskupongen.
+                Eftersom dina tips har sparats och verifierats av Pool-Admin (eller mästerskapet har startat) är tipskupongen permanent låst.
             </p>
         </div>
     </div>
     {% else %}
-    <!-- Informative Alert Banner for unverified predictions -->
-    <div class="p-3.5 p-md-4 rounded-4 mb-4 d-flex align-items-start gap-3 shadow-lg" 
-         style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(250, 204, 21, 0.5); border-left: 5px solid #FACC15; backdrop-filter: blur(12px);">
-        <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-warning bg-opacity-25 border border-warning border-opacity-50 text-warning" style="width: 44px; height: 44px;">
-            <i class="fa-solid fa-triangle-exclamation fs-5"></i>
-        </div>
-        <div class="flex-grow-1">
-            <div class="d-flex align-items-center gap-2.5 flex-wrap mb-1">
-                <h5 class="fw-extrabold mb-0" style="font-size: 1.05rem; color: #FACC15 !important;">
-                    Slutför och spara dina tips
-                </h5>
-                <span class="badge bg-warning text-dark fw-bold px-2.5 py-1 rounded-pill shadow-sm" style="font-size: 0.72rem; letter-spacing: 0.3px;">
-                    Ej verifierad ännu
-                </span>
+    <!-- Top Action Card for Unverified / In Progress Predictions -->
+    <div class="p-3.5 p-md-4 rounded-4 mb-4 shadow-lg" 
+         style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); {% if is_saved %}border: 1px solid rgba(56, 189, 248, 0.5); border-left: 5px solid #38BDF8;{% else %}border: 1px solid rgba(250, 204, 21, 0.5); border-left: 5px solid #FACC15;{% endif %} backdrop-filter: blur(12px);">
+        
+        <!-- Header & Guidance Row -->
+        <div class="d-flex align-items-start gap-3 mb-3">
+            {% if is_saved %}
+            <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-info bg-opacity-25 border border-info border-opacity-50 text-info" style="width: 44px; height: 44px;">
+                <i class="fa-solid fa-clock fs-5"></i>
             </div>
-            <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #E2E8F0;">
-                Dina tips är ännu inte verifierade av Admin. Fyll i dina resultat för <strong style="color: #34D399;">Gruppspelet</strong>, <strong style="color: #FACC15;">Slutspelet</strong> och <strong style="color: #38BDF8;">Bonusfrågorna</strong> och klicka på <strong class="text-white">Spara mina tips</strong>. När din tipskupong har verifierats av Admin låses den fullständiga Dashboarden upp.
-            </p>
+            <div class="flex-grow-1">
+                <h5 class="fw-extrabold mb-1" style="font-size: 1.05rem; color: #38BDF8 !important;">
+                    Tipsen sparade &bull; Väntar på att låsas av Pool-Admin
+                </h5>
+                <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #E2E8F0;">
+                    Dina tips är inskickade. Du kan göra ändringar fram till att Pool-Admin låser kupongen eller första matchen startar.
+                </p>
+            </div>
+            {% else %}
+            <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-warning bg-opacity-25 border border-warning border-opacity-50 text-warning" style="width: 44px; height: 44px;">
+                <i class="fa-solid fa-triangle-exclamation fs-5"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h5 class="fw-extrabold mb-1" style="font-size: 1.05rem; color: #FACC15 !important;">
+                    Tippning pågår &bull; Fyll i dina tips
+                </h5>
+                <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #E2E8F0;">
+                    Fyll i dina resultat för <strong class="text-white">Gruppspelet</strong>, <strong class="text-white">Slutspelet</strong> och <strong class="text-white">Bonusfrågorna</strong>. När samtliga matcher och frågor är ifyllda aktiveras knappen <strong class="text-white">Spara för verifiering</strong>. Så snart kupongen låsts av Pool-Admin (eller vid matchstart) öppnas hela Topplistan och Dashboarden.
+                </p>
+            </div>
+            {% endif %}
         </div>
+
+        {% if not is_admin %}
+        <!-- Dedicated Action Toolbar inside Top Card -->
+        <div class="pt-3 border-top border-white border-opacity-10 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+            <div id="save-predictions-hint" class="small text-start flex-grow-1" style="font-size: 0.85rem;"></div>
+            <button type="submit" id="save-predictions-btn" class="btn btn-emerald px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center justify-content-center gap-2 flex-shrink-0" style="font-size: 0.92rem; min-width: 220px;" {% if not is_saved %}disabled{% endif %}>
+                <i class="fa-solid fa-floppy-disk"></i>{% if is_saved %}Spara uppdaterade tips{% else %}Spara för verifiering{% endif %}
+            </button>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 
@@ -157,7 +204,7 @@
         {% for group in groups %}
         <li class="nav-item" role="presentation">
             <button class="nav-link {% if forloop.first and not active_tab or active_tab == group.id|stringformat:'s' %}active{% endif %}" id="group-{{ group.id }}-tab" data-bs-toggle="pill" data-bs-target="#group-{{ group.id }}" type="button" role="tab">
-                {% if "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}
+                {% if "group " in group.name|lower %}Grupp {{ group.name|slice:"6:" }}{% elif "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}
             </button>
         </li>
         {% endfor %}
@@ -202,7 +249,7 @@
                 <!-- LEFT SIDE: Matches Standalone Floating Card -->
                 <div class="col-lg-7">
                     <div class="glass-card p-4">
-                        <h4 class="fw-bold text-white mb-3">Spelschema {% if "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}</h4>
+                        <h4 class="fw-bold text-white mb-3">Spelschema {% if "group " in group.name|lower %}Grupp {{ group.name|slice:"6:" }}{% elif "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}</h4>
                         
                         <div class="table-responsive">
                             <table class="table table-borderless align-middle mb-0" style="border-collapse: separate; border-spacing: 0 8px;">
@@ -231,7 +278,7 @@
                                         <!-- Home Team + Flag -->
                                         <td class="text-end pe-3 py-2">
                                             <div class="d-flex align-items-center justify-content-end gap-2">
-                                                <span class="fw-bold text-white fs-6 team-name-display" data-group="{{ group.id }}" data-original="{{ home.name }}">{{ home.name }}</span>
+                                                <span class="fw-bold text-white fs-6 text-nowrap team-name-display" data-group="{{ group.id }}" data-original="{{ home.name }}">{{ home.name }}</span>
                                                 {% if home.flag_url %}
                                                     <img class="flag-icon-img" src="{{ home.flag_url }}" alt="{{ home.name }}">
                                                 {% else %}
@@ -257,7 +304,7 @@
                                                 {% else %}
                                                     <img class="flag-img flag-icon-img" data-group="{{ group.id }}" data-original="{{ away.name }}" src="" style="display: none;">
                                                 {% endif %}
-                                                <span class="fw-bold text-white fs-6 team-name-display" data-group="{{ group.id }}" data-original="{{ away.name }}">{{ away.name }}</span>
+                                                <span class="fw-bold text-white fs-6 text-nowrap team-name-display" data-group="{{ group.id }}" data-original="{{ away.name }}">{{ away.name }}</span>
                                             </div>
                                         </td>
                                         
@@ -275,7 +322,7 @@
                 <!-- RIGHT SIDE: Live Standings Standalone Floating Card -->
                 <div class="col-lg-5">
                     <div class="standings-card p-4 sticky-top" style="top: 20px;">
-                        <h4 class="fw-bold text-white mb-3">Tabell {% if "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}</h4>
+                        <h4 class="fw-bold text-white mb-3">Tabell {% if "group " in group.name|lower %}Grupp {{ group.name|slice:"6:" }}{% elif "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}</h4>
                         <div class="table-responsive">
                             <table class="table table-sm align-middle standings-table mb-0" id="standings-table-g{{ group.id }}" style="table-layout: fixed; width: 100%;">
                                 <thead>
@@ -522,22 +569,13 @@
 
     </div>
 
-    <!-- Sticky Save Predictions Bar -->
-    {% if not is_admin %}
-    {% if not submission or not submission.is_verified %}
-    <div class="sticky-bottom-bar text-center py-3 my-4 rounded-4" style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(16, 185, 129, 0.4); box-shadow: 0 -10px 30px rgba(0,0,0,0.7);">
-        <button type="submit" class="btn btn-emerald px-5 py-2.5 fw-bold shadow-lg" style="font-size: 1.05rem;">
-            <i class="fa-solid fa-floppy-disk me-2"></i>Spara Alla Tips
-        </button>
-    </div>
-    {% endif %}
-    {% endif %}
-
 </form>
 
 <script>
 (function() {
     function initPredictionsScript() {
+        const isSavedInitial = {{ is_saved|yesno:"true,false" }};
+        let hasUserEdited = false;
         const groupsData = {{ groups_data_json|safe }};
         const groupMatches = {{ group_matches_json|safe }};
 
@@ -574,12 +612,22 @@
                 const teamDisplays = row.querySelectorAll('.team-name-display[data-original]');
                 if (!homeInput || !awayInput || teamDisplays.length < 2) return;
 
-                const homeTeam = teamDisplays[0].textContent.trim();
-                const awayTeam = teamDisplays[1].textContent.trim();
+                const homeTeam = (teamDisplays[0].getAttribute('data-original') || teamDisplays[0].textContent).trim();
+                const awayTeam = (teamDisplays[1].getAttribute('data-original') || teamDisplays[1].textContent).trim();
+                
+                if (!stats[homeTeam]) {
+                    stats[homeTeam] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+                    if (!teams.includes(homeTeam)) teams.push(homeTeam);
+                }
+                if (!stats[awayTeam]) {
+                    stats[awayTeam] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
+                    if (!teams.includes(awayTeam)) teams.push(awayTeam);
+                }
+
                 const hgVal = homeInput.value;
                 const agVal = awayInput.value;
 
-                if (hgVal !== "" && agVal !== "" && stats[homeTeam] && stats[awayTeam]) {
+                if (hgVal !== "" && agVal !== "") {
                     const hg = parseInt(hgVal, 10);
                     const ag = parseInt(agVal, 10);
 
@@ -1114,6 +1162,7 @@
             }
 
             updateKnockoutTree();
+            validateAllPredictionsFilled();
         });
 
         function resolvePlaceholder(rawStr, winnersMap, losersMap) {
@@ -1210,14 +1259,130 @@
             return str;
         }
 
-        document.querySelectorAll('.match-input').forEach(input => {
+        function validateAllPredictionsFilled() {
+            const saveBtn = document.getElementById('save-predictions-btn');
+            const hintEl = document.getElementById('save-predictions-hint');
+            if (!saveBtn) return;
+
+            let totalRequired = 0;
+            let totalCompleted = 0;
+            let missingDetails = [];
+
+            // 1. Group matches
+            const groupInputs = document.querySelectorAll('input.match-input[data-group]');
+            const matchIds = new Set();
+            groupInputs.forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && (name.startsWith('home_') || name.startsWith('away_'))) {
+                    const mId = name.split('_')[1];
+                    matchIds.add(mId);
+                }
+            });
+
+            let missingGroupCount = 0;
+            matchIds.forEach(mId => {
+                totalRequired++;
+                const homeInput = document.querySelector(`input[name="home_${mId}"]`);
+                const awayInput = document.querySelector(`input[name="away_${mId}"]`);
+                const hVal = homeInput ? homeInput.value.trim() : '';
+                const aVal = awayInput ? awayInput.value.trim() : '';
+                if (hVal !== '' && aVal !== '' && !isNaN(hVal) && !isNaN(aVal)) {
+                    totalCompleted++;
+                } else {
+                    missingGroupCount++;
+                }
+            });
+            if (missingGroupCount > 0) {
+                missingDetails.push(`${missingGroupCount} gruppmatch${missingGroupCount > 1 ? 'er' : ''}`);
+            }
+
+            // 2. Knockout matches
+            const koInputs = document.querySelectorAll('input.knockout-input');
+            const koMatchIds = new Set();
+            koInputs.forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && (name.startsWith('home_') || name.startsWith('away_'))) {
+                    const mId = name.split('_')[1];
+                    koMatchIds.add(mId);
+                }
+            });
+
+            let missingKoCount = 0;
+            koMatchIds.forEach(mId => {
+                totalRequired++;
+                const homeInput = document.querySelector(`input[name="home_${mId}"]`);
+                const awayInput = document.querySelector(`input[name="away_${mId}"]`);
+                const tbInput = document.querySelector(`input[name="penalty_winner_${mId}"]`);
+                const hVal = homeInput ? homeInput.value.trim() : '';
+                const aVal = awayInput ? awayInput.value.trim() : '';
+                const isTie = (hVal !== '' && aVal !== '' && parseInt(hVal, 10) === parseInt(aVal, 10));
+                const tbVal = tbInput ? tbInput.value.trim() : '';
+
+                if (hVal !== '' && aVal !== '' && !isNaN(hVal) && !isNaN(aVal)) {
+                    if (isTie && !tbVal) {
+                        missingKoCount++;
+                    } else {
+                        totalCompleted++;
+                    }
+                } else {
+                    missingKoCount++;
+                }
+            });
+            if (missingKoCount > 0) {
+                missingDetails.push(`${missingKoCount} slutspelsmatch${missingKoCount > 1 ? 'er' : ''}`);
+            }
+
+            // 3. Sidebets
+            const sidebetInputs = document.querySelectorAll('input[name^="sidebet_"], select[name^="sidebet_"]');
+            let missingSidebetsCount = 0;
+            sidebetInputs.forEach(input => {
+                totalRequired++;
+                if (input.value && input.value.trim() !== '') {
+                    totalCompleted++;
+                } else {
+                    missingSidebetsCount++;
+                }
+            });
+            if (missingSidebetsCount > 0) {
+                missingDetails.push(`${missingSidebetsCount} bonusfråga/frågor`);
+            }
+
+            const isAllComplete = (totalRequired > 0 && totalCompleted === totalRequired);
+
+            if (isAllComplete) {
+                saveBtn.disabled = false;
+                if (hintEl) {
+                    if (isSavedInitial && !hasUserEdited) {
+                        hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #38bdf8 !important;"><i class="fa-solid fa-clock"></i>Dina tips är sparade och inskickade</span>`;
+                    } else if (isSavedInitial && hasUserEdited) {
+                        hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #34d399 !important;"><i class="fa-solid fa-circle-check"></i>Ändringar gjorda &bull; Klicka för att spara uppdaterade tips!</span>`;
+                    } else {
+                        hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #34d399 !important;"><i class="fa-solid fa-circle-check"></i>Alla matcher och frågor är ifyllda &bull; Redo att sparas för verifiering!</span>`;
+                    }
+                }
+            } else {
+                saveBtn.disabled = true;
+                if (hintEl) {
+                    const missingText = missingDetails.join(', ');
+                    hintEl.innerHTML = `<span class="d-inline-flex align-items-center gap-1.5" style="color: #facc15 !important;"><i class="fa-solid fa-circle-info"></i>Fyll i alla matcher och frågor för att aktivera knappen (${missingText ? 'Kvar: ' + missingText : (totalRequired - totalCompleted) + ' kvar'})</span>`;
+                }
+            }
+        }
+
+        document.querySelectorAll('.match-input, input[name^="sidebet_"], select[name^="sidebet_"]').forEach(input => {
             input.addEventListener('input', function() {
+                hasUserEdited = true;
                 const groupId = this.getAttribute('data-group');
                 if (groupId) {
                     recalculateStandings(groupId);
                 } else {
                     updateKnockoutTree();
                 }
+                validateAllPredictionsFilled();
+            });
+            input.addEventListener('change', function() {
+                hasUserEdited = true;
+                validateAllPredictionsFilled();
             });
         });
 
@@ -1225,7 +1390,7 @@
             recalculateStandings(groupId);
         });
         updateHostsRanking();
-
+        validateAllPredictionsFilled();
 
         const activeTabInput = document.getElementById('activeTabInput');
         const tabButtons = document.querySelectorAll('#tournamentTab button[data-bs-toggle="pill"]');

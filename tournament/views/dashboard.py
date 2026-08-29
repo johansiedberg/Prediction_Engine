@@ -31,9 +31,10 @@ def dashboard_view(request):
     if session_league_id:
         active_league = next((l for l in user_leagues if l.id == session_league_id), None)
     if not active_league and user_leagues:
-        active_league = user_leagues[0]
+        league_with_tournaments = next((l for l in user_leagues if l.tournaments.filter(is_active=True).exists()), None)
+        active_league = league_with_tournaments or user_leagues[0]
     if not active_league:
-        active_league = League.objects.filter(is_active=True).first()
+        active_league = League.objects.filter(is_active=True, tournaments__is_active=True).first() or League.objects.filter(is_active=True).first()
 
     # Scope active tournaments strictly to the active pool
     if active_league:
@@ -134,12 +135,16 @@ def dashboard_view(request):
     requested_tab = request.GET.get('tab', 'home')
 
     # Handle Prediction POST submission directly within dashboard main frame
-    if request.method == 'POST':
+    if request.method == 'POST' and active_tournament:
+        if active_tournament.is_locked_by_time:
+            messages.error(request, "Mästerskapet har redan startat. Inga ändringar kan sparas.")
+            return redirect('/dashboard/?tab=predictions')
+
         for key, value in request.POST.items():
             if key.startswith('home_'):
                 match_id = key.split('_')[1]
-                home_val = value
-                away_val = request.POST.get(f'away_{match_id}', '')
+                home_val = value.strip()
+                away_val = request.POST.get(f'away_{match_id}', '').strip()
                 if home_val != '' and away_val != '':
                     match_obj = get_object_or_404(Match, id=match_id, tournament=active_tournament)
                     pen_winner = request.POST.get(f'penalty_winner_{match_id}', '').strip()
@@ -168,8 +173,9 @@ def dashboard_view(request):
         TournamentSubmission.objects.update_or_create(
             tournament=active_tournament,
             player=request.user,
-            defaults={'is_saved': True}
+            defaults={'is_saved': True, 'is_verified': False}
         )
+        messages.success(request, "Dina tips har sparats och skickats för verifiering av Pool-Admin!")
         invalidate_tournament_cache(active_tournament.id)
         post_active_tab = request.POST.get('active_tab', '').strip()
         if post_active_tab:
@@ -179,11 +185,12 @@ def dashboard_view(request):
     if active_tournament:
         is_player = active_tournament.players.filter(id=request.user.id, is_staff=False, is_superuser=False).exists() and not (request.user.is_staff or request.user.is_superuser)
         submission = TournamentSubmission.objects.filter(tournament=active_tournament, player=request.user).first()
-        is_saved = submission.is_saved if submission else False
-        is_verified = submission.is_verified if submission else False
+        is_locked_by_time = active_tournament.is_locked_by_time
+        is_verified = (submission.is_verified if submission else False) or is_locked_by_time
+        is_saved = (submission.is_saved if submission else False) or is_locked_by_time
 
         # Until the user has verified predictions, NO other tab than My Predictions is allowed
-        if not is_verified and not is_admin:
+        if not is_verified:
             active_tab_name = 'predictions'
         else:
             active_tab_name = requested_tab
@@ -274,6 +281,11 @@ def dashboard_view(request):
             }
     
     is_admin = request.user.is_staff or request.user.is_superuser
+    is_pool_admin = (
+        League.objects.filter(admin=request.user, is_active=True).exists() or 
+        request.user.is_staff or 
+        request.user.is_superuser
+    )
     point_system = getattr(active_tournament, 'point_system', None) if active_tournament else None
 
     # Group Tables, Group Stage Full Data & Third Place Standings calculation
@@ -746,8 +758,9 @@ def dashboard_view(request):
         'biggest_pessimist': biggest_pessimist,
     }
 
-    is_saved = submission.is_saved if submission else False
-    is_verified = submission.is_verified if submission else False
+    is_locked_by_time = active_tournament.is_locked_by_time if active_tournament else False
+    is_saved = (submission.is_saved if submission else False) or is_locked_by_time
+    is_verified = (submission.is_verified if submission else False) or is_locked_by_time
 
     user_sidebet_correct = {
         sb.id: sb.is_answer_correct(user_sidebet_answers.get(sb.id, ''))
@@ -756,10 +769,13 @@ def dashboard_view(request):
 
     context = {
         'active_tournament': active_tournament,
+        'active_league': active_league,
         'is_player': is_player,
         'is_admin': is_admin,
+        'is_pool_admin': is_pool_admin,
         'is_saved': is_saved,
         'is_verified': is_verified,
+        'is_locked_by_time': is_locked_by_time,
         'submission': submission,
         'all_matches': all_matches,
         'upcoming_matches': upcoming_matches,

@@ -187,7 +187,8 @@ def sso_login_view(request):
 def magic_login_view(request, token):
     """
     Passwordless login via signed one-click magic link.
-    Authenticates user, sets active pool context, and redirects to mandatory password setup if needed.
+    Authenticates user, sets active pool context, and initiates sequential onboarding:
+    Step 1: Terms & Conditions (accept_terms) -> Step 2: Set Password (set_password) -> Dashboard.
     """
     from tournament.utils.magic_link import verify_magic_token
     payload = verify_magic_token(token)
@@ -211,8 +212,15 @@ def magic_login_view(request, token):
             request.session['active_league_id'] = league.id
 
     profile, _ = UserProfile.objects.get_or_create(user=user)
-    if profile.must_set_password or not user.has_usable_password() or not profile.terms_accepted:
-        messages.info(request, f"Välkommen {user.first_name or user.username}! Välj ditt lösenord och godkänn användaravtalet för att aktivera ditt konto.")
+
+    # Step 1: Must review and accept full Terms & Conditions first
+    if not profile.terms_accepted:
+        messages.info(request, f"Välkommen {user.first_name or user.username}! Vänligen läs igenom och godkänn användaravtalet för att aktivera ditt konto.")
+        return redirect('accept_terms')
+
+    # Step 2: Set personal password
+    if profile.must_set_password or not user.has_usable_password():
+        messages.info(request, f"Välkommen {user.first_name or user.username}! Välj ditt lösenord för att slutföra aktiveringen.")
         return redirect('set_password')
 
     messages.success(request, f"Välkommen tillbaka, {user.first_name or user.username}!")
@@ -229,14 +237,15 @@ def terms_view(request):
 @login_required
 def accept_terms_view(request):
     """
-    Dedicated view/modal fallback for existing authenticated users to review and accept terms.
+    Step 1 of Onboarding: Review full Terms & Conditions on screen and scroll to accept.
+    Once accepted, advances directly to Step 2: Set Password (if password is required), else Dashboard.
     """
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
     if request.method == 'POST':
         accept = request.POST.get('accept_terms')
         if not accept:
-            messages.error(request, "Du måste markera att du godkänner Användaravtalet för att fortsätta.")
+            messages.error(request, "Du måste godkänna Användaravtalet för att fortsätta.")
             return render(request, 'tournament/terms.html', {'require_acceptance': True})
 
         profile.terms_accepted = True
@@ -245,10 +254,17 @@ def accept_terms_view(request):
         profile.save()
 
         messages.success(request, "Tack! Du har godkänt Användaravtalet.")
+
+        # If user still needs to choose their password, advance to Step 2
+        if profile.must_set_password or not request.user.has_usable_password():
+            return redirect('set_password')
+
         next_url = request.POST.get('next', request.GET.get('next', '/dashboard/?tab=predictions'))
         return redirect(next_url)
 
     if profile.terms_accepted:
+        if profile.must_set_password or not request.user.has_usable_password():
+            return redirect('set_password')
         return redirect('/dashboard/?tab=predictions')
 
     return render(request, 'tournament/terms.html', {'require_acceptance': True})
@@ -257,7 +273,8 @@ def accept_terms_view(request):
 @login_required
 def set_password_view(request):
     """
-    Mandatory first-time password setup and Terms & Conditions acceptance view for invited users.
+    Step 2 of Onboarding: Mandatory first-time password setup for invited users.
+    Terms & Conditions have already been accepted in Step 1.
     """
     from django.contrib.auth import update_session_auth_hash
 
@@ -266,11 +283,6 @@ def set_password_view(request):
     if request.method == 'POST':
         password = request.POST.get('password', '').strip()
         confirm_password = request.POST.get('confirm_password', '').strip()
-        accept_terms = request.POST.get('accept_terms')
-
-        if not profile.terms_accepted and not accept_terms:
-            messages.error(request, "Du måste läsa och godkänna Användaravtalet för att aktivera ditt konto.")
-            return render(request, 'tournament/set_password.html', {'profile': profile})
 
         if not password:
             messages.error(request, "Vänligen ange ett lösenord.")
@@ -284,15 +296,11 @@ def set_password_view(request):
             messages.error(request, "Lösenorden matchar inte varandra.")
             return render(request, 'tournament/set_password.html', {'profile': profile})
 
-        # Save new password and mark terms accepted if not already done
+        # Save new password
         request.user.set_password(password)
         request.user.save()
 
         profile.must_set_password = False
-        if not profile.terms_accepted:
-            profile.terms_accepted = True
-            profile.terms_accepted_at = timezone.now()
-            profile.terms_version = "2026-08-26"
         profile.save()
 
         # Keep user logged in with updated password hash

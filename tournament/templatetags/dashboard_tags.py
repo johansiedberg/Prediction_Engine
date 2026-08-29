@@ -39,12 +39,13 @@ def format_locations_filter(value):
     from tournament.services.scout_service import normalize_locations
     return normalize_locations(value)
 
+from django.utils.safestring import mark_safe
 import json
 from tournament.country_registry import GLOBAL_COUNTRY_FLAG_MAP
 
 @register.simple_tag
 def get_global_country_code_map_json():
-    return json.dumps(GLOBAL_COUNTRY_FLAG_MAP)
+    return mark_safe(json.dumps(GLOBAL_COUNTRY_FLAG_MAP))
 
 @register.filter(name='team_badge_url')
 def team_badge_url_filter(team_name, sport=""):

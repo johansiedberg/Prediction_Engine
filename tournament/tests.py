@@ -2568,6 +2568,7 @@ class MagicLinkAuthTestCase(TestCase):
         user.set_unusable_password()
         user.save()
         user.profile.must_set_password = True
+        user.profile.terms_accepted = False
         user.profile.save()
 
         token = generate_magic_token(user, self.league.id)
@@ -2577,8 +2578,8 @@ class MagicLinkAuthTestCase(TestCase):
 
         # Verified that user is logged in
         self.assertEqual(int(client.session['_auth_user_id']), user.id)
-        # Verified that user is redirected to set_password page
-        self.assertTemplateUsed(resp, 'tournament/set_password.html')
+        # Step 1: Verified that user is redirected to full Terms & Conditions page first
+        self.assertTemplateUsed(resp, 'tournament/terms.html')
 
     def test_set_password_view_and_middleware(self):
         user = User.objects.create(username='setpwd_user', email='setpwd@test.com', first_name='SetPwd')
@@ -2591,37 +2592,48 @@ class MagicLinkAuthTestCase(TestCase):
         client = Client()
         client.force_login(user)
 
-        # 1. Middleware should block dashboard and force redirect to /auth/set-password/
+        # 1. Middleware should block dashboard and force redirect to /terms/accept/ (Step 1)
         resp = client.get('/dashboard/', HTTP_HOST='localhost:2028', follow=False)
         self.assertEqual(resp.status_code, 302)
-        self.assertEqual(resp.url, '/auth/set-password/')
+        self.assertEqual(resp.url, '/terms/accept/')
 
-        # 2. Submit valid password but without accepting terms
-        resp_no_terms = client.post('/auth/set-password/', {'password': 'mypassword123', 'confirm_password': 'mypassword123'}, HTTP_HOST='localhost:2028')
+        # 2. Submitting accept_terms without 'accept_terms' key fails
+        resp_no_terms = client.post('/terms/accept/', {}, HTTP_HOST='localhost:2028')
         self.assertEqual(resp_no_terms.status_code, 200)
         user.profile.refresh_from_db()
         self.assertFalse(user.profile.terms_accepted)
-        self.assertTrue(user.profile.must_set_password)
 
-        # 3. Submit mismatched passwords with terms
-        resp_bad = client.post('/auth/set-password/', {'password': 'mypassword', 'confirm_password': 'different', 'accept_terms': 'on'}, HTTP_HOST='localhost:2028')
+        # 3. Submitting accept_terms with 'accept_terms=on' accepts terms and redirects to /auth/set-password/ (Step 2)
+        resp_terms_ok = client.post('/terms/accept/', {'accept_terms': 'on'}, HTTP_HOST='localhost:2028', follow=False)
+        self.assertEqual(resp_terms_ok.status_code, 302)
+        self.assertEqual(resp_terms_ok.url, '/auth/set-password/')
+
+        user.profile.refresh_from_db()
+        self.assertTrue(user.profile.terms_accepted)
+        self.assertIsNotNone(user.profile.terms_accepted_at)
+        self.assertEqual(user.profile.terms_version, "2026-08-26")
+
+        # 4. Now that terms are accepted, visiting dashboard redirects to /auth/set-password/
+        resp_dash_blocked = client.get('/dashboard/', HTTP_HOST='localhost:2028', follow=False)
+        self.assertEqual(resp_dash_blocked.status_code, 302)
+        self.assertEqual(resp_dash_blocked.url, '/auth/set-password/')
+
+        # 5. Submit mismatched passwords
+        resp_bad = client.post('/auth/set-password/', {'password': 'mypassword', 'confirm_password': 'different'}, HTTP_HOST='localhost:2028')
         self.assertEqual(resp_bad.status_code, 200)
         user.profile.refresh_from_db()
         self.assertTrue(user.profile.must_set_password)
 
-        # 4. Submit valid password AND accept terms
-        resp_good = client.post('/auth/set-password/', {'password': 'mypassword123', 'confirm_password': 'mypassword123', 'accept_terms': 'on'}, HTTP_HOST='localhost:2028', follow=True)
+        # 6. Submit valid password (Step 2 completed)
+        resp_good = client.post('/auth/set-password/', {'password': 'mypassword123', 'confirm_password': 'mypassword123'}, HTTP_HOST='localhost:2028', follow=True)
         self.assertEqual(resp_good.status_code, 200)
 
         user.refresh_from_db()
         user.profile.refresh_from_db()
         self.assertFalse(user.profile.must_set_password)
-        self.assertTrue(user.profile.terms_accepted)
-        self.assertIsNotNone(user.profile.terms_accepted_at)
-        self.assertEqual(user.profile.terms_version, "2026-08-26")
         self.assertTrue(user.check_password('mypassword123'))
 
-        # 5. Now dashboard is fully accessible
+        # 7. Now dashboard is fully accessible
         resp_dash = client.get('/dashboard/', HTTP_HOST='localhost:2028')
         self.assertEqual(resp_dash.status_code, 200)
 
@@ -2705,6 +2717,51 @@ class MagicLinkAuthTestCase(TestCase):
 
         player.profile.refresh_from_db()
         self.assertTrue(player.profile.must_set_password)
+
+    def test_logged_in_user_can_update_email_and_password(self):
+        user = User.objects.create_user(username='myemail@domain.com', email='myemail@domain.com', password='initialpassword123', first_name='AccountUser')
+        user.profile.terms_accepted = True
+        user.profile.save()
+
+        client = Client()
+        client.force_login(user)
+
+        # 1. Update email only
+        resp_email = client.post(
+            '/profile/account/',
+            {'email': 'newemail@domain.com'},
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp_email.status_code, 200)
+        user.refresh_from_db()
+        self.assertEqual(user.email, 'newemail@domain.com')
+        self.assertEqual(user.username, 'newemail@domain.com')
+        self.assertTrue(user.check_password('initialpassword123'))
+
+        # 2. Update password only
+        resp_pwd = client.post(
+            '/profile/account/',
+            {'email': 'newemail@domain.com', 'password': 'brandnewpassword456', 'confirm_password': 'brandnewpassword456'},
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp_pwd.status_code, 200)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('brandnewpassword456'))
+
+        # 3. Update both email and password simultaneously
+        resp_both = client.post(
+            '/profile/account/',
+            {'email': 'finalemail@domain.com', 'password': 'supersecret789', 'confirm_password': 'supersecret789'},
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp_both.status_code, 200)
+        user.refresh_from_db()
+        self.assertEqual(user.email, 'finalemail@domain.com')
+        self.assertEqual(user.username, 'finalemail@domain.com')
+        self.assertTrue(user.check_password('supersecret789'))
 
 
 

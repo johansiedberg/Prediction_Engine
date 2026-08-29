@@ -212,14 +212,8 @@
                             {% endif %}
 
                             <!-- Left: Frameless Emblem + 3-Row Text Stack -->
-                            <div class="d-flex align-items-center gap-3.5 flex-grow-1 position-relative" style="min-width: 280px; z-index: 1;">
-                                {% if t.icon %}
-                                <img src="{{ t.icon.url }}" alt="{{ t.name }}" style="width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));">
-                                {% else %}
-                                <div class="d-flex align-items-center justify-content-center flex-shrink-0 text-warning" style="width: 72px; height: 72px;">
-                                    <i class="fa-solid fa-trophy fs-1"></i>
-                                </div>
-                                {% endif %}
+                            <div class="d-flex align-items-center flex-grow-1 position-relative" style="min-width: 280px; z-index: 1;">
+                                <img src="{{ t.icon_url }}" alt="{{ t.name }}" style="width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; margin-right: 10px; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));">
 
                                 <div class="d-flex flex-column justify-content-center">
                                     <!-- Row 1: Sport + Active in Pool Badge -->
@@ -328,14 +322,8 @@
                                     {% endif %}
 
                                     <!-- Left: Frameless Emblem + 3-Row Text Stack -->
-                                    <div class="d-flex align-items-center gap-3.5 flex-grow-1 position-relative" style="min-width: 280px; z-index: 1;">
-                                        {% if t.icon %}
-                                        <img src="{{ t.icon.url }}" alt="{{ t.name }}" style="width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));">
-                                        {% else %}
-                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 text-info" style="width: 72px; height: 72px;">
-                                            <i class="fa-solid fa-trophy fs-1"></i>
-                                        </div>
-                                        {% endif %}
+                                    <div class="d-flex align-items-center flex-grow-1 position-relative" style="min-width: 280px; z-index: 1;">
+                                        <img src="{{ t.icon_url }}" alt="{{ t.name }}" style="width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; margin-right: 10px; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));">
 
                                         <div class="d-flex flex-column justify-content-center">
                                             <!-- Row 1: Sport -->
@@ -399,14 +387,8 @@
                                     {% endif %}
 
                                     <!-- Left: Frameless Emblem + 3-Row Text Stack -->
-                                    <div class="d-flex align-items-center gap-3.5 flex-grow-1 position-relative" style="min-width: 280px; z-index: 1;">
-                                        {% if t.icon %}
-                                        <img src="{{ t.icon.url }}" alt="{{ t.name }}" style="width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; opacity: 0.75; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));">
-                                        {% else %}
-                                        <div class="d-flex align-items-center justify-content-center flex-shrink-0 text-secondary" style="width: 72px; height: 72px;">
-                                            <i class="fa-solid fa-clock fs-1"></i>
-                                        </div>
-                                        {% endif %}
+                                    <div class="d-flex align-items-center flex-grow-1 position-relative" style="min-width: 280px; z-index: 1;">
+                                        <img src="{{ t.icon_url }}" alt="{{ t.name }}" style="width: 72px; height: 72px; object-fit: contain; flex-shrink: 0; margin-right: 10px; opacity: 0.75; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.7));">
 
                                         <div class="d-flex flex-column justify-content-center">
                                             <!-- Row 1: Sport + Coming badge -->
