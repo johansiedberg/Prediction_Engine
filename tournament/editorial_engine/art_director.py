@@ -69,12 +69,7 @@ class ArtDirector:
             image_url = primary_path
         else:
             visual_mode = 'ART_BANNER'
-            if content_format == 'INTERVIEW':
-                image_url = "/static/tournament/img/gazette_interview_art.jpg"
-            elif content_format == 'PUB_QUOTES':
-                image_url = "/static/tournament/img/gazette_pub_art.jpg"
-            else:
-                image_url = "/static/tournament/img/gazette_editorial_art.jpg"
+            image_url = "/static/tournament/img/gazette_placeholder.svg"
 
         return {
             'visual_mode': visual_mode,

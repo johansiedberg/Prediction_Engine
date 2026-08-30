@@ -47,9 +47,11 @@ class Journalist:
     def get_behavior(persona: dict) -> str:
         """Translates persona traits into active behavior descriptions."""
         if not persona:
-            return "följde matchutvecklingen med stort intresse"
+            return "följde matchutvecklingen med stor koncentration och taktisk blick"
         full_name = persona.get('full_name', '')
-        return BEHAVIOR_DESCRIPTIONS.get(full_name, "granskade tipsraderna noggrant inför slutsignalen")
+        if full_name in BEHAVIOR_DESCRIPTIONS:
+            return BEHAVIOR_DESCRIPTIONS[full_name]
+        return "granskade tipsraderna och matchanalyserna noggrant inför slutsignalen"
 
     @classmethod
     def research_historical_background(cls, tournament=None, primary_persona: dict = None, rival_persona: dict = None) -> dict:

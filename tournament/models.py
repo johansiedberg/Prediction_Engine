@@ -814,10 +814,18 @@ def auto_create_submission_for_tournament_players(sender, instance, action, pk_s
 
 class StaticInsight(models.Model):
     CATEGORY_CHOICES = (
+        ('SIGN_DECISIVE', 'Avgjorda Matcher (Spikvilja)'),
+        ('SIGN_BALANCE', 'Oavgjorda Matcher (Kryssbenägenhet)'),
+        ('BANKER_CONSENSUS', 'Gängets Banker (Superkonsensus)'),
+        ('DELUSION_INDEX', 'Skiljematchen (Vattendelaren)'),
+        ('GOAL_DELUSION', 'Målprognos & Extremer'),
+        ('CERTIFIED_MADNESS', 'Omgångens Målfest'),
+        ('LONE_WOLF', 'Ensamvargar (Djärva Solospel)'),
+        ('CHAMPION_CONSENSUS', 'Mästarkonsensus'),
+        ('GOLDEN_BOOT', 'Skytteliga & Sidebets'),
         ('CONSENSUS_ALERT', 'Konsensusvarning'),
-        ('CERTIFIED_MADNESS', 'Verifierad Galenskap'),
-        ('LONE_WOLF', 'Ensam Varg'),
-        ('DELUSION_INDEX', 'Övermodsindex'),
+        ('SIGN_HOME', 'Hemmasegrar'),
+        ('SIGN_AWAY', 'Bortasegrar'),
         ('GENERAL', 'Allmän Insikt'),
     )
 

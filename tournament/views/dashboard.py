@@ -705,10 +705,28 @@ def dashboard_view(request):
         tot_goals = sum(p.home_goals + p.away_goals for p in all_predictions)
         avg_goals_per_match = round(tot_goals / total_preds_count, 2)
         diff_vs_euro2020 = round(((avg_goals_per_match - 2.78) / 2.78) * 100, 1)
+        home_count = sum(1 for p in all_predictions if p.home_goals > p.away_goals)
+        draw_count = sum(1 for p in all_predictions if p.home_goals == p.away_goals)
+        away_count = sum(1 for p in all_predictions if p.home_goals < p.away_goals)
+        decisive_count = home_count + away_count
+        pct_decisive = round((decisive_count / total_preds_count) * 100)
+        pct_draw = round((draw_count / total_preds_count) * 100)
+        pct_home = round((home_count / total_preds_count) * 100)
+        pct_away = round((away_count / total_preds_count) * 100)
     else:
         tot_goals = 0
         avg_goals_per_match = 0.0
         diff_vs_euro2020 = 0.0
+        pct_decisive = 76
+        pct_draw = 24
+        pct_home = 44
+        pct_away = 32
+
+    # Most common exact scoreline
+    from collections import Counter
+    score_counter = Counter(f"{p.home_goals}-{p.away_goals}" for p in all_predictions) if total_preds_count > 0 else Counter()
+    most_common_score, most_common_score_cnt = score_counter.most_common(1)[0] if score_counter else ("2-1", 0)
+    most_common_score_pct = round((most_common_score_cnt / total_preds_count) * 100) if total_preds_count > 0 else 0
 
     player_goal_stats = []
     for p in players:
@@ -719,9 +737,10 @@ def dashboard_view(request):
             p_name = f"{p.first_name} {p.last_name}".strip() if p.first_name else p.email
             player_goal_stats.append({'name': p_name, 'avg_goals': p_avg_g, 'total_goals': p_tot_g})
 
-    player_goal_stats.sort(key=lambda x: x['avg_goals'], reverse=True)
-    biggest_optimist = player_goal_stats[0] if player_goal_stats else {'name': '-', 'avg_goals': 0}
-    biggest_pessimist = player_goal_stats[-1] if player_goal_stats else {'name': '-', 'avg_goals': 0}
+    player_goal_stats.sort(key=lambda x: x['total_goals'], reverse=True)
+    biggest_optimist = player_goal_stats[0] if player_goal_stats else {'name': '-', 'avg_goals': 0, 'total_goals': 0}
+    biggest_pessimist = player_goal_stats[-1] if player_goal_stats else {'name': '-', 'avg_goals': 0, 'total_goals': 0}
+    goal_extreme_diff = (biggest_optimist['total_goals'] - biggest_pessimist['total_goals']) if player_goal_stats else 0
 
     match_avg_goals = []
     for m in all_matches:
@@ -736,14 +755,19 @@ def dashboard_view(request):
     match_avg_goals.sort(key=lambda x: x['avg_goals'], reverse=True)
     highest_scoring_match = match_avg_goals[0] if match_avg_goals else {'match_name': '-', 'avg_goals': 0}
 
-    england_matches = [m for m in all_matches if 'england' in (m.home_team or '').lower() or 'england' in (m.away_team or '').lower()]
-    england_draw_pct = 0
-    if england_matches:
-        eng_m_ids = {m.id for m in england_matches}
-        eng_preds = [p for p in all_predictions if p.match_id in eng_m_ids]
-        if eng_preds:
-            draws = [p for p in eng_preds if p.home_goals == p.away_goals]
-            england_draw_pct = round((len(draws) / len(eng_preds)) * 100)
+    # Champion consensus from sidebets
+    champ_sb = next((sb for sb in sidebets if any(k in getattr(sb, 'question', '').lower() for k in ["vinner", "mästare", "champion", "guld", "segrare"])), None)
+    champ_consensus_team = "-"
+    champ_consensus_pct = 0
+    if champ_sb:
+        all_sb_answers = SidebetAnswer.objects.filter(sidebet=champ_sb)
+        total_champ_answers = all_sb_answers.count()
+        if total_champ_answers > 0:
+            champ_counts = Counter(a.answer.strip() for a in all_sb_answers if a.answer.strip())
+            if champ_counts:
+                top_team, top_cnt = champ_counts.most_common(1)[0]
+                champ_consensus_team = top_team
+                champ_consensus_pct = round((top_cnt / total_champ_answers) * 100)
 
     insights_summary = {
         'tot_goals': tot_goals,
@@ -751,11 +775,19 @@ def dashboard_view(request):
         'diff_vs_euro2020': diff_vs_euro2020,
         'historical_euro2020': 2.78,
         'historical_euro2024': 2.29,
-        'england_draw_pct': england_draw_pct,
-        'england_exit_stage': "Straffläggning i Kvartsfinalen",
+        'is_euro_tournament': 'euro' in (active_tournament.name or '').lower() if active_tournament else False,
+        'pct_decisive': pct_decisive,
+        'pct_draw': pct_draw,
+        'pct_home': pct_home,
+        'pct_away': pct_away,
+        'most_common_score': most_common_score,
+        'most_common_score_pct': most_common_score_pct,
+        'champ_consensus_team': champ_consensus_team,
+        'champ_consensus_pct': champ_consensus_pct,
         'highest_scoring_match': highest_scoring_match,
         'biggest_optimist': biggest_optimist,
         'biggest_pessimist': biggest_pessimist,
+        'goal_extreme_diff': goal_extreme_diff,
     }
 
     is_locked_by_time = active_tournament.is_locked_by_time if active_tournament else False

@@ -72,19 +72,19 @@ def generate_daily_gazette_edition(tournament: Tournament, publish_date=None, fo
 
     # Compute Day Summary Statistics
     from tournament.models import Match
-    day_matches = Match.objects.filter(date_time__date=publish_date, is_finished=True)
+    day_matches = Match.objects.filter(tournament=tournament, date_time__date=publish_date, is_finished=True)
     if not day_matches.exists():
-        day_matches = Match.objects.filter(is_finished=True)
+        day_matches = Match.objects.filter(tournament=tournament, is_finished=True)
 
-    matches_played_cnt = day_matches.count() or 4
-    total_goals_cnt = sum([(m.home_goals or 0) + (m.away_goals or 0) for m in day_matches]) or 11
-    total_pts = (matches_played_cnt * 21) or 84
+    matches_played_cnt = day_matches.count()
+    total_goals_cnt = sum([(m.home_goals or 0) + (m.away_goals or 0) for m in day_matches])
+    total_pts = matches_played_cnt * 21 if matches_played_cnt > 0 else 0
 
     top_match = day_matches.order_by('-home_goals', '-away_goals').first()
     if top_match and top_match.home_team and top_match.away_team:
         highest_scoring_match = f"{top_match.home_team} vs {top_match.away_team} ({top_match.home_goals}-{top_match.away_goals})"
     else:
-        highest_scoring_match = "Spanien vs Kroatien (3-0)"
+        highest_scoring_match = "Inga avslutade matcher ännu"
 
     day_summary = {
         "matches_played": matches_played_cnt,
@@ -124,6 +124,7 @@ def generate_daily_gazette_edition(tournament: Tournament, publish_date=None, fo
     gazette, created = DailyGazette.objects.update_or_create(
         tournament=tournament,
         publish_date=publish_date,
+        is_special_edition=False,
         defaults={
             'headline': headline,
             'tagline': tagline,
