@@ -18,6 +18,7 @@ from tournament.services.cache_service import (
     invalidate_tournament_cache
 )
 from tournament.editorial_engine.compiler import load_player_personas, find_persona_for_player
+from tournament.editorial_engine.static_generators import is_toarps_herrklubb_tournament
 
 
 @login_required(login_url='/')
@@ -849,6 +850,8 @@ def dashboard_view(request):
         'groups_data_json': json.dumps(groups_data),
         'group_matches_json': json.dumps(group_matches),
         'static_insights': get_or_set_static_insights_cached(active_tournament),
+        'is_toarp': is_toarps_herrklubb_tournament(active_tournament),
+        'is_toarp_pool': is_toarps_herrklubb_tournament(active_tournament),
     }
 
     # Build active tournaments summary for multi-tournament switcher modal (Batch query)

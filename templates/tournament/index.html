@@ -1852,7 +1852,7 @@
                                         <!-- HEADLINE IMAGE -->
                                         <div class="position-relative overflow-hidden" style="height: 200px; background: #0b1329;">
 
-                                            {% if gazette.is_special_edition and gazette.featured_players_json %}
+                                            {% if is_toarp and gazette.is_special_edition and gazette.featured_players_json %}
                                                 <!-- SPECIAL EDITION 3-AVATAR COMPOSITE BANNER -->
                                                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end justify-content-around px-3 py-2" style="background: radial-gradient(circle at center, rgba(139,92,246,0.25) 0%, rgba(11,19,41,0.95) 100%);">
                                                     {% for p in gazette.featured_players_json %}
@@ -1865,7 +1865,7 @@
                                                     {% endfor %}
                                                 </div>
 
-                                            {% elif gazette.content_format == 'WINNERS_LOSERS' and gazette.structured_data.rivalry_panel %}
+                                            {% elif is_toarp and gazette.content_format == 'WINNERS_LOSERS' and gazette.structured_data.rivalry_panel %}
                                                 {% with rp=gazette.structured_data.rivalry_panel %}
                                                 <!-- RIVALRY: two avatars touching, no gap, facing each other -->
                                                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end" style="gap: 0;">
@@ -1893,7 +1893,7 @@
                                                 </div>
                                                 {% endwith %}
 
-                                            {% elif gazette.structured_data.rivalry_panel and gazette.structured_data.rivalry_panel.primary.path %}
+                                            {% elif is_toarp and gazette.structured_data.rivalry_panel and gazette.structured_data.rivalry_panel.primary.path %}
                                                 <!-- SINGLE AVATAR: centered, full height -->
                                                 {% with rp=gazette.structured_data.rivalry_panel %}
                                                 <div class="position-absolute top-0 start-50 translate-middle-x h-100 d-flex align-items-end">
@@ -1903,10 +1903,10 @@
                                                 {% endwith %}
 
                                             {% elif gazette.image_url %}
-                                                <img src="{{ gazette.image_url }}" alt="{{ gazette.headline }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src='/static/tournament/img/gazette_placeholder.svg';">
+                                                <img src="{{ gazette.image_url }}" alt="{{ gazette.headline }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src='/static/tournament/img/gazette_default_cover.jpg';">
 
                                             {% else %}
-                                                <img src="/static/tournament/img/gazette_placeholder.svg" alt="{{ gazette.headline }}" class="w-100 h-100 object-fit-cover">
+                                                <img src="/static/tournament/img/gazette_default_cover.jpg" alt="{{ gazette.headline }}" class="w-100 h-100 object-fit-cover">
                                             {% endif %}
 
                                         </div>
@@ -1974,7 +1974,7 @@
                                     <div class="modal-body p-4 p-md-5">
                                         
                                         <!-- HEADLINE IMAGE -->
-                                        {% if gazette.content_format == 'WINNERS_LOSERS' and gazette.structured_data.rivalry_panel %}
+                                        {% if is_toarp and gazette.content_format == 'WINNERS_LOSERS' and gazette.structured_data.rivalry_panel %}
                                             {% with rp=gazette.structured_data.rivalry_panel %}
                                             <!-- RIVALRY: two avatars touching at center, no gap -->
                                             <div class="mb-4 rounded-4 overflow-hidden position-relative" style="height: 320px; background: #060d1f; border: 1px solid rgba(255,255,255,0.08);">
@@ -2004,7 +2004,7 @@
                                             </div>
                                             {% endwith %}
 
-                                        {% elif gazette.structured_data.rivalry_panel and gazette.structured_data.rivalry_panel.primary.path %}
+                                        {% elif is_toarp and gazette.structured_data.rivalry_panel and gazette.structured_data.rivalry_panel.primary.path %}
                                             <!-- SINGLE AVATAR: centered, full height -->
                                             {% with rp=gazette.structured_data.rivalry_panel %}
                                             <div class="mb-4 rounded-4 overflow-hidden position-relative d-flex align-items-end justify-content-center" style="height: 320px; background: #060d1f; border: 1px solid rgba(255,255,255,0.08);">
@@ -2015,7 +2015,11 @@
 
                                         {% elif gazette.image_url %}
                                             <div class="mb-4 rounded-4 overflow-hidden position-relative" style="height: 320px; background: #0b1329; border: 1px solid rgba(255,255,255,0.08);">
-                                                <img src="{{ gazette.image_url }}" alt="{{ gazette.headline }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src='/static/tournament/img/gazette_placeholder.svg';">
+                                                <img src="{{ gazette.image_url }}" alt="{{ gazette.headline }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src='/static/tournament/img/gazette_default_cover.jpg';">
+                                            </div>
+                                        {% else %}
+                                            <div class="mb-4 rounded-4 overflow-hidden position-relative" style="height: 320px; background: #0b1329; border: 1px solid rgba(255,255,255,0.08);">
+                                                <img src="/static/tournament/img/gazette_default_cover.jpg" alt="{{ gazette.headline }}" class="w-100 h-100 object-fit-cover">
                                             </div>
                                         {% endif %}
 

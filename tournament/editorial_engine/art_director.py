@@ -69,7 +69,7 @@ class ArtDirector:
             image_url = primary_path
         else:
             visual_mode = 'ART_BANNER'
-            image_url = "/static/tournament/img/gazette_placeholder.svg"
+            image_url = "/static/tournament/img/gazette_default_cover.jpg"
 
         return {
             'visual_mode': visual_mode,

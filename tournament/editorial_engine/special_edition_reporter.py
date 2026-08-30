@@ -668,6 +668,7 @@ class SpecialEditionReporter:
                 'headline_worst_performers': lone_wolves_body,
                 'analysis_outlook': character_body,
                 'structured_data': structured_data,
+                'image_url': '/static/tournament/img/gazette_default_cover.jpg',
                 'tone_used': 'Orakel & Spelteori',
             }
         )
@@ -976,6 +977,7 @@ class SpecialEditionReporter:
                 'headline_worst_performers': sec3_body,
                 'analysis_outlook': sec4_body,
                 'structured_data': structured_data,
+                'image_url': '/static/tournament/img/gazette_default_cover.jpg',
                 'tone_used': 'Magasin & Taktisk Analys',
             }
         )
