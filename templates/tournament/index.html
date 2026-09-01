@@ -802,7 +802,7 @@
                                                             <th colspan="6" class="py-2.5 px-2 text-center text-info fw-bold border-end border-secondary border-opacity-30" style="background: rgba(59, 130, 246, 0.25) !important; color: #60a5fa !important;">
                                                                 TIPPAD TABELL
                                                             </th>
-                                                            <th colspan="5" class="py-2.5 px-2 text-center text-slate-300 fw-bold" style="background: rgba(148, 163, 184, 0.20) !important; color: #cbd5e1 !important;">
+                                                            <th colspan="5" class="py-2.5 px-2 text-center text-warning fw-bold" style="background: rgba(245, 158, 11, 0.18) !important; color: #fbbf24 !important;">
                                                                 POÄNG
                                                             </th>
                                                         </tr>
@@ -825,11 +825,11 @@
                                                             <th class="py-2 px-2 text-center text-info fw-bold border-end border-secondary border-opacity-30" style="width: 35px; background: rgba(59, 130, 246, 0.18) !important;">P</th>
 
                                                             <!-- Right: Points Awarded (# GM IM P POÄNG) -->
-                                                            <th class="py-2 px-1 text-center text-secondary" style="width: 35px; background: rgba(148, 163, 184, 0.12) !important;" title="Tips poäng: Rätt placering (#)">#</th>
-                                                            <th class="py-2 px-1 text-center text-secondary" style="width: 30px; background: rgba(148, 163, 184, 0.12) !important;" title="Tips poäng: Rätt gjorda mål (GM)">GM</th>
-                                                            <th class="py-2 px-1 text-center text-secondary" style="width: 30px; background: rgba(148, 163, 184, 0.12) !important;" title="Tips poäng: Rätt insläppta mål (IM)">IM</th>
-                                                            <th class="py-2 px-1 text-center text-secondary" style="width: 35px; background: rgba(148, 163, 184, 0.12) !important;" title="Tips poäng: Rätt lagpoäng (P)">P</th>
-                                                            <th class="py-2 px-2 text-center text-slate-200 fw-bold" style="width: 70px; background: rgba(148, 163, 184, 0.16) !important; color: #e2e8f0;">POÄNG</th>
+                                                            <th class="py-2 px-1 text-center text-secondary" style="width: 35px; background: rgba(245, 158, 11, 0.08) !important;" title="Tips poäng: Rätt placering (#)">#</th>
+                                                            <th class="py-2 px-1 text-center text-secondary" style="width: 30px; background: rgba(245, 158, 11, 0.08) !important;" title="Tips poäng: Rätt gjorda mål (GM)">GM</th>
+                                                            <th class="py-2 px-1 text-center text-secondary" style="width: 30px; background: rgba(245, 158, 11, 0.08) !important;" title="Tips poäng: Rätt insläppta mål (IM)">IM</th>
+                                                            <th class="py-2 px-1 text-center text-secondary" style="width: 35px; background: rgba(245, 158, 11, 0.08) !important;" title="Tips poäng: Rätt lagpoäng (P)">P</th>
+                                                            <th class="py-2 px-2 text-center text-warning fw-bold" style="width: 70px; background: rgba(245, 158, 11, 0.12) !important; color: #fbbf24;">POÄNG</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -852,8 +852,10 @@
                                                             <td class="py-2 px-2 text-center font-monospace fw-semibold align-middle {% if row.gd > 0 %}text-success{% elif row.gd < 0 %}text-danger{% else %}text-secondary{% endif %}" style="background: rgba(16, 185, 129, 0.08) !important;">
                                                                 {% if row.gd > 0 %}+{% endif %}{{ row.gd }}
                                                             </td>
-                                                            <td class="py-2 px-2 text-center fw-extrabold text-emerald align-middle border-end border-secondary border-opacity-30" style="background: rgba(16, 185, 129, 0.14) !important;">
-                                                                {{ row.points }}
+                                                            <td class="py-2 px-2 text-center align-middle border-end border-secondary border-opacity-30" style="background: rgba(16, 185, 129, 0.14) !important;">
+                                                                <span class="badge py-1 px-2 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 28px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(6, 78, 59, 0.35)); border: 1px solid rgba(16, 185, 129, 0.45); color: #34d399; font-size: 0.78rem;">
+                                                                    {{ row.points }}
+                                                                </span>
                                                             </td>
 
                                                             <!-- Middle: Prediction Result -->
@@ -875,47 +877,49 @@
                                                             <td class="py-2 px-2 text-center font-monospace align-middle text-secondary" style="background: rgba(59, 130, 246, 0.08) !important;">
                                                                 {% if row.pred_row_gd > 0 %}+{% endif %}{{ row.pred_row_gd }}
                                                             </td>
-                                                            <td class="py-2 px-2 text-center fw-extrabold text-info align-middle border-end border-secondary border-opacity-30" style="background: rgba(59, 130, 246, 0.14) !important;">
-                                                                {{ row.pred_row_points }}
+                                                            <td class="py-2 px-2 text-center align-middle border-end border-secondary border-opacity-30" style="background: rgba(59, 130, 246, 0.14) !important;">
+                                                                <span class="badge py-1 px-2 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 28px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(30, 58, 138, 0.35)); border: 1px solid rgba(59, 130, 246, 0.45); color: #60a5fa; font-size: 0.78rem;">
+                                                                    {{ row.pred_row_points }}
+                                                                </span>
                                                             </td>
 
                                                             <!-- Right: Point Awarded Per Claim (# GM IM P POÄNG) -->
-                                                            <td class="py-2 px-1 text-center align-middle font-monospace" style="background: rgba(148, 163, 184, 0.06) !important;">
+                                                            <td class="py-2 px-1 text-center align-middle font-monospace" style="background: rgba(245, 158, 11, 0.03) !important;">
                                                                 {% if row.is_group_finished %}
                                                                     {% if row.pts_plac > 0 %}
-                                                                        <span class="fw-black text-slate-200" style="color: #e2e8f0 !important; font-weight: 900;">+{{ row.pts_plac }}</span>
-                                                                    {% else %}<span class="text-secondary opacity-40">0</span>{% endif %}
-                                                                {% else %}<span class="text-secondary opacity-30">-</span>{% endif %}
+                                                                        <span class="fw-black text-warning" style="color: #FBBF24 !important; font-weight: 900; text-shadow: 0 0 6px rgba(245, 158, 11, 0.5); font-size: 0.8rem;">+{{ row.pts_plac }}</span>
+                                                                    {% else %}<span class="text-secondary opacity-40" style="font-size: 0.72rem;">0</span>{% endif %}
+                                                                {% else %}<span class="text-secondary opacity-30" style="font-size: 0.72rem;">-</span>{% endif %}
                                                             </td>
-                                                            <td class="py-2 px-1 text-center align-middle font-monospace" style="background: rgba(148, 163, 184, 0.06) !important;">
+                                                            <td class="py-2 px-1 text-center align-middle font-monospace" style="background: rgba(245, 158, 11, 0.03) !important;">
                                                                 {% if row.is_group_finished %}
                                                                     {% if row.pts_gm > 0 %}
-                                                                        <span class="fw-black text-slate-200" style="color: #e2e8f0 !important; font-weight: 900;">+{{ row.pts_gm }}</span>
-                                                                    {% else %}<span class="text-secondary opacity-40">0</span>{% endif %}
-                                                                {% else %}<span class="text-secondary opacity-30">-</span>{% endif %}
+                                                                        <span class="fw-black text-warning" style="color: #FBBF24 !important; font-weight: 900; text-shadow: 0 0 6px rgba(245, 158, 11, 0.5); font-size: 0.8rem;">+{{ row.pts_gm }}</span>
+                                                                    {% else %}<span class="text-secondary opacity-40" style="font-size: 0.72rem;">0</span>{% endif %}
+                                                                {% else %}<span class="text-secondary opacity-30" style="font-size: 0.72rem;">-</span>{% endif %}
                                                             </td>
-                                                            <td class="py-2 px-1 text-center align-middle font-monospace" style="background: rgba(148, 163, 184, 0.06) !important;">
+                                                            <td class="py-2 px-1 text-center align-middle font-monospace" style="background: rgba(245, 158, 11, 0.03) !important;">
                                                                 {% if row.is_group_finished %}
                                                                     {% if row.pts_im > 0 %}
-                                                                        <span class="fw-black text-slate-200" style="color: #e2e8f0 !important; font-weight: 900;">+{{ row.pts_im }}</span>
-                                                                    {% else %}<span class="text-secondary opacity-40">0</span>{% endif %}
-                                                                {% else %}<span class="text-secondary opacity-30">-</span>{% endif %}
+                                                                        <span class="fw-black text-warning" style="color: #FBBF24 !important; font-weight: 900; text-shadow: 0 0 6px rgba(245, 158, 11, 0.5); font-size: 0.8rem;">+{{ row.pts_im }}</span>
+                                                                    {% else %}<span class="text-secondary opacity-40" style="font-size: 0.72rem;">0</span>{% endif %}
+                                                                {% else %}<span class="text-secondary opacity-30" style="font-size: 0.72rem;">-</span>{% endif %}
                                                             </td>
-                                                            <td class="py-2 px-1 text-center align-middle font-monospace" style="background: rgba(148, 163, 184, 0.06) !important;">
+                                                            <td class="py-2 px-1 text-center align-middle font-monospace" style="background: rgba(245, 158, 11, 0.03) !important;">
                                                                 {% if row.is_group_finished %}
-                                                                    {% if row.pts_p > 0 %}
-                                                                        <span class="fw-black text-slate-200" style="color: #e2e8f0 !important; font-weight: 900;">+{{ row.pts_p }}</span>
-                                                                    {% else %}<span class="text-secondary opacity-40">0</span>{% endif %}
-                                                                {% else %}<span class="text-secondary opacity-30">-</span>{% endif %}
+                                                                    {% if row.pts_lagp > 0 %}
+                                                                        <span class="fw-black text-warning" style="color: #FBBF24 !important; font-weight: 900; text-shadow: 0 0 6px rgba(245, 158, 11, 0.5); font-size: 0.8rem;">+{{ row.pts_lagp }}</span>
+                                                                    {% else %}<span class="text-secondary opacity-40" style="font-size: 0.72rem;">0</span>{% endif %}
+                                                                {% else %}<span class="text-secondary opacity-30" style="font-size: 0.72rem;">-</span>{% endif %}
                                                             </td>
-                                                            <td class="py-2 px-2 text-center align-middle" style="background: rgba(148, 163, 184, 0.10) !important;">
+                                                            <td class="py-2 px-2 text-center align-middle" style="background: rgba(245, 158, 11, 0.03) !important;">
                                                                 {% if row.is_group_finished %}
-                                                                    {% if row.pts_tot > 0 %}
-                                                                        <span class="badge px-3 py-1.5 fw-black shadow-sm d-inline-flex align-items-center justify-content-center" style="min-width: 68px; background: rgba(148, 163, 184, 0.3); border: 1px solid rgba(148, 163, 184, 0.6); color: #f1f5f9; font-size: 0.85rem; font-weight: 900; letter-spacing: 0.5px;">
-                                                                            +{{ row.pts_tot }} p
+                                                                    {% if row.tot_row_pts > 0 %}
+                                                                        <span class="badge px-3 py-1.5 fw-black shadow-sm position-relative overflow-visible d-inline-flex align-items-center justify-content-center" style="min-width: 68px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(180, 83, 9, 0.6)); border: 1.5px solid rgba(245, 158, 11, 0.85); color: #FBBF24; font-size: 0.85rem; font-weight: 900; text-shadow: 0 0 10px rgba(245, 158, 11, 0.7); letter-spacing: 0.5px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);">
+                                                                            +{{ row.tot_row_pts }} p
                                                                         </span>
                                                                     {% else %}
-                                                                        <span class="badge px-3 py-1.5 text-secondary fw-semibold d-inline-flex align-items-center justify-content-center" style="min-width: 68px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); color: #6B7280; opacity: 0.5; font-size: 0.78rem;">
+                                                                        <span class="badge px-3 py-1.5 text-secondary fw-semibold d-inline-flex align-items-center justify-content-center" style="min-width: 68px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); color: #6B7280; opacity: 0.5; font-size: 0.78rem; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);">
                                                                             0 p
                                                                         </span>
                                                                     {% endif %}
@@ -972,7 +976,7 @@
                                                 <th colspan="7" class="py-2.5 px-2 text-center text-info fw-bold border-end border-secondary border-opacity-30" style="background: rgba(59, 130, 246, 0.25) !important; color: #60a5fa !important;">
                                                     {% if is_qualifying %}TIPPADE GRUPPTVÅOR{% else %}TIPPAD TABELL{% endif %}
                                                 </th>
-                                                <th colspan="1" class="py-2.5 px-2 text-center text-slate-300 fw-bold" style="background: rgba(148, 163, 184, 0.20) !important; color: #cbd5e1 !important;">
+                                                <th colspan="1" class="py-2.5 px-2 text-center text-warning fw-bold" style="background: rgba(245, 158, 11, 0.18) !important; color: #fbbf24 !important;">
                                                     POÄNG
                                                 </th>
                                             </tr>
@@ -997,8 +1001,8 @@
                                                 <th class="py-2 px-2 text-center text-secondary" style="width: 35px; background: rgba(59, 130, 246, 0.16) !important;" title="Tippad målskillnad">+/-</th>
                                                 <th class="py-2 px-2 text-center text-info fw-bold border-end border-secondary border-opacity-30" style="width: 35px; background: rgba(59, 130, 246, 0.22) !important;">P</th>
 
-                                                <!-- Right: Points Awarded (Slate/Grey Tint) -->
-                                                <th class="py-2 px-2 text-center text-slate-200 fw-bold" style="width: 70px; background: rgba(148, 163, 184, 0.16) !important; color: #e2e8f0;">POÄNG</th>
+                                                <!-- Right: Points Awarded -->
+                                                <th class="py-2 px-2 text-center text-warning fw-bold" style="width: 70px; background: rgba(245, 158, 11, 0.12) !important; color: #fbbf24;">POÄNG</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1027,8 +1031,12 @@
                                                 <td class="py-2 px-2 text-center font-monospace fw-semibold align-middle {% if item.act and item.act.gd > 0 %}text-success{% elif item.act and item.act.gd < 0 %}text-danger{% else %}text-secondary{% endif %}" style="{% if item.act and item.act.is_qualified %}background: rgba(16, 185, 129, 0.08) !important;{% else %}background: rgba(15, 23, 42, 0.75) !important; opacity: 0.45;{% endif %}">
                                                     {% if item.act %}{% if item.act.gd > 0 %}+{% endif %}{{ item.act.gd }}{% else %}-{% endif %}
                                                 </td>
-                                                <td class="py-2 px-2 text-center fw-extrabold text-emerald align-middle border-end border-secondary border-opacity-30" style="{% if item.act and item.act.is_qualified %}background: rgba(16, 185, 129, 0.14) !important;{% else %}background: rgba(15, 23, 42, 0.75) !important; opacity: 0.45;{% endif %}">
-                                                    {% if item.act %}{{ item.act.points }}{% else %}-{% endif %}
+                                                <td class="py-2 px-2 text-center align-middle border-end border-secondary border-opacity-30" style="{% if item.act and item.act.is_qualified %}background: rgba(16, 185, 129, 0.14) !important;{% else %}background: rgba(15, 23, 42, 0.75) !important; opacity: 0.45;{% endif %}">
+                                                    {% if item.act %}
+                                                        <span class="badge py-1 px-2 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 28px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(6, 78, 59, 0.35)); border: 1px solid rgba(16, 185, 129, 0.45); color: #34d399; font-size: 0.78rem;">
+                                                            {{ item.act.points }}
+                                                        </span>
+                                                    {% else %}-{% endif %}
                                                 </td>
 
                                                 <!-- Middle: Predicted 3rd Place Team (Greyshed / Opacity reduced if not qualified) -->
@@ -1053,19 +1061,23 @@
                                                 <td class="py-2 px-2 text-center font-monospace align-middle text-secondary" style="{% if item.pred and item.pred.is_qualified %}background: rgba(59, 130, 246, 0.08) !important;{% else %}background: rgba(15, 23, 42, 0.75) !important; opacity: 0.45;{% endif %}">
                                                     {% if item.pred %}{% if item.pred.gd > 0 %}+{% endif %}{{ item.pred.gd }}{% else %}-{% endif %}
                                                 </td>
-                                                <td class="py-2 px-2 text-center fw-extrabold text-info align-middle border-end border-secondary border-opacity-30" style="{% if item.pred and item.pred.is_qualified %}background: rgba(59, 130, 246, 0.14) !important;{% else %}background: rgba(15, 23, 42, 0.75) !important; opacity: 0.45;{% endif %}">
-                                                    {% if item.pred %}{{ item.pred.points }}{% else %}-{% endif %}
+                                                <td class="py-2 px-2 text-center align-middle border-end border-secondary border-opacity-30" style="{% if item.pred and item.pred.is_qualified %}background: rgba(59, 130, 246, 0.14) !important;{% else %}background: rgba(15, 23, 42, 0.75) !important; opacity: 0.45;{% endif %}">
+                                                    {% if item.pred %}
+                                                        <span class="badge py-1 px-2 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 28px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(30, 58, 138, 0.35)); border: 1px solid rgba(59, 130, 246, 0.45); color: #60a5fa; font-size: 0.78rem;">
+                                                            {{ item.pred.points }}
+                                                        </span>
+                                                    {% else %}-{% endif %}
                                                 </td>
 
                                                 <!-- Right: Point Awarded for Qualifying Best Third -->
-                                                <td class="py-2 px-2 text-center align-middle" style="background: rgba(148, 163, 184, 0.10) !important;">
+                                                <td class="py-2 px-2 text-center align-middle" style="background: rgba(245, 158, 11, 0.03) !important;">
                                                     {% if item.is_all_groups_finished %}
                                                         {% if item.qual_pts > 0 %}
-                                                            <span class="badge px-3 py-1.5 fw-black shadow-sm d-inline-flex align-items-center justify-content-center" style="min-width: 68px; background: rgba(148, 163, 184, 0.3); border: 1px solid rgba(148, 163, 184, 0.6); color: #f1f5f9; font-size: 0.78rem; font-weight: 900;" title="Rätt tippat avancemang som bästa trea!">
+                                                            <span class="badge px-3 py-1.5 fw-black shadow-sm position-relative overflow-visible d-inline-flex align-items-center justify-content-center" style="min-width: 68px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(180, 83, 9, 0.6)); border: 1.5px solid rgba(245, 158, 11, 0.85); color: #FBBF24; font-size: 0.85rem; font-weight: 900; text-shadow: 0 0 10px rgba(245, 158, 11, 0.7); letter-spacing: 0.5px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);" title="Rätt tippat avancemang som bästa trea!">
                                                                 +{{ item.qual_pts }} p
                                                             </span>
                                                         {% else %}
-                                                            <span class="badge px-3 py-1.5 text-secondary fw-semibold d-inline-flex align-items-center justify-content-center" style="min-width: 68px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); color: #6B7280; opacity: 0.5; font-size: 0.72rem;">
+                                                            <span class="badge px-3 py-1.5 text-secondary fw-semibold d-inline-flex align-items-center justify-content-center" style="min-width: 68px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); color: #6B7280; opacity: 0.5; font-size: 0.78rem; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);">
                                                                 0 p
                                                             </span>
                                                         {% endif %}
@@ -1229,8 +1241,8 @@
 
                                                         <!-- 3. STATUS EMOJI (NO HEADER) -->
                                                         <td class="py-2 px-1 text-center align-middle" style="width: 28px;">
-                                                            {% if not m_item.is_all_groups_finished %}
-                                                                <span class="text-secondary opacity-30 small" title="Korrekt match bestäms när alla gruppspelsmatcher är färdigspelade.">-</span>
+                                                            {% if not m_item.is_matchup_defined %}
+                                                                <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" title="Ej fastställd match (väntar på tidigare omgångar)">🔵</span>
                                                             {% elif m_item.both_teams_correct %}
                                                                 <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" title="Korrekt fixture! Matchar ditt träd.">✅</span>
                                                             {% else %}
@@ -1238,23 +1250,33 @@
                                                             {% endif %}
                                                         </td>
 
-                                                        <!-- 4. KORREKT MATCH (ACTUAL FIXTURE WHEN INCORRECT AND GROUPS FINISHED) -->
+                                                        <!-- 4. KORREKT MATCH (ACTUAL FIXTURE BUILD-UP) -->
                                                         <td class="py-2 px-2 align-middle" style="width: 210px;">
-                                                            {% if m_item.is_all_groups_finished and not m_item.both_teams_correct and home and away and home.name != '-' and away.name != '-' %}
+                                                            {% if not m_item.both_teams_correct and home and away and home.name != '-' and away.name != '-' %}
                                                                 <div class="d-grid align-items-center" style="grid-template-columns: 80px 18px 12px 18px 80px; gap: 0.15rem;">
-                                                                    <span class="text-nowrap text-truncate text-end fw-semibold text-slate-200" title="{{ home.name }}">{{ home.name }}</span>
-                                                                    <div class="d-flex align-items-center justify-content-center">
-                                                                        {% if home.flag_url %}
+                                                                    <!-- Home Team / Placeholder -->
+                                                                    {% if home.flag_url %}
+                                                                        <span class="text-nowrap text-truncate text-end fw-semibold text-slate-200" title="{{ home.name }}">{{ home.name }}</span>
+                                                                        <div class="d-flex align-items-center justify-content-center">
                                                                             <img src="{{ home.flag_url }}" alt="{{ home.name }}" width="16" height="11" style="border-radius: 2px; object-fit: cover;" class="shadow-sm">
-                                                                        {% endif %}
-                                                                    </div>
+                                                                        </div>
+                                                                    {% else %}
+                                                                        <span class="text-nowrap text-truncate text-end text-secondary opacity-50 small font-monospace" title="{{ home.name }}">{{ home.name }}</span>
+                                                                        <div></div>
+                                                                    {% endif %}
+
                                                                     <span class="text-secondary opacity-40 text-center fw-bold small">-</span>
-                                                                    <div class="d-flex align-items-center justify-content-center">
-                                                                        {% if away.flag_url %}
+
+                                                                    <!-- Away Team / Placeholder -->
+                                                                    {% if away.flag_url %}
+                                                                        <div class="d-flex align-items-center justify-content-center">
                                                                             <img src="{{ away.flag_url }}" alt="{{ away.name }}" width="16" height="11" style="border-radius: 2px; object-fit: cover;" class="shadow-sm">
-                                                                        {% endif %}
-                                                                    </div>
-                                                                    <span class="text-nowrap text-truncate text-start fw-semibold text-slate-200" title="{{ away.name }}">{{ away.name }}</span>
+                                                                        </div>
+                                                                        <span class="text-nowrap text-truncate text-start fw-semibold text-slate-200" title="{{ away.name }}">{{ away.name }}</span>
+                                                                    {% else %}
+                                                                        <div></div>
+                                                                        <span class="text-nowrap text-truncate text-start text-secondary opacity-50 small font-monospace" title="{{ away.name }}">{{ away.name }}</span>
+                                                                    {% endif %}
                                                                 </div>
                                                             {% else %}
                                                                 <div class="text-center text-secondary opacity-30 small">-</div>
@@ -1331,14 +1353,17 @@
                                                         </td>
 
                                                         <!-- 12. POÄNG -->
-                                                        <td class="py-2 px-2 text-center align-middle" style="background: rgba(245, 158, 11, 0.03);">
+                                                        <td class="py-2 px-2 text-center align-middle" style="background: rgba(245, 158, 11, 0.03); overflow: visible;">
                                                             {% if m_item.is_m_finished %}
                                                                 {% if m_item.total_row_pts > 0 %}
-                                                                    <span class="badge px-3 py-1.5 fw-black shadow-sm" style="min-width: 62px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(180, 83, 9, 0.6)); border: 1.5px solid rgba(245, 158, 11, 0.85); color: #FBBF24; font-size: 0.85rem; font-weight: 900;">
-                                                                        +{{ m_item.total_row_pts }} p
+                                                                    <span class="badge px-3 py-1.5 fw-black shadow-sm position-relative overflow-visible d-inline-flex align-items-center justify-content-center" style="min-width: 62px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(180, 83, 9, 0.6)); border: 1.5px solid rgba(245, 158, 11, 0.85); color: #FBBF24; font-size: 0.85rem; font-weight: 900; text-shadow: 0 0 10px rgba(245, 158, 11, 0.7); letter-spacing: 0.5px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);" title="{% if detail.exact_score or detail.total >= 10 %}FULL POÄNG! Exakt resultat!⭐{% else %}Intjänade tipspoäng{% endif %}">
+                                                                        {% if detail.exact_score or detail.total >= 10 %}
+                                                                            <i class="fa-solid fa-star star-pop-10p"></i>
+                                                                        {% endif %}
+                                                                        <span>+{{ m_item.total_row_pts }} p</span>
                                                                     </span>
                                                                 {% else %}
-                                                                    <span class="badge px-3 py-1.5 text-secondary fw-semibold" style="min-width: 62px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); color: #6B7280; opacity: 0.5; font-size: 0.78rem;">
+                                                                    <span class="badge px-3 py-1.5 text-secondary fw-semibold d-inline-flex align-items-center justify-content-center" style="min-width: 62px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); color: #6B7280; opacity: 0.5; font-size: 0.78rem; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);">
                                                                         0 p
                                                                     </span>
                                                                 {% endif %}
