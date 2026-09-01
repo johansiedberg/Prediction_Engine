@@ -21,95 +21,174 @@ import os
 
 POSTURE_ARCS = {
     "BUILD_UP": ["Analyst", "Clutch", "Rival-left", "Rival-right"],
-    "FRUSTRATION": ["Badbeat", "Shame", "Facepalm", "Italian", "Referee", "Protest", "What"],
-    "VICTORY": ["LastManStanding", "ComebackKing", "Fist", "Roar", "Chest", "Superman", "Jersey"],
-    "SIGNATURE_CELEBRATION": ["Zen", "Bane", "Siuuu", "Messi", "Sharpshooter", "Knee", "Silence", "Heart", "Hear"]
+    "FRUSTRATION": ["Badbeat", "Shame", "Facepalm", "What", "Me"],
+    "VICTORY": ["Fist", "Roar", "Chest", "Jersey", "Knee"],
+    "SIGNATURE_CELEBRATION": ["Zen", "Bane", "Siuuu", "Messi", "Sharpshooter", "Silence", "Heart", "Hear"]
 }
 
-# Context tag -> posture trigger rules (checked top to bottom)
+# Context tag -> posture trigger rules (checked top to bottom in priority order)
 CONTEXT_TAG_RULES = [
-    ('IS_TOURNAMENT_LEADER',  'Bane'),                  # Overall leader
+    # Tier 1: Exceptional round achievements & heroic predictions
+    ('OUTLIER_VICTORY',       'Siuuu'),                 # Single hero win / Ensamvarg
+    ('THREE_FULLPOTTS',       'Roar'),                  # Multiple exact fullpotts in round
+    ('CORRECT_EXACT_SCORE',   'Sharpshooter'),          # Exact score sniper
+    ('TOP_SCORER',            'Sharpshooter'),          # Top score of round
+    ('EXPLOSIVE_JOY',         'Fist'),                  # Overhead punch celebration
+    ('TRIUMPHANT_ROAR',       'Roar'),                  # Triumphant roar
+    ('COMEBACK_VICTORY',      'Knee'),                  # Comeback knee slide
+    ('BIG_MOVER_UP',          'Knee'),                  # Rocket climb up the table
+    ('LONE_SURVIVOR',         'Chest'),                 # Lone survivor / chest pound
+    ('CHEST_POUND',           'Chest'),                 # Chest pounding pride
+    ('JERSEY_PULL',           'Jersey'),                # Club loyalty / shirt pull
+
+    # Tier 2: Agony, disaster, shock & blame deflection
+    ('FAILED_BANKER',         'Badbeat'),               # Spikkrasch / failed banker
+    ('PREDICTION_AGED_POORLY','Badbeat'),               # Prediction collapsed late
+    ('QUESTIONING_LOSS',      'What'),                  # Unbelievable defeat / shock upset
+    ('CONTROVERSIAL_DECISION','What'),                  # Disputed call / disbelief
+    ('REFEREE_PROTEST',       'What'),                  # Shocked protest
+    ('ANIMATED_PROTEST',      'What'),                  # Frustrated disbelief
+    ('EMBARRASSING_MISTAKE',  'Facepalm'),              # Obvious blunder / zero points
+    ('BLUNDER',               'Facepalm'),              # Costly misjudgment
+    ('SCAPEGOATED',           'Me'),                    # "Who, me?!" — blamed / comical denial
+    ('BOTTOM_RANK',           'Me'),                    # Bottom rank / last place defense
+    ('DEVASTATING_LOSS',      'Shame'),                 # Kneeling in shame
+    ('BIG_MOVER_DOWN',        'Shame'),                 # Rapid fall down table
+    ('ELIMINATION',           'Shame'),                 # Knocked out of contention
+
+    # Tier 3: Dominance, composure, swagger & signature poses
+    ('IS_TOURNAMENT_LEADER',  'Bane'),                  # Overall leader swagger
+    ('RUNAWAY_LEAD',          'Bane'),                  # Massive lead / boss posture
     ('IS_STANDINGS_TOP3',     'Zen'),                   # Top 3 calm composure
-    ('CORRECT_EXACT_SCORE',   'Sharpshooter'),          # Exact score hit
-    ('OUTLIER_VICTORY',       'Siuuu'),                 # Single hero win
-    ('DOUBTED_BUT_WON',       'Silence'),               # Silence the doubters
-    ('CROWD_PLEASER',         'Heart'),                 # Crowd favorite
+    ('DOUBTED_BUT_WON',       'Silence'),               # Shushing doubters
     ('SPIRITUAL_WINNER',      'Messi'),                 # Graceful top scorer
+    ('CROWD_PLEASER',         'Heart'),                 # Fan favorite / making heart
+    ('HEAR_THE_NOISE',        'Hear'),                  # Hand to ear / listening to chatter
+
+    # Tier 4: Pre-match & build-up
     ('PRE_MATCH_NERVOUS',     'Clutch'),                # High-stakes nervous
     ('PRE_MATCH',             'Analyst'),               # Pre-match thinking
-    ('CONTROVERSIAL_DECISION','Italian'),               # Italian gesture of frustration
-    ('REFEREE_PROTEST',       'Referee'),               # Referee protest
-    ('ANIMATED_PROTEST',      'Protest'),               # Animated protest
-    ('QUESTIONING_LOSS',      'What'),                  # Unbelievable defeat
-    ('LONE_SURVIVOR',         'LastManStanding'),       # Last man standing
-    ('COMEBACK_VICTORY',      'ComebackKing'),          # Comeback victory
-    ('EXPLOSIVE_JOY',         'Fist'),                  # Overhead punch
-    ('TRIUMPHANT_ROAR',       'Roar'),                  # Triumphant roar
-    ('CHEST_POUND',           'Chest'),                 # Chest pounding pride
-    ('RUNAWAY_LEAD',          'Superman'),              # Airplane run celebration
-    ('JERSEY_PULL',           'Jersey'),                # Jersey pull celebration
-    ('DEVASTATING_LOSS',      'Shame'),                 # Kneeling in shame
-    ('EMBARRASSING_MISTAKE',  'Facepalm'),              # Facepalm embarrassment
 ]
 
 # Event type -> posture fallback
 EVENT_TYPE_RULES = {
+    'OUTLIER_VICTORY':        'Siuuu',
+    'THREE_FULLPOTTS':        'Roar',
+    'GOAL_FEST':              'Roar',
     'FAILED_BANKER':          'Badbeat',
     'PREDICTION_AGED_POORLY': 'Badbeat',
     'ELIMINATION':            'Shame',
-    'OUTLIER_VICTORY':        'Siuuu',
-    'THREE_FULLPOTTS':        'Roar',
     'BIG_MOVER_UP':           'Knee',
     'BIG_MOVER_DOWN':         'Badbeat',
     'GENERAL_DRAMA':          'Hear',
+    'BLUNDER':                'Facepalm',
+    'DISBELIEF':              'What',
+    'SCAPEGOAT':              'Me',
     'DEFAULT':                'Analyst',
 }
 
 RIVAL_POSTURE = 'Rival-left'
 
-MEDIA_EXPRESSION_DIR = os.path.join(
+EXPRESSION_STATIC_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-    'media', 'avatars', 'Expression'
+    'tournament', 'static', 'tournament', 'images', 'avatars', 'Expressions'
 )
-
-MEDIA_URL_PREFIX = '/media/avatars/Expression'
+# Legacy aliases kept for ArtDirector._path_exists_on_disk compatibility
+MEDIA_EXPRESSION_DIR = EXPRESSION_STATIC_DIR
+MEDIA_URL_PREFIX = '/static/tournament/images/avatars/Expressions'
 EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG']
+
+
+# ---------------------------------------------------------------------------
+# Portrait URL Resolution (real member photos from static)
+# ---------------------------------------------------------------------------
+
+# Base directory of actual member portrait photos
+PORTRAIT_STATIC_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+    'tournament', 'static', 'tournament', 'images', 'avatars'
+)
+PORTRAIT_URL_PREFIX = '/static/tournament/images/avatars'
+
+
+def resolve_portrait_url(full_name: str, avatar_filename: str = None) -> str:
+    """
+    Resolves the static portrait URL for a Toarps Herrklubb player.
+
+    Looks inside `tournament/static/tournament/images/avatars/` for a photo
+    matching `avatar_filename` from player_personas.json (e.g. 'Johan Siedberg.jpg').
+    Falls back to searching by first/last name if the filename hint isn't found.
+
+    Returns a /static/... URL on success, or an empty string if not found.
+    """
+    # Primary: try avatar_filename from persona definition
+    if avatar_filename:
+        for ext in EXTENSIONS:
+            base = avatar_filename.rsplit('.', 1)[0] if '.' in avatar_filename else avatar_filename
+            for suffix in [avatar_filename, f"{base}{ext}"]:
+                candidate = os.path.join(PORTRAIT_STATIC_DIR, suffix)
+                if os.path.isfile(candidate):
+                    return f"{PORTRAIT_URL_PREFIX}/{suffix}"
+
+    # Secondary: try full_name directly with various extensions
+    if full_name:
+        for ext in EXTENSIONS:
+            filename = f"{full_name}{ext}"
+            candidate = os.path.join(PORTRAIT_STATIC_DIR, filename)
+            if os.path.isfile(candidate):
+                return f"{PORTRAIT_URL_PREFIX}/{filename}"
+
+    return ''
+
 
 
 def resolve_posture_path(initials: str, posture_name: str) -> str:
     """
-    Resolves URL path for avatar initials and posture name.
-    Tries physical file resolution; if not found, returns standard URL path
-    so that browser renders broken image icon as requested.
+    Resolves the static URL for an expression pose image.
+
+    Tries many filename variants to cover the quirks present in the
+    Expressions folder (double underscore, case variants, Rivel typos,
+    double-dot extension, capitalisation of Rival-Right, etc.).
+    Returns the URL on success; returns a guessed URL (which will render
+    as a broken image) if no file is found.
     """
     if not initials or not posture_name:
         return f"{MEDIA_URL_PREFIX}/placeholder.jpg"
 
-    clean_posture = posture_name.replace('The-', '').replace('The ', '')
+    # Build a rich candidate list covering every known quirk in the folder
+    p = posture_name
+    p_lower = p.lower()
+    p_upper_first = p[0].upper() + p[1:] if p else p
 
     candidates = [
-        f"{initials}_{posture_name}",
-        f"{initials}_{clean_posture}",
-        f"{initials}_{posture_name.lower()}",
-        f"{initials}-{posture_name}",
-        f"{initials}__{posture_name}",
+        f"{initials}_{p}",            # Standard: MK_Roar
+        f"{initials}__{p}",           # Double underscore: MK__Analyst
+        f"{initials}_{p_lower}",      # Lowercase: TK_chest
+        f"{initials}_{p_upper_first}", # Capitalised: TL_Chest
+        f"{initials}-{p}",            # Dash separator: JSV-Rival-left
     ]
-    if posture_name.startswith('Rival'):
-        typo = posture_name.replace('Rival', 'Rivel')
-        candidates.append(f"{initials}_{typo}")
-        candidates.append(f"{initials}-{typo}")
+
+    # Rival / Rivel variants
+    if 'Rival' in p or 'rival' in p:
+        # Rival-Right capitalisation (TL)
+        candidates.append(f"{initials}_{p.replace('Rival-right', 'Rival-Right').replace('Rival-left', 'Rival-Left')}")
+        # Rivel typo (JSI)
+        candidates.append(f"{initials}_{p.replace('Rival', 'Rivel')}")
 
     for cand in candidates:
         for ext in EXTENSIONS:
-            # Check standard extension (.jpg) and double dot extension (..jpg)
-            for file_suffix in [ext, f".{ext.lstrip('.')}"]:
-                filename = f"{cand}{file_suffix}"
-                full_path = os.path.join(MEDIA_EXPRESSION_DIR, filename)
-                if os.path.isfile(full_path):
-                    return f"{MEDIA_URL_PREFIX}/{filename}"
+            # Normal extension: JSV_Rival-right.jpg
+            filename = f"{cand}{ext}"
+            if os.path.isfile(os.path.join(EXPRESSION_STATIC_DIR, filename)):
+                return f"{MEDIA_URL_PREFIX}/{filename}"
+            # Double-dot extension: JSV_Rival-right..jpg (known typo in some files)
+            filename2 = f"{cand}.{ext}"
+            if os.path.isfile(os.path.join(EXPRESSION_STATIC_DIR, filename2)):
+                return f"{MEDIA_URL_PREFIX}/{filename2}"
 
-    # Return expected path even if file is missing (browser renders broken image icon)
+    # Fallback — returns guessed URL (browser shows broken image)
     return f"{MEDIA_URL_PREFIX}/{initials}_{posture_name}.jpg"
+
 
 
 def pick_posture(persona: dict, event_type: str, context_tags: set = None) -> tuple[str, str]:
@@ -134,16 +213,25 @@ def pick_rivalry_avatars(
     rival_persona: dict,
     event_type: str,
     context_tags: set = None,
-    rivalry_mode: bool = False
+    rivalry_mode: bool = False,
+    winner_loser_mode: bool = False,
 ) -> dict:
     """
     Returns posture selections for both primary player and rival.
+    If winner_loser_mode is True, primary gets an expressive victory posture
+    and rival gets an agony/frustration posture.
+    If rivalry_mode is True, both use face-to-face dueling postures (Rival-right and Rival-left).
     """
     result = {}
+    context_tags = context_tags or set()
 
     if primary_persona:
         primary_initials = primary_persona.get('initials', '')
-        if rivalry_mode:
+        if winner_loser_mode:
+            # Winner celebration
+            win_tags = context_tags | {'TRIUMPHANT_ROAR', 'EXPLOSIVE_JOY'}
+            posture_name, path = pick_posture(primary_persona, event_type, win_tags)
+        elif rivalry_mode:
             posture_name = 'Rival-right'
             path = resolve_posture_path(primary_initials, posture_name)
         else:
@@ -160,9 +248,17 @@ def pick_rivalry_avatars(
 
     if rival_persona:
         rival_initials = rival_persona.get('initials', '')
-        rival_path = resolve_posture_path(rival_initials, RIVAL_POSTURE)
+        if winner_loser_mode:
+            # Loser frustration / agony / "Who, me?!"
+            lose_tags = {'DEVASTATING_LOSS', 'BOTTOM_RANK', 'FAILED_BANKER'}
+            posture_name, rival_path = pick_posture(rival_persona, 'FAILED_BANKER', lose_tags)
+        elif rivalry_mode:
+            posture_name = RIVAL_POSTURE  # 'Rival-left'
+            rival_path = resolve_posture_path(rival_initials, posture_name)
+        else:
+            posture_name, rival_path = pick_posture(rival_persona, event_type, context_tags)
         result['rival'] = {
-            'posture': RIVAL_POSTURE,
+            'posture': posture_name,
             'path': rival_path,
             'name': rival_persona.get('full_name', ''),
             'nick': (rival_persona.get('nicknames') or [''])[0],
@@ -172,3 +268,4 @@ def pick_rivalry_avatars(
         result['rival'] = {'posture': None, 'path': None, 'name': '', 'nick': '', 'initials': ''}
 
     return result
+

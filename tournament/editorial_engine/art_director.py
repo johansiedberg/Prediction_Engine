@@ -13,7 +13,7 @@ Responsible for:
 3. Determining visual layout mode (RIVALRY_PANEL for face-offs, SINGLE_AVATAR, or ART_BANNER).
 """
 
-from tournament.editorial_engine.posture_engine import pick_rivalry_avatars, POSTURE_ARCS
+from tournament.editorial_engine.posture_engine import pick_rivalry_avatars, POSTURE_ARCS, resolve_portrait_url
 
 
 class ArtDirector:
@@ -44,20 +44,60 @@ class ArtDirector:
         Returns:
             Structured dictionary with image paths, postures, editorial arc, and layout metadata.
         """
-        is_rivalry = (content_format == 'WINNERS_LOSERS') or (rival_persona is not None)
+        is_winner_loser = (content_format == 'WINNERS_LOSERS')
+        is_rivalry = (not is_winner_loser) and (rival_persona is not None)
 
         rivalry_avatars = pick_rivalry_avatars(
             primary_persona=primary_persona,
             rival_persona=rival_persona,
             event_type=event_type,
             context_tags=context_tags,
-            rivalry_mode=is_rivalry
+            rivalry_mode=is_rivalry,
+            winner_loser_mode=is_winner_loser
         )
 
         primary_path = rivalry_avatars.get('primary', {}).get('path')
         rival_path = rivalry_avatars.get('rival', {}).get('path')
         primary_posture = rivalry_avatars.get('primary', {}).get('posture')
         rival_posture = rivalry_avatars.get('rival', {}).get('posture')
+
+        # --- Portrait fallback for Toarps Herrklubb ---
+        import os
+        from tournament.editorial_engine.posture_engine import (
+            EXPRESSION_STATIC_DIR, MEDIA_EXPRESSION_DIR, PORTRAIT_STATIC_DIR
+        )
+
+        def _path_exists_on_disk(url_path: str) -> bool:
+            """Check if a /static/... or /media/... URL actually has a file on disk."""
+            if not url_path:
+                return False
+            if '/static/tournament/images/avatars/Expressions/' in url_path:
+                filename = url_path.split('/static/tournament/images/avatars/Expressions/')[-1]
+                return os.path.isfile(os.path.join(EXPRESSION_STATIC_DIR, filename))
+            if '/media/avatars/Expression/' in url_path:
+                filename = url_path.split('/media/avatars/Expression/')[-1]
+                return os.path.isfile(os.path.join(MEDIA_EXPRESSION_DIR, filename))
+            if '/static/tournament/images/avatars/' in url_path:
+                filename = url_path.split('/static/tournament/images/avatars/')[-1]
+                return os.path.isfile(os.path.join(PORTRAIT_STATIC_DIR, filename))
+            return True
+
+        def _resolve_with_portrait_fallback(avatar_dict: dict) -> str:
+            path = avatar_dict.get('path')
+            if _path_exists_on_disk(path):
+                return path
+            # Expression pose missing — try portrait photo
+            full_name = avatar_dict.get('name', '')
+            portrait = resolve_portrait_url(full_name)
+            return portrait if portrait else path
+
+        if rivalry_avatars.get('primary'):
+            primary_path = _resolve_with_portrait_fallback(rivalry_avatars['primary'])
+            rivalry_avatars['primary']['path'] = primary_path
+        if rivalry_avatars.get('rival'):
+            rival_path = _resolve_with_portrait_fallback(rivalry_avatars['rival'])
+            rivalry_avatars['rival']['path'] = rival_path
+        # -----------------------------------------------
 
         editorial_arc = cls.classify_editorial_arc(primary_posture)
 

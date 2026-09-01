@@ -53,98 +53,109 @@
                 }
             </style>
 
-            <!-- Inner Main Frame Navigation Bar (Single Row) -->
-            <div class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom border-secondary border-opacity-20 gap-3 flex-nowrap w-100">
+            <!-- Row 1: Tournament Banner (Left) & Pool-Admin Banner (Far Right) -->
+            <div class="d-flex align-items-center justify-content-between mb-3 w-100 flex-nowrap gap-3">
                 
-                <!-- Left: Icon + Pop-Out Tournament Badge & Clean Text Menu Links -->
-                <div class="d-flex align-items-center gap-3 flex-nowrap overflow-x-auto py-1" style="scrollbar-width: none; -ms-overflow-style: none;">
-                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill position-relative tournament-banner-pill text-nowrap flex-shrink-0" 
-                         style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34D399; font-weight: 700; font-size: 0.9rem; transition: all 0.2s ease; {% if has_multiple_tournaments %}cursor: pointer;{% endif %}"
-                         {% if has_multiple_tournaments %}data-bs-toggle="modal" data-bs-target="#tournamentSelectModal" title="Klicka för att välja turnering"{% endif %}>
-                        
+                <!-- Left: Icon + Pop-Out Tournament Badge with Green Glow Oval -->
+                <div class="d-inline-flex align-items-center gap-2.5 px-3 py-1.5 rounded-pill position-relative tournament-banner-pill text-nowrap flex-shrink-0" 
+                     style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34D399; font-weight: 700; font-size: 0.95rem; transition: all 0.2s ease; {% if has_multiple_tournaments %}cursor: pointer;{% endif %}"
+                     {% if has_multiple_tournaments %}data-bs-toggle="modal" data-bs-target="#tournamentSelectModal" title="Klicka för att välja turnering"{% endif %}>
+                    
+                    <!-- Emblem with Green Glow Oval Pop-Out -->
+                    <div class="position-relative d-inline-flex align-items-center justify-content-center flex-shrink-0" style="margin: -14px 0 -14px -8px; z-index: 10;">
+                        <!-- Green Glow Oval Aura: Width -5px of emblem (55px), Height +7px of emblem (67px) -->
+                        <div class="position-absolute" 
+                             style="width: 55px; height: 67px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.9) 0%, rgba(16, 185, 129, 0.45) 50%, transparent 80%); filter: blur(3px); pointer-events: none;">
+                        </div>
                         {% if active_tournament.icon %}
-                            <img src="{{ active_tournament.icon.url }}" alt="{{ active_tournament.name }}" style="height: 64px; width: 64px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(52, 211, 153, 0.95)) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.9)); margin: -16px 0 -16px -10px; z-index: 10;">
+                            <img src="{{ active_tournament.icon.url }}" alt="{{ active_tournament.name }}" style="height: 60px; width: 60px; object-fit: contain; filter: drop-shadow(0 0 16px rgba(52, 211, 153, 0.95)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.9)); position: relative; z-index: 2;">
                         {% else %}
-                            <img src="{% static 'tournament/img/default_tournament_emblem.webp' %}" alt="{{ active_tournament.name }}" style="height: 64px; width: 64px; object-fit: contain; filter: drop-shadow(0 0 18px rgba(52, 211, 153, 0.95)) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.9)); margin: -16px 0 -16px -10px; z-index: 10;">
+                            <img src="{% static 'tournament/img/default_tournament_emblem.webp' %}" alt="{{ active_tournament.name }}" style="height: 60px; width: 60px; object-fit: contain; filter: drop-shadow(0 0 16px rgba(52, 211, 153, 0.95)) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.9)); position: relative; z-index: 2;">
                         {% endif %}
-                        
-                        <span style="z-index: 5;">{{ active_tournament.name|default:"UEFA Euro 2028" }}</span>
-
-                        {% if has_multiple_tournaments %}
-                            <i class="fa-solid fa-chevron-down ms-1 text-emerald opacity-75" style="font-size: 0.75rem; z-index: 5;"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle rounded-circle shadow-lg" 
-                                  style="width: 18px; height: 18px; background-color: #991B1B; border: none; z-index: 20;" 
-                                  title="Fler aktiva turneringar tillgängliga!">
-                                <span class="visually-hidden">Fler turneringar tillgängliga</span>
-                            </span>
-                        {% endif %}
-
                     </div>
+                    
+                    <span style="z-index: 5; margin-left: 2px;">{{ active_tournament.name|default:"European Women's Handball Championship 2026" }}</span>
 
-                    <!-- Clean Text Navigation Menu (No buttons, no emojis) -->
-                    <ul class="nav gap-2 align-items-center mb-0 flex-nowrap flex-shrink-0" id="mainMenuNav" role="tablist">
-                        {% if is_verified %}
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'home' %}active{% endif %}" id="tab-home-link" data-bs-toggle="tab" data-bs-target="#tab-home" type="button" role="tab" aria-controls="tab-home" aria-selected="{% if active_tab_name == 'home' %}true{% else %}false{% endif %}">Hem</button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'results' %}active{% endif %}" id="tab-results-link" data-bs-toggle="tab" data-bs-target="#tab-results" type="button" role="tab" aria-controls="tab-results" aria-selected="{% if active_tab_name == 'results' %}true{% else %}false{% endif %}">Resultat</button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'leaderboard' %}active{% endif %}" id="tab-leaderboard-link" data-bs-toggle="tab" data-bs-target="#tab-leaderboard" type="button" role="tab" aria-controls="tab-leaderboard" aria-selected="{% if active_tab_name == 'leaderboard' %}true{% else %}false{% endif %}">Topplista</button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'insights' %}active{% endif %}" id="tab-insights-link" data-bs-toggle="tab" data-bs-target="#tab-insights" type="button" role="tab" aria-controls="tab-insights" aria-selected="{% if active_tab_name == 'insights' %}true{% else %}false{% endif %}">Analys & Insikter</button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'predictions' %}active{% endif %}" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="{% if active_tab_name == 'predictions' %}true{% else %}false{% endif %}">Mina Tips</button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap {% if active_tab_name == 'rules' %}active{% endif %}" id="tab-rules-link" data-bs-toggle="tab" data-bs-target="#tab-rules" type="button" role="tab" aria-controls="tab-rules" aria-selected="{% if active_tab_name == 'rules' %}true{% else %}false{% endif %}">Regler & Poäng</button>
-                        </li>
-                        {% else %}
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
-                                <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Hem
-                            </button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
-                                <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Resultat
-                            </button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
-                                <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Topplista
-                            </button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
-                                <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Analys & Insikter
-                            </button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap active" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="true">Mina Tips</button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
-                                <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Regler & Poäng
-                            </button>
-                        </li>
-                        {% endif %}
-                    </ul>
+                    {% if has_multiple_tournaments %}
+                        <i class="fa-solid fa-chevron-down ms-1 text-emerald opacity-75" style="font-size: 0.75rem; z-index: 5;"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle rounded-circle shadow-lg" 
+                              style="width: 18px; height: 18px; background-color: #991B1B; border: none; z-index: 20;" 
+                              title="Fler aktiva turneringar tillgängliga!">
+                            <span class="visually-hidden">Fler turneringar tillgängliga</span>
+                        </span>
+                    {% endif %}
+
                 </div>
 
-                <!-- Right: Pool-Admin Button (If Pool Admin / Staff) -->
+                <!-- Right: Pool-Admin Banner (Far Right in line with Tournament Banner) -->
                 {% if is_pool_admin %}
                 <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
-                    <a href="{% if active_league and active_league.admin == request.user %}{% url 'pool_admin_dashboard' active_league.id %}{% else %}{% url 'pool_admin_hub' %}{% endif %}" class="btn btn-outline-glass btn-sm py-1 px-3 d-inline-flex align-items-center gap-1.5 text-nowrap shadow-sm" title="Gå till Pool-Admin">
+                    <a href="{% if active_league and active_league.admin == request.user %}{% url 'pool_admin_dashboard' active_league.id %}{% else %}{% url 'pool_admin_hub' %}{% endif %}" 
+                       class="btn btn-outline-glass btn-sm py-1.5 px-3.5 d-inline-flex align-items-center gap-1.5 text-nowrap shadow-sm rounded-pill" 
+                       style="border-color: rgba(56, 189, 248, 0.45); background: rgba(56, 189, 248, 0.12); color: #7DD3FC; font-weight: 700; font-size: 0.88rem;"
+                       title="Gå till Pool-Admin">
                         <i class="fa-solid fa-shield-halved text-info"></i><span>Pool-Admin</span>
                     </a>
                 </div>
                 {% endif %}
 
             </div>
+
+            <!-- Row 2: Clean Text Navigation Menu (Row below Tournament Banner) -->
+            <div class="d-flex align-items-center pb-2.5 mb-4 border-bottom border-secondary border-opacity-20 w-100 overflow-x-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
+                <ul class="nav gap-3 align-items-center mb-0 flex-nowrap flex-shrink-0" id="mainMenuNav" role="tablist" style="padding-left: 72px;">
+                    {% if is_verified %}
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap {% if active_tab_name == 'home' %}active{% endif %}" id="tab-home-link" data-bs-toggle="tab" data-bs-target="#tab-home" type="button" role="tab" aria-controls="tab-home" aria-selected="{% if active_tab_name == 'home' %}true{% else %}false{% endif %}">Hem</button>
+                    </li>
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap {% if active_tab_name == 'results' %}active{% endif %}" id="tab-results-link" data-bs-toggle="tab" data-bs-target="#tab-results" type="button" role="tab" aria-controls="tab-results" aria-selected="{% if active_tab_name == 'results' %}true{% else %}false{% endif %}">Resultat</button>
+                    </li>
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap {% if active_tab_name == 'leaderboard' %}active{% endif %}" id="tab-leaderboard-link" data-bs-toggle="tab" data-bs-target="#tab-leaderboard" type="button" role="tab" aria-controls="tab-leaderboard" aria-selected="{% if active_tab_name == 'leaderboard' %}true{% else %}false{% endif %}">Topplista</button>
+                    </li>
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap {% if active_tab_name == 'insights' %}active{% endif %}" id="tab-insights-link" data-bs-toggle="tab" data-bs-target="#tab-insights" type="button" role="tab" aria-controls="tab-insights" aria-selected="{% if active_tab_name == 'insights' %}true{% else %}false{% endif %}">Analys & Insikter</button>
+                    </li>
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap {% if active_tab_name == 'predictions' %}active{% endif %}" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="{% if active_tab_name == 'predictions' %}true{% else %}false{% endif %}">Mina Tips</button>
+                    </li>
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap {% if active_tab_name == 'rules' %}active{% endif %}" id="tab-rules-link" data-bs-toggle="tab" data-bs-target="#tab-rules" type="button" role="tab" aria-controls="tab-rules" aria-selected="{% if active_tab_name == 'rules' %}true{% else %}false{% endif %}">Regler & Poäng</button>
+                    </li>
+                    {% else %}
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                            <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Hem
+                        </button>
+                    </li>
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                            <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Resultat
+                        </button>
+                    </li>
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                            <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Topplista
+                        </button>
+                    </li>
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                            <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Analys & Insikter
+                        </button>
+                    </li>
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap active" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="true">Mina Tips</button>
+                    </li>
+                    <li class="nav-item flex-shrink-0" role="presentation">
+                        <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>
+                            <i class="fa-solid fa-lock me-1" style="font-size: 0.7rem; opacity: 0.7;"></i>Regler & Poäng
+                        </button>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+
 
             <!-- MAIN TAB CONTENT CONTAINER (Starts right at top of glass frame!) -->
             <div class="tab-content" id="mainMenuTabContent">
@@ -1760,40 +1771,109 @@
                                 </span>
                             </div>
 
+                            <style>
+                            /* ── Insight Card Theming ─────────────────────── */
+                            .ic-green { --ic-card-bg:rgba(5,46,22,.55);   --ic-border:rgba(21,128,61,.55);  --ic-badge-bg:rgba(21,128,61,.28);  --ic-badge-bd:rgba(21,128,61,.7);  --ic-color:#DCFCE7; --ic-fact-bg:rgba(21,128,61,.12);  --ic-fact-bd:rgba(21,128,61,.3); }
+                            .ic-red   { --ic-card-bg:rgba(69,10,10,.52);  --ic-border:rgba(185,28,28,.5);   --ic-badge-bg:rgba(185,28,28,.26);  --ic-badge-bd:rgba(185,28,28,.7);  --ic-color:#FEE2E2; --ic-fact-bg:rgba(185,28,28,.1);   --ic-fact-bd:rgba(185,28,28,.3); }
+                            .ic-amber { --ic-card-bg:rgba(69,26,3,.52);   --ic-border:rgba(180,83,9,.5);    --ic-badge-bg:rgba(180,83,9,.26);   --ic-badge-bd:rgba(180,83,9,.7);   --ic-color:#FEF3C7; --ic-fact-bg:rgba(180,83,9,.1);    --ic-fact-bd:rgba(180,83,9,.3); }
+                            .ic-blue  { --ic-card-bg:rgba(23,37,84,.55);  --ic-border:rgba(29,78,216,.5);   --ic-badge-bg:rgba(29,78,216,.26);  --ic-badge-bd:rgba(29,78,216,.7);  --ic-color:#DBEAFE; --ic-fact-bg:rgba(29,78,216,.1);   --ic-fact-bd:rgba(29,78,216,.3); }
+                            .ic-slate { --ic-card-bg:rgba(15,23,42,.62);  --ic-border:rgba(71,85,105,.5);   --ic-badge-bg:rgba(71,85,105,.26);  --ic-badge-bd:rgba(71,85,105,.6);  --ic-color:#E2E8F0; --ic-fact-bg:rgba(71,85,105,.12);  --ic-fact-bd:rgba(71,85,105,.28); }
+
+                            .insight-card          { background:var(--ic-card-bg); border:1px solid var(--ic-border); border-radius:.6rem; display:flex; flex-direction:column; height:100%; overflow:hidden; }
+                            .insight-card .ic-badge{ background:var(--ic-badge-bg); border:1px solid var(--ic-badge-bd); color:var(--ic-color); font-size:.67rem; font-weight:700; letter-spacing:.04em; padding:.3em .65em; border-radius:.35rem; display:inline-flex; align-items:center; gap:5px; }
+                            .insight-card .ic-hero { font-size:1.4rem; font-weight:900; font-family:'Outfit',sans-serif; letter-spacing:-.02em; color:var(--ic-color); line-height:1.1; }
+                            .insight-card .ic-sub  { font-size:.8rem; font-weight:600; color:rgba(255,255,255,.82); }
+                            .insight-card .ic-label{ font-size:.58rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ic-color); opacity:.65; margin-bottom:.25rem; }
+                            .insight-card .ic-fact { background:var(--ic-fact-bg); border:1px solid var(--ic-fact-bd); border-radius:.35rem; padding:.3rem .55rem; display:flex; align-items:flex-start; gap:.45rem; }
+                            .insight-card .ic-fact-emoji { font-size:.85rem; flex-shrink:0; line-height:1.55; }
+                            .insight-card .ic-fact-text  { font-size:.76rem; color:rgba(255,255,255,.9); line-height:1.45; }
+                            .insight-card .ic-footnote   { font-size:.7rem; color:var(--ic-color); opacity:.55; font-style:italic; line-height:1.4; }
+                            </style>
+
                             <div class="row g-3">
                                 {% for insight in static_insights %}
+
+                                {# Each branch opens <col> + <insight-card> with the correct color class #}
+                                {% if insight.category == 'BANKER_CONSENSUS' or insight.category == 'CHAMPION_CONSENSUS' or insight.category == 'CONSENSUS_ALERT' %}
                                 <div class="col-md-6 col-lg-4">
-                                    <div class="p-3 rounded-3 h-100 d-flex flex-column justify-content-between" style="background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1);">
-                                        <div>
-                                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                                <span class="badge 
-                                                    {% if insight.category == 'CONSENSUS_ALERT' or insight.category == 'CHAMPION_CONSENSUS' or insight.category == 'BANKER_CONSENSUS' %}bg-warning text-dark
-                                                    {% elif insight.category == 'CERTIFIED_MADNESS' or insight.category == 'SIGN_DECISIVE' %}bg-danger text-white
-                                                    {% elif insight.category == 'LONE_WOLF' or insight.category == 'GOLDEN_BOOT' %}bg-info text-dark
-                                                    {% elif insight.category == 'DELUSION_INDEX' or insight.category == 'SIGN_BALANCE' %}bg-purple text-white" style="background:#8b5cf6;"
-                                                    {% elif insight.category == 'GOAL_DELUSION' %}bg-emerald text-white" style="background:#10b981;"
-                                                    {% else %}bg-secondary text-white{% endif %} 
-                                                    fw-bold" style="font-size: 0.7rem;">
-                                                    {{ insight.get_category_display }}
-                                                </span>
-                                                {% if insight.player_name %}
-                                                    <span class="text-white small fw-bold"><i class="fa-solid fa-user me-1.5 text-secondary"></i>{{ insight.player_name }}</span>
+                                    <div class="insight-card ic-green">
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-shield-halved me-1"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'SIGN_DECISIVE' or insight.category == 'CERTIFIED_MADNESS' %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="insight-card ic-red">
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-fire me-1"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'SIGN_BALANCE' or insight.category == 'DELUSION_INDEX' %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="insight-card ic-amber">
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-scale-balanced me-1"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'LONE_WOLF' %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="insight-card ic-blue">
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-person-walking-arrow-right me-1"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'GOAL_DELUSION' or insight.category == 'GOLDEN_BOOT' %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="insight-card ic-blue">
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-futbol me-1"></i>{{ insight.get_category_display }}</span></div>
+                                {% else %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="insight-card ic-slate">
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-chart-bar me-1"></i>{{ insight.get_category_display }}</span></div>
+                                {% endif %}
+
+                                        <!-- HERO STAT: Pool-level insight figure -->
+                                        <div class="px-3 pb-2">
+                                            {% with parts=insight.data_point|split:"||" %}
+                                            <div class="d-flex align-items-baseline gap-2 flex-wrap">
+                                                <span class="ic-hero">{{ parts.0|striptags }}</span>
+                                                {% if parts.1 %}<span class="ic-sub">{{ parts.1|striptags }}</span>{% endif %}
+                                            </div>
+                                            {% endwith %}
+                                        </div>
+
+                                        <!-- NAMED FACTS -->
+                                        {% with roast_parts=insight.llm_roast|split:"||" %}
+                                        {% if roast_parts.0 %}
+                                        <div class="px-3 pb-2 d-flex flex-column gap-1 flex-grow-1">
+                                            <p class="ic-label mb-1">Namngivna fakta</p>
+                                            {% with fact_lines=roast_parts.0|split:"<br>" %}
+                                            {% for line in fact_lines %}
+                                            {% with stripped=line|striptags %}
+                                            {% if stripped|length > 2 %}
+                                            <div class="ic-fact">
+                                                {% if stripped|slice:":1" == "⚡" or stripped|slice:":1" == "🔥" or stripped|slice:":1" == "🐺" or stripped|slice:":1" == "👑" or stripped|slice:":1" == "🛡" or stripped|slice:":1" == "📈" or stripped|slice:":1" == "📊" or stripped|slice:":1" == "🔒" or stripped|slice:":1" == "💣" or stripped|slice:":1" == "🚫" or stripped|slice:":1" == "👥" or stripped|slice:":1" == "⚽" %}
+                                                <span class="ic-fact-emoji">{{ stripped|slice:":1" }}</span>
+                                                <span class="ic-fact-text">{{ stripped|slice:"2:" }}</span>
+                                                {% else %}
+                                                <span class="ic-fact-emoji">•</span>
+                                                <span class="ic-fact-text">{{ stripped }}</span>
                                                 {% endif %}
                                             </div>
-                                            <p class="text-white small fw-semibold mb-2" style="font-size: 0.85rem;">{{ insight.data_point }}</p>
+                                            {% endif %}
+                                            {% endwith %}
+                                            {% endfor %}
+                                            {% endwith %}
                                         </div>
-                                        <div class="pt-2 border-top border-secondary border-opacity-30 text-warning italic small" style="font-size: 0.78rem;">
-                                            <i class="fa-solid fa-quote-left me-1.5 opacity-50"></i>{{ insight.llm_roast|safe }}
+                                        {% endif %}
+
+                                        <!-- FOOTNOTE -->
+                                        {% if roast_parts.1 %}
+                                        <div class="px-3 pb-3 mt-auto">
+                                            <p class="ic-footnote mb-0">{{ roast_parts.1|striptags }}</p>
                                         </div>
-                                    </div>
-                                </div>
+                                        {% endif %}
+                                        {% endwith %}
+
+                                    </div>{# /insight-card #}
+                                </div>{# /col #}
+
                                 {% empty %}
                                 <div class="col-12 text-center text-muted py-4">
                                     <i class="fa-solid fa-book-open fs-3 mb-2 d-block text-secondary opacity-50"></i>
-                                    <span>Inga statiska insikter genererade ännu. Kör management-kommandot för att skapa analysen.</span>
+                                    <span>Inga statiska insikter genererade ännu.</span>
                                 </div>
                                 {% endfor %}
                             </div>
+
                         </div>
 
                         <!-- DAGLIGA GAZETTEN -->
@@ -1849,58 +1929,95 @@
                                             </span>
                                         </div>
 
-                                        <!-- HEADLINE IMAGE -->
-                                        <div class="position-relative overflow-hidden" style="height: 200px; background: #0b1329;">
+                                         <!-- HEADLINE IMAGE -->
+                                        <div class="position-relative overflow-hidden" style="height: 200px; background: #ffffff;">
 
                                             {% if is_toarp and gazette.is_special_edition and gazette.featured_players_json %}
-                                                <!-- SPECIAL EDITION 3-AVATAR COMPOSITE BANNER -->
-                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end justify-content-around px-3 py-2" style="background: radial-gradient(circle at center, rgba(139,92,246,0.25) 0%, rgba(11,19,41,0.95) 100%);">
+                                                <!-- SPECIAL EDITION 3-AVATAR PORTRAIT COMPOSITE BANNER -->
+                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end" style="background: #ffffff; gap: 0;">
                                                     {% for p in gazette.featured_players_json %}
-                                                    <div class="text-center d-flex flex-column align-items-center">
-                                                        <span class="badge mb-1 px-2 py-0.5 small fw-bold" style="background: rgba(139,92,246,0.3); border: 1px solid rgba(139,92,246,0.6); color: #E9D5FF; font-size: 0.68rem;">
-                                                            {% if p.role == 'LEADER' %}🥇 Ledare{% elif p.role == 'RUNNER_UP' %}🥈 Utmanare{% else %}📉 Faller{% endif %}
-                                                        </span>
-                                                        <span class="fw-extrabold text-white text-truncate" style="font-size: 0.8rem; max-width: 100px;">{{ p.name }}</span>
+                                                    <div class="d-flex flex-column align-items-center justify-content-end position-relative flex-fill h-100" style="background: #ffffff;">
+                                                        {% if p.posture_url or p.portrait_url %}
+                                                            <img src="{{ p.posture_url|default:p.portrait_url }}" alt="{{ p.nick }}"
+                                                                 style="height: 92%; width: auto; object-fit: contain; object-position: bottom center; mix-blend-mode: multiply;">
+                                                        {% else %}
+                                                            <div class="d-flex align-items-end justify-content-center" style="height: 92%; opacity: 0.35;">
+                                                                <i class="fa-solid fa-user" style="font-size: 3rem; color: #64748b;"></i>
+                                                            </div>
+                                                        {% endif %}
+                                                        <!-- Compact floating centered banner -->
+                                                        <div class="position-absolute bottom-0 start-50 translate-middle-x mb-1.5 d-inline-flex flex-column align-items-center text-center rounded-2 shadow"
+                                                             style="white-space: nowrap; z-index: 2; padding: 5px 8px; {% if p.role == 'LEADER' %}background: #052E16; border: 1px solid #15803D;{% elif p.role == 'RUNNER_UP' %}background: #172554; border: 1px solid #1D4ED8;{% else %}background: #450A0A; border: 1px solid #B91C1C;{% endif %}">
+                                                            <span class="d-block fw-black text-white" style="font-size: 0.78rem; line-height: 1.15; letter-spacing: 0.01em;">
+                                                                {{ p.nick }}
+                                                            </span>
+                                                            <span class="font-monospace fw-bold" style="font-size: 0.58rem; line-height: 1.1; {% if p.role == 'LEADER' %}color: #DCFCE7;{% elif p.role == 'RUNNER_UP' %}color: #DBEAFE;{% else %}color: #FEE2E2;{% endif %}">
+                                                                {% if p.role == 'LEADER' %}🥇 Ledare{% elif p.role == 'RUNNER_UP' %}🥈 Utmanare{% else %}📉 Faller{% endif %}
+                                                            </span>
+                                                        </div>
                                                     </div>
+
                                                     {% endfor %}
                                                 </div>
 
                                             {% elif is_toarp and gazette.content_format == 'WINNERS_LOSERS' and gazette.structured_data.rivalry_panel %}
                                                 {% with rp=gazette.structured_data.rivalry_panel %}
                                                 <!-- RIVALRY: two avatars touching, no gap, facing each other -->
-                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end" style="gap: 0;">
+                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end" style="background: #ffffff; gap: 0;">
 
                                                     <!-- Primary — left half, faces right -->
-                                                    <div class="d-flex align-items-end justify-content-end" style="width: 50%; height: 100%; overflow: hidden;">
+                                                    <div class="d-flex align-items-end justify-content-end position-relative" style="width: 50%; height: 100%; overflow: hidden; background: #ffffff;">
                                                         {% if rp.primary.path %}
                                                             <img src="{{ rp.primary.path }}" alt="{{ rp.primary.nick }}"
-                                                                 style="height: 100%; width: auto; object-fit: contain; object-position: bottom right; filter: drop-shadow(2px 0 12px rgba(59,130,246,0.5));">
+                                                                 style="height: 100%; width: auto; object-fit: contain; object-position: bottom right; mix-blend-mode: multiply;">
                                                         {% else %}
                                                             <div style="width:50%; opacity:0.3; text-align:center; padding-top:60px;"><i class="fa-solid fa-user" style="font-size:3rem; color:#60a5fa;"></i></div>
                                                         {% endif %}
+                                                        <!-- Winner floating banner -->
+                                                        <div class="position-absolute bottom-0 start-50 translate-middle-x mb-1.5 d-inline-flex flex-column align-items-center text-center rounded-2 shadow"
+                                                             style="white-space: nowrap; z-index: 2; padding: 5px 8px; background: #052E16; border: 1px solid #15803D;">
+                                                            <span class="d-block fw-black text-white" style="font-size: 0.78rem; line-height: 1.15;">{{ rp.primary.nick }}</span>
+                                                            <span class="font-monospace fw-bold" style="font-size: 0.58rem; color: #DCFCE7; line-height: 1.1;">👑 Vinnare</span>
+                                                        </div>
                                                     </div>
 
                                                     <!-- Rival — right half, faces left -->
-                                                    <div class="d-flex align-items-end justify-content-start" style="width: 50%; height: 100%; overflow: hidden;">
+                                                    <div class="d-flex align-items-end justify-content-start position-relative" style="width: 50%; height: 100%; overflow: hidden; background: #ffffff;">
                                                         {% if rp.rival.path %}
                                                             <img src="{{ rp.rival.path }}" alt="{{ rp.rival.nick }}"
-                                                                 style="height: 100%; width: auto; object-fit: contain; object-position: bottom left; filter: drop-shadow(-2px 0 12px rgba(239,68,68,0.45));">
+                                                                 style="height: 100%; width: auto; object-fit: contain; object-position: bottom left; mix-blend-mode: multiply;">
                                                         {% else %}
                                                             <div style="width:50%; opacity:0.3; text-align:center; padding-top:60px;"><i class="fa-solid fa-user" style="font-size:3rem; color:#ef4444;"></i></div>
                                                         {% endif %}
+                                                        <!-- Loser floating banner -->
+                                                        <div class="position-absolute bottom-0 start-50 translate-middle-x mb-1.5 d-inline-flex flex-column align-items-center text-center rounded-2 shadow"
+                                                             style="white-space: nowrap; z-index: 2; padding: 5px 8px; background: #450A0A; border: 1px solid #B91C1C;">
+                                                            <span class="d-block fw-black text-white" style="font-size: 0.78rem; line-height: 1.15;">{{ rp.rival.nick }}</span>
+                                                            <span class="font-monospace fw-bold" style="font-size: 0.58rem; color: #FEE2E2; line-height: 1.1;">💥 Förlorare</span>
+                                                        </div>
                                                     </div>
 
                                                 </div>
                                                 {% endwith %}
 
                                             {% elif is_toarp and gazette.structured_data.rivalry_panel and gazette.structured_data.rivalry_panel.primary.path %}
-                                                <!-- SINGLE AVATAR: centered, full height -->
+                                                <!-- SINGLE AVATAR: centered, full height on white -->
                                                 {% with rp=gazette.structured_data.rivalry_panel %}
-                                                <div class="position-absolute top-0 start-50 translate-middle-x h-100 d-flex align-items-end">
+                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end justify-content-center" style="background: #ffffff;">
                                                     <img src="{{ rp.primary.path }}" alt="{{ rp.primary.nick }}"
-                                                         style="height: 100%; width: auto; object-fit: contain; object-position: bottom; filter: drop-shadow(0 4px 20px rgba(59,130,246,0.45));">
+                                                         style="height: 94%; width: auto; object-fit: contain; object-position: bottom; mix-blend-mode: multiply;">
+                                                    <div class="position-absolute bottom-0 start-50 translate-middle-x mb-1.5 d-inline-flex flex-column align-items-center text-center rounded-2 shadow"
+                                                         style="white-space: nowrap; z-index: 2; padding: 5px 8px; background: #172554; border: 1px solid #1D4ED8;">
+                                                        <span class="d-block fw-black text-white" style="font-size: 0.80rem; color: #FFFFFF; line-height: 1.15;">{{ rp.primary.nick }}</span>
+                                                        <span class="font-monospace fw-bold" style="font-size: 0.58rem; color: #DBEAFE; line-height: 1.1;">⭐ I Fokus</span>
+                                                    </div>
                                                 </div>
                                                 {% endwith %}
+
+
+
+
+
 
                                             {% elif gazette.image_url %}
                                                 <img src="{{ gazette.image_url }}" alt="{{ gazette.headline }}" class="w-100 h-100 object-fit-cover" onerror="this.onerror=null; this.src='/static/tournament/img/gazette_default_cover.jpg';">

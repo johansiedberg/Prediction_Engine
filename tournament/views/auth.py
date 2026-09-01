@@ -25,7 +25,28 @@ from tournament.models import (
 from tournament.forms import CustomLoginForm
 
 
+
+
+def _get_player_landing_url(user) -> str:
+    """
+    Returns the correct post-login landing URL for a player.
+    - If the player has at least one saved TournamentSubmission in any active
+      tournament → land on the Dashboard home tab.
+    - Otherwise (no predictions saved yet) → land on the Predictions tab so
+      they are immediately prompted to fill in their tips.
+    """
+    has_saved = TournamentSubmission.objects.filter(
+        player=user,
+        is_saved=True,
+        tournament__is_active=True,
+    ).exists()
+    if has_saved:
+        return '/dashboard/?tab=home'
+    return '/dashboard/?tab=predictions'
+
+
 class CustomLoginView(LoginView):
+
     template_name = 'tournament/login.html'
     form_class = CustomLoginForm
     redirect_authenticated_user = True
@@ -70,7 +91,7 @@ class CustomLoginView(LoginView):
         if is_pool_admin and not has_player_leagues:
             return '/pool-admin/'
 
-        return '/dashboard/?tab=predictions'
+        return _get_player_landing_url(user)
 
 
 def superuser_or_staff_required(view_func: Callable) -> Callable:
@@ -224,7 +245,7 @@ def magic_login_view(request, token):
         return redirect('set_password')
 
     messages.success(request, f"Välkommen tillbaka, {user.first_name or user.username}!")
-    return redirect('/dashboard/?tab=predictions')
+    return redirect(_get_player_landing_url(user))
 
 
 def terms_view(request):
@@ -259,13 +280,13 @@ def accept_terms_view(request):
         if profile.must_set_password or not request.user.has_usable_password():
             return redirect('set_password')
 
-        next_url = request.POST.get('next', request.GET.get('next', '/dashboard/?tab=predictions'))
-        return redirect(next_url)
+        next_url = request.POST.get('next', request.GET.get('next', ''))
+        return redirect(next_url or _get_player_landing_url(request.user))
 
     if profile.terms_accepted:
         if profile.must_set_password or not request.user.has_usable_password():
             return redirect('set_password')
-        return redirect('/dashboard/?tab=predictions')
+        return redirect(_get_player_landing_url(request.user))
 
     return render(request, 'tournament/terms.html', {'require_acceptance': True})
 
@@ -307,7 +328,7 @@ def set_password_view(request):
         update_session_auth_hash(request, request.user)
 
         messages.success(request, "Ditt lösenord har sparats! Välkommen till mästerskapstipset.")
-        return redirect('/dashboard/?tab=predictions')
+        return redirect(_get_player_landing_url(request.user))
 
     return render(request, 'tournament/set_password.html', {
         'profile': profile,

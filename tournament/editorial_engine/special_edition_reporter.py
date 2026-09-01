@@ -31,6 +31,7 @@ from tournament.models import (
 )
 from tournament.editorial_engine.journalist import BEHAVIOR_DESCRIPTIONS
 from tournament.editorial_engine.compiler import load_player_personas, find_persona_for_player
+from tournament.editorial_engine.posture_engine import resolve_portrait_url, resolve_posture_path
 
 MILESTONE_ROUNDS = {
     1: {'name': 'Alla Tips Verifierade', 'code': 'VERIFIED'},
@@ -195,7 +196,61 @@ def get_matches_for_single_round(tournament: Tournament, round_num: int):
         return Match.objects.filter(tournament=tournament, is_finished=True)
 
 
+def _build_featured_players_json(current_lb: list, personas_list: list) -> list:
+    """
+    Builds the featured_players_json payload for the Special Edition gazette banner.
+    Returns up to 3 player dicts: [leader, runner-up, bottom-faller] each with:
+      - name       : display name / nickname (Toarp persona)
+      - nick       : short nickname
+      - role       : LEADER | RUNNER_UP | FALLER
+      - portrait_url : /static/... URL to the real portrait photo (or '' if missing)
+    """
+    result = []
+    roles = [
+        (0, 'LEADER'),
+        (1, 'RUNNER_UP'),
+        (-1, 'FALLER'),   # last-place player
+    ]
+    for idx, role in roles:
+        entry = current_lb[idx] if (abs(idx) < len(current_lb)) else None
+        if not entry:
+            continue
+        user = entry.get('user')
+        full_name = user.get_full_name().strip() if user and user.get_full_name() else entry.get('name', '')
+        nick = entry.get('name', full_name)  # already persona-resolved nick from calculate_leaderboard
+
+        # Resolve portrait photo from persona definition
+        persona = find_persona_for_player(full_name, personas_list)
+        avatar_filename = persona.get('avatar_filename', '') if persona else ''
+        portrait_url = resolve_portrait_url(full_name, avatar_filename)
+
+        # Resolve expressive full-body posture for Special Edition composite
+        initials = persona.get('initials', '') if persona else ''
+        role_postures = {
+            'LEADER': 'Bane',
+            'RUNNER_UP': 'Fist',
+            'FALLER': 'Me',
+        }
+        posture_name = role_postures.get(role, 'Analyst')
+        posture_url = resolve_posture_path(initials, posture_name) if initials else ''
+
+        result.append({
+            'name': nick,
+            'nick': nick,
+            'full_name': full_name,
+            'role': role,
+            'posture': posture_name,
+            'posture_url': posture_url,
+            'portrait_url': portrait_url,
+            'points': entry.get('points', 0),
+            'rank': entry.get('rank', idx + 1),
+        })
+    return result
+
+
+
 class SpecialEditionReporter:
+
 
     @classmethod
     def get_player_name(cls, user, is_toarp=False, personas_list=None) -> str:
@@ -649,7 +704,7 @@ class SpecialEditionReporter:
         from django.utils import timezone
         pub_date = timezone.now().date()
 
-        main_headline = f"PREMIÄRMAGASIN: ORAKELTIPSET SYNER GÄNGETS ALLA RADER!"
+        main_headline = "ORAKELTIPSET SYNER GÄNGETS ALLA RADER!"
         tagline = "Alla tips inlämnade & verifierade • Orakeltipset, Konsensusfällan & Kupongbikten"
 
         gazette, _ = DailyGazette.objects.update_or_create(
@@ -698,6 +753,9 @@ class SpecialEditionReporter:
         current_lb = cls.snapshot_leaderboard(tournament, round_num, round_name, is_toarp=is_toarp, personas_list=personas_list)
         analysis = cls.analyze_round_changes(tournament, round_num, current_lb)
 
+        # Build featured players banner data (portrait photos for Toarp)
+        featured_players = _build_featured_players_json(current_lb, personas_list) if is_toarp else []
+
         # 2. Extract matches played specifically in this single round
         single_round_matches = list(get_matches_for_single_round(tournament, round_num))
         tot_round_matches_cnt = len(single_round_matches)
@@ -725,11 +783,11 @@ class SpecialEditionReporter:
         leader_name = leader['name']
         runner_name = runner_up['name']
 
-        round_mvp = max(current_lb, key=lambda x: (x.get('pts_in_round', 0), x.get('exact_in_round', 0)))
-        round_bust = min(current_lb, key=lambda x: (x.get('pts_in_round', 0), x.get('exact_in_round', 0)))
+        round_mvp = max(current_lb, key=lambda x: (x.get('pts_in_round', 0), x.get('exact_in_round', 0))) if current_lb else leader
+        round_bust = min(current_lb, key=lambda x: (x.get('pts_in_round', 0), x.get('exact_in_round', 0))) if current_lb else leader
 
         top_climber = analysis.get('top_climber')
-        top_faller = analysis.get('top_faller') or current_lb[-1]
+        top_faller = analysis.get('top_faller') or (current_lb[-1] if current_lb else leader)
 
         pts_diff = leader['points'] - runner_up['points']
 
@@ -798,7 +856,7 @@ class SpecialEditionReporter:
         elif round_num == 3:
             # Gruppomgång 2
             stage_theme = "Gruppspelets Halvtidsaudit (24 matcher)"
-            sec1_title = f"Halvtidsstriden: {leader['name']} Håller Undan ({leader['points']}p) — Men Jakten Tätnar!"
+            sec1_title = f"Halvtidsstriden: {leader['name']} Håller Undan på {leader['points']}p!"
             sec1_body = (
                 f"Med 24 matcher spelade har gruppspelet nått sin mittpunkt. "
                 f"<strong>{leader['name']}</strong> försvarar ledningen på <strong>{leader['points']} poäng</strong>, men marginalen bakåt till <strong>{runner_up['name']}</strong> ({runner_up['points']}p) är nu endast {pts_diff} poäng! "
@@ -846,7 +904,7 @@ class SpecialEditionReporter:
         elif round_num == 11:
             # Round of 16 Spelad
             stage_theme = "Åttondelsfinalernas Slutspelsdramatik (44 matcher)"
-            sec1_title = f"Slutspelets Schavott: {leader['name']} Behåller Greppet ({leader['points']}p)!"
+            sec1_title = f"Slutspelets Schavott: {leader['name']} Behåller Greppet på {leader['points']}p!"
             sec1_body = (
                 f"Åttondelsfinalernas plötsliga död har skördat sina första offer. "
                 f"<strong>{leader['name']}</strong> navigerade genom slutspelskorselden med bibehållen ledning på <strong>{leader['points']} poäng</strong>. "
@@ -870,7 +928,8 @@ class SpecialEditionReporter:
         elif round_num == 12:
             # Quarterfinals Spelad
             stage_theme = "Kvartsfinalernas Slakt & Finalfyran (48 matcher)"
-            sec1_title = f"Finalfyran Klar: {leader['name']} Tar Jättekliv mot Titeln ({leader['points']}p)!"
+            sec1_title = f"Finalfyran Klar: {leader['name']} Tar Jättekliv mot Titeln på {leader['points']}p!"
+
             sec1_body = (
                 f"Kvartsfinalerna är färdigspelade och endast semifinaler och final återstår av {tournament.name}. "
                 f"<strong>{leader['name']}</strong> stormar mot slutsegern på mäktiga <strong>{leader['points']} poäng</strong> efter en urstark kvartsfinalinsats. "
@@ -958,7 +1017,7 @@ class SpecialEditionReporter:
         from django.utils import timezone
         pub_date = timezone.now().date()
 
-        main_headline = f"SPECIALMAGASIN: {sec1_title.upper()}"
+        main_headline = sec1_title.upper()
         tagline = f"{stage_theme} • Toppstrid ({pts_diff}p diff), Omgångens MVP & Guldchans"
 
         gazette, _ = DailyGazette.objects.update_or_create(
@@ -977,10 +1036,12 @@ class SpecialEditionReporter:
                 'headline_worst_performers': sec3_body,
                 'analysis_outlook': sec4_body,
                 'structured_data': structured_data,
+                'featured_players_json': featured_players,
                 'image_url': '/static/tournament/img/gazette_default_cover.jpg',
                 'tone_used': 'Magasin & Taktisk Analys',
             }
         )
 
         return gazette
+
 

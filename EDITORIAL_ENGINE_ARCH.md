@@ -203,6 +203,33 @@ To prevent LLM fatigue across multi-week tournaments, Tier 2 dynamically injects
 
 ---
 
+## 7.5 Multi-Role Editorial Pipeline (Agent Roles 1–6)
+
+To prevent factual contradictions, repetition, and stylistic drift, the engine operates as a sequential 6-role editorial pipeline where each agent has strict responsibilities:
+
+```mermaid
+graph LR
+    R[Role 1: Reporter] -->|Candidate Events & Personas| P[Role 2: Publisher]
+    P -->|Slot Allocation & Layout Format| J[Role 3: Journalist]
+    J -->|Draft Story & Narrative Polarity| C[Role 4: Copywriter]
+    C -->|Polished Prose & Verified Syntax| E[Role 6: Orchestrator]
+    A[Role 5: Art Director] -->|Visual Layout & Expressive Avatars| E
+    E -->|Structured Data| DB[(DailyGazette Record)]
+```
+
+### Role Breakdown & Responsibilities
+
+| Role | Module | Primary Responsibilities & Contracts |
+|---|---|---|
+| **1. Reporter** | `reporter.py`, `detectors.py`, `special_edition_reporter.py` | **Event & Data Discovery**: Scans database for completed matchdays, ranking swings, failed bankers, and outlier fullpotts. Detects `InsightEvent` candidate records with severity/importance scores (0–100) and matches associated `PlayerPersona` records. |
+| **2. Publisher** | `publisher.py` | **Slot & Format Allocation**: Assigns prioritized events to slots: **HEADLINE** (Rank #1 event), **EVENT 2** (Rank #2 event), and **EVENT 3** (Rank #3 event). Rotates layout formats (`STANDARD_COLUMN`, `WINNERS_LOSERS`, `INTERVIEW`, `PUB_QUOTES`). |
+| **3. Journalist** | `journalist.py` | **Narrative Drafting & Polarity Detection**: Researches historical background memory (`research_historical_background()`). Classifies narrative polarity (`LEADER_TRIUMPH`, `FALLER_COLLAPSE`, `HEAD_TO_HEAD_DUEL`, `GENERAL_STAGE`) so story tone strictly reflects true match facts. Writes doubled 6-paragraph articles with Swedish V2 active behavior descriptions (`BEHAVIORS_V2`). |
+| **4. Copywriter** | `copywriter.py` | **Truth Audit & Grammar Polish**: Performs semantic contradiction auditing (blocking loss phrases in leader stories and vice versa). Eliminates duplicate sentences across paragraphs (`remove_duplicate_sentences()`). Enforces Swedish V2 verb-second word order (`enforce_swedish_v2_syntax()`). Strips banned cliché strings and raw trait tags. |
+| **5. Art Director** | `art_director.py`, `posture_engine.py` | **Visual Styling & Posture Selection**: Resolves visual modes (`RIVALRY_DUEL`, `SINGLE_AVATAR`, `COMPOSITE_3_AVATAR`). Dispatches expressive full-body poses from the 22-posture library across 4 arcs (Victory, Frustration, Celebration, Build-up). Enforces white background blending and role badges. |
+| **6. Editor-in-Chief** | `media.py`, `compiler.py` | **Pipeline Orchestration & Persistence**: Manages the complete generation lifecycle from Reporter to Art Director. Computes daily summary statistics (goals, matches played, points awarded). Constructs final JSON payload and persists `DailyGazette` records idempotently. |
+
+---
+
 ## 8. Tier 3 Prompt Calibrator & JSON Contracts
 
 ### 8.1 Master System Prompt Directive
