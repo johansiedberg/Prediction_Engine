@@ -30,6 +30,10 @@
                     border-bottom: 2px solid #10B981 !important;
                     background: transparent !important;
                 }
+                .main-nav-link.nav-incomplete-red,
+                .main-nav-link.nav-incomplete-red.active {
+                    border-bottom: 2.5px solid #EF4444 !important;
+                }
 
                 @keyframes pulseRedNotification {
                     0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); }
@@ -118,7 +122,7 @@
                         <button class="main-nav-link text-nowrap {% if active_tab_name == 'insights' %}active{% endif %}" id="tab-insights-link" data-bs-toggle="tab" data-bs-target="#tab-insights" type="button" role="tab" aria-controls="tab-insights" aria-selected="{% if active_tab_name == 'insights' %}true{% else %}false{% endif %}">Analys & Insikter</button>
                     </li>
                     <li class="nav-item flex-shrink-0" role="presentation">
-                        <button class="main-nav-link text-nowrap {% if active_tab_name == 'predictions' %}active{% endif %}" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="{% if active_tab_name == 'predictions' %}true{% else %}false{% endif %}">Mina Tips</button>
+                        <button class="main-nav-link text-nowrap {% if active_tab_name == 'predictions' %}active{% endif %} {% if has_any_predictions_incomplete %}nav-incomplete-red{% endif %}" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="{% if active_tab_name == 'predictions' %}true{% else %}false{% endif %}">Mina Tips</button>
                     </li>
                     <li class="nav-item flex-shrink-0" role="presentation">
                         <button class="main-nav-link text-nowrap {% if active_tab_name == 'rules' %}active{% endif %}" id="tab-rules-link" data-bs-toggle="tab" data-bs-target="#tab-rules" type="button" role="tab" aria-controls="tab-rules" aria-selected="{% if active_tab_name == 'rules' %}true{% else %}false{% endif %}">Regler & Poäng</button>
@@ -145,7 +149,7 @@
                         </button>
                     </li>
                     <li class="nav-item flex-shrink-0" role="presentation">
-                        <button class="main-nav-link text-nowrap active" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="true">Mina Tips</button>
+                        <button class="main-nav-link text-nowrap active {% if has_any_predictions_incomplete %}nav-incomplete-red{% endif %}" id="tab-predictions-link" data-bs-toggle="tab" data-bs-target="#tab-predictions" type="button" role="tab" aria-controls="tab-predictions" aria-selected="true">Mina Tips</button>
                     </li>
                     <li class="nav-item flex-shrink-0" role="presentation">
                         <button class="main-nav-link text-nowrap text-secondary" style="opacity: 0.35; cursor: not-allowed; pointer-events: none;" title="Låses upp efter att dina tips har verifierats" disabled>

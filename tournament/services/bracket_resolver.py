@@ -150,16 +150,59 @@ class BracketResolverService:
                 match.tournament._groups_by_code_dict = {
                     (g.name.split()[-1].upper() if g.name else ''): g for g in match.tournament.tournament_groups.prefetch_related('teams').all()
                 }
-            thirds = []
-            for g_let in group_letters:
-                grp = match.tournament._groups_by_code_dict.get(g_let)
-                if grp:
-                    st = grp.get_standings(user_predictions)
-                    if len(st) >= 3:
-                        thirds.append(st[2])
-            if thirds:
-                thirds.sort(key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
-                t = thirds[0]['team']
+            
+            # Check official UEFA 24-team combination table if tournament has 6 groups A-F
+            uefa_map = {
+                'ABCD': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'A', '3A/B/D/E/F': 'B'},
+                'ABCE': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'E'},
+                'ABCF': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                'ABDE': {'3C/D/E/F': 'D', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'E'},
+                'ABDF': {'3C/D/E/F': 'D', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                'ABEF': {'3C/D/E/F': 'E', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                'ACDE': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'A', '3A/B/D/E/F': 'E'},
+                'ACDF': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'A', '3A/B/D/E/F': 'F'},
+                'ACEF': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'F', '3A/B/D/E/F': 'E'},
+                'ADEF': {'3C/D/E/F': 'D', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'F', '3A/B/D/E/F': 'E'},
+                'BCDE': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'E'},
+                'BCDF': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                'BCEF': {'3C/D/E/F': 'E', '3A/C/D/E/F': 'C', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                'BDEF': {'3C/D/E/F': 'E', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                'CDEF': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'F', '3A/B/D/E/F': 'E'},
+            }
+
+            norm_slash_key = '3' + '/'.join(group_letters)
+            all_third_teams = []
+            for g_code, grp in match.tournament._groups_by_code_dict.items():
+                st = grp.get_standings(user_predictions)
+                if len(st) >= 3:
+                    item = st[2]
+                    all_third_teams.append({
+                        'group_code': g_code,
+                        'team': item['team'],
+                        'points': item.get('points', 0),
+                        'gd': item.get('gd', 0),
+                        'gf': item.get('gf', 0),
+                        'won': item.get('won', 0)
+                    })
+
+            all_third_teams.sort(key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
+            top_4_groups = sorted([x['group_code'] for x in all_third_teams[:4]])
+            combo_key = ''.join(top_4_groups)
+
+            chosen_team = None
+            if combo_key in uefa_map and norm_slash_key in uefa_map[combo_key]:
+                chosen_group_code = uefa_map[combo_key][norm_slash_key]
+                matched_item = next((x for x in all_third_teams if x['group_code'] == chosen_group_code), None)
+                if matched_item:
+                    chosen_team = matched_item['team']
+
+            if not chosen_team:
+                thirds = [x for x in all_third_teams if x['group_code'] in group_letters]
+                if thirds:
+                    chosen_team = thirds[0]['team']
+
+            if chosen_team:
+                t = chosen_team
                 res = {
                     'name': t.name,
                     'code': t.code,
@@ -209,3 +252,71 @@ class BracketResolverService:
             'flag_url': '',
             'display_name': team_str_clean
         }
+
+    @classmethod
+    def resolve_actual_knockout_team(cls, match, team_str, user_actual_predictions=None):
+        """
+        Resolves team info for the Actual Knockout phase:
+        - Group placeholders (e.g. 1A, 2B, 3C/E/F) are resolved strictly from the ACTUAL completed group standings.
+        - Previous knockout round dependencies (e.g. Winner Match 37) resolve from user_actual_predictions if available.
+        """
+        if not team_str:
+            return {'name': '-', 'code': '', 'flag_url': '', 'display_name': '-'}
+
+        team_str_clean = team_str.strip()
+
+        # 1. Match Winner/Loser knockout dependencies (e.g. "Winner Match 37", "Loser Match 49")
+        m_kw = re.match(r'^(Winner|Loser|Vinnare|Förlorare)\s+(?:Match\s+)?(\d+)$', team_str_clean, re.IGNORECASE)
+        if m_kw:
+            role, match_num = m_kw.group(1).lower(), int(m_kw.group(2))
+            matches_map = getattr(match.tournament, '_matches_by_number_dict', None)
+            ref_match = matches_map.get(match_num) if matches_map is not None else match.tournament.matches.filter(match_number=match_num).first()
+            if ref_match:
+                ref_match.tournament = match.tournament
+                winner_info = None
+                loser_info = None
+
+                if user_actual_predictions and ref_match.id in user_actual_predictions:
+                    pred = user_actual_predictions[ref_match.id]
+                    if pred and pred.home_goals is not None and pred.away_goals is not None:
+                        h_info = cls.resolve_actual_knockout_team(ref_match, ref_match.home_team, user_actual_predictions)
+                        a_info = cls.resolve_actual_knockout_team(ref_match, ref_match.away_team, user_actual_predictions)
+                        if pred.home_goals > pred.away_goals:
+                            winner_info, loser_info = h_info, a_info
+                        elif pred.away_goals > pred.home_goals:
+                            winner_info, loser_info = a_info, h_info
+                        else:
+                            if pred.penalty_winner == a_info['name']:
+                                winner_info, loser_info = a_info, h_info
+                            else:
+                                winner_info, loser_info = h_info, a_info
+
+                if not winner_info and ref_match.is_finished and ref_match.home_goals is not None and ref_match.away_goals is not None:
+                    h_info = cls.resolve_actual_knockout_team(ref_match, ref_match.home_team)
+                    a_info = cls.resolve_actual_knockout_team(ref_match, ref_match.away_team)
+                    if ref_match.home_goals > ref_match.away_goals:
+                        winner_info, loser_info = h_info, a_info
+                    elif ref_match.away_goals > ref_match.home_goals:
+                        winner_info, loser_info = a_info, h_info
+                    else:
+                        box_data = ref_match.box_score_data or {}
+                        pen_win = box_data.get('penalty_winner')
+                        if pen_win and pen_win == a_info.get('name'):
+                            winner_info, loser_info = a_info, h_info
+                        else:
+                            winner_info, loser_info = h_info, a_info
+
+                target_info = winner_info if role in ('winner', 'vinnare') else loser_info
+                if target_info and target_info.get('name') and target_info['name'] != '-':
+                    real_name = target_info['name'].split(' (')[0].strip()
+                    code = target_info.get('code', '') or COUNTRY_CODE_MAP.get(real_name.lower(), '')
+                    flag = target_info.get('flag_url') or (f"https://flagcdn.com/w40/{code.lower()}.png" if code else '')
+                    return {
+                        'name': real_name,
+                        'code': code,
+                        'flag_url': flag,
+                        'display_name': f"{real_name} ({team_str_clean})"
+                    }
+
+        # 2. For group placeholders and direct teams in the Actual Knockout tree, resolve using ACTUAL group results (user_predictions=None)
+        return cls.resolve_team(match, team_str_clean, user_predictions=None)

@@ -128,6 +128,47 @@ class Tournament(models.Model):
         return first_m.date_time if first_m else None
 
     @property
+    def first_knockout_match_date_time(self):
+        """Returns date_time of the earliest scheduled knockout match in the tournament."""
+        first_ko = self.matches.filter(stage__isnull=False, date_time__isnull=False).order_by('date_time').first()
+        return first_ko.date_time if first_ko else None
+
+    @property
+    def is_in_actual_knockout_window(self):
+        """
+        Returns True if:
+        1. All group stage matches exist and have concluded (finished or have scores entered).
+        2. Earliest knockout stage match has NOT yet kicked off.
+        """
+        group_matches = list(self.matches.filter(group__isnull=False))
+        if not group_matches:
+            return False
+        
+        all_groups_concluded = all(
+            m.is_finished or (m.home_goals is not None and m.away_goals is not None)
+            for m in group_matches
+        )
+        if not all_groups_concluded:
+            return False
+
+        first_ko_dt = self.first_knockout_match_date_time
+        if first_ko_dt:
+            now = timezone.now()
+            return now < first_ko_dt
+
+        return True
+
+    @property
+    def is_actual_knockout_locked(self):
+        """
+        Returns True if the actual knockout prediction window has closed (first knockout match started).
+        """
+        first_ko_dt = self.first_knockout_match_date_time
+        if first_ko_dt:
+            return timezone.now() >= first_ko_dt
+        return False
+
+    @property
     def is_locked_by_time(self):
         """
         Returns True if the tournament's first match has started (or start_date has passed).
@@ -647,6 +688,14 @@ class Match(models.Model):
     def get_away_team_info(self, user_predictions=None):
         return self._resolve_team(self.away_team, user_predictions)
 
+    def get_actual_home_team_info(self, user_actual_predictions=None):
+        from tournament.services.bracket_resolver import BracketResolverService
+        return BracketResolverService.resolve_actual_knockout_team(self, self.home_team, user_actual_predictions)
+
+    def get_actual_away_team_info(self, user_actual_predictions=None):
+        from tournament.services.bracket_resolver import BracketResolverService
+        return BracketResolverService.resolve_actual_knockout_team(self, self.away_team, user_actual_predictions)
+
     def _resolve_team(self, team_str, user_predictions=None):
         from tournament.services.bracket_resolver import BracketResolverService
         return BracketResolverService.resolve_team(self, team_str, user_predictions)
@@ -665,9 +714,11 @@ class MatchPrediction(models.Model):
     penalty_winner = models.CharField(max_length=100, blank=True, null=True, help_text="Tiebreaker winner team name")
 
     class Meta:
-        unique_together = ('match', 'player')
+        unique_together = ('match', 'player', 'prediction_phase')
         indexes = [
             models.Index(fields=['player']),
+            models.Index(fields=['player', 'prediction_phase']),
+            models.Index(fields=['match', 'prediction_phase']),
         ]
 
     def save(self, *args, **kwargs):
@@ -680,7 +731,7 @@ class MatchPrediction(models.Model):
             pass
 
     def __str__(self):
-        return f"{self.player.get_full_name() or self.player.email} - Match {self.match.match_number}"
+        return f"{self.player.get_full_name() or self.player.email} - Match {self.match.match_number} [{self.prediction_phase}]"
 
 
 class Sidebet(models.Model):
@@ -749,6 +800,7 @@ class TournamentSubmission(models.Model):
     player = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tournament_submissions')
     is_saved = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
+    is_actual_knockout_saved = models.BooleanField(default=False, help_text="Player saved predictions for the actual knockout phase")
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -759,7 +811,8 @@ class TournamentSubmission(models.Model):
 
     def __str__(self):
         status = "Verified" if self.is_verified else ("Saved" if self.is_saved else "Pending")
-        return f"{self.player.get_full_name() or self.player.email} - {self.tournament.name} [{status}]"
+        actual_str = " + Actual KO" if self.is_actual_knockout_saved else ""
+        return f"{self.player.get_full_name() or self.player.email} - {self.tournament.name} [{status}{actual_str}]"
 
 
 class UserProfile(models.Model):

@@ -41,8 +41,13 @@ background-repeat: no-repeat;{% endblock %}
 
                 <div class="card-body p-4 p-lg-5 d-flex flex-column justify-content-between">
                     <div>
-                        <div class="mb-3 text-info">
+                        <div class="d-flex align-items-center justify-content-between mb-3 text-info">
                             <i class="fa-solid fa-trophy fa-2x"></i>
+                            {% if has_actual_knockout_window %}
+                            <span class="badge bg-warning text-dark fw-bold px-3 py-1.5 rounded-pill shadow-sm animate-pulse border border-warning" style="font-size: 0.78rem;">
+                                🔥 Äkta Slutspel Öppet!
+                            </span>
+                            {% endif %}
                         </div>
 
                         <h2 class="h4 fw-bold text-white mb-2">Mästerskapstips</h2>

@@ -1,5 +1,6 @@
 import datetime
 from unittest.mock import patch, MagicMock
+from django.utils import timezone
 from django.test import TestCase, override_settings, Client
 from django.contrib.auth.models import User
 
@@ -2762,6 +2763,204 @@ class MagicLinkAuthTestCase(TestCase):
         self.assertEqual(user.email, 'finalemail@domain.com')
         self.assertEqual(user.username, 'finalemail@domain.com')
         self.assertTrue(user.check_password('supersecret789'))
+
+
+class ActualKnockoutPredictionTestCase(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser('johansiedberg', 'admin@engine.test', 'adminpass123')
+        self.player = User.objects.create_user('player1', 'player1@engine.test', 'playerpass123', first_name='Zlatan', last_name='Ibrahimovic')
+        self.player.profile.terms_accepted = True
+        self.player.profile.save()
+
+        self.tournament = Tournament.objects.create(name='Euro 2028 Finals', admin=self.admin, is_active=True)
+        self.tournament.players.add(self.player)
+
+        from tournament.models import Group, KnockoutStage
+        self.group_a = Group.objects.create(tournament=self.tournament, name='Group A')
+        self.r16_stage = KnockoutStage.objects.create(tournament=self.tournament, name='Åttondelsfinal', order=1)
+
+        now = timezone.now()
+        # Group match 1 & 2
+        self.gm1 = Match.objects.create(
+            tournament=self.tournament,
+            match_number=1,
+            group=self.group_a,
+            home_team='Sweden',
+            away_team='Denmark',
+            date_time=now - datetime.timedelta(days=5),
+            home_goals=2,
+            away_goals=1,
+            is_finished=True
+        )
+        self.gm2 = Match.objects.create(
+            tournament=self.tournament,
+            match_number=2,
+            group=self.group_a,
+            home_team='Norway',
+            away_team='Finland',
+            date_time=now - datetime.timedelta(days=4),
+            home_goals=1,
+            away_goals=1,
+            is_finished=True
+        )
+
+        # Knockout match 1 (scheduled 2 days in the future)
+        self.ko1 = Match.objects.create(
+            tournament=self.tournament,
+            match_number=37,
+            stage=self.r16_stage,
+            home_team='1A',
+            away_team='2B',
+            date_time=now + datetime.timedelta(days=2),
+            is_finished=False
+        )
+
+    def test_actual_knockout_window_states(self):
+        # 1. When all group matches are concluded and first knockout match is in future -> window is open
+        self.assertTrue(self.tournament.is_in_actual_knockout_window)
+        self.assertFalse(self.tournament.is_actual_knockout_locked)
+
+        # 2. When one group match is still unfinished -> window is NOT open
+        self.gm2.is_finished = False
+        self.gm2.home_goals = None
+        self.gm2.away_goals = None
+        self.gm2.save()
+        self.assertFalse(self.tournament.is_in_actual_knockout_window)
+
+        # 3. Finish it again -> window opens
+        self.gm2.is_finished = True
+        self.gm2.home_goals = 1
+        self.gm2.away_goals = 1
+        self.gm2.save()
+        self.assertTrue(self.tournament.is_in_actual_knockout_window)
+
+        # 4. When knockout match date_time passes -> window closes and locked is True
+        self.ko1.date_time = timezone.now() - datetime.timedelta(hours=1)
+        self.ko1.save()
+        self.assertFalse(self.tournament.is_in_actual_knockout_window)
+        self.assertTrue(self.tournament.is_actual_knockout_locked)
+
+    def test_dual_match_predictions_saving(self):
+        # Save initial bracket prediction
+        pred_initial = MatchPrediction.objects.create(
+            match=self.ko1,
+            player=self.player,
+            prediction_phase='INITIAL_BRACKET',
+            home_goals=2,
+            away_goals=0
+        )
+
+        # Save actual knockout prediction for the SAME match and player
+        pred_actual = MatchPrediction.objects.create(
+            match=self.ko1,
+            player=self.player,
+            prediction_phase='ACTUAL_KNOCKOUT',
+            home_goals=3,
+            away_goals=1
+        )
+
+        # Assert both exist
+        self.assertEqual(MatchPrediction.objects.filter(match=self.ko1, player=self.player).count(), 2)
+        self.assertEqual(pred_initial.prediction_phase, 'INITIAL_BRACKET')
+        self.assertEqual(pred_actual.prediction_phase, 'ACTUAL_KNOCKOUT')
+
+    def test_dual_knockout_scoring(self):
+        from tournament.services.cache_service import get_or_set_leaderboards_and_analytics
+        from tournament.models import PointSystem
+
+        point_system = PointSystem.objects.create(tournament=self.tournament, match_correct_1x2=3, match_correct_goals_per_team=3, match_correct_total_goals=1)
+
+        # Player predicted 2-0 in initial bracket (Exact score for 2-0 -> 3 + 3 + 3 + 1 = 10 pts)
+        MatchPrediction.objects.create(
+            match=self.ko1,
+            player=self.player,
+            prediction_phase='INITIAL_BRACKET',
+            home_goals=2,
+            away_goals=0
+        )
+
+        # Player predicted 2-1 in actual knockout (1x2 correct (1) + home goals correct (2) -> 3 + 3 = 6 pts)
+        MatchPrediction.objects.create(
+            match=self.ko1,
+            player=self.player,
+            prediction_phase='ACTUAL_KNOCKOUT',
+            home_goals=2,
+            away_goals=1
+        )
+
+        # Match finished 2-0
+        self.ko1.home_goals = 2
+        self.ko1.away_goals = 0
+        self.ko1.is_finished = True
+        self.ko1.save()
+
+        # Compute leaderboard
+        all_preds = list(MatchPrediction.objects.filter(match__tournament=self.tournament).select_related('match', 'player'))
+        preds_by_player = {self.player.id: all_preds}
+        bundle = get_or_set_leaderboards_and_analytics(
+            tournament=self.tournament,
+            point_system=point_system,
+            players=[self.player],
+            all_groups=[self.group_a],
+            all_matches=[self.gm1, self.gm2, self.ko1],
+            all_submissions_dict={},
+            all_predictions_by_player=preds_by_player,
+            all_predictions_by_match={},
+            sidebet_answers_by_player={}
+        )
+
+        ko_entry = bundle['leaderboard_knockout'][0]
+        # Initial: 10 pts, Actual: 6 pts, Total: 16 pts
+        self.assertEqual(ko_entry['initial_points'], 10)
+        self.assertEqual(ko_entry['actual_points'], 6)
+        self.assertEqual(ko_entry['points'], 16)
+        self.assertEqual(bundle['leaderboard'][0]['points'], 16)
+
+    def test_player_landing_url_redirection_during_window(self):
+        from tournament.views.auth import _get_player_landing_url
+
+        # Initial tips are saved, but actual knockout is NOT saved yet -> should land on actual_knockout
+        sub, _ = TournamentSubmission.objects.get_or_create(tournament=self.tournament, player=self.player)
+        sub.is_saved = True
+        sub.is_actual_knockout_saved = False
+        sub.save()
+        url = _get_player_landing_url(self.player)
+        self.assertEqual(url, f'/dashboard/?tournament_id={self.tournament.id}&tab=predictions&active_tab=actual_knockout')
+
+        # Once actual knockout tips are saved -> lands on home dashboard
+        sub.is_actual_knockout_saved = True
+        sub.save()
+        url_after = _get_player_landing_url(self.player)
+        self.assertEqual(url_after, '/dashboard/?tab=home')
+
+    def test_actual_knockout_post_submission(self):
+        sub, _ = TournamentSubmission.objects.get_or_create(tournament=self.tournament, player=self.player)
+        sub.is_saved = True
+        sub.save()
+        self.client.login(username='player1', password='playerpass123')
+
+        resp = self.client.post(
+            '/dashboard/',
+            {
+                'active_tab': 'actual_knockout',
+                f'actual_home_{self.ko1.id}': '3',
+                f'actual_away_{self.ko1.id}': '1',
+            },
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        # Verify prediction created with ACTUAL_KNOCKOUT phase
+        pred = MatchPrediction.objects.filter(match=self.ko1, player=self.player, prediction_phase='ACTUAL_KNOCKOUT').first()
+        self.assertIsNotNone(pred)
+        self.assertEqual(pred.home_goals, 3)
+        self.assertEqual(pred.away_goals, 1)
+
+        # Verify submission updated
+        sub = TournamentSubmission.objects.get(tournament=self.tournament, player=self.player)
+        self.assertTrue(sub.is_actual_knockout_saved)
+
 
 
 

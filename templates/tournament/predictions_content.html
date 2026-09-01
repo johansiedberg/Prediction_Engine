@@ -5,6 +5,13 @@
     <input type="hidden" name="active_tab" id="activeTabInput" value="{{ active_tab|default:'' }}">
 
     <style>
+        .nav-pills .nav-link.nav-incomplete-red {
+            border-bottom: 2.5px solid #EF4444 !important;
+            text-decoration: underline !important;
+            text-decoration-color: #EF4444 !important;
+            text-decoration-thickness: 2px !important;
+            text-underline-offset: 4px !important;
+        }
         .neutral-score-input.match-input {
             width: 42px !important;
             height: 34px !important;
@@ -55,20 +62,30 @@
             font-weight: 700 !important;
             color: #FFFFFF !important;
         }
-        .tb-btn.active-pill {
-            background: rgba(16, 185, 129, 0.15) !important;
-            border: 1px solid rgba(16, 185, 129, 0.4) !important;
-            color: rgba(16, 185, 129, 0.9) !important;
+        .tb-btn, .actual-tb-btn {
+            font-size: 0.58rem !important;
+            height: 20px !important;
+            padding: 0 4px !important;
+            line-height: 20px !important;
+            cursor: pointer !important;
+            letter-spacing: 0.04em !important;
+            flex: 1 1 0 !important;
+        }
+        .tb-btn.active-pill, .actual-tb-btn.active-pill {
+            background: rgba(16, 185, 129, 0.32) !important;
+            color: #34D399 !important;
+            font-weight: 700 !important;
+            box-shadow: inset 0 0 6px rgba(16, 185, 129, 0.4) !important;
+        }
+        .tb-btn.inactive-pill, .actual-tb-btn.inactive-pill {
+            background: transparent !important;
+            color: #94A3B8 !important;
+            font-weight: 600 !important;
             box-shadow: none !important;
         }
-        .tb-btn.inactive-pill {
-            background: rgba(255, 255, 255, 0.02) !important;
-            border: 1px solid rgba(255, 255, 255, 0.06) !important;
-            color: rgba(255, 255, 255, 0.25) !important;
-        }
-        .tb-btn.inactive-pill:hover {
-            background: rgba(255, 255, 255, 0.05) !important;
-            color: rgba(255, 255, 255, 0.5) !important;
+        .tb-btn.inactive-pill:hover, .actual-tb-btn.inactive-pill:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: #FFFFFF !important;
         }
         .standings-table-pred {
             border-collapse: separate !important;
@@ -227,8 +244,18 @@
         {% endif %}
 
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'knockout' %}active{% endif %}" id="knockout-tab" data-bs-toggle="pill" data-bs-target="#knockout-stage" type="button" role="tab">
+            <button class="nav-link {% if active_tab == 'knockout' %}active{% endif %} {% if has_initial_predictions_incomplete %}nav-incomplete-red{% endif %}" id="knockout-tab" data-bs-toggle="pill" data-bs-target="#knockout-stage" type="button" role="tab">
                 Slutspel
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if active_tab == 'actual_knockout' or active_tab == 'actual-knockout-stage' %}active{% endif %} {% if has_actual_knockout_incomplete %}nav-incomplete-red{% endif %}" id="actual-knockout-tab" data-bs-toggle="pill" data-bs-target="#actual-knockout-stage" type="button" role="tab">
+                <i class="fa-solid fa-trophy me-1.5 text-warning"></i>Äkta Slutspel
+                {% if is_in_actual_knockout_window %}
+                    <span class="badge bg-warning text-dark fw-bold ms-1 px-1.5 py-0.5 rounded-pill" style="font-size: 0.68rem;">Öppet</span>
+                {% elif is_actual_knockout_locked %}
+                    <span class="badge bg-secondary text-light fw-bold ms-1 px-1.5 py-0.5 rounded-pill" style="font-size: 0.68rem;"><i class="fa-solid fa-lock"></i></span>
+                {% endif %}
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -475,12 +502,12 @@
                                         <!-- Main Match Row: Home Team (Left) | Score (Center) | Away Team (Right) -->
                                         <div class="d-flex align-items-center justify-content-between w-100 my-auto">
                                             <!-- HOME TEAM: [ Home Name ] [ Home Flag ] -->
-                                            <div class="d-flex align-items-center justify-content-end overflow-hidden flex-grow-1" style="min-width: 0; gap: 8px;">
+                                            <div class="d-flex align-items-center justify-content-end overflow-hidden" style="flex: 1 1 0; min-width: 0; gap: 8px;">
                                                 <span class="fw-bold text-white small home-team-name text-truncate text-end" style="font-size: 0.84rem;">{{ home.name }}</span>
                                                 <img src="{{ home.flag_url }}" class="home-flag-img shadow-sm" width="20" height="14" style="border-radius: 2px; object-fit: cover; flex-shrink: 0; {% if not home.flag_url %}display:none;{% endif %}">
                                             </div>
 
-                                            <!-- SCORE INPUTS -->
+                                            <!-- SCORE INPUTS (Centered) -->
                                             <div class="d-flex align-items-center justify-content-center flex-shrink-0 mx-2" style="width: 78px;">
                                                 <input type="number" name="home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" style="width: 34px; height: 32px; font-size: 0.9rem;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
                                                 <span class="text-white-50 small fw-bold mx-1">-</span>
@@ -488,24 +515,193 @@
                                             </div>
 
                                             <!-- AWAY TEAM: [ Away Flag ] [ Away Name ] -->
-                                            <div class="d-flex align-items-center overflow-hidden flex-grow-1" style="min-width: 0; gap: 8px;">
+                                            <div class="d-flex align-items-center overflow-hidden" style="flex: 1 1 0; min-width: 0; gap: 8px;">
                                                 <img src="{{ away.flag_url }}" class="away-flag-img shadow-sm" width="20" height="14" style="border-radius: 2px; object-fit: cover; flex-shrink: 0; {% if not away.flag_url %}display:none;{% endif %}">
                                                 <span class="fw-bold text-white small away-team-name text-truncate" style="font-size: 0.84rem;">{{ away.name }}</span>
                                             </div>
                                         </div>
 
-                                        <!-- Dedicated Penalty Winner Bar (Shown only on Tie) -->
-                                        <div id="tb-box-{{ match.id }}" class="penalty-winner-selector mt-2 pt-1.5 border-top border-secondary border-opacity-25" style="display: none;" data-match-id="{{ match.id }}">
-                                            <div class="d-flex align-items-center justify-content-center gap-2 w-100">
-                                                <span class="text-warning fw-bold" style="font-size: 0.72rem;">Straffvinnare:</span>
+                                        <!-- Dedicated Advancement / Tiebreaker Bar (Centered under Result -) -->
+                                        <div id="tb-box-{{ match.id }}" class="penalty-winner-selector mt-2 pt-2 border-top border-secondary border-opacity-25" style="{% if pred and pred.home_goals == pred.away_goals and pred.home_goals is not None %}display: block;{% else %}display: none;{% endif %}" data-match-id="{{ match.id }}">
+                                            <div class="position-relative d-flex align-items-center justify-content-center w-100">
+                                                <!-- Left: Avancerar label anchored absolutely -->
+                                                <div class="position-absolute start-0 d-flex align-items-center">
+                                                    <span class="text-warning fw-bold text-nowrap d-inline-flex align-items-center gap-1" style="font-size: 0.68rem; letter-spacing: 0.02em;">
+                                                        <i class="fa-solid fa-arrow-right text-warning" style="font-size: 0.60rem;"></i>
+                                                        <span>Avancerar</span>
+                                                    </span>
+                                                </div>
                                                 <input type="hidden" name="penalty_winner_{{ match.id }}" id="tb-input-{{ match.id }}" value="{% if pred %}{{ pred.penalty_winner|default:'' }}{% endif %}">
                                                 
-                                                <div class="d-inline-flex border border-warning border-opacity-40 rounded-pill p-0.5" style="background: rgba(15, 23, 42, 0.9);">
-                                                    <button type="button" class="btn p-0 px-2.5 py-0.5 border-0 rounded-pill tb-btn {% if pred and pred.penalty_winner == home.name %}active-pill{% else %}inactive-pill{% endif %}" data-match-id="{{ match.id }}" data-team-target="home" title="Straffvinnare: {{ home.name }}" style="transition: all 0.15s ease;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
-                                                        <span class="tb-code text-uppercase fw-extrabold" style="font-size: 0.7rem;">{{ home.code|default:home.name|slice:":3" }}</span>
+                                                <!-- Center: Segmented Toggle Buttons centered directly under Result (-) -->
+                                                <div class="btn-group rounded-pill overflow-hidden border border-secondary border-opacity-30 shadow-sm" style="background: rgba(15, 23, 42, 0.95); padding: 1px; width: 134px;">
+                                                    <button type="button" class="btn btn-sm p-0 border-0 tb-btn d-inline-flex align-items-center justify-content-center {% if pred and pred.penalty_winner == home.name %}active-pill{% else %}inactive-pill{% endif %}" data-match-id="{{ match.id }}" data-team-target="home" title="Vinnare: {{ home.name }}" style="height: 20px; border-radius: 9999px 0 0 9999px !important; transition: all 0.15s ease; text-transform: uppercase;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
+                                                        <span class="tb-name text-center w-100 fw-bold" style="font-size: 0.58rem;">Vinnare</span>
                                                     </button>
-                                                    <button type="button" class="btn p-0 px-2.5 py-0.5 border-0 rounded-pill tb-btn {% if pred and pred.penalty_winner == away.name %}active-pill{% else %}inactive-pill{% endif %}" data-match-id="{{ match.id }}" data-team-target="away" title="Straffvinnare: {{ away.name }}" style="transition: all 0.15s ease;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
-                                                        <span class="tb-code text-uppercase fw-extrabold" style="font-size: 0.7rem;">{{ away.code|default:away.name|slice:":3" }}</span>
+                                                    <div style="width: 1px; background: rgba(255, 255, 255, 0.2); height: 11px; align-self: center;"></div>
+                                                    <button type="button" class="btn btn-sm p-0 border-0 tb-btn d-inline-flex align-items-center justify-content-center {% if pred and pred.penalty_winner == away.name %}active-pill{% else %}inactive-pill{% endif %}" data-match-id="{{ match.id }}" data-team-target="away" title="Vinnare: {{ away.name }}" style="height: 20px; border-radius: 0 9999px 9999px 0 !important; transition: all 0.15s ease; text-transform: uppercase;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
+                                                        <span class="tb-name text-center w-100 fw-bold" style="font-size: 0.58rem;">Vinnare</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endwith %}
+                                {% empty %}
+                                <div class="col-12 text-muted small">Inga matcher inlagda för detta steg ännu.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center text-muted py-4">Inga slutspelssteg inlagda ännu.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTUAL KNOCKOUT TAB CONTENT -->
+        <div class="tab-pane fade {% if active_tab == 'actual_knockout' or active_tab == 'actual-knockout-stage' %}show active{% endif %}" id="actual-knockout-stage" role="tabpanel">
+
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <h4 class="fw-bold text-white mb-0">Äkta Slutspel</h4>
+                        <span class="badge bg-warning text-dark fw-bold px-2.5 py-1 rounded-pill border border-warning" style="font-size: 0.72rem;">
+                            Officiellt Träd
+                        </span>
+                    </div>
+                    {% if is_in_actual_knockout_window %}
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 fw-bold px-3 py-1.5 rounded-pill">
+                            <i class="fa-solid fa-circle-dot me-1.5 text-success animate-pulse"></i>Tippningsfönster Öppet
+                        </span>
+                    {% elif is_actual_knockout_locked %}
+                        <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-40 fw-bold px-3 py-1.5 rounded-pill">
+                            <i class="fa-solid fa-lock me-1.5"></i>Permanent Låst
+                        </span>
+                    {% else %}
+                        <span class="badge bg-info bg-opacity-25 text-info border border-info border-opacity-40 fw-bold px-3 py-1.5 rounded-pill">
+                            <i class="fa-solid fa-clock me-1.5"></i>Öppnas efter Gruppspelet
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if is_in_actual_knockout_window %}
+                <div class="p-3.5 p-md-4 rounded-4 mb-4 shadow-lg" 
+                     style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(250, 204, 21, 0.5); border-left: 5px solid #FACC15; backdrop-filter: blur(12px);">
+                    <div class="d-flex align-items-start gap-3 mb-3">
+                        <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-warning bg-opacity-25 border border-warning border-opacity-50 text-warning" style="width: 44px; height: 44px;">
+                            <i class="fa-solid fa-fire-flame-curved fs-5"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="fw-extrabold mb-1" style="font-size: 1.05rem; color: #FACC15 !important;">
+                                🔥 Gruppspelet är klart &bull; Tippa det Äkta Slutspelet!
+                            </h5>
+                            <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #E2E8F0;">
+                                Det officiella slutspelet med de faktiskt kvalificerade lagen är nu fastställt. Fyll i dina tips för samtliga slutspelsmatcher fram till avspark i första matchen. Dina tips här genererar <strong class="text-white">separata slutspelspoäng</strong> till den totala topplistan!
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Action Toolbar inside Top Card -->
+                    <div class="pt-3 border-top border-white border-opacity-10 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+                        <div id="save-actual-knockout-hint" class="small text-start flex-grow-1" style="font-size: 0.85rem;"></div>
+                        <button type="submit" id="save-actual-knockout-btn" class="btn btn-emerald px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center justify-content-center gap-2 flex-shrink-0" style="font-size: 0.92rem; min-width: 250px;" {% if not is_actual_knockout_saved %}disabled{% endif %}>
+                            <i class="fa-solid fa-floppy-disk me-1.5"></i>{% if is_actual_knockout_saved %}Spara uppdaterade slutspelstips{% else %}Spara tips för Äkta Slutspel{% endif %}
+                        </button>
+                    </div>
+                </div>
+                {% elif is_actual_knockout_locked %}
+                <div class="p-3.5 p-md-4 rounded-4 mb-4 d-flex align-items-center gap-3 shadow-lg" 
+                     style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(148, 163, 184, 0.3); border-left: 5px solid #94A3B8; backdrop-filter: blur(12px);">
+                    <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-secondary bg-opacity-25 border border-secondary border-opacity-50 text-white" style="width: 44px; height: 44px;">
+                        <i class="fa-solid fa-lock fs-5 text-white"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="fw-extrabold mb-1" style="font-size: 1.05rem; color: #94A3B8 !important;">
+                            Äkta Slutspel är låst
+                        </h5>
+                        <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #CBD5E1;">
+                            Första slutspelsmatchen har startat och tipsen för det äkta slutspelet är permanent låsta.
+                        </p>
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-3.5 p-md-4 rounded-4 mb-4 d-flex align-items-center gap-3 shadow-lg" 
+                     style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(56, 189, 248, 0.3); border-left: 5px solid #38BDF8; backdrop-filter: blur(12px);">
+                    <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-info bg-opacity-25 border border-info border-opacity-50 text-info" style="width: 44px; height: 44px;">
+                        <i class="fa-solid fa-hourglass-half fs-5"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h5 class="fw-extrabold mb-1" style="font-size: 1.05rem; color: #38BDF8 !important;">
+                            Gruppspelet pågår fortfarande
+                        </h5>
+                        <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #CBD5E1;">
+                            Det äkta slutspelet öppnas automatiskt för tippning så snart alla gruppspelsmatcher är spelade och det officiella slutspelet fastställts!
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="row g-4">
+                    {% for stage in knockout_stages %}
+                    <div class="col-12">
+                        <div class="p-3 rounded-3 mb-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <h5 class="fw-bold text-emerald mb-3">{{ stage.name }}</h5>
+                            <div class="row g-3">
+                                {% for match in stage.matches.all %}
+                                {% with pred=user_actual_predictions|get_item:match.id home=match.get_actual_home_team_info away=match.get_actual_away_team_info %}
+                                <div class="col-12 col-md-6">
+                                    <div class="p-3 rounded-3 actual-match-row d-flex flex-column justify-content-between transition-all" data-match-id="{{ match.id }}" data-match-number="{{ match.match_number }}" data-home-raw="{{ match.home_team }}" data-away-raw="{{ match.away_team }}" data-actual-home="{{ home.name }}" data-actual-away="{{ away.name }}" style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); min-height: 105px;">
+                                        <!-- Top Line: Date/Time & Match # -->
+                                        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-secondary border-opacity-25">
+                                            <span class="small text-secondary fw-semibold" style="font-size: 0.76rem;">{{ match.date_time|date:"Y-m-d H:i"|default:"Slutspel" }}</span>
+                                            <span class="badge bg-dark text-warning border border-warning border-opacity-30 small" style="font-size: 0.7rem;">Match #{{ match.match_number }}</span>
+                                        </div>
+                                        
+                                        <!-- Main Match Row: Home Team (Left) | Score (Center) | Away Team (Right) -->
+                                        <div class="d-flex align-items-center justify-content-between w-100 my-auto">
+                                            <!-- HOME TEAM: [ Home Name ] [ Home Flag ] -->
+                                            <div class="d-flex align-items-center justify-content-end overflow-hidden" style="flex: 1 1 0; min-width: 0; gap: 8px;">
+                                                <span class="fw-bold text-white small actual-home-team-name text-truncate text-end" style="font-size: 0.84rem;">{{ home.name }}</span>
+                                                <img src="{{ home.flag_url }}" class="actual-home-flag-img shadow-sm" width="20" height="14" style="border-radius: 2px; object-fit: cover; flex-shrink: 0; {% if not home.flag_url %}display:none;{% endif %}">
+                                            </div>
+
+                                            <!-- SCORE INPUTS (Centered) -->
+                                            <div class="d-flex align-items-center justify-content-center flex-shrink-0 mx-2" style="width: 78px;">
+                                                <input type="number" name="actual_home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input actual-knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" style="width: 34px; height: 32px; font-size: 0.9rem;" {% if is_admin or is_actual_knockout_locked or not is_in_actual_knockout_window %}disabled{% endif %}>
+                                                <span class="text-white-50 small fw-bold mx-1">-</span>
+                                                <input type="number" name="actual_away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input actual-knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" style="width: 34px; height: 32px; font-size: 0.9rem;" {% if is_admin or is_actual_knockout_locked or not is_in_actual_knockout_window %}disabled{% endif %}>
+                                            </div>
+
+                                            <!-- AWAY TEAM: [ Away Flag ] [ Away Name ] -->
+                                            <div class="d-flex align-items-center overflow-hidden" style="flex: 1 1 0; min-width: 0; gap: 8px;">
+                                                <img src="{{ away.flag_url }}" class="actual-away-flag-img shadow-sm" width="20" height="14" style="border-radius: 2px; object-fit: cover; flex-shrink: 0; {% if not away.flag_url %}display:none;{% endif %}">
+                                                <span class="fw-bold text-white small actual-away-team-name text-truncate" style="font-size: 0.84rem;">{{ away.name }}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Dedicated Advancement / Tiebreaker Bar (Centered under Result -) -->
+                                        <div id="actual-tb-box-{{ match.id }}" class="actual-penalty-winner-selector mt-2 pt-2 border-top border-secondary border-opacity-25" style="{% if pred and pred.home_goals == pred.away_goals and pred.home_goals is not None %}display: block;{% else %}display: none;{% endif %}" data-match-id="{{ match.id }}">
+                                            <div class="position-relative d-flex align-items-center justify-content-center w-100">
+                                                <!-- Left: Avancerar label anchored absolutely -->
+                                                <div class="position-absolute start-0 d-flex align-items-center">
+                                                    <span class="text-warning fw-bold text-nowrap d-inline-flex align-items-center gap-1" style="font-size: 0.68rem; letter-spacing: 0.02em;">
+                                                        <i class="fa-solid fa-arrow-right text-warning" style="font-size: 0.60rem;"></i>
+                                                        <span>Avancerar</span>
+                                                    </span>
+                                                </div>
+                                                <input type="hidden" name="actual_penalty_winner_{{ match.id }}" id="actual-tb-input-{{ match.id }}" value="{% if pred %}{{ pred.penalty_winner|default:'' }}{% endif %}">
+                                                
+                                                <!-- Center: Segmented Toggle Buttons centered directly under Result (-) -->
+                                                <div class="btn-group rounded-pill overflow-hidden border border-secondary border-opacity-30 shadow-sm" style="background: rgba(15, 23, 42, 0.95); padding: 1px; width: 134px;">
+                                                    <button type="button" class="btn btn-sm p-0 border-0 actual-tb-btn d-inline-flex align-items-center justify-content-center {% if pred and pred.penalty_winner == home.name %}active-pill{% else %}inactive-pill{% endif %}" data-match-id="{{ match.id }}" data-team-target="home" title="Vinnare: {{ home.name }}" style="height: 20px; border-radius: 9999px 0 0 9999px !important; transition: all 0.15s ease; text-transform: uppercase;" {% if is_admin or is_actual_knockout_locked or not is_in_actual_knockout_window %}disabled{% endif %}>
+                                                        <span class="actual-tb-name text-center w-100 fw-bold" style="font-size: 0.58rem;">Vinnare</span>
+                                                    </button>
+                                                    <div style="width: 1px; background: rgba(255, 255, 255, 0.2); height: 11px; align-self: center;"></div>
+                                                    <button type="button" class="btn btn-sm p-0 border-0 actual-tb-btn d-inline-flex align-items-center justify-content-center {% if pred and pred.penalty_winner == away.name %}active-pill{% else %}inactive-pill{% endif %}" data-match-id="{{ match.id }}" data-team-target="away" title="Vinnare: {{ away.name }}" style="height: 20px; border-radius: 0 9999px 9999px 0 !important; transition: all 0.15s ease; text-transform: uppercase;" {% if is_admin or is_actual_knockout_locked or not is_in_actual_knockout_window %}disabled{% endif %}>
+                                                        <span class="actual-tb-name text-center w-100 fw-bold" style="font-size: 0.58rem;">Vinnare</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -1072,14 +1268,10 @@
                 const awayTbBtn = row.querySelector('button[data-team-target="away"]');
 
                 if (homeTbBtn) {
-                    const codeSpan = homeTbBtn.querySelector('.tb-code');
-                    if (codeSpan) codeSpan.textContent = homeResolved.substring(0, 3).toUpperCase();
-                    homeTbBtn.setAttribute('title', `Straffvinnare: ${homeResolved}`);
+                    homeTbBtn.setAttribute('title', `Vinnare: ${homeResolved}`);
                 }
                 if (awayTbBtn) {
-                    const codeSpan = awayTbBtn.querySelector('.tb-code');
-                    if (codeSpan) codeSpan.textContent = awayResolved.substring(0, 3).toUpperCase();
-                    awayTbBtn.setAttribute('title', `Straffvinnare: ${awayResolved}`);
+                    awayTbBtn.setAttribute('title', `Vinnare: ${awayResolved}`);
                 }
 
                 const homeInput = row.querySelector('input[name^="home_"]');
@@ -1103,7 +1295,7 @@
                         loser = homeResolved;
                         if (tiebreakerBox) tiebreakerBox.style.display = 'none';
                     } else {
-                        if (tiebreakerBox) tiebreakerBox.style.display = 'flex';
+                        if (tiebreakerBox) tiebreakerBox.style.display = 'block';
                         const selectedTb = hiddenTbInput ? hiddenTbInput.value : '';
 
                         if (selectedTb === awayResolved) {
@@ -1128,43 +1320,6 @@
             });
         }
 
-        document.addEventListener('click', function(e) {
-            const btn = e.target.closest('.tb-btn');
-            if (!btn || btn.disabled) return;
-
-            const matchId = btn.getAttribute('data-match-id');
-            const target = btn.getAttribute('data-team-target');
-            const matchRow = btn.closest('.match-row');
-            if (!matchRow) return;
-
-            const homeSpan = matchRow.querySelector('.home-team-name');
-            const awaySpan = matchRow.querySelector('.away-team-name');
-            const homeTeam = homeSpan ? homeSpan.textContent.trim() : '';
-            const awayTeam = awaySpan ? awaySpan.textContent.trim() : '';
-
-            const selectedTeam = (target === 'home') ? homeTeam : awayTeam;
-            const hiddenTbInput = document.getElementById(`tb-input-${matchId}`);
-            if (hiddenTbInput) {
-                hiddenTbInput.value = selectedTeam;
-            }
-
-            const homeBtn = matchRow.querySelector('button[data-team-target="home"]');
-            const awayBtn = matchRow.querySelector('button[data-team-target="away"]');
-
-            if (homeBtn && awayBtn) {
-                if (target === 'home') {
-                    homeBtn.classList.add('active-pill'); homeBtn.classList.remove('inactive-pill');
-                    awayBtn.classList.add('inactive-pill'); awayBtn.classList.remove('active-pill');
-                } else {
-                    awayBtn.classList.add('active-pill'); awayBtn.classList.remove('inactive-pill');
-                    homeBtn.classList.add('inactive-pill'); homeBtn.classList.remove('active-pill');
-                }
-            }
-
-            updateKnockoutTree();
-            validateAllPredictionsFilled();
-        });
-
         function resolvePlaceholder(rawStr, winnersMap, losersMap) {
             if (!rawStr) return 'TBD';
             const str = rawStr.trim();
@@ -1183,14 +1338,26 @@
             }
 
             // 2. Group placement placeholders:
-            // "1st Group A", "2nd Group B", "3rd Group C", "1:a Grupp A", "1A", "2B", "A1", "B2"
             let idx = null;
             let grpLetter = null;
 
-            const mFull = str.match(/^(\d+)(?:st|nd|rd|th|:a)?\s+(?:Group|Grupp)\s+([A-L])$/i);
-            if (mFull) {
-                idx = parseInt(mFull[1], 10) - 1;
-                grpLetter = mFull[2].toUpperCase();
+            const mWinner = str.match(/^(?:Winner|Vinnare|Ettan?|1st|1:a|1)\s+(?:Group|Grupp)?\s*([A-L])$/i);
+            const mRunner = str.match(/^(?:Runner-?up|Tvåan?|Andra|2nd|2:a|2)\s+(?:Group|Grupp)?\s*([A-L])$/i);
+            const mThird = str.match(/^(?:Third|Trean?|Tredje|3rd|3:a|3)\s+(?:Group|Grupp)?\s*([A-L])$/i);
+            const mFourth = str.match(/^(?:Fourth|Fyran?|Fjärde|4th|4:a|4)\s+(?:Group|Grupp)?\s*([A-L])$/i);
+
+            if (mWinner) {
+                idx = 0;
+                grpLetter = mWinner[1].toUpperCase();
+            } else if (mRunner) {
+                idx = 1;
+                grpLetter = mRunner[1].toUpperCase();
+            } else if (mThird) {
+                idx = 2;
+                grpLetter = mThird[1].toUpperCase();
+            } else if (mFourth) {
+                idx = 3;
+                grpLetter = mFourth[1].toUpperCase();
             } else {
                 const mRev = str.match(/^([1-5])([A-L])$/i);
                 if (mRev) {
@@ -1217,42 +1384,90 @@
             }
 
             // 3. 3rd-place combo placeholders:
-            // "3rd Group C/E/F/H/I", "3rd Group D/E/F", "3DEF", "3ABCD", "DEF3"
             let grpLetters = [];
-            const mThirdSlash = str.match(/^(?:3rd\s+(?:Group\s+)?)?([A-L](?:\/[A-L])+)/i);
+            const mThirdSlash = str.match(/^(?:Third|Trean|3rd|3:a)\s+(?:Group|Grupp)?\s*([A-L](?:\/[A-L])+)/i);
             if (mThirdSlash) {
                 grpLetters = mThirdSlash[1].toUpperCase().split('/');
             } else {
-                const thirdComboMatch = str.match(/^3?([A-L]{2,6})3?$/i);
-                if (thirdComboMatch) {
-                    grpLetters = thirdComboMatch[1].toUpperCase().split('');
+                const mThirdRaw = str.match(/^(?:3rd\s+(?:Group\s+)?)?([A-L](?:\/[A-L])+)/i);
+                if (mThirdRaw) {
+                    grpLetters = mThirdRaw[1].toUpperCase().split('/');
+                } else {
+                    const thirdComboMatch = str.match(/^3?([A-L]{2,6})3?$/i);
+                    if (thirdComboMatch) {
+                        grpLetters = thirdComboMatch[1].toUpperCase().split('');
+                    }
                 }
             }
 
             if (grpLetters.length > 0) {
-                let candidateThirds = [];
-                grpLetters.forEach(letItem => {
-                    const grpId = Object.keys(groupsData).find(id => {
-                        const groupPane = document.getElementById(`group-${id}`);
-                        return groupPane && (groupPane.innerHTML.includes(`Spelschema Grupp ${letItem}`) || groupPane.innerHTML.includes(`Group ${letItem}`) || groupPane.innerHTML.includes(`Grupp ${letItem}`));
-                    });
-                    if (grpId && groupStandingsResults[grpId] && groupStandingsResults[grpId][2] && groupStatsMap[grpId]) {
-                        const teamName = groupStandingsResults[grpId][2];
-                        const teamStats = groupStatsMap[grpId][teamName];
-                        if (teamStats) {
-                            candidateThirds.push({ team: teamName, stats: teamStats });
-                        }
-                    }
-                });
+                const uefaMap = {
+                    'ABCD': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'A', '3A/B/D/E/F': 'B'},
+                    'ABCE': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'E'},
+                    'ABCF': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                    'ABDE': {'3C/D/E/F': 'D', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'E'},
+                    'ABDF': {'3C/D/E/F': 'D', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                    'ABEF': {'3C/D/E/F': 'E', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                    'ACDE': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'A', '3A/B/D/E/F': 'E'},
+                    'ACDF': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'A', '3A/B/D/E/F': 'F'},
+                    'ACEF': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'F', '3A/B/D/E/F': 'E'},
+                    'ADEF': {'3C/D/E/F': 'D', '3A/C/D/E/F': 'A', '3A/B/C/E/F': 'F', '3A/B/D/E/F': 'E'},
+                    'BCDE': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'E'},
+                    'BCDF': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                    'BCEF': {'3C/D/E/F': 'E', '3A/C/D/E/F': 'C', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                    'BDEF': {'3C/D/E/F': 'E', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'B', '3A/B/D/E/F': 'F'},
+                    'CDEF': {'3C/D/E/F': 'C', '3A/C/D/E/F': 'D', '3A/B/C/E/F': 'F', '3A/B/D/E/F': 'E'},
+                };
 
-                if (candidateThirds.length > 0) {
-                    candidateThirds.sort((a, b) => {
-                        if (b.stats.points !== a.stats.points) return b.stats.points - a.stats.points;
-                        if (b.stats.gd !== a.stats.gd) return b.stats.gd - a.stats.gd;
-                        if (b.stats.gf !== a.stats.gf) return b.stats.gf - a.stats.gf;
-                        return b.stats.won - a.stats.won;
+                let allThirds = [];
+                if (typeof groupsData !== 'undefined' && groupsData) {
+                    Object.keys(groupsData).forEach(id => {
+                        const groupPane = document.getElementById(`group-${id}`);
+                        let letter = '';
+                        ['A','B','C','D','E','F','G','H','I','J','K','L'].forEach(l => {
+                            if (groupPane && (groupPane.innerHTML.includes(`Spelschema Grupp ${l}`) || groupPane.innerHTML.includes(`Group ${l}`) || groupPane.innerHTML.includes(`Grupp ${l}`))) {
+                                letter = l;
+                            }
+                        });
+                        if (letter && groupStandingsResults[id] && groupStandingsResults[id][2] && groupStatsMap[id]) {
+                            const tName = groupStandingsResults[id][2];
+                            const tStats = groupStatsMap[id][tName];
+                            if (tStats) {
+                                allThirds.push({ groupLetter: letter, team: tName, stats: tStats });
+                            }
+                        }
                     });
-                    return candidateThirds[0].team;
+                }
+
+                if (allThirds.length > 0) {
+                    allThirds.sort((a, b) => {
+                        const ptsA = (a.stats && a.stats.points) || 0;
+                        const ptsB = (b.stats && b.stats.points) || 0;
+                        if (ptsB !== ptsA) return ptsB - ptsA;
+                        const gdA = (a.stats && a.stats.gd) || 0;
+                        const gdB = (b.stats && b.stats.gd) || 0;
+                        if (gdB !== gdA) return gdB - gdA;
+                        const gfA = (a.stats && a.stats.gf) || 0;
+                        const gfB = (b.stats && b.stats.gf) || 0;
+                        if (gfB !== gfA) return gfB - gfA;
+                        const wonA = (a.stats && a.stats.won) || 0;
+                        const wonB = (b.stats && b.stats.won) || 0;
+                        return wonB - wonA;
+                    });
+
+                    const top4Letters = allThirds.slice(0, 4).map(x => x.groupLetter).sort().join('');
+                    const normKey = '3' + grpLetters.join('/');
+
+                    if (uefaMap[top4Letters] && uefaMap[top4Letters][normKey]) {
+                        const chosenLetter = uefaMap[top4Letters][normKey];
+                        const matchObj = allThirds.find(x => x.groupLetter === chosenLetter);
+                        if (matchObj && matchObj.team) return matchObj.team;
+                    }
+
+                    let candidateThirds = allThirds.filter(x => grpLetters.includes(x.groupLetter));
+                    if (candidateThirds.length > 0 && candidateThirds[0].team) {
+                        return candidateThirds[0].team;
+                    }
                 }
             }
 
@@ -1262,7 +1477,8 @@
         function validateAllPredictionsFilled() {
             const saveBtn = document.getElementById('save-predictions-btn');
             const hintEl = document.getElementById('save-predictions-hint');
-            if (!saveBtn) return;
+            const koInitialTab = document.getElementById('knockout-tab');
+            const mainPredLinks = document.querySelectorAll('#tab-predictions-link');
 
             let totalRequired = 0;
             let totalCompleted = 0;
@@ -1350,7 +1566,7 @@
             const isAllComplete = (totalRequired > 0 && totalCompleted === totalRequired);
 
             if (isAllComplete) {
-                saveBtn.disabled = false;
+                if (saveBtn) saveBtn.disabled = false;
                 if (hintEl) {
                     if (isSavedInitial && !hasUserEdited) {
                         hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #38bdf8 !important;"><i class="fa-solid fa-clock"></i>Dina tips är sparade och inskickade</span>`;
@@ -1360,16 +1576,312 @@
                         hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #34d399 !important;"><i class="fa-solid fa-circle-check"></i>Alla matcher och frågor är ifyllda &bull; Redo att sparas för verifiering!</span>`;
                     }
                 }
+                if (isSavedInitial && !hasUserEdited) {
+                    if (koInitialTab) koInitialTab.classList.remove('nav-incomplete-red');
+                    if (!{{ has_actual_knockout_incomplete|yesno:"true,false" }}) {
+                        mainPredLinks.forEach(el => el.classList.remove('nav-incomplete-red'));
+                    }
+                } else {
+                    if (koInitialTab) koInitialTab.classList.add('nav-incomplete-red');
+                    mainPredLinks.forEach(el => el.classList.add('nav-incomplete-red'));
+                }
             } else {
-                saveBtn.disabled = true;
+                if (saveBtn) saveBtn.disabled = true;
                 if (hintEl) {
                     const missingText = missingDetails.join(', ');
                     hintEl.innerHTML = `<span class="d-inline-flex align-items-center gap-1.5" style="color: #facc15 !important;"><i class="fa-solid fa-circle-info"></i>Fyll i alla matcher och frågor för att aktivera knappen (${missingText ? 'Kvar: ' + missingText : (totalRequired - totalCompleted) + ' kvar'})</span>`;
                 }
+                if (koInitialTab) koInitialTab.classList.add('nav-incomplete-red');
+                mainPredLinks.forEach(el => el.classList.add('nav-incomplete-red'));
             }
         }
 
-        document.querySelectorAll('.match-input, input[name^="sidebet_"], select[name^="sidebet_"]').forEach(input => {
+        // ACTUAL KNOCKOUT TREE LOGIC
+        const isActualSavedInitial = {{ is_actual_knockout_saved|yesno:"true,false" }};
+        let hasActualUserEdited = false;
+
+        function updateActualKnockoutTree() {
+            const actualKnockoutRows = Array.from(document.querySelectorAll('#actual-knockout-stage .actual-match-row')).sort((a, b) => {
+                return parseInt(a.getAttribute('data-match-number'), 10) - parseInt(b.getAttribute('data-match-number'), 10);
+            });
+            
+            let actualMatchWinners = {};
+            let actualMatchLosers = {};
+
+            actualKnockoutRows.forEach(row => {
+                const matchId = row.getAttribute('data-match-id');
+                const matchNum = row.getAttribute('data-match-number');
+                let homeRaw = row.getAttribute('data-home-raw') || '';
+                let awayRaw = row.getAttribute('data-away-raw') || '';
+
+                let homeResolved = row.getAttribute('data-actual-home') || '';
+                let awayResolved = row.getAttribute('data-actual-away') || '';
+
+                const winMatchHome = homeRaw.match(/^(?:Winner|Vinnare)\s+(?:Match\s+|M)?(\d+)$/i);
+                if (winMatchHome) {
+                    homeResolved = actualMatchWinners[winMatchHome[1]] || `Vinnare M${winMatchHome[1]}`;
+                }
+                const loseMatchHome = homeRaw.match(/^(?:Loser|Förlorare)\s+(?:Match\s+|M)?(\d+)$/i);
+                if (loseMatchHome) {
+                    homeResolved = actualMatchLosers[loseMatchHome[1]] || `Förlorare M${loseMatchHome[1]}`;
+                }
+
+                const winMatchAway = awayRaw.match(/^(?:Winner|Vinnare)\s+(?:Match\s+|M)?(\d+)$/i);
+                if (winMatchAway) {
+                    awayResolved = actualMatchWinners[winMatchAway[1]] || `Vinnare M${winMatchAway[1]}`;
+                }
+                const loseMatchAway = awayRaw.match(/^(?:Loser|Förlorare)\s+(?:Match\s+|M)?(\d+)$/i);
+                if (loseMatchAway) {
+                    awayResolved = actualMatchLosers[loseMatchAway[1]] || `Förlorare M${loseMatchAway[1]}`;
+                }
+
+                const homeSpan = row.querySelector('.actual-home-team-name');
+                const awaySpan = row.querySelector('.actual-away-team-name');
+                const homeFlag = row.querySelector('.actual-home-flag-img');
+                const awayFlag = row.querySelector('.actual-away-flag-img');
+
+                if (homeSpan) {
+                    homeSpan.textContent = homeResolved;
+                    const code = getFlagCode(homeResolved);
+                    if (code && homeFlag) {
+                        homeFlag.src = `https://flagcdn.com/w40/${code}.png`;
+                        homeFlag.style.display = 'inline-block';
+                    } else if (homeFlag) {
+                        homeFlag.style.display = 'none';
+                    }
+                }
+                if (awaySpan) {
+                    awaySpan.textContent = awayResolved;
+                    const code = getFlagCode(awayResolved);
+                    if (code && awayFlag) {
+                        awayFlag.src = `https://flagcdn.com/w40/${code}.png`;
+                        awayFlag.style.display = 'inline-block';
+                    } else if (awayFlag) {
+                        awayFlag.style.display = 'none';
+                    }
+                }
+
+                const homeTbBtn = row.querySelector('.actual-tb-btn[data-team-target="home"]');
+                const awayTbBtn = row.querySelector('.actual-tb-btn[data-team-target="away"]');
+
+                if (homeTbBtn) {
+                    homeTbBtn.setAttribute('title', `Vinnare: ${homeResolved}`);
+                }
+                if (awayTbBtn) {
+                    awayTbBtn.setAttribute('title', `Vinnare: ${awayResolved}`);
+                }
+
+                const homeInput = row.querySelector('input[name^="actual_home_"]');
+                const awayInput = row.querySelector('input[name^="actual_away_"]');
+                const hiddenTbInput = document.getElementById(`actual-tb-input-${matchId}`);
+                const tiebreakerBox = document.getElementById(`actual-tb-box-${matchId}`);
+
+                let winner = null;
+                let loser = null;
+
+                if (homeInput && awayInput && homeInput.value !== "" && awayInput.value !== "") {
+                    const hg = parseInt(homeInput.value, 10);
+                    const ag = parseInt(awayInput.value, 10);
+
+                    if (hg > ag) {
+                        winner = homeResolved;
+                        loser = awayResolved;
+                        if (tiebreakerBox) tiebreakerBox.style.display = 'none';
+                    } else if (ag > hg) {
+                        winner = awayResolved;
+                        loser = homeResolved;
+                        if (tiebreakerBox) tiebreakerBox.style.display = 'none';
+                    } else {
+                        if (tiebreakerBox) tiebreakerBox.style.display = 'block';
+                        const selectedTb = hiddenTbInput ? hiddenTbInput.value : '';
+
+                        if (selectedTb === awayResolved) {
+                            winner = awayResolved;
+                            loser = homeResolved;
+                            if (awayTbBtn) { awayTbBtn.classList.add('active-pill'); awayTbBtn.classList.remove('inactive-pill'); }
+                            if (homeTbBtn) { homeTbBtn.classList.add('inactive-pill'); homeTbBtn.classList.remove('active-pill'); }
+                        } else {
+                            if (hiddenTbInput) hiddenTbInput.value = homeResolved;
+                            winner = homeResolved;
+                            loser = awayResolved;
+                            if (homeTbBtn) { homeTbBtn.classList.add('active-pill'); homeTbBtn.classList.remove('inactive-pill'); }
+                            if (awayTbBtn) { awayTbBtn.classList.add('inactive-pill'); awayTbBtn.classList.remove('active-pill'); }
+                        }
+                    }
+                } else {
+                    if (tiebreakerBox) tiebreakerBox.style.display = 'none';
+                }
+
+                actualMatchWinners[matchNum] = winner || `Vinnare M${matchNum}`;
+                actualMatchLosers[matchNum] = loser || `Förlorare M${matchNum}`;
+            });
+        }
+
+        function validateActualKnockoutFilled() {
+            const saveBtn = document.getElementById('save-actual-knockout-btn');
+            const hintEl = document.getElementById('save-actual-knockout-hint');
+            const actualKoTab = document.getElementById('actual-knockout-tab');
+            const mainPredLinks = document.querySelectorAll('#tab-predictions-link');
+            const isInActualWindow = {{ is_in_actual_knockout_window|yesno:"true,false" }};
+
+            let totalRequired = 0;
+            let totalCompleted = 0;
+            let missingKoCount = 0;
+
+            const koInputs = document.querySelectorAll('input.actual-knockout-input');
+            const koMatchIds = new Set();
+            koInputs.forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && (name.startsWith('actual_home_') || name.startsWith('actual_away_'))) {
+                    const mId = name.split('_')[2];
+                    koMatchIds.add(mId);
+                }
+            });
+
+            koMatchIds.forEach(mId => {
+                totalRequired++;
+                const homeInput = document.querySelector(`input[name="actual_home_${mId}"]`);
+                const awayInput = document.querySelector(`input[name="actual_away_${mId}"]`);
+                const tbInput = document.querySelector(`input[name="actual_penalty_winner_${mId}"]`);
+                const hVal = homeInput ? homeInput.value.trim() : '';
+                const aVal = awayInput ? awayInput.value.trim() : '';
+                const isTie = (hVal !== '' && aVal !== '' && parseInt(hVal, 10) === parseInt(aVal, 10));
+                const tbVal = tbInput ? tbInput.value.trim() : '';
+
+                if (hVal !== '' && aVal !== '' && !isNaN(hVal) && !isNaN(aVal)) {
+                    if (isTie && !tbVal) {
+                        missingKoCount++;
+                    } else {
+                        totalCompleted++;
+                    }
+                } else {
+                    missingKoCount++;
+                }
+            });
+
+            const isAllComplete = (totalRequired > 0 && totalCompleted === totalRequired);
+
+            if (isAllComplete) {
+                if (saveBtn) saveBtn.disabled = false;
+                if (hintEl) {
+                    if (isActualSavedInitial && !hasActualUserEdited) {
+                        hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #38bdf8 !important;"><i class="fa-solid fa-clock"></i>Dina tips för det Äkta Slutspelet är sparade</span>`;
+                    } else if (isActualSavedInitial && hasActualUserEdited) {
+                        hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #34d399 !important;"><i class="fa-solid fa-circle-check"></i>Ändringar gjorda &bull; Klicka för att spara uppdaterade slutspelstips!</span>`;
+                    } else {
+                        hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #34d399 !important;"><i class="fa-solid fa-circle-check"></i>Alla slutspelsmatcher är ifyllda &bull; Redo att sparas!</span>`;
+                    }
+                }
+                if (isInActualWindow) {
+                    if (isActualSavedInitial && !hasActualUserEdited) {
+                        if (actualKoTab) actualKoTab.classList.remove('nav-incomplete-red');
+                        if (!{{ has_initial_predictions_incomplete|yesno:"true,false" }}) {
+                            mainPredLinks.forEach(el => el.classList.remove('nav-incomplete-red'));
+                        }
+                    } else {
+                        if (actualKoTab) actualKoTab.classList.add('nav-incomplete-red');
+                        mainPredLinks.forEach(el => el.classList.add('nav-incomplete-red'));
+                    }
+                }
+            } else {
+                if (saveBtn) saveBtn.disabled = true;
+                if (hintEl) {
+                    hintEl.innerHTML = `<span class="d-inline-flex align-items-center gap-1.5" style="color: #facc15 !important;"><i class="fa-solid fa-circle-info"></i>Fyll i alla slutspelsmatcher för att aktivera sparaknappen (${missingKoCount} matcher kvar)</span>`;
+                }
+                if (isInActualWindow) {
+                    if (actualKoTab) actualKoTab.classList.add('nav-incomplete-red');
+                    mainPredLinks.forEach(el => el.classList.add('nav-incomplete-red'));
+                }
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            const actualBtn = e.target.closest('.actual-tb-btn');
+            if (actualBtn && !actualBtn.disabled) {
+                const matchId = actualBtn.getAttribute('data-match-id');
+                const target = actualBtn.getAttribute('data-team-target');
+                const matchRow = actualBtn.closest('.actual-match-row');
+                if (matchRow) {
+                    const homeSpan = matchRow.querySelector('.actual-home-team-name');
+                    const awaySpan = matchRow.querySelector('.actual-away-team-name');
+                    const homeTeam = homeSpan ? homeSpan.textContent.trim() : '';
+                    const awayTeam = awaySpan ? awaySpan.textContent.trim() : '';
+
+                    const selectedTeam = (target === 'home') ? homeTeam : awayTeam;
+                    const hiddenTbInput = document.getElementById(`actual-tb-input-${matchId}`);
+                    if (hiddenTbInput) {
+                        hiddenTbInput.value = selectedTeam;
+                    }
+
+                    const homeBtn = matchRow.querySelector('.actual-tb-btn[data-team-target="home"]');
+                    const awayBtn = matchRow.querySelector('.actual-tb-btn[data-team-target="away"]');
+
+                    if (homeBtn && awayBtn) {
+                        if (target === 'home') {
+                            homeBtn.classList.add('active-pill'); homeBtn.classList.remove('inactive-pill');
+                            awayBtn.classList.add('inactive-pill'); awayBtn.classList.remove('active-pill');
+                        } else {
+                            awayBtn.classList.add('active-pill'); awayBtn.classList.remove('inactive-pill');
+                            homeBtn.classList.add('inactive-pill'); homeBtn.classList.remove('active-pill');
+                        }
+                    }
+
+                    hasActualUserEdited = true;
+                    updateActualKnockoutTree();
+                    validateActualKnockoutFilled();
+                }
+                return;
+            }
+
+            const btn = e.target.closest('.tb-btn');
+            if (!btn || btn.disabled) return;
+
+            const matchId = btn.getAttribute('data-match-id');
+            const target = btn.getAttribute('data-team-target');
+            const matchRow = btn.closest('.match-row');
+            if (!matchRow) return;
+
+            const homeSpan = matchRow.querySelector('.home-team-name');
+            const awaySpan = matchRow.querySelector('.away-team-name');
+            const homeTeam = homeSpan ? homeSpan.textContent.trim() : '';
+            const awayTeam = awaySpan ? awaySpan.textContent.trim() : '';
+
+            const selectedTeam = (target === 'home') ? homeTeam : awayTeam;
+            const hiddenTbInput = document.getElementById(`tb-input-${matchId}`);
+            if (hiddenTbInput) {
+                hiddenTbInput.value = selectedTeam;
+            }
+
+            const homeBtn = matchRow.querySelector('button[data-team-target="home"]');
+            const awayBtn = matchRow.querySelector('button[data-team-target="away"]');
+
+            if (homeBtn && awayBtn) {
+                if (target === 'home') {
+                    homeBtn.classList.add('active-pill'); homeBtn.classList.remove('inactive-pill');
+                    awayBtn.classList.add('inactive-pill'); awayBtn.classList.remove('active-pill');
+                } else {
+                    awayBtn.classList.add('active-pill'); awayBtn.classList.remove('inactive-pill');
+                    homeBtn.classList.add('inactive-pill'); homeBtn.classList.remove('active-pill');
+                }
+            }
+
+            updateKnockoutTree();
+            validateAllPredictionsFilled();
+        });
+
+        document.querySelectorAll('.actual-knockout-input').forEach(input => {
+            input.addEventListener('input', function() {
+                hasActualUserEdited = true;
+                updateActualKnockoutTree();
+                validateActualKnockoutFilled();
+            });
+            input.addEventListener('change', function() {
+                hasActualUserEdited = true;
+                validateActualKnockoutFilled();
+            });
+        });
+
+        document.querySelectorAll('.match-input:not(.actual-knockout-input), input[name^="sidebet_"], select[name^="sidebet_"]').forEach(input => {
             input.addEventListener('input', function() {
                 hasUserEdited = true;
                 const groupId = this.getAttribute('data-group');
@@ -1390,7 +1902,10 @@
             recalculateStandings(groupId);
         });
         updateHostsRanking();
+        updateKnockoutTree();
+        updateActualKnockoutTree();
         validateAllPredictionsFilled();
+        validateActualKnockoutFilled();
 
         const activeTabInput = document.getElementById('activeTabInput');
         const tabButtons = document.querySelectorAll('#tournamentTab button[data-bs-toggle="pill"]');

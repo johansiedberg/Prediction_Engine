@@ -137,6 +137,47 @@ def dashboard_view(request):
 
     # Handle Prediction POST submission directly within dashboard main frame
     if request.method == 'POST' and active_tournament:
+        post_active_tab = request.POST.get('active_tab', '').strip()
+        is_actual_ko_submission = (
+            post_active_tab in ('actual_knockout', 'actual-knockout-stage') or
+            any(k.startswith('actual_home_') for k in request.POST.keys())
+        )
+
+        if is_actual_ko_submission:
+            if active_tournament.is_actual_knockout_locked:
+                messages.error(request, "Slutspelsmatcherna har redan startat. Äkta Slutspel är låst för ändringar.")
+                return redirect('/dashboard/?tab=predictions&active_tab=actual_knockout')
+
+            for key, value in request.POST.items():
+                if key.startswith('actual_home_'):
+                    match_id = key.split('_')[2]
+                    home_val = value.strip()
+                    away_val = request.POST.get(f'actual_away_{match_id}', '').strip()
+                    if home_val != '' and away_val != '':
+                        match_obj = get_object_or_404(Match, id=match_id, tournament=active_tournament)
+                        pen_winner = request.POST.get(f'actual_penalty_winner_{match_id}', '').strip()
+                        MatchPrediction.objects.update_or_create(
+                            match=match_obj,
+                            player=request.user,
+                            prediction_phase='ACTUAL_KNOCKOUT',
+                            defaults={
+                                'home_goals': int(home_val),
+                                'away_goals': int(away_val),
+                                'penalty_winner': pen_winner if pen_winner else None,
+                            }
+                        )
+
+            sub, _ = TournamentSubmission.objects.get_or_create(
+                tournament=active_tournament,
+                player=request.user
+            )
+            sub.is_actual_knockout_saved = True
+            sub.save()
+            messages.success(request, "🎉 Dina tips för det Äkta Slutspelet har sparats!")
+            invalidate_tournament_cache(active_tournament.id)
+            return redirect('/dashboard/?tab=predictions&active_tab=actual_knockout')
+
+        # Standard Pre-Tournament Initial Bracket & Sidebets submission
         if active_tournament.is_locked_by_time:
             messages.error(request, "Mästerskapet har redan startat. Inga ändringar kan sparas.")
             return redirect('/dashboard/?tab=predictions')
@@ -149,15 +190,14 @@ def dashboard_view(request):
                 if home_val != '' and away_val != '':
                     match_obj = get_object_or_404(Match, id=match_id, tournament=active_tournament)
                     pen_winner = request.POST.get(f'penalty_winner_{match_id}', '').strip()
-                    pred_phase = 'ACTUAL_KNOCKOUT' if (active_tournament.is_actual_knockout_open and match_obj.stage) else 'INITIAL_BRACKET'
                     MatchPrediction.objects.update_or_create(
                         match=match_obj,
                         player=request.user,
+                        prediction_phase='INITIAL_BRACKET',
                         defaults={
                             'home_goals': int(home_val),
                             'away_goals': int(away_val),
                             'penalty_winner': pen_winner if pen_winner else None,
-                            'prediction_phase': pred_phase
                         }
                     )
             elif key.startswith('sidebet_'):
@@ -178,7 +218,6 @@ def dashboard_view(request):
         )
         messages.success(request, "Dina tips har sparats och skickats för verifiering av Pool-Admin!")
         invalidate_tournament_cache(active_tournament.id)
-        post_active_tab = request.POST.get('active_tab', '').strip()
         if post_active_tab:
             return redirect(f'/dashboard/?tab=predictions&active_tab={post_active_tab}')
         return redirect('/dashboard/?tab=predictions')
@@ -187,6 +226,9 @@ def dashboard_view(request):
         is_player = active_tournament.players.filter(id=request.user.id, is_staff=False, is_superuser=False).exists() and not (request.user.is_staff or request.user.is_superuser)
         submission = TournamentSubmission.objects.filter(tournament=active_tournament, player=request.user).first()
         is_locked_by_time = active_tournament.is_locked_by_time
+        is_in_actual_knockout_window = active_tournament.is_in_actual_knockout_window
+        is_actual_knockout_locked = active_tournament.is_actual_knockout_locked
+        is_actual_knockout_saved = submission.is_actual_knockout_saved if submission else False
         is_verified = (submission.is_verified if submission else False) or is_locked_by_time
         is_saved = (submission.is_saved if submission else False) or is_locked_by_time
 
@@ -216,7 +258,8 @@ def dashboard_view(request):
         last_finished_match = finished_matches[-1] if finished_matches else (all_matches[0] if all_matches else None)
 
         user_preds_qs = MatchPrediction.objects.filter(match__tournament=active_tournament, player=request.user)
-        user_predictions = {p.match_id: p for p in user_preds_qs}
+        user_predictions = {p.match_id: p for p in user_preds_qs.filter(prediction_phase='INITIAL_BRACKET')}
+        user_actual_predictions = {p.match_id: p for p in user_preds_qs.filter(prediction_phase='ACTUAL_KNOCKOUT')}
 
         if last_finished_match:
             u_pred = user_predictions.get(last_finished_match.id)
@@ -831,6 +874,13 @@ def dashboard_view(request):
         'last_finished_match': last_finished_match,
         'last_finished_user_points': last_finished_user_points,
         'user_predictions': user_predictions,
+        'user_actual_predictions': user_actual_predictions,
+        'is_in_actual_knockout_window': is_in_actual_knockout_window,
+        'is_actual_knockout_locked': is_actual_knockout_locked,
+        'is_actual_knockout_saved': is_actual_knockout_saved,
+        'has_initial_predictions_incomplete': not is_saved,
+        'has_actual_knockout_incomplete': bool(is_in_actual_knockout_window and not is_actual_knockout_saved),
+        'has_any_predictions_incomplete': bool((not is_saved) or (is_in_actual_knockout_window and not is_actual_knockout_saved)),
         'leaderboard': leaderboard,
         'user_rank': user_rank,
         'user_points': user_total_points,
@@ -946,11 +996,13 @@ def hub_view(request):
 
     # Leagues where user is admin (for Pool-Admin card shortcut links)
     user_admin_leagues = list(League.objects.filter(admin=request.user, is_active=True))
+    has_actual_knockout_window = any(t.is_in_actual_knockout_window for t in Tournament.objects.filter(is_active=True))
 
     context = {
         'profile': profile,
         'user': request.user,
         'user_nickname': user_nickname,
         'user_leagues': user_admin_leagues,
+        'has_actual_knockout_window': has_actual_knockout_window,
     }
     return render(request, 'tournament/hub.html', context)

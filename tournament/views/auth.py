@@ -29,12 +29,22 @@ from tournament.forms import CustomLoginForm
 
 def _get_player_landing_url(user) -> str:
     """
-    Returns the correct post-login landing URL for a player.
-    - If the player has at least one saved TournamentSubmission in any active
-      tournament → land on the Dashboard home tab.
-    - Otherwise (no predictions saved yet) → land on the Predictions tab so
-      they are immediately prompted to fill in their tips.
+    Returns the correct post-login landing URL for a player:
+    - If any active tournament is currently in the Actual Knockout window (between last group
+      match and first knockout match) and the user has not yet submitted their actual knockout tips
+      → land directly on My Prediction (active_tab=actual_knockout).
+    - If the player has saved their pre-tournament tips (and actual knockout if applicable)
+      → land on Dashboard home tab.
+    - Otherwise (initial tips not saved yet) → land on Predictions tab.
     """
+    active_tournaments = list(Tournament.objects.filter(is_active=True))
+    for t in active_tournaments:
+        if t.is_in_actual_knockout_window:
+            sub = TournamentSubmission.objects.filter(player=user, tournament=t).first()
+            has_actual_saved = sub.is_actual_knockout_saved if sub else False
+            if not has_actual_saved:
+                return f'/dashboard/?tournament_id={t.id}&tab=predictions&active_tab=actual_knockout'
+
     has_saved = TournamentSubmission.objects.filter(
         player=user,
         is_saved=True,

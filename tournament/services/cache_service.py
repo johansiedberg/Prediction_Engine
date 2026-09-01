@@ -75,6 +75,8 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
         gm_ratt_tecken = 0
 
         ko_pts = 0
+        ko_initial_pts = 0
+        ko_actual_pts = 0
         ko_fullpott = 0
         ko_ratt_mal = 0
         ko_ratt_tecken = 0
@@ -83,7 +85,8 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
 
         for pred in p_preds:
             m = pred.match
-            p_preds_dict[m.id] = pred
+            if m.group_id:
+                p_preds_dict[m.id] = pred
             pts = calc_pred_points(pred, m, point_system)
             is_finished = m.is_finished or (m.home_goals is not None and m.away_goals is not None)
 
@@ -103,6 +106,10 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
                     gm_ratt_mal += goals_matched
                     if is_correct_1x2: gm_ratt_tecken += 1
                 else:
+                    if pred.prediction_phase == 'ACTUAL_KNOCKOUT':
+                        ko_actual_pts += pts
+                    else:
+                        ko_initial_pts += pts
                     ko_pts += pts
                     if is_exact: ko_fullpott += 1
                     ko_ratt_mal += goals_matched
@@ -229,6 +236,8 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
             'player': p,
             'name': p_name,
             'points': ko_pts,
+            'initial_points': ko_initial_pts,
+            'actual_points': ko_actual_pts,
             'fullpott': ko_fullpott,
             'ratt_mal': ko_ratt_mal,
             'ratt_tecken': ko_ratt_tecken,
