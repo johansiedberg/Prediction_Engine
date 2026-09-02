@@ -30,12 +30,13 @@ POSTURE_ARCS = {
 CONTEXT_TAG_RULES = [
     # Tier 1: Exceptional round achievements & heroic predictions
     ('OUTLIER_VICTORY',       'Siuuu'),                 # Single hero win / Ensamvarg
-    ('THREE_FULLPOTTS',       'Roar'),                  # Multiple exact fullpotts in round
+    ('THREE_FULLPOTTS',       'Sharpshooter'),          # Multiple exact fullpotts in round
     ('CORRECT_EXACT_SCORE',   'Sharpshooter'),          # Exact score sniper
     ('TOP_SCORER',            'Sharpshooter'),          # Top score of round
     ('EXPLOSIVE_JOY',         'Fist'),                  # Overhead punch celebration
     ('TRIUMPHANT_ROAR',       'Roar'),                  # Triumphant roar
     ('COMEBACK_VICTORY',      'Knee'),                  # Comeback knee slide
+    ('COMEBACK_WIN',          'Knee'),                  # Comeback win
     ('BIG_MOVER_UP',          'Knee'),                  # Rocket climb up the table
     ('LONE_SURVIVOR',         'Chest'),                 # Lone survivor / chest pound
     ('CHEST_POUND',           'Chest'),                 # Chest pounding pride
@@ -48,9 +49,14 @@ CONTEXT_TAG_RULES = [
     ('CONTROVERSIAL_DECISION','What'),                  # Disputed call / disbelief
     ('REFEREE_PROTEST',       'What'),                  # Shocked protest
     ('ANIMATED_PROTEST',      'What'),                  # Frustrated disbelief
+    ('LATE_MINUTE_STUNNER',   'What'),                  # 90+ late stunner
     ('EMBARRASSING_MISTAKE',  'Facepalm'),              # Obvious blunder / zero points
     ('BLUNDER',               'Facepalm'),              # Costly misjudgment
-    ('SCAPEGOATED',           'Me'),                    # "Who, me?!" — blamed / comical denial
+    ('HEARTBREAK_MISS',       'Facepalm'),              # Near-miss 1-goal heartbreak
+    ('ENGLAND_BANTER',        'Facepalm'),              # England banter / schadenfreude
+    ('PAST_MERITS_SKEPTIC',   'Me'),                    # "Who, me?!" — profillöst / gamla meriter
+    ('EV_MARTYR',             'Me'),                    # High EV 0 points martyr
+    ('SCAPEGOATED',           'Me'),                    # Blamed / comical denial
     ('BOTTOM_RANK',           'Me'),                    # Bottom rank / last place defense
     ('DEVASTATING_LOSS',      'Shame'),                 # Kneeling in shame
     ('BIG_MOVER_DOWN',        'Shame'),                 # Rapid fall down table
@@ -59,21 +65,27 @@ CONTEXT_TAG_RULES = [
     # Tier 3: Dominance, composure, swagger & signature poses
     ('IS_TOURNAMENT_LEADER',  'Bane'),                  # Overall leader swagger
     ('RUNAWAY_LEAD',          'Bane'),                  # Massive lead / boss posture
+    ('CHAMPIONSHIP_POINT',    'Bane'),                  # Match ball title point
     ('IS_STANDINGS_TOP3',     'Zen'),                   # Top 3 calm composure
+    ('LOW_BLOCK_GRIND',       'Zen'),                   # Defensive 0-0 grind
     ('DOUBTED_BUT_WON',       'Silence'),               # Shushing doubters
+    ('CHAOS_SLIP',            'Messi'),                 # Graceful underdog chaos
     ('SPIRITUAL_WINNER',      'Messi'),                 # Graceful top scorer
     ('CROWD_PLEASER',         'Heart'),                 # Fan favorite / making heart
     ('HEAR_THE_NOISE',        'Hear'),                  # Hand to ear / listening to chatter
+    ('GENERAL_DRAMA',         'Hear'),                  # Listening to group chatter
 
-    # Tier 4: Pre-match & build-up
+    # Tier 4: Pre-match, tactics & build-up
+    ('ULTRA_CONSERVATIVE',    'Clutch'),                # Super safe slip
     ('PRE_MATCH_NERVOUS',     'Clutch'),                # High-stakes nervous
+    ('DELUSION_INDEX',        'Analyst'),               # Entropy split tactical debate
     ('PRE_MATCH',             'Analyst'),               # Pre-match thinking
 ]
 
 # Event type -> posture fallback
 EVENT_TYPE_RULES = {
     'OUTLIER_VICTORY':        'Siuuu',
-    'THREE_FULLPOTTS':        'Roar',
+    'THREE_FULLPOTTS':        'Sharpshooter',
     'GOAL_FEST':              'Roar',
     'FAILED_BANKER':          'Badbeat',
     'PREDICTION_AGED_POORLY': 'Badbeat',
@@ -84,6 +96,20 @@ EVENT_TYPE_RULES = {
     'BLUNDER':                'Facepalm',
     'DISBELIEF':              'What',
     'SCAPEGOAT':              'Me',
+    'BOTTOM_RANK':            'Me',
+    'IS_TOURNAMENT_LEADER':   'Bane',
+    'RIVALRY_DUEL':           'Rival-left',
+    'ENGLAND_BANTER':         'Facepalm',
+    'PAST_MERITS_SKEPTIC':    'Me',
+    'LOW_BLOCK_GRIND':        'Zen',
+    'LATE_MINUTE_STUNNER':    'What',
+    'ULTRA_CONSERVATIVE':     'Analyst',
+    'CHAOS_SLIP':             'Sharpshooter',
+    'HEARTBREAK_MISS':        'Facepalm',
+    'COMEBACK_WIN':           'Knee',
+    'EV_MARTYR':              'Me',
+    'CHAMPIONSHIP_POINT':     'Bane',
+    'DELUSION_INDEX':         'Analyst',
     'DEFAULT':                'Analyst',
 }
 
@@ -191,6 +217,13 @@ def resolve_posture_path(initials: str, posture_name: str) -> str:
 
 
 
+def get_posture_focus_class(posture_name: str, initials: str = '') -> str:
+    """
+    Returns standard CSS class for gazette avatar images.
+    """
+    return 'gazette-avatar-img'
+
+
 def pick_posture(persona: dict, event_type: str, context_tags: set = None) -> tuple[str, str]:
     """
     Pick the best posture for a persona given the event type and context tags.
@@ -242,9 +275,10 @@ def pick_rivalry_avatars(
             'name': primary_persona.get('full_name', ''),
             'nick': (primary_persona.get('nicknames') or [''])[0],
             'initials': primary_initials,
+            'focus_class': get_posture_focus_class(posture_name, primary_initials),
         }
     else:
-        result['primary'] = {'posture': None, 'path': None, 'name': '', 'nick': '', 'initials': ''}
+        result['primary'] = {'posture': None, 'path': None, 'name': '', 'nick': '', 'initials': '', 'focus_class': 'gazette-avatar-img'}
 
     if rival_persona:
         rival_initials = rival_persona.get('initials', '')
@@ -263,9 +297,10 @@ def pick_rivalry_avatars(
             'name': rival_persona.get('full_name', ''),
             'nick': (rival_persona.get('nicknames') or [''])[0],
             'initials': rival_initials,
+            'focus_class': get_posture_focus_class(posture_name, rival_initials),
         }
     else:
-        result['rival'] = {'posture': None, 'path': None, 'name': '', 'nick': '', 'initials': ''}
+        result['rival'] = {'posture': None, 'path': None, 'name': '', 'nick': '', 'initials': '', 'focus_class': 'gazette-avatar-img'}
 
     return result
 

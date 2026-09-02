@@ -101,10 +101,44 @@ class Copywriter:
         return "\n\n".join(cleaned_paragraphs)
 
     @classmethod
+    def ensure_bold_player_names(cls, text: str) -> str:
+        """
+        Enforces that all Toarp player names and nicknames pop in bold markdown (**Name**)
+        while keeping general narrative text normal.
+        """
+        from tournament.editorial_engine.compiler import load_player_personas
+        personas = load_player_personas()
+        
+        # Build list of names and nicknames to bold
+        names_to_bold = set()
+        for p in personas:
+            if p.get('full_name'):
+                names_to_bold.add(p['full_name'])
+                first = p['full_name'].split()[0]
+                if len(first) > 2:
+                    names_to_bold.add(first)
+            for n in p.get('nicknames', []):
+                if n and len(n) > 1:
+                    names_to_bold.add(n)
+
+        # Sort longest names first to avoid partial substring matching
+        sorted_names = sorted(list(names_to_bold), key=lambda x: len(x), reverse=True)
+        
+        result = text
+        for name in sorted_names:
+            # Match word boundary if not already enclosed in **
+            pattern = re.compile(rf'(?<!\*)\b({re.escape(name)})\b(?!\*)')
+            result = pattern.sub(r'**\1**', result)
+            
+        # Clean double-bold artifacts if any (****Name**** -> **Name**)
+        result = re.sub(r'\*{3,}', '**', result)
+        return result
+
+    @classmethod
     def audit_and_correct(cls, journalist_draft: dict, banned_phrases: list = None) -> dict:
         """
         Audits draft stories for contradictions, cleans banned phrases/traits,
-        converts direct quotes to indirect narrative, enforces Swedish V2 grammar,
+        enforces Swedish V2 grammar, guarantees bold player names (**Name**),
         and ensures body text is 100% logically sound.
 
         Args:
@@ -155,17 +189,14 @@ class Copywriter:
             pattern = re.compile(trait_pattern, re.IGNORECASE)
             top_story = pattern.sub("", top_story)
 
-        # 6. Strip bold markdown formatting from body text for normal font presentation
-        top_story = top_story.replace("**", "")
-        event2_text = event2_text.replace("**", "")
-        event3_text = event3_text.replace("**", "")
+        # 6. Ensure Player Names Pop in Bold (**PlayerName**)
+        top_story = cls.ensure_bold_player_names(top_story)
+        headline = cls.ensure_bold_player_names(headline)
+        tagline = cls.ensure_bold_player_names(tagline)
+        event2_text = cls.ensure_bold_player_names(event2_text)
+        event3_text = cls.ensure_bold_player_names(event3_text)
 
-        # 7. Convert raw direct quote marks to indirect narrative
-        top_story = top_story.replace('”', '').replace('"', '').replace("'", "")
-        event2_text = event2_text.replace('”', '').replace('"', '').replace("'", "")
-        event3_text = event3_text.replace('”', '').replace('"', '').replace("'", "")
-
-        # 8. Clean punctuation and spacing artifacts
+        # 7. Clean punctuation and spacing artifacts
         top_story = re.sub(r' +', ' ', top_story)
         top_story = re.sub(r'\.\.+', '.', top_story).strip()
 

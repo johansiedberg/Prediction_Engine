@@ -40,14 +40,23 @@ class Publisher:
         event2 = candidate_events[1] if len(candidate_events) > 1 else None
         event3 = candidate_events[2] if len(candidate_events) > 2 else None
 
-        selected_format = preferred_format if preferred_format in FORMAT_TYPES else random.choice(FORMAT_TYPES)
+        headline_type = headline_event.type if headline_event else 'DEFAULT'
+        
+        if preferred_format and preferred_format in FORMAT_TYPES:
+            selected_format = preferred_format
+        elif headline_type == 'RIVALRY_DUEL':
+            selected_format = 'WINNERS_LOSERS'
+        elif headline_type in ('INTERVIEW', 'PUB_QUOTES'):
+            selected_format = headline_type
+        else:
+            selected_format = random.choice(FORMAT_TYPES)
 
         return {
             'headline_event': headline_event,
             'event2': event2,
             'event3': event3,
             'content_format': selected_format,
-            'headline_type': headline_event.type if headline_event else 'DEFAULT',
+            'headline_type': headline_type,
             'headline_description': headline_event.description if headline_event else "Turneringen rullar vidare med full kraft.",
             'event2_description': event2.description if event2 else "Flera tippare upplevde stolpe ut i omgången.",
             'event3_description': event3.description if event3 else "Många av de säkra tipsen rök på mållinjen.",

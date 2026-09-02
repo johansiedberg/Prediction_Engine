@@ -45,7 +45,7 @@ class ArtDirector:
             Structured dictionary with image paths, postures, editorial arc, and layout metadata.
         """
         is_winner_loser = (content_format == 'WINNERS_LOSERS')
-        is_rivalry = (not is_winner_loser) and (rival_persona is not None)
+        is_rivalry = (content_format in ('HEAD_TO_HEAD_DUEL', 'RIVALRY_PANEL', 'RIVALRY')) and (rival_persona is not None)
 
         rivalry_avatars = pick_rivalry_avatars(
             primary_persona=primary_persona,

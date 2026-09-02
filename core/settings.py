@@ -61,6 +61,10 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:2029',
     'http://localhost:2028',
     'http://localhost:2029',
+    'http://127.0.0.1:8028',
+    'http://127.0.0.1:8029',
+    'http://localhost:8028',
+    'http://localhost:8029',
 ]
 
 # HTTPS & Security Header Settings

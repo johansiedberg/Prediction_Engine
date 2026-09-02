@@ -31,7 +31,7 @@ from tournament.models import (
 )
 from tournament.editorial_engine.journalist import BEHAVIOR_DESCRIPTIONS
 from tournament.editorial_engine.compiler import load_player_personas, find_persona_for_player
-from tournament.editorial_engine.posture_engine import resolve_portrait_url, resolve_posture_path
+from tournament.editorial_engine.posture_engine import resolve_portrait_url, resolve_posture_path, get_posture_focus_class
 
 MILESTONE_ROUNDS = {
     1: {'name': 'Alla Tips Verifierade', 'code': 'VERIFIED'},
@@ -242,6 +242,7 @@ def _build_featured_players_json(current_lb: list, personas_list: list) -> list:
             'posture': posture_name,
             'posture_url': posture_url,
             'portrait_url': portrait_url,
+            'focus_class': get_posture_focus_class(posture_name, initials),
             'points': entry.get('points', 0),
             'rank': entry.get('rank', idx + 1),
         })
@@ -823,143 +824,176 @@ class SpecialEditionReporter:
         runner_prob = min(100 - lead_prob, max(15, int((runner_up['points'] / total_pool_points) * 100)))
         chaser_prob = max(5, 100 - lead_prob - runner_prob)
 
-        # 6. Stage-Specific Thematic Narratives
+        # 6. Detailed Match & Point Breakdown for Leader & Runner-Up
+        leader_user = leader.get('user')
+        leader_preds = list(MatchPrediction.objects.filter(player=leader_user, match__in=single_round_matches)) if leader_user else []
+        
+        leader_exact_matches = [
+            f"{p.match.home_team} vs {p.match.away_team} ({p.match.home_goals}–{p.match.away_goals})"
+            for p in leader_preds
+            if p.match.home_goals is not None and p.home_goals == p.match.home_goals and p.away_goals == p.match.away_goals
+        ]
+        
+        leader_sign_matches = [
+            f"{p.match.home_team} vs {p.match.away_team}"
+            for p in leader_preds
+            if p.match.home_goals is not None and (
+                (p.home_goals > p.away_goals and p.match.home_goals > p.match.away_goals) or
+                (p.home_goals == p.away_goals and p.match.home_goals == p.match.away_goals) or
+                (p.home_goals < p.away_goals and p.match.home_goals < p.match.away_goals)
+            ) and not (p.home_goals == p.match.home_goals and p.away_goals == p.match.away_goals)
+        ]
+        
+        exact_cnt = len(leader_exact_matches)
+        sign_cnt = len(leader_sign_matches)
+
+        def build_sec1_article(stage_label):
+            p1 = (
+                f"{stage_label} och tabellens hierarki har formats med eftertryck. "
+                f"**{leader['name']}** har kopplat ett stenhårt grepp om ledartröjan och toppar ligan med mäktiga **{leader['points']} poäng** "
+                f"(+{leader.get('pts_in_round', 0)}p i denna omgång). Bakom ledaren skuggar **{runner_name}** på **{runner_up['points']} poäng** "
+                f"med en marginal på {pts_diff} poäng, i vad som utvecklats till en elektrisk titelkamp kring pubbordet."
+            )
+            
+            if exact_cnt >= 2:
+                exact_desc = f"Grunden till ledarrycket lades genom kirurgisk precision i målskyttet med hela {exact_cnt} exakta fullträffar ({', '.join(leader_exact_matches[:2])}). "
+            elif exact_cnt == 1:
+                exact_desc = f"Genombrottet säkrades genom en sylvass fullpott i {leader_exact_matches[0]}, vilket gav maximal utdelning i ett avgörande skede. "
+            else:
+                exact_desc = f"Framgången byggdes inte på enstaka chansningar utan på ett oerhört stabilt grundtips med {sign_cnt} klockrena teckenspikar över hela omgången. "
+
+            if sign_cnt > 0:
+                sign_desc = f"Därtill bärgades stabila poäng genom säkra teckenspikar i möten som {', '.join(leader_sign_matches[:2])}, vilket skapade en bred och svårslagen poängbas. "
+            else:
+                sign_desc = ""
+
+            p2 = (
+                f"Analysen av tipsraderna visar exakt hur **{leader['name']}** manövrerade sig fram till ledningen. "
+                f"{exact_desc}{sign_desc}"
+                f"Medan konkurrenterna vacklade i de svårtippade matcherna lyckades **{leader['name']}** hålla kalkylerna intakta och minimera antalet nollpoängare."
+            )
+
+            p3 = (
+                f"Jakten bakom ledaren leds av **{runner_name}** ({runner_up['points']}p) som vägrar släppa kontakten med toppen. "
+                f"Skillnaden mellan herrarna avgjordes i omgångens mest dramatiska ögonblick kring {buster_match_name} ({buster_actual_res}), "
+                f"där **{leader['name']}** lyckades manövrera hem dyrbara poäng medan utmanarna fick se sina kuponger ta stryk. "
+                f"Med {pts_diff} poäng som skiljer herrarna åt är varje enskilt måltips i kommande matcher en potentiell vändpunkt i guldstriden."
+            )
+
+            p4 = (
+                f"Kring pubbordet och i ligans diskussioner är reaktionerna intensiva. "
+                f"**{leader['name']}** kliver in i nästa fas med ett psykologiskt övertag och ett orubbligt självförtroende, "
+                f"medan det jagande fältet tvingas till mer riskfyllda drag för att stänga gapet. "
+                f"Mästerskapet går nu in i ett ännu hetare skede där minsta felbedömning kan kosta ledartröjan."
+            )
+            return f"{p1}\n\n{p2}\n\n{p3}\n\n{p4}"
+
+        # 7. Stage-Specific Thematic Narratives
         if round_num == 2:
-            # Gruppomgång 1
             stage_theme = "Premiäromgångens Bokslut (12 matcher)"
             sec1_title = f"Premiärrycket: {leader['name']} Tar Ledartröjan på {leader['points']}p!"
-            sec1_body = (
-                f"Mästerskapets första 12 drabbningar är avslutade och startfältet har satt sin första struktur. "
-                f"<strong>{leader['name']}</strong> kopplar ett tidigt grepp om tabellen med <strong>{leader['points']} poäng</strong> efter en knivskarp öppning. "
-                f"Tätt i rygg lurar dock <strong>{runner_name}</strong> på {runner_up['points']} poäng (endast {pts_diff}p bakom). "
-                f"Premiäromgången präglades av intensiva taktiska låsningar där de som vågade gardera med kalla spikar belönades direkt."
-            )
+            sec1_body = build_sec1_article("Mästerskapets första 12 drabbningar är avslutade")
             sec2_title = f"Omgångens Kung & Haverist: {round_mvp['name']} Glänste (+{round_mvp['pts_in_round']}p)!"
             sec2_body = (
-                f"Omgångens MVP-pris går ohotat till <strong>{round_mvp['name']}</strong> som var absolut vassast i premiären med hela <strong>+{round_mvp['pts_in_round']} poäng</strong> och {round_mvp['exact_in_round']} fullpottar.<br><br>"
-                f"I tabellens andra ände fick <strong>{round_bust['name']}</strong> en blytung start med blygsamma +{round_bust['pts_in_round']} poäng. "
+                f"Omgångens MVP-pris går ohotat till **{round_mvp['name']}** som var absolut vassast i premiären med hela **+{round_mvp['pts_in_round']} poäng** och {round_mvp['exact_in_round']} fullpottar.<br><br>"
+                f"I tabellens andra ände fick **{round_bust['name']}** en blytung start med blygsamma +{round_bust['pts_in_round']} poäng. "
                 f"Med hela turneringen kvar krävs dock bara en enda stark omgång för att vända på steken."
             )
             sec3_title = f"Kupongdödaren: {buster_match_name} ({buster_actual_res})"
             sec3_body = (
-                f"Matchen som ställde till med mest förödelse i premiären blev <strong>{buster_match_name} ({buster_actual_res})</strong>, "
+                f"Matchen som ställde till med mest förödelse i premiären blev **{buster_match_name} ({buster_actual_res})**, "
                 f"där hela {buster_zeros_cnt} av {len(current_lb)} deltagare kammade noll. "
                 f"Ett oväntat matchförlopp som raserade flockens kalkyler och skapade omgångens största tabellkast."
             )
             sec4_title = f"AI-Simulering: Guldchans efter Omgång 1"
             sec4_body = (
                 f"Vår prediktiva modell har kört den första live-simuleringen över återstående turneringsträd. "
-                f"<strong>{leader['name']}</strong> tilldelas <strong>{lead_prob}% guldchans</strong> tack vare sin stabila öppning, "
-                f"medan <strong>{runner_up['name']}</strong> skuggar på <strong>{runner_prob}%</strong>. "
+                f"**{leader['name']}** tilldelas **{lead_prob}% guldchans** tack vare sin stabila öppning, "
+                f"medan **{runner_up['name']}** skuggar på **{runner_prob}%**. "
                 f"Övriga fältet delar på resterande {chaser_prob}% i vad som fortfarande är ett vidöppet mästerskap."
             )
         elif round_num == 3:
-            # Gruppomgång 2
             stage_theme = "Gruppspelets Halvtidsaudit (24 matcher)"
             sec1_title = f"Halvtidsstriden: {leader['name']} Håller Undan på {leader['points']}p!"
-            sec1_body = (
-                f"Med 24 matcher spelade har gruppspelet nått sin mittpunkt. "
-                f"<strong>{leader['name']}</strong> försvarar ledningen på <strong>{leader['points']} poäng</strong>, men marginalen bakåt till <strong>{runner_up['name']}</strong> ({runner_up['points']}p) är nu endast {pts_diff} poäng! "
-                f"Omgången bjöd på stenhård poängjakt där varje målskillnad blev avgörande för ligapositionerna."
-            )
+            sec1_body = build_sec1_article("Gruppspelet har nått sin mittpunkt efter 24 spelade matcher")
             sec2_title = f"Omgångens Kung: {round_mvp['name']} Storspelade (+{round_mvp['pts_in_round']}p)!"
             sec2_body = (
-                f"Omgång 2 tillhörde <strong>{round_mvp['name']}</strong>, som samlade in helgens högsta skörd med <strong>+{round_mvp['pts_in_round']} poäng</strong> och {round_mvp['exact_in_round']} fullpottar.<br><br>"
-                f"Samtidigt fick <strong>{round_bust['name']}</strong> se kalkylerna krascha med endast +{round_bust['pts_in_round']}p under perioden, vilket ökar pressen inför den avgörande sista gruppomgången."
+                f"Omgång 2 tillhörde **{round_mvp['name']}**, som samlade in helgens högsta skörd med **+{round_mvp['pts_in_round']} poäng** och {round_mvp['exact_in_round']} fullpottar.<br><br>"
+                f"Samtidigt fick **{round_bust['name']}** se kalkylerna krascha med endast +{round_bust['pts_in_round']}p under perioden, vilket ökar pressen inför den avgörande sista gruppomgången."
             )
             sec3_title = f"Kupongdödaren: {buster_match_name} ({buster_actual_res})"
             sec3_body = (
-                f"Omgångens mest förrädiska fälla blev <strong>{buster_match_name} ({buster_actual_res})</strong>. "
+                f"Omgångens mest förrädiska fälla blev **{buster_match_name} ({buster_actual_res})**. "
                 f"Hela {buster_zeros_cnt} kuponger nollades i detta möte då favoriterna tappade greppet och spräckte gruppens konsensus."
             )
             sec4_title = f"Modellens Nya Guldkalkyl: {leader['name']} ({lead_prob}%) vs {runner_up['name']} ({runner_prob}%)"
             sec4_body = (
-                f"Efter 24 matcher börjar mönstren utkristallisera sig. Modellen värderar <strong>{leader['name']}s</strong> titelchans till <strong>{lead_prob}%</strong>, "
+                f"Efter 24 matcher börjar mönstren utkristallisera sig. Modellen värderar **{leader['name']}s** titelchans till **{lead_prob}%**, "
                 f"men understryker att den stundande gruppavslutningen bär tillräckligt med poäng för att vända hela ställningen upp och ner."
             )
         elif round_num == 4:
-            # Gruppspel Avslutat
             stage_theme = "Gruppspelets Stora Bokslut (36 matcher)"
             sec1_title = f"Gruppspelets Mästare: {leader['name']} Vinner Gruppfasen på {leader['points']}p!"
-            sec1_body = (
-                f"Gruppspelet i {tournament.name} är officiellt i hamn efter 36 intensiva drabbningar. "
-                f"<strong>{leader['name']}</strong> kröns till gruppspelets kung på <strong>{leader['points']} poäng</strong> efter en mästerlig uppvisning i taktisk uthållighet. "
-                f"På andra plats går <strong>{runner_up['name']}</strong> in i slutspelet med {runner_up['points']} poäng ({pts_diff}p bakom), redo att utnyttja slutspelsträdets hävstänger."
-            )
+            sec1_body = build_sec1_article(f"Gruppspelet i {tournament.name} är officiellt avslutat efter 36 intensiva matcher")
             sec2_title = f"Gruppavslutningens Kung: {round_mvp['name']} (+{round_mvp['pts_in_round']}p)!"
             sec2_body = (
-                f"I den dramatiska sista gruppomgången var <strong>{round_mvp['name']}</strong> i en klass för sig och håvade in mäktiga <strong>+{round_mvp['pts_in_round']} poäng</strong>.<br><br>"
-                f"För <strong>{round_bust['name']}</strong> blev gruppavslutningen däremot en motig historia (+{round_bust['pts_in_round']}p), vilket innebär att slutspelsfasen nu kräver djärva solodrag för att ta sig tillbaka in i medaljstriden."
+                f"I den dramatiska sista gruppomgången var **{round_mvp['name']}** i en klass för sig och håvade in mäktiga **+{round_mvp['pts_in_round']} poäng**.<br><br>"
+                f"För **{round_bust['name']}** blev gruppavslutningen däremot en motig historia (+{round_bust['pts_in_round']}p), vilket innebär att slutspelsfasen nu kräver djärva solodrag för att ta sig tillbaka in i medaljstriden."
             )
             sec3_title = f"Gruppspelets Sista Skräll: {buster_match_name} ({buster_actual_res})"
             sec3_body = (
-                f"Den match som orsakade störst huvudbry i gruppfinalen var <strong>{buster_match_name} ({buster_actual_res})</strong>, "
+                f"Den match som orsakade störst huvudbry i gruppfinalen var **{buster_match_name} ({buster_actual_res})**, "
                 f"där {buster_zeros_cnt} tippare gick bet. Slutspelslagen är nu klara och marginalerna blir från och med nu dubbelt så dyrköpta."
             )
             sec4_title = f"Slutspelets Fraktaler: Guldchans inför Åttondelsfinalerna"
             sec4_body = (
                 f"Med 36 matcher avklarade skiftar turneringen karaktär från maraton till utslagning. "
-                f"Modellen håller <strong>{leader['name']}</strong> som favorit på <strong>{lead_prob}%</strong>, men knockout-trädets poängmultiplikatorer öppnar för massiva kast om underhundarna skräller."
+                f"Modellen håller **{leader['name']}** som favorit på **{lead_prob}%**, men knockout-trädets poängmultiplikatorer öppnar för massiva kast om underhundarna skräller."
             )
         elif round_num == 11:
-            # Round of 16 Spelad
             stage_theme = "Åttondelsfinalernas Slutspelsdramatik (44 matcher)"
             sec1_title = f"Slutspelets Schavott: {leader['name']} Behåller Greppet på {leader['points']}p!"
-            sec1_body = (
-                f"Åttondelsfinalernas plötsliga död har skördat sina första offer. "
-                f"<strong>{leader['name']}</strong> navigerade genom slutspelskorselden med bibehållen ledning på <strong>{leader['points']} poäng</strong>. "
-                f"Bakom ledartröjan vägrar <strong>{runner_up['name']}</strong> ({runner_up['points']}p) att vika ner sig i en duell som nu utvecklats till ett psykologiskt ställningskrig."
-            )
+            sec1_body = build_sec1_article("Åttondelsfinalernas plötsliga död har skördat sina offer")
             sec2_title = f"Slutspelskungen: {round_mvp['name']} Spikade Åttondelarna (+{round_mvp['pts_in_round']}p)!"
             sec2_body = (
-                f"I åttondelsfinalernas nervpress klev <strong>{round_mvp['name']}</strong> fram och levererade omgångens bästa facit med <strong>+{round_mvp['pts_in_round']} poäng</strong> och {round_mvp['exact_in_round']} fullträffar.<br><br>"
-                f"Omvänt blev åttondelarna en dyrköpt lektion för <strong>{round_bust['name']}</strong> (+{round_bust['pts_in_round']}p), vars slutspelsträd fick ta emot tunga smällar."
+                f"I åttondelsfinalernas nervpress klev **{round_mvp['name']}** fram och levererade omgångens bästa facit med **+{round_mvp['pts_in_round']} poäng** och {round_mvp['exact_in_round']} fullträffar.<br><br>"
+                f"Omvänt blev åttondelarna en dyrköpt lektion för **{round_bust['name']}** (+{round_bust['pts_in_round']}p), vars slutspelsträd fick ta emot tunga smällar."
             )
             sec3_title = f"Slutspelsdödaren: {buster_match_name} ({buster_actual_res})"
             sec3_body = (
-                f"Slutspelets första stora knall inträffade i <strong>{buster_match_name} ({buster_actual_res})</strong>, "
+                f"Slutspelets första stora knall inträffade i **{buster_match_name} ({buster_actual_res})**, "
                 f"där {buster_zeros_cnt} deltagare nollades när matchbilden vände upp och ner på alla förhandstips."
             )
             sec4_title = f"Kvartarnas Hävstång: Modellens Nya Guldsannolikhet"
             sec4_body = (
                 f"Med endast 8 lag kvar i turneringen kliver vi in i kvartsfinalfasen. "
-                f"<strong>{leader['name']}</strong> står på <strong>{lead_prob}% titelchans</strong>, men <strong>{runner_up['name']}</strong> ({runner_prob}%) har fortfarande den matematiska hävstången i sina egna händer."
+                f"**{leader['name']}** står på **{lead_prob}% titelchans**, men **{runner_up['name']}** ({runner_prob}%) har fortfarande den matematiska hävstången i sina egna händer."
             )
         elif round_num == 12:
-            # Quarterfinals Spelad
             stage_theme = "Kvartsfinalernas Slakt & Finalfyran (48 matcher)"
             sec1_title = f"Finalfyran Klar: {leader['name']} Tar Jättekliv mot Titeln på {leader['points']}p!"
-
-            sec1_body = (
-                f"Kvartsfinalerna är färdigspelade och endast semifinaler och final återstår av {tournament.name}. "
-                f"<strong>{leader['name']}</strong> stormar mot slutsegern på mäktiga <strong>{leader['points']} poäng</strong> efter en urstark kvartsfinalinsats. "
-                f"Med en marginal på {pts_diff} poäng ner till <strong>{runner_up['name']}</strong> ({runner_up['points']}p) krävs det nu perfekta fullträffar av utmanarna för att stoppa ledaren."
-            )
+            sec1_body = build_sec1_article(f"Kvartsfinalerna är färdigspelade i {tournament.name}")
             sec2_title = f"Kvartsfinalernas MVP: {round_mvp['name']} Dominerade (+{round_mvp['pts_in_round']}p)!"
             sec2_body = (
-                f"Omgångens vassaste analytiker i kvartsfinalerna blev <strong>{round_mvp['name']}</strong> som drygade ut kassan med <strong>+{round_mvp['pts_in_round']} poäng</strong>.<br><br>"
-                f"För <strong>{round_bust['name']}</strong> blev kvartsfinalerna en stolpe-ut-afton (+{round_bust['pts_in_round']}p), vilket innebär att siktet nu får ställas in på att försvara sin hedersplacering."
+                f"Omgångens vassaste analytiker i kvartsfinalerna blev **{round_mvp['name']}** som drygade ut kassan med **+{round_mvp['pts_in_round']} poäng**.<br><br>"
+                f"För **{round_bust['name']}** blev kvartsfinalerna en stolpe-ut-afton (+{round_bust['pts_in_round']}p), vilket innebär att siktet nu får ställas in på att försvara sin hedersplacering."
             )
             sec3_title = f"Kupongdödaren: {buster_match_name} ({buster_actual_res})"
             sec3_body = (
-                f"Kvartarnas mest dramatiska ögonblick utspelade sig i <strong>{buster_match_name} ({buster_actual_res})</strong>, "
+                f"Kvartarnas mest dramatiska ögonblick utspelade sig i **{buster_match_name} ({buster_actual_res})**, "
                 f"där {buster_zeros_cnt} deltagare fick se sina tips gå i kras."
             )
             sec4_title = f"Finalens Matematiska Tipping Point: {leader['name']} ({lead_prob}%)"
             sec4_body = (
-                f"Med endast 4 matcher kvar i mästerskapet har <strong>{leader['name']}</strong> ett järngrepp med <strong>{lead_prob}% guldchans</strong>. "
-                f"För <strong>{runner_up['name']}</strong> ({runner_prob}%) krävs nu att semifinalerna och finalen går exakt enligt utmanarens rad för att skapa ett mirakel på mållinjen."
+                f"Med endast 4 matcher kvar i mästerskapet har **{leader['name']}** ett järngrepp med **{lead_prob}% guldchans**. "
+                f"För **{runner_up['name']}** ({runner_prob}%) krävs nu att semifinalerna och finalen går exakt enligt utmanarens rad för att skapa ett mirakel på mållinjen."
             )
         else:
-            # Generic stage fallback
             stage_theme = f"{round_name} ({tot_round_matches_cnt} matcher)"
             sec1_title = f"Tabellkriget: {leader['name']} Toppar Tabellen på {leader['points']}p!"
-            sec1_body = (
-                f"Efter {round_name} står <strong>{leader['name']}</strong> stolt överst på <strong>{leader['points']} poäng</strong>. "
-                f"Tätt bakom lurar <strong>{runner_up['name']}</strong> på {runner_up['points']} poäng ({pts_diff}p bakom)."
-            )
+            sec1_body = build_sec1_article(f"Omgången {round_name} är avslutad")
             sec2_title = f"Omgångens Kung: {round_mvp['name']} (+{round_mvp['pts_in_round']}p)!"
-            sec2_body = f"<strong>{round_mvp['name']}</strong> plockade flest poäng i omgången med +{round_mvp['pts_in_round']}p."
+            sec2_body = f"**{round_mvp['name']}** plockade flest poäng i omgången med +{round_mvp['pts_in_round']}p."
             sec3_title = f"Kupongdödaren: {buster_match_name} ({buster_actual_res})"
             sec3_body = f"Matchen {buster_match_name} ställde till med mest problem i omgången."
             sec4_title = f"AI-Analys & Guldchans: {leader['name']} ({lead_prob}%)"
@@ -1006,6 +1040,12 @@ class SpecialEditionReporter:
                 },
             ]
         }
+
+        from tournament.editorial_engine.copywriter import Copywriter
+        sec1_body = Copywriter.ensure_bold_player_names(sec1_body)
+        sec2_body = Copywriter.ensure_bold_player_names(sec2_body)
+        sec3_body = Copywriter.ensure_bold_player_names(sec3_body)
+        sec4_body = Copywriter.ensure_bold_player_names(sec4_body)
 
         full_content = (
             f"### {sec1_title}\n\n{sec1_body}\n\n"

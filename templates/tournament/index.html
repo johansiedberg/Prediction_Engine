@@ -1802,82 +1802,135 @@
 
                             <style>
                             /* ── Insight Card Theming ─────────────────────── */
-                            .ic-green { --ic-card-bg:rgba(5,46,22,.55);   --ic-border:rgba(21,128,61,.55);  --ic-badge-bg:rgba(21,128,61,.28);  --ic-badge-bd:rgba(21,128,61,.7);  --ic-color:#DCFCE7; --ic-fact-bg:rgba(21,128,61,.12);  --ic-fact-bd:rgba(21,128,61,.3); }
-                            .ic-red   { --ic-card-bg:rgba(69,10,10,.52);  --ic-border:rgba(185,28,28,.5);   --ic-badge-bg:rgba(185,28,28,.26);  --ic-badge-bd:rgba(185,28,28,.7);  --ic-color:#FEE2E2; --ic-fact-bg:rgba(185,28,28,.1);   --ic-fact-bd:rgba(185,28,28,.3); }
-                            .ic-amber { --ic-card-bg:rgba(69,26,3,.52);   --ic-border:rgba(180,83,9,.5);    --ic-badge-bg:rgba(180,83,9,.26);   --ic-badge-bd:rgba(180,83,9,.7);   --ic-color:#FEF3C7; --ic-fact-bg:rgba(180,83,9,.1);    --ic-fact-bd:rgba(180,83,9,.3); }
-                            .ic-blue  { --ic-card-bg:rgba(23,37,84,.55);  --ic-border:rgba(29,78,216,.5);   --ic-badge-bg:rgba(29,78,216,.26);  --ic-badge-bd:rgba(29,78,216,.7);  --ic-color:#DBEAFE; --ic-fact-bg:rgba(29,78,216,.1);   --ic-fact-bd:rgba(29,78,216,.3); }
-                            .ic-slate { --ic-card-bg:rgba(15,23,42,.62);  --ic-border:rgba(71,85,105,.5);   --ic-badge-bg:rgba(71,85,105,.26);  --ic-badge-bd:rgba(71,85,105,.6);  --ic-color:#E2E8F0; --ic-fact-bg:rgba(71,85,105,.12);  --ic-fact-bd:rgba(71,85,105,.28); }
+                            .ic-green { --ic-card-bg:rgba(5,46,22,.72);   --ic-border:rgba(34,197,94,.55);  --ic-badge-bg:rgba(34,197,94,.28);  --ic-badge-bd:rgba(74,222,128,.85);  --ic-color:#DCFCE7; --ic-badge-text:#86EFAC; --ic-fact-bg:rgba(21,128,61,.22);  --ic-fact-bd:rgba(34,197,94,.4); }
+                            .ic-red   { --ic-card-bg:rgba(69,10,10,.7);   --ic-border:rgba(239,68,68,.55);   --ic-badge-bg:rgba(239,68,68,.28);  --ic-badge-bd:rgba(248,113,113,.85);  --ic-color:#FEE2E2; --ic-badge-text:#FCA5A5; --ic-fact-bg:rgba(185,28,28,.2);    --ic-fact-bd:rgba(239,68,68,.4); }
+                            .ic-amber { --ic-card-bg:rgba(69,26,3,.7);    --ic-border:rgba(245,158,11,.55);  --ic-badge-bg:rgba(245,158,11,.28); --ic-badge-bd:rgba(251,191,36,.85);   --ic-color:#FEF3C7; --ic-badge-text:#FDE68A; --ic-fact-bg:rgba(180,83,9,.2);     --ic-fact-bd:rgba(245,158,11,.4); }
+                            .ic-blue  { --ic-card-bg:rgba(23,37,84,.72);  --ic-border:rgba(59,130,246,.55);  --ic-badge-bg:rgba(59,130,246,.28); --ic-badge-bd:rgba(96,165,250,.85);   --ic-color:#DBEAFE; --ic-badge-text:#93C5FD; --ic-fact-bg:rgba(29,78,216,.2);    --ic-fact-bd:rgba(59,130,246,.4); }
+                            .ic-slate { --ic-card-bg:rgba(15,23,42,.78);  --ic-border:rgba(148,163,184,.55); --ic-badge-bg:rgba(148,163,184,.25); --ic-badge-bd:rgba(203,213,225,.8);   --ic-color:#E2E8F0; --ic-badge-text:#CBD5E1; --ic-fact-bg:rgba(71,85,105,.22);  --ic-fact-bd:rgba(148,163,184,.4); }
 
-                            .insight-card          { background:var(--ic-card-bg); border:1px solid var(--ic-border); border-radius:.6rem; display:flex; flex-direction:column; height:100%; overflow:hidden; }
-                            .insight-card .ic-badge{ background:var(--ic-badge-bg); border:1px solid var(--ic-badge-bd); color:var(--ic-color); font-size:.67rem; font-weight:700; letter-spacing:.04em; padding:.3em .65em; border-radius:.35rem; display:inline-flex; align-items:center; gap:5px; }
-                            .insight-card .ic-hero { font-size:1.4rem; font-weight:900; font-family:'Outfit',sans-serif; letter-spacing:-.02em; color:var(--ic-color); line-height:1.1; }
-                            .insight-card .ic-sub  { font-size:.8rem; font-weight:600; color:rgba(255,255,255,.82); }
-                            .insight-card .ic-label{ font-size:.58rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ic-color); opacity:.65; margin-bottom:.25rem; }
-                            .insight-card .ic-fact { background:var(--ic-fact-bg); border:1px solid var(--ic-fact-bd); border-radius:.35rem; padding:.3rem .55rem; display:flex; align-items:flex-start; gap:.45rem; }
-                            .insight-card .ic-fact-emoji { font-size:.85rem; flex-shrink:0; line-height:1.55; }
-                            .insight-card .ic-fact-text  { font-size:.76rem; color:rgba(255,255,255,.9); line-height:1.45; }
-                            .insight-card .ic-footnote   { font-size:.7rem; color:var(--ic-color); opacity:.55; font-style:italic; line-height:1.4; }
+                            .insight-card          { background:var(--ic-card-bg); border:1px solid var(--ic-border); border-radius:.85rem; display:flex; flex-direction:column; height:100%; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,0.35); backdrop-filter:blur(6px); transition:transform .15s ease, border-color .15s ease; }
+                            .insight-card:hover    { border-color:rgba(255,255,255,0.45); transform:translateY(-2px); }
+                            .insight-card .ic-badge{ background:var(--ic-badge-bg); border:1.5px solid var(--ic-badge-bd); color:var(--ic-badge-text); font-size:1.02rem; font-weight:900; font-family:'Outfit',sans-serif; letter-spacing:.02em; padding:.48em .92em; border-radius:.55rem; display:inline-flex; align-items:center; gap:8px; box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+                            .insight-card .ic-hero { font-size:1.32rem; font-weight:900; font-family:'Outfit',sans-serif; letter-spacing:-.015em; color:#ffffff; line-height:1.22; text-shadow:0 1px 3px rgba(0,0,0,0.5); }
+                            .insight-card .ic-sub  { font-size:.95rem; font-weight:700; font-family:'Outfit',sans-serif; color:rgba(255,255,255,.88); margin-top:3px; line-height:1.3; }
+                            .insight-card .ic-label{ font-size:.66rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--ic-badge-text); opacity:.95; margin-bottom:.35rem; }
+                            .insight-card .ic-fact-frame  { background:var(--ic-fact-bg); border:1px solid var(--ic-fact-bd); border-radius:.7rem; padding:.75rem .9rem; display:flex; align-items:flex-start; gap:.85rem; box-shadow:0 2px 6px rgba(0,0,0,0.18); }
+                            .insight-card .ic-fact-emoji  { font-size:1.55rem; width:2.55rem; height:2.55rem; min-width:2.55rem; display:inline-flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.22); border-radius:.6rem; flex-shrink:0; box-shadow:0 3px 8px rgba(0,0,0,0.25); margin-top:.1rem; }
+                            .insight-card.ic-compact-frames .ic-fact-frame { padding:.45rem .65rem; gap:.65rem; }
+                            .insight-card.ic-compact-frames .ic-fact-emoji { font-size:1.15rem !important; width:2.1rem !important; height:2.1rem !important; min-width:2.1rem !important; border-radius:.45rem; }
+                            .insight-card.ic-compact-frames .ic-fact-title { font-size:.84rem; font-weight:700; color:rgba(255,255,255,0.95); line-height:1.35; }
+                            .insight-card .ic-fact-emoji.sign-blue { background:rgba(59,130,246,0.24) !important; border:1.5px solid rgba(96,165,250,0.65) !important; color:#60A5FA !important; font-weight:900 !important; font-family:'Outfit',sans-serif !important; box-shadow:0 0 8px rgba(59,130,246,0.3) !important; }
+                            .sign-badge-blue { font-weight:900 !important; font-family:'Outfit',sans-serif !important; color:#60A5FA !important; background:rgba(59,130,246,0.24) !important; border:1px solid rgba(96,165,250,0.55) !important; padding:0.05rem 0.35rem !important; border-radius:0.35rem !important; display:inline-block !important; font-size:0.84rem !important; }
+                            .insight-card .ic-fact-content{ flex-grow:1; display:flex; flex-direction:column; gap:.25rem; }
+                            .insight-card .ic-fact-title  { font-size:.88rem; font-weight:800; color:#ffffff; line-height:1.35; }
+                            .insight-card .ic-fact-bullets{ font-size:.82rem; color:rgba(255,255,255,.92); line-height:1.55; display:flex; flex-direction:column; gap:.25rem; }
+                            .insight-card .ic-footnote    { font-size:.74rem; color:var(--ic-color); opacity:.75; font-style:italic; line-height:1.4; }
+
+                            /* ── Clean Bold Player Name Typography (Frameless POP) ───── */
+                            .player-name-pop {
+                                color: #ffffff !important;
+                                font-size: 0.95rem !important;
+                                font-weight: 900 !important;
+                                font-family: 'Outfit', sans-serif !important;
+                                letter-spacing: 0.01em !important;
+                                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6) !important;
+                                display: inline !important;
+                                background: none !important;
+                                border: none !important;
+                                box-shadow: none !important;
+                                padding: 0 !important;
+                                margin: 0 0.1rem !important;
+                            }
                             </style>
 
                             <div class="row g-3">
                                 {% for insight in static_insights %}
 
                                 {# Each branch opens <col> + <insight-card> with the correct color class #}
-                                {% if insight.category == 'BANKER_CONSENSUS' or insight.category == 'CHAMPION_CONSENSUS' or insight.category == 'CONSENSUS_ALERT' %}
+                                {% if insight.category == 'CHAMPION_CONSENSUS' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-green">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-shield-halved me-1"></i>{{ insight.get_category_display }}</span></div>
-                                {% elif insight.category == 'SIGN_DECISIVE' or insight.category == 'CERTIFIED_MADNESS' %}
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-trophy fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'ENGLAND_BAROMETER' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-red">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-fire me-1"></i>{{ insight.get_category_display }}</span></div>
-                                {% elif insight.category == 'SIGN_BALANCE' or insight.category == 'DELUSION_INDEX' %}
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-flag fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'DREAM_FINAL' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-amber">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-scale-balanced me-1"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-fire fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'DELUSION_INDEX' %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="insight-card ic-amber ic-compact-frames">
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-bolt fs-6"></i>{{ insight.get_category_display }}</span></div>
                                 {% elif insight.category == 'LONE_WOLF' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-blue">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-person-walking-arrow-right me-1"></i>{{ insight.get_category_display }}</span></div>
-                                {% elif insight.category == 'GOAL_DELUSION' or insight.category == 'GOLDEN_BOOT' %}
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-person-walking-arrow-right fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'GOAL_DELUSION' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-blue">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-futbol me-1"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-futbol fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'SIGN_DECISIVE' %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="insight-card ic-red">
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-bullseye fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'GOLDEN_BOOT' %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="insight-card ic-green">
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-shoe-prints fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                {% elif insight.category == 'BANKER_CONSENSUS' %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="insight-card ic-green ic-compact-frames">
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-lock fs-6"></i>{{ insight.get_category_display }}</span></div>
                                 {% else %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-slate">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-chart-bar me-1"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-chart-bar fs-6"></i>{{ insight.get_category_display }}</span></div>
                                 {% endif %}
 
-                                        <!-- HERO STAT: Pool-level insight figure -->
-                                        <div class="px-3 pb-2">
+                                        <!-- HERO STAT: Pool-level insight figure (2 distinct vertical rows) -->
+                                        <div class="px-3 pb-3">
                                             {% with parts=insight.data_point|split:"||" %}
-                                            <div class="d-flex align-items-baseline gap-2 flex-wrap">
-                                                <span class="ic-hero">{{ parts.0|striptags }}</span>
-                                                {% if parts.1 %}<span class="ic-sub">{{ parts.1|striptags }}</span>{% endif %}
+                                            <div class="d-flex flex-column">
+                                                <span class="ic-hero">{{ parts.0|safe }}</span>
+                                                {% if parts.1 %}<span class="ic-sub">{{ parts.1|safe }}</span>{% endif %}
                                             </div>
                                             {% endwith %}
                                         </div>
 
-                                        <!-- NAMED FACTS -->
+                                        <!-- NAMED FACTS FRAMES -->
                                         {% with roast_parts=insight.llm_roast|split:"||" %}
                                         {% if roast_parts.0 %}
-                                        <div class="px-3 pb-2 d-flex flex-column gap-1 flex-grow-1">
-                                            <p class="ic-label mb-1">Namngivna fakta</p>
-                                            {% with fact_lines=roast_parts.0|split:"<br>" %}
-                                            {% for line in fact_lines %}
-                                            {% with stripped=line|striptags %}
-                                            {% if stripped|length > 2 %}
-                                            <div class="ic-fact">
-                                                {% if stripped|slice:":1" == "⚡" or stripped|slice:":1" == "🔥" or stripped|slice:":1" == "🐺" or stripped|slice:":1" == "👑" or stripped|slice:":1" == "🛡" or stripped|slice:":1" == "📈" or stripped|slice:":1" == "📊" or stripped|slice:":1" == "🔒" or stripped|slice:":1" == "💣" or stripped|slice:":1" == "🚫" or stripped|slice:":1" == "👥" or stripped|slice:":1" == "⚽" %}
-                                                <span class="ic-fact-emoji">{{ stripped|slice:":1" }}</span>
-                                                <span class="ic-fact-text">{{ stripped|slice:"2:" }}</span>
+                                        <div class="px-3 pb-2 d-flex flex-column gap-2 flex-grow-1">
+                                            <p class="ic-label mb-0">Namngivna fakta</p>
+                                            {% with frames=roast_parts.0|split:"<br><br>" %}
+                                            {% for frame in frames %}
+                                            {% with frame_items=frame|split:":::" %}
+                                            <div class="ic-fact-frame">
+                                                {% if frame_items|length > 1 %}
+                                                <span class="ic-fact-emoji {% if frame_items.0 == '1' or frame_items.0 == 'X' or frame_items.0 == '2' %}sign-blue{% endif %}">{{ frame_items.0|safe }}</span>
+                                                <div class="ic-fact-content">
+                                                    {% with lines=frame_items.1|split:"<br>" %}
+                                                    <div class="ic-fact-title">{{ lines.0|safe }}</div>
+                                                    {% if lines|length > 1 %}
+                                                    <div class="ic-fact-bullets">
+                                                        {% for b_line in lines|slice:"1:" %}
+                                                        {% if b_line|striptags|length > 0 %}
+                                                        <div>{{ b_line|safe }}</div>
+                                                        {% endif %}
+                                                        {% endfor %}
+                                                    </div>
+                                                    {% endif %}
+                                                    {% endwith %}
+                                                </div>
                                                 {% else %}
-                                                <span class="ic-fact-emoji">•</span>
-                                                <span class="ic-fact-text">{{ stripped }}</span>
+                                                <span class="ic-fact-emoji">💡</span>
+                                                <div class="ic-fact-content">
+                                                    <div class="ic-fact-title">{{ frame|safe }}</div>
+                                                </div>
                                                 {% endif %}
                                             </div>
-                                            {% endif %}
                                             {% endwith %}
                                             {% endfor %}
                                             {% endwith %}
@@ -1913,6 +1966,43 @@
                                 column-gap: 2rem;
                                 column-rule: 1px solid rgba(255, 255, 255, 0.12);
                             }
+                        }
+
+                        /* --- GAZETTE AVATAR & HEADLINE FOCUS AUTO-ALIGNMENT --- */
+                        .gazette-avatar-slot {
+                            position: relative;
+                            height: 100%;
+                            display: flex;
+                            align-items: flex-end;
+                            justify-content: center;
+                            overflow: hidden;
+                            background: #ffffff;
+                        }
+                        .gazette-avatar-img {
+                            height: 100%;
+                            width: auto;
+                            max-width: 100%;
+                            object-fit: contain;
+                            object-position: bottom center;
+                            mix-blend-mode: multiply;
+                        }
+
+                        /* Rivalry Left / Right Anchor Alignments */
+                        .gazette-avatar-slot.slot-rival-left .gazette-avatar-img {
+                            object-position: bottom right;
+                        }
+                        .gazette-avatar-slot.slot-rival-right .gazette-avatar-img {
+                            object-position: bottom left;
+                        }
+
+                        /* Modal View */
+                        .gazette-modal-avatar-img {
+                            height: 100%;
+                            width: auto;
+                            max-width: 100%;
+                            object-fit: contain;
+                            object-position: bottom center;
+                            mix-blend-mode: multiply;
                         }
                         </style>
                         <div class="p-4 rounded-4" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
@@ -1965,10 +2055,10 @@
                                                 <!-- SPECIAL EDITION 3-AVATAR PORTRAIT COMPOSITE BANNER -->
                                                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end" style="background: #ffffff; gap: 0;">
                                                     {% for p in gazette.featured_players_json %}
-                                                    <div class="d-flex flex-column align-items-center justify-content-end position-relative flex-fill h-100" style="background: #ffffff;">
+                                                    <div class="gazette-avatar-slot flex-fill">
                                                         {% if p.posture_url or p.portrait_url %}
                                                             <img src="{{ p.posture_url|default:p.portrait_url }}" alt="{{ p.nick }}"
-                                                                 style="height: 92%; width: auto; object-fit: contain; object-position: bottom center; mix-blend-mode: multiply;">
+                                                                 class="{{ p.focus_class|default:'gazette-avatar-img' }}">
                                                         {% else %}
                                                             <div class="d-flex align-items-end justify-content-center" style="height: 92%; opacity: 0.35;">
                                                                 <i class="fa-solid fa-user" style="font-size: 3rem; color: #64748b;"></i>
@@ -1995,10 +2085,10 @@
                                                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end" style="background: #ffffff; gap: 0;">
 
                                                     <!-- Primary — left half, faces right -->
-                                                    <div class="d-flex align-items-end justify-content-end position-relative" style="width: 50%; height: 100%; overflow: hidden; background: #ffffff;">
+                                                    <div class="gazette-avatar-slot slot-rival-left" style="width: 50%;">
                                                         {% if rp.primary.path %}
                                                             <img src="{{ rp.primary.path }}" alt="{{ rp.primary.nick }}"
-                                                                 style="height: 100%; width: auto; object-fit: contain; object-position: bottom right; mix-blend-mode: multiply;">
+                                                                 class="{{ rp.primary.focus_class|default:'gazette-avatar-img' }}">
                                                         {% else %}
                                                             <div style="width:50%; opacity:0.3; text-align:center; padding-top:60px;"><i class="fa-solid fa-user" style="font-size:3rem; color:#60a5fa;"></i></div>
                                                         {% endif %}
@@ -2011,10 +2101,10 @@
                                                     </div>
 
                                                     <!-- Rival — right half, faces left -->
-                                                    <div class="d-flex align-items-end justify-content-start position-relative" style="width: 50%; height: 100%; overflow: hidden; background: #ffffff;">
+                                                    <div class="gazette-avatar-slot slot-rival-right" style="width: 50%;">
                                                         {% if rp.rival.path %}
                                                             <img src="{{ rp.rival.path }}" alt="{{ rp.rival.nick }}"
-                                                                 style="height: 100%; width: auto; object-fit: contain; object-position: bottom left; mix-blend-mode: multiply;">
+                                                                 class="{{ rp.rival.focus_class|default:'gazette-avatar-img' }}">
                                                         {% else %}
                                                             <div style="width:50%; opacity:0.3; text-align:center; padding-top:60px;"><i class="fa-solid fa-user" style="font-size:3rem; color:#ef4444;"></i></div>
                                                         {% endif %}
@@ -2032,9 +2122,9 @@
                                             {% elif is_toarp and gazette.structured_data.rivalry_panel and gazette.structured_data.rivalry_panel.primary.path %}
                                                 <!-- SINGLE AVATAR: centered, full height on white -->
                                                 {% with rp=gazette.structured_data.rivalry_panel %}
-                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end justify-content-center" style="background: #ffffff;">
+                                                <div class="gazette-avatar-slot position-absolute top-0 start-0 w-100 h-100">
                                                     <img src="{{ rp.primary.path }}" alt="{{ rp.primary.nick }}"
-                                                         style="height: 94%; width: auto; object-fit: contain; object-position: bottom; mix-blend-mode: multiply;">
+                                                         class="{{ rp.primary.focus_class|default:'gazette-avatar-img' }}">
                                                     <div class="position-absolute bottom-0 start-50 translate-middle-x mb-1.5 d-inline-flex flex-column align-items-center text-center rounded-2 shadow"
                                                          style="white-space: nowrap; z-index: 2; padding: 5px 8px; background: #172554; border: 1px solid #1D4ED8;">
                                                         <span class="d-block fw-black text-white" style="font-size: 0.80rem; color: #FFFFFF; line-height: 1.15;">{{ rp.primary.nick }}</span>
@@ -2119,31 +2209,72 @@
 
                                     <div class="modal-body p-4 p-md-5">
                                         
-                                        <!-- HEADLINE IMAGE -->
-                                        {% if is_toarp and gazette.content_format == 'WINNERS_LOSERS' and gazette.structured_data.rivalry_panel %}
+                                        <!-- HEADLINE POSTER IMAGE -->
+                                        {% if is_toarp and gazette.is_special_edition and gazette.featured_players_json %}
+                                            <!-- SPECIAL EDITION 3-AVATAR PORTRAIT COMPOSITE POSTER -->
+                                            <div class="mb-4 rounded-4 overflow-hidden position-relative" style="height: 320px; background: #ffffff; border: 1px solid rgba(255,255,255,0.15);">
+                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end" style="background: #ffffff; gap: 0;">
+                                                    {% for p in gazette.featured_players_json %}
+                                                    <div class="gazette-avatar-slot flex-fill">
+                                                        {% if p.posture_url or p.portrait_url %}
+                                                            <img src="{{ p.posture_url|default:p.portrait_url }}" alt="{{ p.nick }}"
+                                                                 class="{{ p.focus_class|default:'gazette-avatar-img' }}">
+                                                        {% else %}
+                                                            <div class="d-flex align-items-end justify-content-center" style="height: 92%; opacity: 0.35;">
+                                                                <i class="fa-solid fa-user" style="font-size: 4rem; color: #64748b;"></i>
+                                                            </div>
+                                                        {% endif %}
+                                                        <!-- Compact floating centered banner -->
+                                                        <div class="position-absolute bottom-0 start-50 translate-middle-x mb-2.5 d-inline-flex flex-column align-items-center text-center rounded-2 shadow"
+                                                             style="white-space: nowrap; z-index: 2; padding: 6px 12px; {% if p.role == 'LEADER' %}background: #052E16; border: 1px solid #15803D;{% elif p.role == 'RUNNER_UP' %}background: #172554; border: 1px solid #1D4ED8;{% else %}background: #450A0A; border: 1px solid #B91C1C;{% endif %}">
+                                                            <span class="d-block fw-black text-white" style="font-size: 0.90rem; line-height: 1.15; letter-spacing: 0.01em;">
+                                                                {{ p.nick }}
+                                                            </span>
+                                                            <span class="font-monospace fw-bold" style="font-size: 0.65rem; line-height: 1.1; {% if p.role == 'LEADER' %}color: #DCFCE7;{% elif p.role == 'RUNNER_UP' %}color: #DBEAFE;{% else %}color: #FEE2E2;{% endif %}">
+                                                                {% if p.role == 'LEADER' %}🥇 Ledare{% elif p.role == 'RUNNER_UP' %}🥈 Utmanare{% else %}📉 Faller{% endif %}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+
+                                        {% elif is_toarp and gazette.content_format == 'WINNERS_LOSERS' and gazette.structured_data.rivalry_panel %}
                                             {% with rp=gazette.structured_data.rivalry_panel %}
                                             <!-- RIVALRY: two avatars touching at center, no gap -->
-                                            <div class="mb-4 rounded-4 overflow-hidden position-relative" style="height: 320px; background: #060d1f; border: 1px solid rgba(255,255,255,0.08);">
-                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end" style="gap: 0;">
+                                            <div class="mb-4 rounded-4 overflow-hidden position-relative" style="height: 320px; background: #ffffff; border: 1px solid rgba(255,255,255,0.15);">
+                                                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-end" style="background: #ffffff; gap: 0;">
 
                                                     <!-- Primary — left half -->
-                                                    <div class="d-flex align-items-end justify-content-end" style="width: 50%; height: 100%; overflow: hidden;">
+                                                    <div class="gazette-avatar-slot slot-rival-left" style="width: 50%;">
                                                         {% if rp.primary.path %}
                                                             <img src="{{ rp.primary.path }}" alt="{{ rp.primary.nick }}"
-                                                                 style="height: 100%; width: auto; object-fit: contain; object-position: bottom right; filter: drop-shadow(3px 0 20px rgba(59,130,246,0.55));">
+                                                                 class="{{ rp.primary.focus_class|default:'gazette-avatar-img' }}">
                                                         {% else %}
-                                                            <div style="width:100%; opacity:0.25; text-align:center; padding-top:100px;"><i class="fa-solid fa-user" style="font-size:5rem; color:#60a5fa;"></i></div>
+                                                            <div style="width:50%; opacity:0.3; text-align:center; padding-top:60px;"><i class="fa-solid fa-user" style="font-size:4rem; color:#60a5fa;"></i></div>
                                                         {% endif %}
+                                                        <!-- Winner floating banner -->
+                                                        <div class="position-absolute bottom-0 start-50 translate-middle-x mb-2.5 d-inline-flex flex-column align-items-center text-center rounded-2 shadow"
+                                                             style="white-space: nowrap; z-index: 2; padding: 6px 12px; background: #052E16; border: 1px solid #15803D;">
+                                                            <span class="d-block fw-black text-white" style="font-size: 0.90rem; line-height: 1.15;">{{ rp.primary.nick }}</span>
+                                                            <span class="font-monospace fw-bold" style="font-size: 0.65rem; color: #DCFCE7; line-height: 1.1;">👑 Vinnare</span>
+                                                        </div>
                                                     </div>
 
                                                     <!-- Rival — right half -->
-                                                    <div class="d-flex align-items-end justify-content-start" style="width: 50%; height: 100%; overflow: hidden;">
+                                                    <div class="gazette-avatar-slot slot-rival-right" style="width: 50%;">
                                                         {% if rp.rival.path %}
                                                             <img src="{{ rp.rival.path }}" alt="{{ rp.rival.nick }}"
-                                                                 style="height: 100%; width: auto; object-fit: contain; object-position: bottom left; filter: drop-shadow(-3px 0 20px rgba(239,68,68,0.5));">
+                                                                 class="{{ rp.rival.focus_class|default:'gazette-avatar-img' }}">
                                                         {% else %}
-                                                            <div style="width:100%; opacity:0.25; text-align:center; padding-top:100px;"><i class="fa-solid fa-user" style="font-size:5rem; color:#ef4444;"></i></div>
+                                                            <div style="width:50%; opacity:0.3; text-align:center; padding-top:60px;"><i class="fa-solid fa-user" style="font-size:4rem; color:#ef4444;"></i></div>
                                                         {% endif %}
+                                                        <!-- Loser floating banner -->
+                                                        <div class="position-absolute bottom-0 start-50 translate-middle-x mb-2.5 d-inline-flex flex-column align-items-center text-center rounded-2 shadow"
+                                                             style="white-space: nowrap; z-index: 2; padding: 6px 12px; background: #450A0A; border: 1px solid #B91C1C;">
+                                                            <span class="d-block fw-black text-white" style="font-size: 0.90rem; line-height: 1.15;">{{ rp.rival.nick }}</span>
+                                                            <span class="font-monospace fw-bold" style="font-size: 0.65rem; color: #FEE2E2; line-height: 1.1;">💥 Förlorare</span>
+                                                        </div>
                                                     </div>
 
                                                 </div>
@@ -2151,11 +2282,18 @@
                                             {% endwith %}
 
                                         {% elif is_toarp and gazette.structured_data.rivalry_panel and gazette.structured_data.rivalry_panel.primary.path %}
-                                            <!-- SINGLE AVATAR: centered, full height -->
+                                            <!-- SINGLE AVATAR: centered, full height on white -->
                                             {% with rp=gazette.structured_data.rivalry_panel %}
-                                            <div class="mb-4 rounded-4 overflow-hidden position-relative d-flex align-items-end justify-content-center" style="height: 320px; background: #060d1f; border: 1px solid rgba(255,255,255,0.08);">
-                                                <img src="{{ rp.primary.path }}" alt="{{ rp.primary.nick }}"
-                                                     style="height: 100%; width: auto; object-fit: contain; object-position: bottom; filter: drop-shadow(0 6px 32px rgba(59,130,246,0.5));">
+                                            <div class="mb-4 rounded-4 overflow-hidden position-relative" style="height: 320px; background: #ffffff; border: 1px solid rgba(255,255,255,0.15);">
+                                                <div class="gazette-avatar-slot position-absolute top-0 start-0 w-100 h-100">
+                                                    <img src="{{ rp.primary.path }}" alt="{{ rp.primary.nick }}"
+                                                         class="{{ rp.primary.focus_class|default:'gazette-avatar-img' }}">
+                                                    <div class="position-absolute bottom-0 start-50 translate-middle-x mb-2.5 d-inline-flex flex-column align-items-center text-center rounded-2 shadow"
+                                                         style="white-space: nowrap; z-index: 2; padding: 6px 12px; background: #172554; border: 1px solid #1D4ED8;">
+                                                        <span class="d-block fw-black text-white" style="font-size: 0.90rem; color: #FFFFFF; line-height: 1.15;">{{ rp.primary.nick }}</span>
+                                                        <span class="font-monospace fw-bold" style="font-size: 0.65rem; color: #DBEAFE; line-height: 1.1;">⭐ I Fokus</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                             {% endwith %}
 
@@ -2714,6 +2852,13 @@ document.addEventListener('DOMContentLoaded', function() {
             tabObj.show();
         }
     }
+
+    // Format bold player names in gazette cards, modals, and insight cards (**Name** -> <span class="player-name-pop">Name</span>)
+    document.querySelectorAll('.gazette-card-item, .modal-body, .gazette-newspaper-columns, .insight-card, .ic-fact-frame, .ic-fact-title, .ic-fact-bullets, .ic-hero, .ic-sub').forEach(function(container) {
+        if (container.innerHTML.includes('**')) {
+            container.innerHTML = container.innerHTML.replace(/\*\*(.*?)\*\*/g, '<span class="player-name-pop">$1</span>');
+        }
+    });
 
     const el = document.getElementById('nextMatchCountdown');
     const textEl = document.getElementById('countdownText');

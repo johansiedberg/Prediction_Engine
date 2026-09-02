@@ -1011,6 +1011,8 @@ def toggle_tournament_submission_verification_view(request, league_id, tournamen
             submission.is_saved = False
         submission.save()
 
+    from tournament.editorial_engine.static_generators import generate_static_insights
+    generate_static_insights(tournament)
     invalidate_tournament_cache(tournament.id)
     
     player_name = player.get_full_name() or player.email

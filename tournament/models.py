@@ -867,18 +867,18 @@ def auto_create_submission_for_tournament_players(sender, instance, action, pk_s
 
 class StaticInsight(models.Model):
     CATEGORY_CHOICES = (
-        ('SIGN_DECISIVE', 'Avgjorda Matcher (Spikvilja)'),
-        ('SIGN_BALANCE', 'Oavgjorda Matcher (Kryssbenägenhet)'),
-        ('BANKER_CONSENSUS', 'Gängets Banker (Superkonsensus)'),
-        ('DELUSION_INDEX', 'Skiljematchen (Vattendelaren)'),
-        ('GOAL_DELUSION', 'Målprognos & Extremer'),
+        ('CHAMPION_CONSENSUS', 'Mästardrömmar & Guldfavoriter'),
+        ('ENGLAND_BAROMETER', 'England-Barometern'),
+        ('DREAM_FINAL', 'Drömfinalen'),
+        ('DELUSION_INDEX', 'Slutspelsträdet & Vattendelaren'),
+        ('LONE_WOLF', 'Knockout-Skrällar & Solospel'),
+        ('GOAL_DELUSION', 'Total Målprognos'),
+        ('SIGN_DECISIVE', 'Tipset-Filosofi & Spikvilja'),
+        ('GOLDEN_BOOT', 'Skytteligan & Guldskon'),
+        ('BANKER_CONSENSUS', 'Konsensus-Fällan'),
+        ('SIGN_BALANCE', 'Oavgjorda Matcher'),
         ('CERTIFIED_MADNESS', 'Omgångens Målfest'),
-        ('LONE_WOLF', 'Ensamvargar (Djärva Solospel)'),
-        ('CHAMPION_CONSENSUS', 'Mästarkonsensus'),
-        ('GOLDEN_BOOT', 'Skytteliga & Sidebets'),
         ('CONSENSUS_ALERT', 'Konsensusvarning'),
-        ('SIGN_HOME', 'Hemmasegrar'),
-        ('SIGN_AWAY', 'Bortasegrar'),
         ('GENERAL', 'Allmän Insikt'),
     )
 
