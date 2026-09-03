@@ -25,11 +25,8 @@ class GeminiScoutService:
 
     SUPPORTED_MODELS = [
         "gemini-3.8-flash",
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
+        "gemini-3.6-flash",
         "gemini-flash-lite-latest",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash",
     ]
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -115,11 +112,29 @@ class GeminiScoutService:
                     candidates = data.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts:
-                            raw_text = parts[0].get("text", "").strip()
+                        raw_text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
+                        clean_json = cls._extract_json_block(raw_text)
+                        if clean_json:
+                            return json.loads(clean_json)
+                elif res.status_code == 429 and search_grounding:
+                    logger.info("GeminiScoutService: Search grounding quota exceeded for model %s. Falling back to direct generation without grounding.", model_name)
+                    fallback_payload = dict(payload)
+                    fallback_payload.pop("tools", None)
+                    fallback_payload.setdefault("generationConfig", {})["response_mime_type"] = "application/json"
+                    res_fb = requests.post(url, headers=headers, json=fallback_payload, timeout=timeout)
+                    if res_fb.status_code == 200:
+                        data = res_fb.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            raw_text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
                             clean_json = cls._extract_json_block(raw_text)
                             if clean_json:
                                 return json.loads(clean_json)
+                    elif res_fb.status_code == 429:
+                        logger.warning("GeminiScoutService: Gemini model %s returned 429 Quota Exceeded on direct fallback.", model_name)
+                        GeminiRateLimiter.record_429()
+                        break
                 elif res.status_code == 429:
                     logger.warning("GeminiScoutService: Gemini model %s returned 429 Quota Exceeded. Enforcing backoff.", model_name)
                     GeminiRateLimiter.record_429()
@@ -195,7 +210,7 @@ class GeminiScoutService:
                     if candidates:
                         cand = candidates[0]
                         parts = cand.get("content", {}).get("parts", [])
-                        raw_text = parts[0].get("text", "").strip() if parts else ""
+                        raw_text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
                         clean_json = cls._extract_json_block(raw_text)
                         parsed_dict = json.loads(clean_json) if clean_json else {}
 
@@ -217,6 +232,30 @@ class GeminiScoutService:
                             "sources": sources,
                             "search_queries": queries,
                         }
+                elif res.status_code == 429 and search_grounding:
+                    logger.info("GeminiScoutService: Search grounding quota exceeded for model %s. Retrying metadata query directly.", model_name)
+                    fallback_payload = dict(payload)
+                    fallback_payload.pop("tools", None)
+                    fallback_payload.setdefault("generationConfig", {})["response_mime_type"] = "application/json"
+                    res_fb = requests.post(url, headers=headers, json=fallback_payload, timeout=timeout)
+                    if res_fb.status_code == 200:
+                        data = res_fb.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            cand = candidates[0]
+                            parts = cand.get("content", {}).get("parts", [])
+                            raw_text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
+                            clean_json = cls._extract_json_block(raw_text)
+                            parsed_dict = json.loads(clean_json) if clean_json else {}
+                            return {
+                                "data": parsed_dict,
+                                "sources": [],
+                                "search_queries": [],
+                            }
+                    elif res_fb.status_code == 429:
+                        logger.warning("GeminiScoutService: Gemini model %s returned 429 Quota Exceeded on metadata direct fallback.", model_name)
+                        GeminiRateLimiter.record_429()
+                        break
                 elif res.status_code == 429:
                     logger.warning("GeminiScoutService: Gemini model %s returned 429 Quota Exceeded. Enforcing backoff.", model_name)
                     GeminiRateLimiter.record_429()
@@ -233,7 +272,7 @@ class GeminiScoutService:
 
     @classmethod
     def _extract_json_block(cls, text: str) -> Optional[str]:
-        """Extracts JSON string from markdown code blocks or raw text."""
+        """Extracts JSON string from markdown code blocks or raw text (both objects and arrays)."""
         if not text:
             return None
         text = text.strip()
@@ -241,9 +280,18 @@ class GeminiScoutService:
         match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL | re.IGNORECASE)
         if match:
             return match.group(1).strip()
-        # Look for { ... }
+        # Look for JSON array [ ... ]
+        match_bracket = re.search(r"(\[.*\])", text, re.DOTALL)
+        # Look for JSON object { ... }
         match_brace = re.search(r"(\{.*\})", text, re.DOTALL)
-        if match_brace:
+
+        if match_bracket and match_brace:
+            if match_bracket.start() < match_brace.start():
+                return match_bracket.group(1).strip()
+            return match_brace.group(1).strip()
+        elif match_bracket:
+            return match_bracket.group(1).strip()
+        elif match_brace:
             return match_brace.group(1).strip()
         return text
 

@@ -390,6 +390,8 @@ class LLMWikipediaScout:
         }
 
         models = [
+            'gemini-3.8-flash',
+            'gemini-3.6-flash',
             'gemini-flash-lite-latest',
         ]
         from tournament.services.gemini_rate_limiter import GeminiRateLimiter
@@ -408,11 +410,29 @@ class LLMWikipediaScout:
                     candidates = data.get('candidates', [])
                     if candidates:
                         parts = candidates[0].get('content', {}).get('parts', [])
-                        if parts:
-                            raw = parts[0].get('text', '').strip()
+                        raw = "".join(p.get('text', '') for p in parts if not p.get('thought')).strip()
+                        if raw.startswith("```"):
+                            raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+                        return json.loads(raw)
+                elif r.status_code == 429 and 'tools' in payload:
+                    logger.info("LLMWikipediaScout: Search grounding quota exceeded for model %s. Retrying directly without grounding.", m)
+                    fb_payload = dict(payload)
+                    fb_payload.pop('tools', None)
+                    fb_payload.setdefault('generationConfig', {})['response_mime_type'] = 'application/json'
+                    r_fb = requests.post(url, headers=headers, json=fb_payload, timeout=12)
+                    if r_fb.status_code == 200:
+                        data = r_fb.json()
+                        candidates = data.get('candidates', [])
+                        if candidates:
+                            parts = candidates[0].get('content', {}).get('parts', [])
+                            raw = "".join(p.get('text', '') for p in parts if not p.get('thought')).strip()
                             if raw.startswith("```"):
                                 raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
                             return json.loads(raw)
+                    elif r_fb.status_code == 429:
+                        logger.warning("LLMWikipediaScout: Gemini model %s returned 429 Quota Exceeded on direct fallback.", m)
+                        GeminiRateLimiter.record_429()
+                        break
                 elif r.status_code == 429:
                     logger.warning("LLMWikipediaScout: Gemini model %s returned 429 Quota Exceeded. Enforcing backoff.", m)
                     GeminiRateLimiter.record_429()

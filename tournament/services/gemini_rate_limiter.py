@@ -28,8 +28,8 @@ class GeminiRateLimiter:
 
     @classmethod
     def get_max_calls_per_minute(cls) -> int:
-        """Returns maximum permitted calls per minute (default: 5)."""
-        return int(getattr(settings, "GEMINI_MAX_CALLS_PER_MINUTE", 5))
+        """Returns maximum permitted calls per minute (default: 14)."""
+        return int(getattr(settings, "GEMINI_MAX_CALLS_PER_MINUTE", 14))
 
     @classmethod
     def get_window_seconds(cls) -> float:

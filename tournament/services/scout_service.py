@@ -533,6 +533,34 @@ def fetch_and_ingest_allsportdb_tournaments(months_ahead=12, dry_run=False, sync
     return created_count, updated_count, prospects_list
 
 
+def infer_sport_from_title(title: str, default: str = "Sports") -> str:
+    """Infers the sport discipline from tournament title keywords if infobox is missing sport."""
+    if not title:
+        return default
+    t_lower = title.lower()
+    if any(k in t_lower for k in ["ice hockey", "hockey world cup", "iihf", "chl", "shl"]):
+        return "Ice Hockey"
+    if any(k in t_lower for k in ["floorball", "innebandy", "wfc", "iff"]):
+        return "Floorball"
+    if any(k in t_lower for k in ["beach handball", "handball", "ehf", "ihf"]):
+        return "Handball"
+    if any(k in t_lower for k in ["basketball", "fiba", "euroleague", "nba"]):
+        return "Basketball"
+    if any(k in t_lower for k in ["volleyball", "fivb", "cev"]):
+        return "Volleyball"
+    if any(k in t_lower for k in ["water polo", "waterpolo"]):
+        return "Water Polo"
+    if any(k in t_lower for k in ["baseball", "baseball5", "wbsc"]):
+        return "Baseball"
+    if any(k in t_lower for k in ["curling"]):
+        return "Curling"
+    if any(k in t_lower for k in ["rugby"]):
+        return "Rugby"
+    if any(k in t_lower for k in ["football", "soccer", "fifa", "uefa", "copa", "nations league", "gold cup", "asian cup", "afcon"]):
+        return "Football"
+    return default
+
+
 def fetch_and_ingest_wikipedia_year_events(years=None, sync_scout=True):
     """
     Crawls Wikipedia's annual sports overview pages (e.g. https://en.wikipedia.org/wiki/2026_in_sports)
@@ -626,7 +654,8 @@ def fetch_and_ingest_wikipedia_year_events(years=None, sync_scout=True):
             if start_date_val and start_date_val < min_upcoming_date:
                 continue
 
-            sport_name = (infobox.get('sport') if infobox and infobox.get('sport') else "") or "Sports"
+            raw_sport = (infobox.get('sport') if infobox and infobox.get('sport') else "")
+            sport_name = raw_sport or infer_sport_from_title(title, default="Sports")
             teams_count = (infobox.get('teams_count') if infobox and infobox.get('teams_count') else 16)
 
             next_rescan = today + datetime.timedelta(days=7)
@@ -859,7 +888,6 @@ MAJOR_FOOTBALL_COMPETITIONS_TARGETS = [
     'UEFA Euro 2028',
     'UEFA Euro 2028 qualifying',
     'UEFA Euro 2032',
-    'UEFA Women\'s Euro 2025',
     'UEFA Women\'s Euro 2029',
     '2026–27 UEFA Nations League',
     '2028–29 UEFA Nations League',
@@ -874,7 +902,6 @@ MAJOR_FOOTBALL_COMPETITIONS_TARGETS = [
     '2027 AFC Asian Cup',
     '2026 FIFA World Cup qualification (AFC)',
     # CONCACAF (North & Central America)
-    '2025 CONCACAF Gold Cup',
     '2027 CONCACAF Gold Cup',
     '2026–27 CONCACAF Nations League',
     '2026 FIFA World Cup qualification (CONCACAF)',
@@ -1358,6 +1385,14 @@ def purge_completed_past_prospects():
         audit = (p.payload or {}).get('scouting_audit', {})
         if audit.get('is_completed') or audit.get('tournament_status') in ['COMPLETED', 'PASSED', 'CONCLUDED']:
             is_past = True
+
+        # Step 0: Purge if tournament title contains a past year and dates are missing
+        if not is_past and not p.start_date:
+            year_match = re.search(r'\b(19\d{2}|20\d{2})\b', p.name)
+            if year_match:
+                t_year = int(year_match.group(1))
+                if t_year < today.year:
+                    is_past = True
 
         if is_past:
             logger.info(f"Purging past/completed prospect '{p.name}' (#{p.id})")

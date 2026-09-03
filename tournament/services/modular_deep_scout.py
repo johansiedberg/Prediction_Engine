@@ -230,7 +230,7 @@ class ModularDeepScout:
         # 1.4 Ingest Official Federation Portal Content & Press Releases
         if official_url and 'wikipedia.org' not in official_url:
             try:
-                official_ingest = self.verifier.ingest_official_page(official_url, prospect.name)
+                official_ingest = self.off_verifier.ingest_official_page(official_url, prospect.name)
                 if official_ingest.get('verified'):
                     domain_name = urllib.parse.urlparse(official_url).netloc
                     active_sources.append(f"Official Federation Intelligence ({domain_name})")
@@ -534,7 +534,10 @@ class ModularDeepScout:
 
         if prospect.status == 'WATCHLIST':
             from tournament.services.scout_service import resolve_rescan_date_for_prospect
-            prospect.rescan_date = resolve_rescan_date_for_prospect(prospect)
+            res_date = resolve_rescan_date_for_prospect(prospect)
+            if res_date:
+                audit_dict = payload_dict.setdefault('scouting_audit', {})
+                audit_dict['next_rescan_date'] = res_date.strftime('%Y-%m-%d')
 
         prospect.payload = payload_dict
         prospect.tournament_blueprint = payload_dict.get('tournament_blueprint', {})
