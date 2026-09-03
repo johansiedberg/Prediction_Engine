@@ -371,6 +371,9 @@ class SpecialEditionReporter:
         is_toarp = is_toarps_pool(tournament)
         personas_list = load_player_personas() if is_toarp else []
 
+        # 1. Snapshot initial leaderboard state for historical comparison
+        cls.snapshot_leaderboard(tournament, round_num, round_name, is_toarp=is_toarp, personas_list=personas_list)
+
         players = list(tournament.players.filter(is_staff=False, is_superuser=False))
         if not players:
             from django.contrib.auth.models import User

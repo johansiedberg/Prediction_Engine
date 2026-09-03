@@ -115,6 +115,8 @@ The Prediction Engine operates as a dual-portal Django application behind a Cadd
 | `0062_alter_sidebet_points.py` | Altered `Sidebet.points` default to `25` |
 | `0063_userprofile_must_set_password.py` | Added `UserProfile.must_set_password` boolean for magic link onboarding |
 | `0064_userprofile_terms_accepted_and_more.py` | Added `UserProfile.terms_accepted` and `terms_accepted_at` datetime |
+| `0065_alter_staticinsight_category.py` | Extended `StaticInsight.category` choices with `SIGN_HOME` and `SIGN_AWAY` |
+| `0066_actual_knockout_dual_predictions.py` | Added `TournamentSubmission.is_actual_knockout_saved` and composite indexes for live actual knockout predictions |
 
 ---
 
@@ -169,7 +171,7 @@ Expected:
 ```bash
 ./venv/bin/python manage.py showmigrations
 ```
-Expected: All migrations through `0064_userprofile_terms_accepted_and_more` have `[X]` applied.
+Expected: All migrations through `0066_actual_knockout_dual_predictions` have `[X]` applied.
 
 ### 4. Verify Local Service Health
 ```bash

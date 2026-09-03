@@ -43,7 +43,7 @@ agy --yolo
 
 ## 2. Project Rule Enforcement in `.agents/AGENTS.md`
 
-We have integrated permission and workflow governance rules directly into [.agents/AGENTS.md](file:///home/johansiedberg/Projects/Prediction_Engine/.agents/AGENTS.md):
+We have integrated permission and workflow governance rules directly into [.agents/AGENTS.md](.agents/AGENTS.md):
 
 * **Direct UI/UX Requests**: Executed directly without plan gating.
 * **Collateral UI/UX Changes**: Gated behind an implementation plan review.

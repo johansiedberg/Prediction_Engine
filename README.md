@@ -1,7 +1,7 @@
 # Project Overview and Architecture: Prediction Engine v2.5
 
 > [!NOTE]
-> **Production Specification & Recent Changelog**: See [PRD_RELEASE_BLUEPRINT.md](file:///Users/johansiedberg/Documents/GitHub/Prediction_Engine/PRD_RELEASE_BLUEPRINT.md) for the complete August 24–27, 2026 system release notes, database migration index (`0061`–`0064`), and Ubuntu PRD activation runbook.
+> **Production Specification & Recent Changelog**: See [PRD_RELEASE_BLUEPRINT.md](PRD_RELEASE_BLUEPRINT.md) for the complete August–September 2026 system release notes, database migration index (`0061`–`0066`), and Ubuntu PRD activation runbook.
 
 ## 1. Background and Objectives
 
@@ -214,7 +214,9 @@ To initialize all user accounts and league configurations:
   * The scout engine is dedicated to upcoming tournaments for Pool-Admin creation. Any tournament with `start_date < today + 30 days` (past or imminent) is immediately rejected/discarded at both shallow web ingestion and deepscan stages.
   * All date extractions strictly normalize to `YYYY-MM-DD` (falling back to `YYYY-MM-01` or `YYYY-01-01`) to prevent null-comparison bypasses.
   * Multi-tiered early rejection triggers at Step 0 (Title regex), Step 0.5 (Intermediate header audit), and during umbrella disambiguation splitting.
+* **Dual-Phase Knockout Prediction Engine:**
+  * Supports both pre-tournament simulated bracket predictions and live actual knockout stage predictions (`is_actual_knockout_saved`), enabling dynamic tiebreaker toggling and progressive bracket build-ups.
 * **Gemini AI Rate Limiting & High-Performance Scouting Standard:**
-  * Standardized on `gemini-flash-lite-latest` with a strict 14 RPM governor (`GEMINI_MAX_CALLS_PER_MINUTE = 14`) via `GeminiRateLimiter` to eliminate 60s 429 quota punishment blocks.
+  * Standardized on high-speed flash models: **Gemini 3.8 Flash** (`gemini-3.8-flash`), `gemini-flash-lite-latest`, and `gemini-2.5-flash` with a strict 14 RPM governor (`GEMINI_MAX_CALLS_PER_MINUTE = 14`) via `GeminiRateLimiter` to eliminate 60s 429 quota punishment blocks.
   * Bracket slot tokens (`1A`, `2B`, `3C/E/F`, `W73`, `Lag #1`, `Vinnare M1`, `Guld`) are resolved in **0.00ms** by `TeamBadgeService.is_placeholder` without making external Wikidata or DB queries.
   * Matches & Knockout sub-agent skips redundant Gemini fixture searches when the draw is pending or when full fixtures are already parsed from Wikipedia.

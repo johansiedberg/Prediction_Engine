@@ -36,6 +36,13 @@ class SpecialEditionTestCase(TestCase):
             away_goals=1,
             is_finished=True
         )
+        self.match2 = Match.objects.create(
+            tournament=self.tournament,
+            match_number=2,
+            home_team='Denmark',
+            away_team='Finland',
+            is_finished=False
+        )
 
         MatchPrediction.objects.create(
             match=self.match1,
@@ -464,7 +471,7 @@ class ScoutServiceTestCase(TestCase):
         c, u, prospects = fetch_and_ingest_wikipedia_year_events(years=[2027])
         self.assertGreaterEqual(c, 1)
         self.assertEqual(len(prospects), 1)
-        self.assertEqual(prospects[0].name, '2027 World Junior Ice Hockey Championships')
+        self.assertEqual(prospects[0].name, 'World Junior Ice Hockey Championships 2027')
 
     def test_wikipedia_duplicate_tournament_merging(self):
         from tournament.models import ScannedTournament
@@ -1191,8 +1198,8 @@ class LLMWikipediaScoutTestCase(TestCase):
         self.assertIn('Uppdelad', parent.grade_reason)
 
         # Check sub tournaments created
-        self.assertTrue(ScannedTournament.objects.filter(name="2026 FIBA 3x3 U23 World Cup – Men's tournament").exists())
-        self.assertTrue(ScannedTournament.objects.filter(name="2026 FIBA 3x3 U23 World Cup – Women's tournament").exists())
+        self.assertTrue(ScannedTournament.objects.filter(name="FIBA 3x3 U23 World Cup – Men's tournament 2026").exists())
+        self.assertTrue(ScannedTournament.objects.filter(name="FIBA 3x3 U23 World Cup – Women's tournament 2026").exists())
 
 
 class DeepscanBlueprintTests(TestCase):

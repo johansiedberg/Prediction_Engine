@@ -110,7 +110,7 @@ When colouring banners, badges, callouts, and status notification containers, en
   - **Grade C (Filtered/Watched)**: Slate-900 surface (`#0F172A`), Slate-600 border (`#475569`), Slate-200 text (`#E2E8F0`) + Info icon.
 
 ## Section 5: AI Engine & Performance Standards
-- **AI Model Standard**: All scouting agents must standardize on `gemini-flash-lite-latest` (or `gemini-3.5-flash-lite`) to leverage high-throughput quotas.
+- **AI Model Standard**: All scouting and analytical agents standardize on high-performance Gemini flash models: **Gemini 3.8 Flash** (`gemini-3.8-flash`), `gemini-flash-lite-latest`, or `gemini-2.5-flash` to leverage high-throughput quotas and enhanced reasoning.
 - **Rate Limit Governor**: Enforce a strict 14 RPM ceiling (`GEMINI_MAX_CALLS_PER_MINUTE = 14`) via `GeminiRateLimiter` to safely operate below Google's 15 RPM limit and prevent 60-second 429 penalty backoffs during bulk scans.
 - **Matches & Knockout Performance**:
   - Bracket slot tokens (`1A`, `2B`, `3C/E/F`, `W73`, `Lag #1`, `Vinnare M1`, `Guld`) MUST be recognized instantly (0ms) by `TeamBadgeService.is_placeholder` without making external Wikidata or database lookups.

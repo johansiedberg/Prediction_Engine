@@ -24,6 +24,7 @@ class GeminiScoutService:
     """
 
     SUPPORTED_MODELS = [
+        "gemini-3.8-flash",
         "gemini-2.5-flash",
         "gemini-2.0-flash",
         "gemini-flash-lite-latest",
@@ -32,6 +33,15 @@ class GeminiScoutService:
     ]
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+
+    @classmethod
+    def get_supported_models(cls):
+        """Returns the cascaded list of supported models, prioritizing any GEMINI_MODEL setting."""
+        configured = getattr(settings, "GEMINI_MODEL", "") or os.environ.get("GEMINI_MODEL", "")
+        if configured and configured.strip():
+            c_model = configured.strip()
+            return [c_model] + [m for m in cls.SUPPORTED_MODELS if m != c_model]
+        return cls.SUPPORTED_MODELS
 
     @classmethod
     def get_api_key(cls) -> str:
@@ -79,7 +89,7 @@ class GeminiScoutService:
 
         from tournament.services.gemini_rate_limiter import GeminiRateLimiter
 
-        for model_name in cls.SUPPORTED_MODELS:
+        for model_name in cls.get_supported_models():
             url = f"{cls.BASE_URL}/{model_name}:generateContent?key={api_key}"
 
             payload: Dict[str, Any] = {
@@ -159,7 +169,7 @@ class GeminiScoutService:
 
         from tournament.services.gemini_rate_limiter import GeminiRateLimiter
 
-        for model_name in cls.SUPPORTED_MODELS:
+        for model_name in cls.get_supported_models():
             url = f"{cls.BASE_URL}/{model_name}:generateContent?key={api_key}"
             payload: Dict[str, Any] = {
                 "contents": contents,

@@ -103,6 +103,8 @@ class StaticInsight(models.Model):
         ('CHAMPION_CONSENSUS', 'Mästarkonsensus'),
         ('GOLDEN_BOOT', 'Skytteliga & Sidebets'),
         ('CONSENSUS_ALERT', 'Konsensusvarning'),
+        ('SIGN_HOME', 'Hemmasegrar'),
+        ('SIGN_AWAY', 'Bortasegrar'),
         ('GENERAL', 'Allmän Insikt'),
     )
     tournament = models.ForeignKey('Tournament', on_delete=models.CASCADE, related_name='static_insights')
