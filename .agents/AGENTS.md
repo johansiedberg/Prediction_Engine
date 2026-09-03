@@ -1,7 +1,10 @@
 # Project Rules for Prediction Engine
 
 ## System Architecture & Master Release Blueprint
-- **Master Release Blueprint**: For full architectural specifications, schema migrations (`0061`–`0064`), service ports, and deployment runbooks, see [PRD_RELEASE_BLUEPRINT.md](file:///Users/johansiedberg/Documents/GitHub/Prediction_Engine/PRD_RELEASE_BLUEPRINT.md).
+- **Master Release Blueprint**: For full architectural specifications, schema migrations (`0061`–`0066`), service ports, and deployment runbooks, see [PRD_RELEASE_BLUEPRINT.md](file:///Users/johansiedberg/Documents/GitHub/Prediction_Engine/PRD_RELEASE_BLUEPRINT.md).
+- **Changelog & Agent Version Inspection**: Consult [CHANGELOG.md](file:///Users/johansiedberg/Documents/GitHub/Prediction_Engine/CHANGELOG.md) for the complete version history, milestone highlights, and chronological commit log from DEV.
+  - When an autonomous agent starts a session or investigates issues on PRD or DEV, it MUST consult `CHANGELOG.md` to identify recently deployed features, bugfixes, and database migrations.
+  - When releasing a new milestone, update `CHANGELOG.md` with semantic versioning (`v2.x.y`), date, and commit table.
 
 ## Development & Production Server Ports
 - **Prediction (Player Application)**: Default external port **2028** (bound locally to `127.0.0.1:8028` behind Caddy reverse proxy)

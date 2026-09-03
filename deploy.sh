@@ -9,6 +9,9 @@ set -e
 
 echo "🚀 [1/5] Pulling latest changes from origin/main..."
 git pull origin main
+echo "📋 Latest commits deployed from DEV:"
+git log -n 5 --oneline
+
 
 echo "📦 [2/5] Applying database migrations..."
 ./venv/bin/python manage.py migrate

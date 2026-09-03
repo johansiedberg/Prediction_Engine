@@ -1,7 +1,7 @@
-# Project Overview and Architecture: Prediction Engine v2.5
+# Project Overview and Architecture: Prediction Engine v2.7
 
 > [!NOTE]
-> **Production Specification & Recent Changelog**: See [PRD_RELEASE_BLUEPRINT.md](PRD_RELEASE_BLUEPRINT.md) for the complete August–September 2026 system release notes, database migration index (`0061`–`0066`), and Ubuntu PRD activation runbook.
+> **Production Specification & Recent Changelog**: See [PRD_RELEASE_BLUEPRINT.md](PRD_RELEASE_BLUEPRINT.md) and [CHANGELOG.md](CHANGELOG.md) for the complete August–September 2026 system release notes, commit logs, database migration index (`0061`–`0066`), and Ubuntu PRD activation runbook.
 
 ## 1. Background and Objectives
 

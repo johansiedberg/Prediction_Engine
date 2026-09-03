@@ -1,10 +1,12 @@
 # Prediction Engine - Production Release Blueprint & System Specification
-**Release Version**: `v2.5.0` | **Date**: August 27, 2026 | **Target**: Ubuntu Production Server (`192.168.86.35`)
+**Release Version**: `v2.7.0` | **Date**: September 3, 2026 | **Target**: Ubuntu Production Server (`192.168.86.35`)
 
 ---
 
 ## 📌 Executive Summary
-This document provides the definitive, comprehensive architectural specification and grouped changelog of all features, schema migrations, UI/UX systems, and background services introduced over August 24–27, 2026.
+This document provides the definitive, comprehensive architectural specification and system overview of all features, schema migrations, UI/UX systems, and background services introduced through **v2.7.0** (August 24 – September 3, 2026).
+
+For the complete chronologically ordered commit log and detailed developer changes deployed from DEV, see **[CHANGELOG.md](CHANGELOG.md)**.
 
 This blueprint serves as the single source of truth for developers and the autonomous **AntiGravity Agent** on the Ubuntu PRD server to understand, verify, and operate the platform.
 
@@ -48,7 +50,7 @@ The Prediction Engine operates as a dual-portal Django application behind a Cadd
 
 ---
 
-## 🚀 2. Grouped Section-by-Section Feature Breakdown (Aug 24–27, 2026)
+## 🚀 2. Grouped Section-by-Section Feature Breakdown (Through v2.7.0)
 
 ### Section 1: AI Tournament Scout & LLM Engine
 1. **Tri-Pillar AI Scout Architecture**:
@@ -139,7 +141,7 @@ cd /home/johansiedberg/Projects/Prediction_Engine
 
 ### What `deploy.sh` Does Automatically:
 1. `git pull origin main`: Fetches and fast-forwards the latest code.
-2. `manage.py migrate`: Applies database migrations (`0061`–`0064`).
+2. `manage.py migrate`: Applies database migrations (`0061`–`0066`).
 3. `manage.py collectstatic --noinput`: Compiles all static CSS/JS assets.
 4. `pkill -9`: Kills any stale Python/Django processes holding ports 8028/8029.
 5. `nohup runserver`: Starts Player on `127.0.0.1:8028` and Engine Admin on `127.0.0.1:8029`.
