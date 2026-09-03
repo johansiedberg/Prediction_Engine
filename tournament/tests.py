@@ -272,8 +272,13 @@ class ScoutServiceTestCase(TestCase):
     def setUp(self):
         self.admin = User.objects.create_superuser('johansiedberg', 'scout@admin.test', 'scoutpass123')
 
+    @patch('tournament.services.wikipedia_scout.WikipediaScout.search_wikipedia_article', return_value='')
+    @patch('tournament.services.scout_service.resolve_and_filter_prospect_dates', return_value=(0, 0))
+    @patch('tournament.services.scout_service.fetch_and_ingest_wikipedia_year_events', return_value=(0, 0, []))
+    @patch('tournament.services.scout_service.fetch_and_ingest_gemini_ai_tournaments', return_value=(0, 0, []))
+    @patch('tournament.services.scout_service.fetch_and_ingest_major_football_tournaments', return_value=(0, 0, []))
     @patch('tournament.services.allsportdb_client.requests.get')
-    def test_scrape_web_for_tournaments(self, mock_get):
+    def test_scrape_web_for_tournaments(self, mock_get, mock_fb, mock_gem, mock_wiki, mock_dates, mock_wsearch):
         # Mock Sports response and Calendar response
         mock_sports_resp = MagicMock()
         mock_sports_resp.status_code = 200
@@ -298,8 +303,13 @@ class ScoutServiceTestCase(TestCase):
         self.assertGreater(len(prospects), 0)
         self.assertEqual(created_cnt + updated_cnt, len(prospects))
 
+    @patch('tournament.services.wikipedia_scout.WikipediaScout.search_wikipedia_article', return_value='')
+    @patch('tournament.services.scout_service.resolve_and_filter_prospect_dates', return_value=(0, 0))
+    @patch('tournament.services.scout_service.fetch_and_ingest_wikipedia_year_events', return_value=(0, 0, []))
+    @patch('tournament.services.scout_service.fetch_and_ingest_gemini_ai_tournaments', return_value=(0, 0, []))
+    @patch('tournament.services.scout_service.fetch_and_ingest_major_football_tournaments', return_value=(0, 0, []))
     @patch('tournament.services.allsportdb_client.requests.get')
-    def test_scrape_web_with_query_filter(self, mock_get):
+    def test_scrape_web_with_query_filter(self, mock_get, mock_fb, mock_gem, mock_wiki, mock_dates, mock_wsearch):
         mock_sports_resp = MagicMock()
         mock_sports_resp.status_code = 200
         mock_sports_resp.json.return_value = [{'id': 1, 'name': 'Floorball'}]
@@ -323,6 +333,7 @@ class ScoutServiceTestCase(TestCase):
 
 
     def test_convert_scanned_to_live_tournament_preserves_record(self):
+        from unittest.mock import patch
         from tournament.services.scout_service import parse_and_save_scouted_json, convert_scanned_to_live_tournament
         from tournament.models import ScannedTournament
 
@@ -335,7 +346,11 @@ class ScoutServiceTestCase(TestCase):
         scanned, _, _ = parse_and_save_scouted_json(sample)
         self.assertEqual(scanned.status, 'NEW')
 
-        tour, err = convert_scanned_to_live_tournament(scanned.id, self.admin)
+        with patch('tournament.services.backdrop_scout.BackdropScout.discover_backdrop', return_value=''), \
+             patch('tournament.services.emblem_scout.EmblemScout.discover_emblem', return_value=''), \
+             patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem', return_value=''), \
+             patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False):
+            tour, err = convert_scanned_to_live_tournament(scanned.id, self.admin)
         self.assertIsNone(err)
         self.assertIsNotNone(tour)
 
@@ -393,7 +408,11 @@ class ScoutServiceTestCase(TestCase):
         scanned.official_source_url = "https://official.rules.sport"
         scanned.save()
 
-        tour, err = convert_scanned_to_live_tournament(scanned.id, self.admin)
+        with patch('tournament.services.backdrop_scout.BackdropScout.discover_backdrop', return_value=''), \
+             patch('tournament.services.emblem_scout.EmblemScout.discover_emblem', return_value=''), \
+             patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem', return_value=''), \
+             patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False):
+            tour, err = convert_scanned_to_live_tournament(scanned.id, self.admin)
         self.assertIsNone(err)
         self.assertEqual(tour.official_rules, "Gruppspel: 3p vinst. Slutspel: Forlangning 2x5min.")
         self.assertEqual(tour.official_regulations_url, "https://official.rules.sport")
@@ -421,9 +440,13 @@ class ScoutServiceTestCase(TestCase):
         self.assertEqual(scanned.official_rules, 'Uppdaterade officiella regler')
         self.assertEqual(scanned.official_source_url, 'https://regulations.test.com')
 
+    @patch('tournament.services.wikipedia_scout.WikipediaScout.search_wikipedia_article', return_value='')
+    @patch('tournament.services.scout_service.resolve_and_filter_prospect_dates', return_value=(0, 0))
+    @patch('tournament.services.scout_service.fetch_and_ingest_wikipedia_year_events', return_value=(0, 0, []))
+    @patch('tournament.services.scout_service.fetch_and_gemini_ai_tournaments' if hasattr(__import__('tournament.services.scout_service', fromlist=['fetch_and_gemini_ai_tournaments']), 'fetch_and_gemini_ai_tournaments') else 'tournament.services.scout_service.fetch_and_ingest_gemini_ai_tournaments', return_value=(0, 0, []))
+    @patch('tournament.services.scout_service.fetch_and_ingest_major_football_tournaments', return_value=(0, 0, []))
     @patch('tournament.services.allsportdb_client.requests.get')
-
-    def test_scout_scrape_web_view(self, mock_get):
+    def test_scout_scrape_web_view(self, mock_get, mock_fb, mock_gem, mock_wiki, mock_dates, mock_wsearch):
         mock_sports_resp = MagicMock()
         mock_sports_resp.status_code = 200
         mock_sports_resp.json.return_value = [{'id': 1, 'name': 'Floorball'}]
@@ -674,8 +697,10 @@ class OfficialRegulationsVerifierTestCase(TestCase):
         self.assertTrue(res['verified'])
         self.assertEqual(res['status'], 'VERIFIED')
 
+    @patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem', return_value='')
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False)
     @patch('tournament.services.wikipedia_scout.requests.get')
-    def test_scout_import_wikipedia_view(self, mock_get):
+    def test_scout_import_wikipedia_view(self, mock_get, mock_gem_avail, mock_emblem):
         admin = User.objects.create_superuser('johansiedberg', 'wiki@admin.test', 'wikipass123')
         self.client.force_login(admin)
 
@@ -699,8 +724,10 @@ class OfficialRegulationsVerifierTestCase(TestCase):
         data = response.json()
         self.assertEqual(data['status'], 'success')
 
+    @patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem', return_value='')
+    @patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False)
     @patch('tournament.services.wikipedia_scout.requests.get')
-    def test_scout_search_specific_view(self, mock_get):
+    def test_scout_search_specific_view(self, mock_get, mock_gem_avail, mock_emblem):
         admin = User.objects.create_superuser('johansiedberg', 'search@admin.test', 'searchpass123')
         self.client.force_login(admin)
 
@@ -727,8 +754,9 @@ class OfficialRegulationsVerifierTestCase(TestCase):
         data = response.json()
         self.assertEqual(data['status'], 'success')
 
+    @patch('tournament.views.engine_admin.scout._run_deep_scan_on_prospect')
     @patch('tournament.services.wikipedia_scout.requests.get')
-    def test_scout_deep_scan_one_view(self, mock_get):
+    def test_scout_deep_scan_one_view(self, mock_get, mock_run_deep):
         import datetime
         from tournament.models import ScannedTournament
         admin = User.objects.create_superuser('johansiedberg', 'deep@admin.test', 'deeppass123')
@@ -749,19 +777,21 @@ class OfficialRegulationsVerifierTestCase(TestCase):
             }
         )
 
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {
-            'parse': {
-                'sections': [
-                    {'line': 'Group A'},
-                    {'line': 'Group B'},
-                    {'line': 'Fixtures'}
-                ],
-                'text': {'*': '<table class="infobox"><tr><th>Teams</th><td>8</td></tr><tr><th>Dates</th><td>1 June – 15 June 2027</td></tr></table>'}
+        def side_effect(p, *args, **kwargs):
+            p.payload = {'scouting_audit': {'scouting_stage': 'DEEP'}}
+            p.save()
+            return {
+                'ok': True,
+                'grade': 'GRADE_B',
+                'grade_reason': 'Djupscanning slutförd.',
+                'fixtures_count': 10,
+                'groups_count': 2,
+                'teams_count': 8,
+                'draw_completed': True,
+                'draw_date': '',
+                'scheduled_matchdays': 10,
             }
-        }
-        mock_get.return_value = mock_resp
+        mock_run_deep.side_effect = side_effect
 
         response = self.client.post(
             f'/engine-admin/scout/deep-scan/{prospect.id}/',
@@ -815,6 +845,27 @@ class OfficialRegulationsVerifierTestCase(TestCase):
 
 class LLMWikipediaScoutTestCase(TestCase):
     """Tests for LLMWikipediaScout — uses mocks so no real API key is required."""
+
+    def setUp(self):
+        from unittest.mock import patch
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+        GeminiRateLimiter.reset()
+        self._patchers = [
+            patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False),
+            patch('tournament.services.official_site_scout.OfficialSiteScout.search_and_rank_tournament_sources', return_value=[]),
+            patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem', return_value=''),
+            patch('tournament.services.emblem_scout.EmblemScout.discover_emblem', return_value=''),
+            patch('tournament.services.backdrop_scout.BackdropScout.discover_backdrop', return_value=''),
+            patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout._call_gemini', return_value=None),
+        ]
+        for p in self._patchers:
+            p.start()
+
+    def tearDown(self):
+        for p in reversed(self._patchers):
+            p.stop()
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+        GeminiRateLimiter.reset()
 
     @patch('requests.get')
     def test_fetch_wikipedia_plaintext_success(self, mock_get):
@@ -1296,6 +1347,7 @@ class DeepscanBlueprintTests(TestCase):
         self.assertEqual(tree[0]["matches"][0]["home_source"], "Winner Group A")
 
     def test_convert_scanned_to_live_tournament_with_skeleton_fallback(self):
+        from unittest.mock import patch
         from django.contrib.auth import get_user_model
         from tournament.models import ScannedTournament, Tournament
         from tournament.services.scout_service import convert_scanned_to_live_tournament
@@ -1308,7 +1360,11 @@ class DeepscanBlueprintTests(TestCase):
             sport="Floorball",
             payload={}
         )
-        tourn, err = convert_scanned_to_live_tournament(scanned.id, admin)
+        with patch('tournament.services.backdrop_scout.BackdropScout.discover_backdrop', return_value=''), \
+             patch('tournament.services.emblem_scout.EmblemScout.discover_emblem', return_value=''), \
+             patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem', return_value=''), \
+             patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False):
+            tourn, err = convert_scanned_to_live_tournament(scanned.id, admin)
         self.assertIsNotNone(tourn)
         self.assertIsNone(err)
         self.assertEqual(tourn.tournament_groups.count(), 4)
@@ -1361,9 +1417,13 @@ class DeepscanBlueprintTests(TestCase):
         wiki_scout = WikipediaScout()
         off_verifier = OfficialRegulationsVerifier()
 
-        with patch.object(wiki_scout, 'get_article_title_from_url', return_value=''):
-            with patch.object(wiki_scout, 'search_wikipedia_article', return_value=''):
-                res = _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier)
+        with patch.object(wiki_scout, 'get_article_title_from_url', return_value=''), \
+             patch.object(wiki_scout, 'search_wikipedia_article', return_value=''), \
+             patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout._call_gemini', return_value=None), \
+             patch('tournament.services.official_site_scout.OfficialSiteScout.search_and_rank_tournament_sources', return_value=[]), \
+             patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False), \
+             patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem', return_value=''):
+            res = _run_deep_scan_on_prospect(prospect, wiki_scout, off_verifier)
 
         prospect.refresh_from_db()
         self.assertFalse(res['ok'])
@@ -1462,7 +1522,15 @@ class DeepscanBlueprintTests(TestCase):
         deep_scout = ModularDeepScout()
         with patch.object(deep_scout.wiki_scout, 'get_article_title_from_url', return_value='World Cup 2030 Test'), \
              patch.object(deep_scout.wiki_scout, 'search_wikipedia_article', return_value='World Cup 2030 Test'), \
-             patch.object(deep_scout.llm_scout, 'audit_with_llm', return_value=mock_audit):
+             patch.object(deep_scout.llm_scout, 'audit_with_llm', return_value=mock_audit), \
+             patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout._call_gemini', return_value=None), \
+             patch('tournament.services.wikidata_scout.WikidataScout.fetch_wikidata_entity', return_value={}), \
+             patch('tournament.services.official_site_scout.OfficialSiteScout.discover_official_site', return_value=''), \
+             patch('tournament.services.official_regulations_verifier.OfficialRegulationsVerifier.verify_official_regulations', return_value={'verified': False}), \
+             patch('tournament.services.official_site_scout.OfficialSiteScout.search_and_rank_tournament_sources', return_value=[]), \
+             patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False), \
+             patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem', return_value=''), \
+             patch('tournament.services.backdrop_scout.BackdropScout.discover_backdrop', return_value=''):
             res = deep_scout.deep_scan_prospect(prospect)
 
         prospect.refresh_from_db()
@@ -2371,7 +2439,11 @@ class OfficialSiteScoutAndIngestTestCase(TestCase):
 
         # Test ModularDeepScout auto-merges generic umbrella into concrete edition
         scout = ModularDeepScout()
-        res = scout.deep_scan_prospect(umbrella)
+        with patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout._call_gemini', return_value=None), \
+             patch('tournament.services.official_site_scout.OfficialSiteScout.search_and_rank_tournament_sources', return_value=[]), \
+             patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False), \
+             patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem', return_value=''):
+            res = scout.deep_scan_prospect(umbrella)
 
         self.assertTrue(res["ok"])
         self.assertEqual(res["merged_into"], concrete.id)
@@ -2967,6 +3039,202 @@ class ActualKnockoutPredictionTestCase(TestCase):
         # Verify submission updated
         sub = TournamentSubmission.objects.get(tournament=self.tournament, player=self.player)
         self.assertTrue(sub.is_actual_knockout_saved)
+
+
+from django.test import tag
+
+
+class GeminiScoutRegressionTestCase(TestCase):
+    """
+    Hermetic regression tests verifying Gemini 3.8 Flash optimizations,
+    429 search grounding fallback, json array extraction, sport keyword inference,
+    past-year purging, and ModularDeepScout rescan date safety.
+    """
+
+    def setUp(self):
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+        GeminiRateLimiter.reset()
+
+    def tearDown(self):
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+        GeminiRateLimiter.reset()
+
+    @patch('tournament.services.gemini_rate_limiter.GeminiRateLimiter.acquire', return_value=True)
+    @patch('requests.post')
+    def test_gemini_scout_search_grounding_429_graceful_fallback(self, mock_post, mock_acquire):
+        """
+        Verifies that when search grounding returns 429 Quota Exceeded,
+        generate_json immediately retries directly without search grounding,
+        returns the valid JSON result, and DOES NOT call record_429.
+        """
+        from tournament.services.gemini_scout_service import GeminiScoutService
+        from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+
+        # First response: 429 on search grounding
+        resp_429 = MagicMock()
+        resp_429.status_code = 429
+        resp_429.json.return_value = {
+            "error": {"code": 429, "message": "You exceeded your current quota, please check your plan and billing details"}
+        }
+
+        # Second response (direct fallback): 200 OK
+        resp_200 = MagicMock()
+        resp_200.status_code = 200
+        resp_200.json.return_value = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {"text": '{"tournament": "UEFA Euro 2028", "status": "CONFIRMED"}'}
+                        ]
+                    }
+                }
+            ]
+        }
+
+        mock_post.side_effect = [resp_429, resp_200]
+
+        result = GeminiScoutService.generate_json("Test prompt", search_grounding=True)
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.get("tournament"), "UEFA Euro 2028")
+        self.assertEqual(result.get("status"), "CONFIRMED")
+        # Ensure limiter was not placed in cooldown
+        self.assertFalse(GeminiRateLimiter.get_status()["in_penalty_cooldown"])
+        self.assertEqual(GeminiRateLimiter.get_status()["penalty_remaining_seconds"], 0.0)
+
+    def test_extract_json_block_supports_arrays_and_objects(self):
+        """Verifies _extract_json_block parses both objects and arrays and handles thought blocks."""
+        from tournament.services.gemini_scout_service import GeminiScoutService
+        import json
+
+        # 1. JSON Array in markdown fences
+        raw_array_md = "```json\n[{\"name\": \"Team A\"}, {\"name\": \"Team B\"}]\n```"
+        clean = GeminiScoutService._extract_json_block(raw_array_md)
+        self.assertIsNotNone(clean)
+        parsed = json.loads(clean)
+        self.assertEqual(len(parsed), 2)
+        self.assertEqual(parsed[0]["name"], "Team A")
+
+        # 2. Raw JSON Array with leading prose
+        raw_array_prose = "Here are the tournaments:\n[{\"name\": \"Cup 1\"}, {\"name\": \"Cup 2\"}]\nHope this helps!"
+        clean = GeminiScoutService._extract_json_block(raw_array_prose)
+        self.assertIsNotNone(clean)
+        parsed = json.loads(clean)
+        self.assertEqual(len(parsed), 2)
+
+        # 3. Standard JSON Object
+        raw_obj = '{"tournament_format": "Group + Knockout", "teams": 16}'
+        clean = GeminiScoutService._extract_json_block(raw_obj)
+        parsed = json.loads(clean)
+        self.assertEqual(parsed["teams"], 16)
+
+    def test_infer_sport_from_title(self):
+        """Verifies infer_sport_from_title correctly identifies sport disciplines from keywords."""
+        from tournament.services.scout_service import infer_sport_from_title
+
+        self.assertEqual(infer_sport_from_title("World Junior Ice Hockey Championships 2028"), "Ice Hockey")
+        self.assertEqual(infer_sport_from_title("European Beach Handball Championships 2027"), "Handball")
+        self.assertEqual(infer_sport_from_title("World Men's Curling Championship 2027"), "Curling")
+        self.assertEqual(infer_sport_from_title("FIVB Volleyball Men's Club World Championship 2026"), "Volleyball")
+        self.assertEqual(infer_sport_from_title("World Aquatics 4×4 Women's Water Polo Championships 2026"), "Water Polo")
+        self.assertEqual(infer_sport_from_title("Baseball5 World Cup 2026"), "Baseball")
+        self.assertEqual(infer_sport_from_title("Men's World Floorball Championships 2026"), "Floorball")
+        self.assertEqual(infer_sport_from_title("Basketball Champions League Final Four 2026"), "Basketball")
+        self.assertEqual(infer_sport_from_title("Rugby World Cup 2027"), "Rugby")
+        self.assertEqual(infer_sport_from_title("UEFA Euro 2028"), "Football")
+        self.assertEqual(infer_sport_from_title("Generic Untitled Event", default="Sports"), "Sports")
+
+    def test_purge_completed_past_prospects_title_year_regex(self):
+        """Verifies purge_completed_past_prospects deletes past-year tournaments even when dates are null."""
+        from tournament.models import ScannedTournament
+        from tournament.services.scout_service import purge_completed_past_prospects
+
+        past_prospect = ScannedTournament.objects.create(
+            name="2024 Past Summer Invitational",
+            sport="Football",
+            start_date=None,
+            end_date=None,
+            payload={}
+        )
+
+        purged_count = purge_completed_past_prospects()
+        self.assertGreaterEqual(purged_count, 1)
+        self.assertFalse(ScannedTournament.objects.filter(id=past_prospect.id).exists())
+
+    def test_modular_deep_scout_rescan_date_property_safety(self):
+        """Verifies ModularDeepScout writes next_rescan_date to payload without AttributeError on rescan_date."""
+        import datetime
+        from unittest.mock import patch
+        from tournament.models import ScannedTournament
+        from tournament.services.modular_deep_scout import ModularDeepScout
+
+        prospect = ScannedTournament.objects.create(
+            name="Watchlist Future Cup 2028",
+            sport="Football",
+            status="WATCHLIST",
+            completeness_grade="GRADE_B",
+            payload={}
+        )
+
+        expected_date = datetime.date(2027, 3, 1)
+        mock_audit = {
+            'page_title': 'Watchlist Future Cup 2028',
+            'tournament_start_date': '2028-06-01',
+            'tournament_end_date': '',
+            'draw_completed': False,
+            'fixtures_completed': False,
+        }
+        deep_scout = ModularDeepScout()
+
+        with patch.object(deep_scout.wiki_scout, 'get_article_title_from_url', return_value='Watchlist Future Cup 2028'), \
+             patch.object(deep_scout.wiki_scout, 'search_wikipedia_article', return_value='Watchlist Future Cup 2028'), \
+             patch.object(deep_scout.llm_scout, 'audit_with_llm', return_value=mock_audit), \
+             patch('tournament.services.llm_wikipedia_scout.LLMWikipediaScout._call_gemini', return_value=None), \
+             patch('tournament.services.wikidata_scout.WikidataScout.fetch_wikidata_entity', return_value={}), \
+             patch('tournament.services.official_site_scout.OfficialSiteScout.discover_official_site', return_value=''), \
+             patch('tournament.services.official_regulations_verifier.OfficialRegulationsVerifier.verify_official_regulations', return_value={'verified': False}), \
+             patch('tournament.services.official_site_scout.OfficialSiteScout.search_and_rank_tournament_sources', return_value=[]), \
+             patch('tournament.services.gemini_scout_service.GeminiScoutService.is_available', return_value=False), \
+             patch('tournament.services.emblem_scout.EmblemScout.discover_official_emblem', return_value=''), \
+             patch('tournament.services.backdrop_scout.BackdropScout.discover_backdrop', return_value=''), \
+             patch('tournament.services.scout_service.resolve_rescan_date_for_prospect', return_value=expected_date):
+            res = deep_scout.deep_scan_prospect(prospect)
+
+        prospect.refresh_from_db()
+        self.assertEqual(prospect.payload.get('scouting_audit', {}).get('next_rescan_date'), '2027-03-01')
+
+
+@tag('live_api')
+class GeminiLiveApiIntegrationTestCase(TestCase):
+    """
+    Opt-in live integration tests against Google Gemini API.
+    NEVER executed during normal 'manage.py test tournament' runs.
+    Only runs when explicitly invoked with RUN_LIVE_GEMINI_TESTS=1:
+        RUN_LIVE_GEMINI_TESTS=1 ./venv/bin/python manage.py test tournament.tests.GeminiLiveApiIntegrationTestCase --tag=live_api
+    """
+
+    def setUp(self):
+        import os
+        if os.environ.get('RUN_LIVE_GEMINI_TESTS') != '1':
+            self.skipTest(
+                "Skipping live Gemini API test to prevent quota spend. "
+                "Run with RUN_LIVE_GEMINI_TESTS=1 or ask the user before running."
+            )
+
+    def test_live_gemini_flash_connectivity_and_schema(self):
+        from tournament.services.gemini_scout_service import GeminiScoutService
+        if not GeminiScoutService.is_available():
+            self.skipTest("GEMINI_API_KEY is not configured in settings or environment.")
+
+        prompt = (
+            "You are a sports tournament data engine. "
+            "Return ONLY JSON: {\"tournament\": \"FIFA World Cup 2026\", \"sport\": \"Football\", \"status\": \"CONFIRMED\"}"
+        )
+        res = GeminiScoutService.generate_json(prompt, search_grounding=False, timeout=12.0)
+        self.assertIsNotNone(res, "Live Gemini query should return parsed JSON dictionary")
+        self.assertEqual(res.get("sport"), "Football")
+        self.assertEqual(res.get("status"), "CONFIRMED")
 
 
 
