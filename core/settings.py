@@ -198,3 +198,11 @@ ALLSPORTDB_API_BASE_URL = os.getenv('ALLSPORTDB_API_BASE_URL', 'https://api.alls
 # Limit Gemini calls to 14 RPM to safely stay under Google's 15 RPM limit for Flash Lite
 GEMINI_MAX_CALLS_PER_MINUTE = 14
 GEMINI_RATE_LIMIT_WINDOW_SECONDS = 60.0
+
+# Speed up test suite execution: use fast MD5 hasher during test runs instead of slow PBKDF2
+import sys
+if 'test' in sys.argv:
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.MD5PasswordHasher',
+    ]
+

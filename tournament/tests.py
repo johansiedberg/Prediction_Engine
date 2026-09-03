@@ -2846,6 +2846,8 @@ class MagicLinkAuthTestCase(TestCase):
 
 class ActualKnockoutPredictionTestCase(TestCase):
     def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
         self.admin = User.objects.create_superuser('johansiedberg', 'admin@engine.test', 'adminpass123')
         self.player = User.objects.create_user('player1', 'player1@engine.test', 'playerpass123', first_name='Zlatan', last_name='Ibrahimovic')
         self.player.profile.terms_accepted = True
