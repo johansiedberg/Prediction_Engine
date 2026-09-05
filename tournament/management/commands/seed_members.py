@@ -11,14 +11,14 @@ class Command(BaseCommand):
         members = [
             {"username": "johan.siedberg", "first_name": "Johan", "last_name": "Siedberg", "email": "johan.siedberg@gmail.com"},
             {"username": "mikael.dahl", "first_name": "Mikael", "last_name": "Dahl", "email": "mikaeld81@gmail.com"},
-            {"username": "andreas.larsson", "first_name": "Andreas", "last_name": "Larsson", "email": "anymaztic@hotmail.com"},
+            {"username": "andreas.larsson", "first_name": "Andreas", "last_name": "Larsson", "email": "senasa9@gmail.com"},
             {"username": "johan.svensson", "first_name": "Johan", "last_name": "Svensson", "email": "svenjohansvensson@gmail.com"},
             {"username": "johan.meldo", "first_name": "Johan", "last_name": "Meldo", "email": "jmeldo@gmail.com"},
             {"username": "erik.svensson", "first_name": "Erik", "last_name": "Svensson", "email": "erik.sve@hotmail.com"},
             {"username": "christoffer.ericsson", "first_name": "Christoffer", "last_name": "Ericsson", "email": "coff_erics@yahoo.se"},
             {"username": "martin.gustafsson", "first_name": "Martin", "last_name": "Gustafsson", "email": "martin.gustafson1@gmail.com"},
             {"username": "tommy.lycen", "first_name": "Tommy", "last_name": "Lycen", "email": "t.lycen@gmail.com"},
-            {"username": "tommy.kallberg", "first_name": "Tommy", "last_name": "Källberg", "email": "senasa@gmail.com"},
+            {"username": "tommy.kallberg", "first_name": "Tommy", "last_name": "Källberg", "email": "anymaztic@hotmail.com"},
             {"username": "martin.krantz", "first_name": "Martin", "last_name": "Krantz", "email": "martin@meritel.se"},
         ]
 
