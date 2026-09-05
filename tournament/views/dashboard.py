@@ -831,7 +831,10 @@ def dashboard_view(request):
                 group_prediction_statuses[g.id] = 'red'
                 all_groups_predictions_set = False
 
-    thirds_prediction_status = 'green' if all_groups_predictions_set and groups else 'blue'
+    if is_qualifying:
+        thirds_prediction_status = 'grey'
+    else:
+        thirds_prediction_status = 'green' if all_groups_predictions_set and groups else 'blue'
 
     # Knockout (Initial bracket) status
     initial_ko_matches = [m for m in all_matches if m.stage_id is not None]

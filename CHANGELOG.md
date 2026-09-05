@@ -34,7 +34,11 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
   - Updated Engine Admin Section 1 and JavaScript sport badge rendering for `Field Hockey` (`🏑 Landhockey`) and other H2H sports.
 - **My Predictions Navigation & Glowing Button Status**:
   - Removed text underline from section buttons (`#tournamentTab .nav-link`) in `predictions_content.html`.
-  - Added glowing bottom borders with status indicators: Green (all set), Red (not set/incomplete), Blue (not applicable yet).
+  - Added glowing bottom borders with 4 status indicators:
+    - **Green**: Predictions all set (all matches and questions completed).
+    - **Red**: Predictions not set (unpredicted or incomplete matches/questions).
+    - **Blue**: Predictions not applicable yet (e.g. *Äkta Slutspel* before actual knockout stage opens, or *Bästa Treor* before all group predictions are filled).
+    - **Grey**: Predictions not needed at all (e.g. Qualifying tables such as *Rankade Grupptvåor* and *Ranking Värdnationer*).
   - Implemented real-time dynamic glow updates (`updateSectionButtonGlows()`) on score inputs, tiebreaker clicks, and tab switching.
 
 ### 📦 Database Migrations Introduced
@@ -44,7 +48,7 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 | Commit SHA | Type | Description |
 | :--- | :--- | :--- |
 | `5391a16` | `feat(scout)` | Fix webscan timeout, rate limiter cascade, and scoring engine parity |
-| `aa7856b` | `style(predictions)` | Remove text underline and add glowing bottom status to section buttons |
+| `6b884d1` | `style(predictions)` | Add glowing bottom status (Green, Red, Blue, Grey) to section buttons |
 
 ---
 

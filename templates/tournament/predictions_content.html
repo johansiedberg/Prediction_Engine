@@ -26,6 +26,11 @@
             box-shadow: 0 4px 14px -1px rgba(56, 189, 248, 0.45) !important;
             text-decoration: none !important;
         }
+        #tournamentTab .nav-link.nav-glow-grey {
+            border-bottom: 3.5px solid #94A3B8 !important;
+            box-shadow: 0 4px 14px -1px rgba(148, 163, 184, 0.35) !important;
+            text-decoration: none !important;
+        }
         #tournamentTab .nav-link.active.nav-glow-green {
             background: linear-gradient(135deg, #059669 0%, #10B981 100%) !important;
             border-bottom: 3.5px solid #34D399 !important;
@@ -40,6 +45,11 @@
             background: linear-gradient(135deg, rgba(3, 105, 161, 0.85) 0%, rgba(56, 189, 248, 0.9) 100%) !important;
             border-bottom: 3.5px solid #7DD3FC !important;
             box-shadow: 0 6px 18px rgba(56, 189, 248, 0.6) !important;
+        }
+        #tournamentTab .nav-link.active.nav-glow-grey {
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.9) 0%, rgba(71, 85, 105, 0.95) 100%) !important;
+            border-bottom: 3.5px solid #CBD5E1 !important;
+            box-shadow: 0 6px 18px rgba(148, 163, 184, 0.4) !important;
         }
         .neutral-score-input.match-input {
             width: 42px !important;
@@ -293,13 +303,13 @@
 
         <!-- Line 2: Other Sections -->
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'thirds' %}active{% endif %} nav-glow-{{ thirds_prediction_status|default:'blue' }}" id="thirds-tab" data-bs-toggle="pill" data-bs-target="#thirds-stage" type="button" role="tab">
+            <button class="nav-link {% if active_tab == 'thirds' %}active{% endif %} {% if is_qualifying %}nav-glow-grey{% else %}nav-glow-{{ thirds_prediction_status|default:'blue' }}{% endif %}" id="thirds-tab" data-bs-toggle="pill" data-bs-target="#thirds-stage" type="button" role="tab">
                 {% if is_qualifying %}Rankade Grupptvåor{% else %}Bästa Treor{% endif %}
             </button>
         </li>
         {% if is_qualifying %}
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'hosts' %}active{% endif %} nav-glow-{{ thirds_prediction_status|default:'blue' }}" id="hosts-tab" data-bs-toggle="pill" data-bs-target="#hosts-stage" type="button" role="tab">
+            <button class="nav-link {% if active_tab == 'hosts' %}active{% endif %} nav-glow-grey" id="hosts-tab" data-bs-toggle="pill" data-bs-target="#hosts-stage" type="button" role="tab">
                 Ranking Värdnationer
             </button>
         </li>
@@ -1660,7 +1670,7 @@
         function updateSectionButtonGlows() {
             function setGlow(el, color) {
                 if (!el) return;
-                el.classList.remove('nav-glow-green', 'nav-glow-red', 'nav-glow-blue');
+                el.classList.remove('nav-glow-green', 'nav-glow-red', 'nav-glow-blue', 'nav-glow-grey');
                 el.classList.add(`nav-glow-${color}`);
             }
 
@@ -1704,12 +1714,20 @@
                 });
             }
 
-            // 2. Thirds & Hosts tabs (Bästa Treor / Rankade Grupptvåor)
+            // 2. Thirds & Hosts tabs (Bästa Treor / Rankade Grupptvåor / Ranking Värdnationer)
             const thirdsTab = document.getElementById('thirds-tab');
             const hostsTab = document.getElementById('hosts-tab');
-            const thirdsColor = allGroupsFilled ? 'green' : 'blue';
-            setGlow(thirdsTab, thirdsColor);
-            setGlow(hostsTab, thirdsColor);
+            const isQualifying = {{ is_qualifying|yesno:"true,false" }};
+
+            if (isQualifying) {
+                // Qualifying tables do not require predictions; they are computed tables
+                setGlow(thirdsTab, 'grey');
+                setGlow(hostsTab, 'grey');
+            } else {
+                const thirdsColor = allGroupsFilled ? 'green' : 'blue';
+                setGlow(thirdsTab, thirdsColor);
+                if (hostsTab) setGlow(hostsTab, thirdsColor);
+            }
 
             // 3. Initial Knockout Tab
             const koTab = document.getElementById('knockout-tab');
