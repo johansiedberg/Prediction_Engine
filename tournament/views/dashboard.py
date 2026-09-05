@@ -809,6 +809,68 @@ def dashboard_view(request):
         for sb in sidebets
     }
 
+    # Section Navigation Buttons Prediction Status (Green: all set, Red: not set, Blue: not applicable yet)
+    group_prediction_statuses = {}
+    all_groups_predictions_set = True if groups else False
+
+    for g in groups:
+        g_matches = list(g.matches.all())
+        if not g_matches:
+            group_prediction_statuses[g.id] = 'blue'
+            all_groups_predictions_set = False
+        else:
+            g_complete = True
+            for gm in g_matches:
+                p = user_predictions.get(gm.id)
+                if not p or p.home_goals is None or p.away_goals is None:
+                    g_complete = False
+                    break
+            if g_complete:
+                group_prediction_statuses[g.id] = 'green'
+            else:
+                group_prediction_statuses[g.id] = 'red'
+                all_groups_predictions_set = False
+
+    thirds_prediction_status = 'green' if all_groups_predictions_set and groups else 'blue'
+
+    # Knockout (Initial bracket) status
+    initial_ko_matches = [m for m in all_matches if m.stage_id is not None]
+    if not initial_ko_matches:
+        knockout_prediction_status = 'blue'
+    else:
+        ko_complete = True
+        for km in initial_ko_matches:
+            p = user_predictions.get(km.id)
+            if not p or p.home_goals is None or p.away_goals is None:
+                ko_complete = False
+                break
+            if p.home_goals == p.away_goals and not p.penalty_winner:
+                ko_complete = False
+                break
+        knockout_prediction_status = 'green' if ko_complete else 'red'
+
+    # Actual Knockout status
+    if not is_in_actual_knockout_window:
+        actual_knockout_prediction_status = 'blue'
+    else:
+        if is_actual_knockout_saved:
+            actual_knockout_prediction_status = 'green'
+        else:
+            actual_ko_complete = bool(user_actual_predictions)
+            actual_knockout_prediction_status = 'green' if actual_ko_complete else 'red'
+
+    # Sidebets status
+    if not sidebets:
+        sidebets_prediction_status = 'blue'
+    else:
+        sb_complete = True
+        for sb in sidebets:
+            ans = user_sidebet_answers.get(sb.id)
+            if not ans or not str(ans).strip():
+                sb_complete = False
+                break
+        sidebets_prediction_status = 'green' if sb_complete else 'red'
+
     context = {
         'active_tournament': active_tournament,
         'active_league': active_league,
@@ -833,6 +895,11 @@ def dashboard_view(request):
         'has_initial_predictions_incomplete': not is_saved,
         'has_actual_knockout_incomplete': bool(is_in_actual_knockout_window and not is_actual_knockout_saved),
         'has_any_predictions_incomplete': bool((not is_saved) or (is_in_actual_knockout_window and not is_actual_knockout_saved)),
+        'group_prediction_statuses': group_prediction_statuses,
+        'thirds_prediction_status': thirds_prediction_status,
+        'knockout_prediction_status': knockout_prediction_status,
+        'actual_knockout_prediction_status': actual_knockout_prediction_status,
+        'sidebets_prediction_status': sidebets_prediction_status,
         'leaderboard': leaderboard,
         'user_rank': user_rank,
         'user_points': user_total_points,

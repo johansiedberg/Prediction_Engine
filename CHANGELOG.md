@@ -32,8 +32,10 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
   - Added infobox row and lead paragraph sport extraction to `WikipediaScout.audit_infobox_only()`.
   - Expanded `ALLSPORTDB_SPORTS_MAP` and updated `infer_sport` in `dashboard.py` to recognize `Field Hockey` (`🏑`), `Netball` (`🏐`), `Cricket` (`🏏`), and `American Football` (`🏈`).
   - Updated Engine Admin Section 1 and JavaScript sport badge rendering for `Field Hockey` (`🏑 Landhockey`) and other H2H sports.
-- **Deployment & Service Automation**:
-  - Enhanced `deploy.sh` to automatically detect and restart active systemd user services (`prediction-player`, `prediction-admin`).
+- **My Predictions Navigation & Glowing Button Status**:
+  - Removed text underline from section buttons (`#tournamentTab .nav-link`) in `predictions_content.html`.
+  - Added glowing bottom borders with status indicators: Green (all set), Red (not set/incomplete), Blue (not applicable yet).
+  - Implemented real-time dynamic glow updates (`updateSectionButtonGlows()`) on score inputs, tiebreaker clicks, and tab switching.
 
 ### 📦 Database Migrations Introduced
 - `0067_alter_staticinsight_category`: Updated category choices for static insights almanac.
@@ -42,6 +44,7 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 | Commit SHA | Type | Description |
 | :--- | :--- | :--- |
 | `5391a16` | `feat(scout)` | Fix webscan timeout, rate limiter cascade, and scoring engine parity |
+| `aa7856b` | `style(predictions)` | Remove text underline and add glowing bottom status to section buttons |
 
 ---
 

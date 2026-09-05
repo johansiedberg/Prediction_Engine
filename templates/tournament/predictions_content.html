@@ -5,12 +5,41 @@
     <input type="hidden" name="active_tab" id="activeTabInput" value="{{ active_tab|default:'' }}">
 
     <style>
-        .nav-pills .nav-link.nav-incomplete-red {
-            border-bottom: 2.5px solid #EF4444 !important;
-            text-decoration: underline !important;
-            text-decoration-color: #EF4444 !important;
-            text-decoration-thickness: 2px !important;
-            text-underline-offset: 4px !important;
+        /* Section Navigation Pills Glowing Bottom (Green: all set, Red: not set, Blue: not applicable yet) */
+        #tournamentTab .nav-link {
+            position: relative !important;
+            text-decoration: none !important;
+            transition: all 0.25s ease-in-out !important;
+        }
+        #tournamentTab .nav-link.nav-glow-green {
+            border-bottom: 3.5px solid #10B981 !important;
+            box-shadow: 0 4px 14px -1px rgba(16, 185, 129, 0.45) !important;
+            text-decoration: none !important;
+        }
+        #tournamentTab .nav-link.nav-glow-red {
+            border-bottom: 3.5px solid #EF4444 !important;
+            box-shadow: 0 4px 14px -1px rgba(239, 68, 68, 0.45) !important;
+            text-decoration: none !important;
+        }
+        #tournamentTab .nav-link.nav-glow-blue {
+            border-bottom: 3.5px solid #38BDF8 !important;
+            box-shadow: 0 4px 14px -1px rgba(56, 189, 248, 0.45) !important;
+            text-decoration: none !important;
+        }
+        #tournamentTab .nav-link.active.nav-glow-green {
+            background: linear-gradient(135deg, #059669 0%, #10B981 100%) !important;
+            border-bottom: 3.5px solid #34D399 !important;
+            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.6) !important;
+        }
+        #tournamentTab .nav-link.active.nav-glow-red {
+            background: linear-gradient(135deg, rgba(185, 28, 28, 0.85) 0%, rgba(239, 68, 68, 0.9) 100%) !important;
+            border-bottom: 3.5px solid #F87171 !important;
+            box-shadow: 0 6px 18px rgba(239, 68, 68, 0.6) !important;
+        }
+        #tournamentTab .nav-link.active.nav-glow-blue {
+            background: linear-gradient(135deg, rgba(3, 105, 161, 0.85) 0%, rgba(56, 189, 248, 0.9) 100%) !important;
+            border-bottom: 3.5px solid #7DD3FC !important;
+            box-shadow: 0 6px 18px rgba(56, 189, 248, 0.6) !important;
         }
         .neutral-score-input.match-input {
             width: 42px !important;
@@ -253,7 +282,7 @@
         <!-- Line 1: Groups -->
         {% for group in groups %}
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if forloop.first and not active_tab or active_tab == group.id|stringformat:'s' %}active{% endif %}" id="group-{{ group.id }}-tab" data-bs-toggle="pill" data-bs-target="#group-{{ group.id }}" type="button" role="tab">
+            <button class="nav-link {% if forloop.first and not active_tab or active_tab == group.id|stringformat:'s' %}active{% endif %} nav-glow-{{ group_prediction_statuses|get_item:group.id|default:'red' }}" id="group-{{ group.id }}-tab" data-bs-toggle="pill" data-bs-target="#group-{{ group.id }}" type="button" role="tab">
                 {% if "group " in group.name|lower %}Grupp {{ group.name|slice:"6:" }}{% elif "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}
             </button>
         </li>
@@ -264,25 +293,25 @@
 
         <!-- Line 2: Other Sections -->
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'thirds' %}active{% endif %}" id="thirds-tab" data-bs-toggle="pill" data-bs-target="#thirds-stage" type="button" role="tab">
+            <button class="nav-link {% if active_tab == 'thirds' %}active{% endif %} nav-glow-{{ thirds_prediction_status|default:'blue' }}" id="thirds-tab" data-bs-toggle="pill" data-bs-target="#thirds-stage" type="button" role="tab">
                 {% if is_qualifying %}Rankade Grupptvåor{% else %}Bästa Treor{% endif %}
             </button>
         </li>
         {% if is_qualifying %}
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'hosts' %}active{% endif %}" id="hosts-tab" data-bs-toggle="pill" data-bs-target="#hosts-stage" type="button" role="tab">
+            <button class="nav-link {% if active_tab == 'hosts' %}active{% endif %} nav-glow-{{ thirds_prediction_status|default:'blue' }}" id="hosts-tab" data-bs-toggle="pill" data-bs-target="#hosts-stage" type="button" role="tab">
                 Ranking Värdnationer
             </button>
         </li>
         {% endif %}
 
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'knockout' %}active{% endif %} {% if has_initial_predictions_incomplete %}nav-incomplete-red{% endif %}" id="knockout-tab" data-bs-toggle="pill" data-bs-target="#knockout-stage" type="button" role="tab">
+            <button class="nav-link {% if active_tab == 'knockout' %}active{% endif %} nav-glow-{{ knockout_prediction_status|default:'red' }}" id="knockout-tab" data-bs-toggle="pill" data-bs-target="#knockout-stage" type="button" role="tab">
                 Slutspel
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'actual_knockout' or active_tab == 'actual-knockout-stage' %}active{% endif %} {% if has_actual_knockout_incomplete %}nav-incomplete-red{% endif %}" id="actual-knockout-tab" data-bs-toggle="pill" data-bs-target="#actual-knockout-stage" type="button" role="tab">
+            <button class="nav-link {% if active_tab == 'actual_knockout' or active_tab == 'actual-knockout-stage' %}active{% endif %} nav-glow-{{ actual_knockout_prediction_status|default:'blue' }}" id="actual-knockout-tab" data-bs-toggle="pill" data-bs-target="#actual-knockout-stage" type="button" role="tab">
                 <i class="fa-solid fa-trophy me-1.5 text-warning"></i>Äkta Slutspel
                 {% if is_in_actual_knockout_window %}
                     <span class="badge bg-warning text-dark fw-bold ms-1 px-1.5 py-0.5 rounded-pill" style="font-size: 0.68rem;">Öppet</span>
@@ -292,7 +321,7 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if active_tab == 'sidebets' %}active{% endif %}" id="sidebets-tab" data-bs-toggle="pill" data-bs-target="#sidebets-stage" type="button" role="tab">
+            <button class="nav-link {% if active_tab == 'sidebets' %}active{% endif %} nav-glow-{{ sidebets_prediction_status|default:'red' }}" id="sidebets-tab" data-bs-toggle="pill" data-bs-target="#sidebets-stage" type="button" role="tab">
                 Bonusfrågor
             </button>
         </li>
@@ -1610,12 +1639,10 @@
                     }
                 }
                 if (isSavedInitial && !hasUserEdited) {
-                    if (koInitialTab) koInitialTab.classList.remove('nav-incomplete-red');
                     if (!{{ has_actual_knockout_incomplete|yesno:"true,false" }}) {
                         mainPredLinks.forEach(el => el.classList.remove('nav-incomplete-red'));
                     }
                 } else {
-                    if (koInitialTab) koInitialTab.classList.add('nav-incomplete-red');
                     mainPredLinks.forEach(el => el.classList.add('nav-incomplete-red'));
                 }
             } else {
@@ -1624,8 +1651,150 @@
                     const missingText = missingDetails.join(', ');
                     hintEl.innerHTML = `<span class="d-inline-flex align-items-center gap-1.5" style="color: #facc15 !important;"><i class="fa-solid fa-circle-info"></i>Fyll i alla matcher och frågor för att aktivera knappen (${missingText ? 'Kvar: ' + missingText : (totalRequired - totalCompleted) + ' kvar'})</span>`;
                 }
-                if (koInitialTab) koInitialTab.classList.add('nav-incomplete-red');
                 mainPredLinks.forEach(el => el.classList.add('nav-incomplete-red'));
+            }
+
+            updateSectionButtonGlows();
+        }
+
+        function updateSectionButtonGlows() {
+            function setGlow(el, color) {
+                if (!el) return;
+                el.classList.remove('nav-glow-green', 'nav-glow-red', 'nav-glow-blue');
+                el.classList.add(`nav-glow-${color}`);
+            }
+
+            // 1. Groups
+            let allGroupsFilled = true;
+            if (typeof groupsData !== 'undefined' && groupsData) {
+                Object.keys(groupsData).forEach(groupId => {
+                    const groupTab = document.getElementById(`group-${groupId}-tab`);
+                    const gInputs = document.querySelectorAll(`input.match-input[data-group="${groupId}"]`);
+                    const gMatchIds = new Set();
+                    gInputs.forEach(inp => {
+                        const name = inp.getAttribute('name');
+                        if (name && (name.startsWith('home_') || name.startsWith('away_'))) {
+                            gMatchIds.add(name.split('_')[1]);
+                        }
+                    });
+
+                    if (gMatchIds.size === 0) {
+                        setGlow(groupTab, 'blue');
+                        allGroupsFilled = false;
+                        return;
+                    }
+
+                    let gComplete = true;
+                    gMatchIds.forEach(mId => {
+                        const hInp = document.querySelector(`input[name="home_${mId}"]`);
+                        const aInp = document.querySelector(`input[name="away_${mId}"]`);
+                        const hVal = hInp ? hInp.value.trim() : '';
+                        const aVal = aInp ? aInp.value.trim() : '';
+                        if (hVal === '' || aVal === '' || isNaN(hVal) || isNaN(aVal)) {
+                            gComplete = false;
+                        }
+                    });
+
+                    if (gComplete) {
+                        setGlow(groupTab, 'green');
+                    } else {
+                        setGlow(groupTab, 'red');
+                        allGroupsFilled = false;
+                    }
+                });
+            }
+
+            // 2. Thirds & Hosts tabs (Bästa Treor / Rankade Grupptvåor)
+            const thirdsTab = document.getElementById('thirds-tab');
+            const hostsTab = document.getElementById('hosts-tab');
+            const thirdsColor = allGroupsFilled ? 'green' : 'blue';
+            setGlow(thirdsTab, thirdsColor);
+            setGlow(hostsTab, thirdsColor);
+
+            // 3. Initial Knockout Tab
+            const koTab = document.getElementById('knockout-tab');
+            const koInputs = document.querySelectorAll('input.knockout-input');
+            const koMatchIds = new Set();
+            koInputs.forEach(input => {
+                const name = input.getAttribute('name');
+                if (name && (name.startsWith('home_') || name.startsWith('away_'))) {
+                    koMatchIds.add(name.split('_')[1]);
+                }
+            });
+
+            if (koMatchIds.size === 0) {
+                setGlow(koTab, 'blue');
+            } else {
+                let koComplete = true;
+                koMatchIds.forEach(mId => {
+                    const hInp = document.querySelector(`input[name="home_${mId}"]`);
+                    const aInp = document.querySelector(`input[name="away_${mId}"]`);
+                    const tbInp = document.querySelector(`input[name="penalty_winner_${mId}"]`);
+                    const hVal = hInp ? hInp.value.trim() : '';
+                    const aVal = aInp ? aInp.value.trim() : '';
+                    const isTie = (hVal !== '' && aVal !== '' && parseInt(hVal, 10) === parseInt(aVal, 10));
+                    const tbVal = tbInp ? tbInp.value.trim() : '';
+
+                    if (hVal === '' || aVal === '' || isNaN(hVal) || isNaN(aVal)) {
+                        koComplete = false;
+                    } else if (isTie && !tbVal) {
+                        koComplete = false;
+                    }
+                });
+                setGlow(koTab, koComplete ? 'green' : 'red');
+            }
+
+            // 4. Actual Knockout Tab
+            const actualKoTab = document.getElementById('actual-knockout-tab');
+            const isInActualWindow = {{ is_in_actual_knockout_window|yesno:"true,false" }};
+            if (!isInActualWindow) {
+                setGlow(actualKoTab, 'blue');
+            } else {
+                const actInputs = document.querySelectorAll('input.actual-knockout-input');
+                const actMatchIds = new Set();
+                actInputs.forEach(input => {
+                    const name = input.getAttribute('name');
+                    if (name && (name.startsWith('actual_home_') || name.startsWith('actual_away_'))) {
+                        actMatchIds.add(name.split('_')[2]);
+                    }
+                });
+
+                if (actMatchIds.size === 0) {
+                    setGlow(actualKoTab, 'blue');
+                } else {
+                    let actComplete = true;
+                    actMatchIds.forEach(mId => {
+                        const hInp = document.querySelector(`input[name="actual_home_${mId}"]`);
+                        const aInp = document.querySelector(`input[name="actual_away_${mId}"]`);
+                        const tbInp = document.querySelector(`input[name="actual_penalty_winner_${mId}"]`);
+                        const hVal = hInp ? hInp.value.trim() : '';
+                        const aVal = aInp ? aInp.value.trim() : '';
+                        const isTie = (hVal !== '' && aVal !== '' && parseInt(hVal, 10) === parseInt(aVal, 10));
+                        const tbVal = tbInp ? tbInp.value.trim() : '';
+
+                        if (hVal === '' || aVal === '' || isNaN(hVal) || isNaN(aVal)) {
+                            actComplete = false;
+                        } else if (isTie && !tbVal) {
+                            actComplete = false;
+                        }
+                    });
+                    setGlow(actualKoTab, actComplete ? 'green' : 'red');
+                }
+            }
+
+            // 5. Sidebets Tab
+            const sidebetsTab = document.getElementById('sidebets-tab');
+            const sidebetInputs = document.querySelectorAll('input[name^="sidebet_"], select[name^="sidebet_"]');
+            if (sidebetInputs.length === 0) {
+                setGlow(sidebetsTab, 'blue');
+            } else {
+                let sbComplete = true;
+                sidebetInputs.forEach(inp => {
+                    if (!inp.value || !inp.value.trim()) {
+                        sbComplete = false;
+                    }
+                });
+                setGlow(sidebetsTab, sbComplete ? 'green' : 'red');
             }
         }
 
@@ -1807,12 +1976,10 @@
                 }
                 if (isInActualWindow) {
                     if (isActualSavedInitial && !hasActualUserEdited) {
-                        if (actualKoTab) actualKoTab.classList.remove('nav-incomplete-red');
                         if (!{{ has_initial_predictions_incomplete|yesno:"true,false" }}) {
                             mainPredLinks.forEach(el => el.classList.remove('nav-incomplete-red'));
                         }
                     } else {
-                        if (actualKoTab) actualKoTab.classList.add('nav-incomplete-red');
                         mainPredLinks.forEach(el => el.classList.add('nav-incomplete-red'));
                     }
                 }
@@ -1822,9 +1989,12 @@
                     hintEl.innerHTML = `<span class="d-inline-flex align-items-center gap-1.5" style="color: #facc15 !important;"><i class="fa-solid fa-circle-info"></i>Fyll i alla slutspelsmatcher för att aktivera sparaknappen (${missingKoCount} matcher kvar)</span>`;
                 }
                 if (isInActualWindow) {
-                    if (actualKoTab) actualKoTab.classList.add('nav-incomplete-red');
                     mainPredLinks.forEach(el => el.classList.add('nav-incomplete-red'));
                 }
+            }
+
+            if (typeof updateSectionButtonGlows === 'function') {
+                updateSectionButtonGlows();
             }
         }
 
