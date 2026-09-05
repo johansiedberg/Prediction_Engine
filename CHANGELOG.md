@@ -26,12 +26,16 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
   - **Database Cleanup (PRD & DEV)**:
     - Purged 24 corrupted duplicate matches (matches 40–63) and 8 generic skeleton placeholders from *Men's World Floorball Championships 2026*.
     - Reassigned playoff matches (matches 25–28) from `Group D` to a dedicated `Play-off round` knockout stage with `group=None`.
-    - Group B and all groups restored to exactly 4 authentic teams and 6 matches.
+  - **Qualifying Tables & Best Thirds Conditional Gating**:
+    - Strictly gated the "Bästa Treor", "Rankade Grupptvåor", and "Ranking Värdnationer" section buttons and tab content by `active_tournament.has_best_thirds_table`, `has_runners_up_table`, and `has_host_ranking_table`.
+    - Fixed `hasBestThirdsTable` and `isQualifyingTournament` in `predictions_content.html` standings JS to reflect actual tournament settings instead of defaulting to true for all non-qualifying tournaments, correctly rendering clean 2-team direct qualification lines for tournaments without a cross-group ranking table (e.g. *Men's World Floorball Championships 2026*).
+    - In `dashboard.py`, set `thirds_prediction_status = None` when neither `has_best_thirds_table` nor `has_runners_up_table` is enabled.
 
 ### 📋 Commits from DEV (v2.7.1 -> v2.7.2)
 | Commit SHA | Type | Description |
 | :--- | :--- | :--- |
-| `af648fa` | `fix(scout)` | Prevent duplicate venue-mangled matches and fix hyphenated playoff stages |
+| `7567beb` | `fix(scout)` | Prevent duplicate venue-mangled matches and fix hyphenated playoff stages |
+| `9ded4b9` | `fix(predictions)` | Gate Best Thirds and qualifying tables by tournament configuration |
 
 ---
 

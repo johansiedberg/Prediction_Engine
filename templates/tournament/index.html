@@ -566,20 +566,20 @@
                                         Gruppspel
                                     </button>
                                 </li>
+                                {% if is_qualifying and active_tournament.has_runners_up_table or not is_qualifying and active_tournament.has_best_thirds_table %}
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link px-3 py-2 fw-bold small" id="res-sub-thirds-tab" data-bs-toggle="pill" data-bs-target="#res-sub-thirds" type="button" role="tab">
                                         {% if is_qualifying %}Rankade Grupptvåor{% else %}Bästa Treor{% endif %}
                                     </button>
                                 </li>
-                                {% if is_qualifying %}
+                                {% endif %}
+                                {% if is_qualifying and active_tournament.has_host_ranking_table %}
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link px-3 py-2 fw-bold small" id="res-sub-hosts-tab" data-bs-toggle="pill" data-bs-target="#res-sub-hosts" type="button" role="tab">
                                         Ranking Värdnationer
                                     </button>
                                 </li>
                                 {% endif %}
-
-
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link px-3 py-2 fw-bold small" id="res-sub-knockout-tab" data-bs-toggle="pill" data-bs-target="#res-sub-knockout" type="button" role="tab">
                                         Slutspel
@@ -951,6 +951,7 @@
                             </div>
 
                             <!-- B. RANKADE GRUPPTVÅOR / BÄSTA TREOR (Cross-group ranking table) -->
+                            {% if is_qualifying and active_tournament.has_runners_up_table or not is_qualifying and active_tournament.has_best_thirds_table %}
                             <div class="tab-pane fade" id="res-sub-thirds" role="tabpanel">
                                 <div class="d-flex align-items-center justify-content-between mb-3">
                                     <div>
@@ -1095,8 +1096,9 @@
                                     </table>
                                 </div>
                             </div>
+                            {% endif %}
 
-                            {% if is_qualifying %}
+                            {% if is_qualifying and active_tournament.has_host_ranking_table %}
                             <!-- B2. RANKING VÄRDNATIONER (Host Associations Safety Net Ranking Table) -->
                             <div class="tab-pane fade" id="res-sub-hosts" role="tabpanel">
                                 <div class="d-flex align-items-center justify-content-between mb-3">

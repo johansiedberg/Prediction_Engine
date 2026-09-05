@@ -831,10 +831,14 @@ def dashboard_view(request):
                 group_prediction_statuses[g.id] = 'red'
                 all_groups_predictions_set = False
 
-    if is_qualifying:
+    has_thirds = getattr(active_tournament, 'has_best_thirds_table', False)
+    has_runners_up = getattr(active_tournament, 'has_runners_up_table', False)
+    if is_qualifying and has_runners_up:
         thirds_prediction_status = 'grey'
-    else:
+    elif not is_qualifying and has_thirds:
         thirds_prediction_status = 'green' if all_groups_predictions_set and groups else 'blue'
+    else:
+        thirds_prediction_status = None
 
     # Knockout (Initial bracket) status
     initial_ko_matches = [m for m in all_matches if m.stage_id is not None]

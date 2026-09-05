@@ -302,12 +302,14 @@
         <li class="w-100 my-2" style="list-style: none; height: 0;" aria-hidden="true"></li>
 
         <!-- Line 2: Other Sections -->
+        {% if is_qualifying and active_tournament.has_runners_up_table or not is_qualifying and active_tournament.has_best_thirds_table %}
         <li class="nav-item" role="presentation">
             <button class="nav-link {% if active_tab == 'thirds' %}active{% endif %} {% if is_qualifying %}nav-glow-grey{% else %}nav-glow-{{ thirds_prediction_status|default:'blue' }}{% endif %}" id="thirds-tab" data-bs-toggle="pill" data-bs-target="#thirds-stage" type="button" role="tab">
                 {% if is_qualifying %}Rankade Grupptvåor{% else %}Bästa Treor{% endif %}
             </button>
         </li>
-        {% if is_qualifying %}
+        {% endif %}
+        {% if is_qualifying and active_tournament.has_host_ranking_table %}
         <li class="nav-item" role="presentation">
             <button class="nav-link {% if active_tab == 'hosts' %}active{% endif %} nav-glow-grey" id="hosts-tab" data-bs-toggle="pill" data-bs-target="#hosts-stage" type="button" role="tab">
                 Ranking Värdnationer
@@ -449,6 +451,7 @@
         {% endfor %}
 
         <!-- BÄSTA TREOR / RANKADE GRUPPTVÅOR TAB CONTENT -->
+        {% if is_qualifying and active_tournament.has_runners_up_table or not is_qualifying and active_tournament.has_best_thirds_table %}
         <div class="tab-pane fade {% if active_tab == 'thirds' %}show active{% endif %}" id="thirds-stage" role="tabpanel">
             <div class="glass-card p-4 mx-auto" style="max-width: 780px;">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
@@ -489,8 +492,9 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        {% if is_qualifying %}
+        {% if is_qualifying and active_tournament.has_host_ranking_table %}
         <!-- DEDICATED HOST ASSOCIATIONS RANKING TAB CONTENT -->
         <div class="tab-pane fade {% if active_tab == 'hosts' %}show active{% endif %}" id="hosts-stage" role="tabpanel">
             <div class="glass-card p-4 mx-auto" style="max-width: 780px;">
@@ -958,8 +962,8 @@
             tableBodies.forEach(tableBody => {
                 tableBody.innerHTML = '';
 
-                const isQualifyingTournament = {% if active_tournament.has_runners_up_table or is_qualifying %}true{% else %}false{% endif %};
-                const hasBestThirdsTable = {% if active_tournament.has_best_thirds_table or not is_qualifying %}true{% else %}false{% endif %};
+                const isQualifyingTournament = {% if active_tournament.has_runners_up_table %}true{% else %}false{% endif %};
+                const hasBestThirdsTable = {% if active_tournament.has_best_thirds_table %}true{% else %}false{% endif %};
 
                 sortedTeams.forEach((team, index) => {
                     const s = stats[team];
