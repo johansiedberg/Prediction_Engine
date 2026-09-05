@@ -30,7 +30,7 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
   - Enhanced `deploy.sh` to automatically detect and restart active systemd user services (`prediction-player`, `prediction-admin`).
 
 ### 📦 Database Migrations Introduced
-- None (schema unchanged).
+- `0067_alter_staticinsight_category`: Updated category choices for static insights almanac.
 
 ### 📋 Commits from DEV (v2.7.0 -> v2.7.1)
 | Commit SHA | Type | Description |
