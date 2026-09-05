@@ -1402,7 +1402,7 @@ def purge_completed_past_prospects():
     return deleted_cnt
 
 
-def resolve_and_filter_prospect_dates(prospects_list=None):
+def resolve_and_filter_prospect_dates(prospects_list=None, max_ai_lookups=5):
     """
     Final Step in Web Scan:
     For all non-converted prospects that are missing start_date (or have start_date=None/TBD),
@@ -1427,6 +1427,7 @@ def resolve_and_filter_prospect_dates(prospects_list=None):
     
     resolved_count = 0
     discarded_count = 0
+    ai_lookup_count = 0
     
     for p in target_prospects:
         # Check if start_date is already valid and future
@@ -1459,8 +1460,9 @@ def resolve_and_filter_prospect_dates(prospects_list=None):
                 if infobox.get('end_date'):
                     end_iso = LLMWikipediaScout._parse_date_string(infobox['end_date'])
                     
-        # 2. Targeted Google Search Grounded Date Query (Fallback for un-wikified tournaments)
-        if not start_iso and GeminiScoutService.is_available():
+        # 2. Targeted Google Search Grounded Date Query (Fallback for un-wikified tournaments, capped by max_ai_lookups)
+        if not start_iso and GeminiScoutService.is_available() and ai_lookup_count < max_ai_lookups:
+            ai_lookup_count += 1
             try:
                 date_prompt = f"""Find the official tournament start date and end date for "{p.name}" (Sport: {p.sport or 'Sports'}).
 Return ONLY valid JSON matching this schema:
@@ -1523,24 +1525,35 @@ def sync_all_scout_prospects(custom_query=None):
         sync_scout=True
     )
 
-    # 2. Wikipedia Annual Sports Events Ingestion (Current year + Next year)
-    today_year = datetime.date.today().year
-    c2, u2, p2 = fetch_and_ingest_wikipedia_year_events(
-        years=[today_year, today_year + 1],
-        sync_scout=True
-    )
+    if custom_query and custom_query.strip():
+        # Targeted Query Mode: Direct resources to targeted Google Gemini AI Search Grounding and Wikipedia
+        c2, u2, p2 = 0, 0, []
+        c3, u3, p3 = 0, 0, []
+        c4, u4, p4 = fetch_and_ingest_gemini_ai_tournaments(
+            count=15,
+            custom_query=custom_query.strip(),
+            sync_scout=True
+        )
+    else:
+        # Full Discovery Scan Across All Pillars
+        # 2. Wikipedia Annual Sports Events Ingestion (Current year + Next year)
+        today_year = datetime.date.today().year
+        c2, u2, p2 = fetch_and_ingest_wikipedia_year_events(
+            years=[today_year, today_year + 1],
+            sync_scout=True
+        )
 
-    # 3. Major Continental Football Competitions & Qualifiers Ingestion
-    c3, u3, p3 = fetch_and_ingest_major_football_tournaments(
-        sync_scout=True
-    )
+        # 3. Major Continental Football Competitions & Qualifiers Ingestion
+        c3, u3, p3 = fetch_and_ingest_major_football_tournaments(
+            sync_scout=True
+        )
 
-    # 4. Google Gemini AI Search Grounded Tri-Pillar Scout (Club, Qualifiers & Finals)
-    c4, u4, p4 = fetch_and_ingest_gemini_ai_tournaments(
-        count=15,
-        custom_query=custom_query,
-        sync_scout=True
-    )
+        # 4. Google Gemini AI Search Grounded Tri-Pillar Scout (Club, Qualifiers & Finals)
+        c4, u4, p4 = fetch_and_ingest_gemini_ai_tournaments(
+            count=15,
+            custom_query=None,
+            sync_scout=True
+        )
 
     # 5. Automatic Deduplication / Merge by Wikipedia Page
     merged_cnt, _ = merge_duplicate_scanned_tournaments_by_wikipedia()
@@ -1552,8 +1565,12 @@ def sync_all_scout_prospects(custom_query=None):
     if purged_cnt > 0:
         logger.info(f"Purged {purged_cnt} past/completed prospects from scout database.")
 
-    # 7. Final Step: Targeted Date Resolution & 30-Day Runway Filter
-    resolved_cnt, discarded_cnt = resolve_and_filter_prospect_dates()
+    # 7. Final Step: Targeted Date Resolution & 30-Day Runway Filter (scoped to ingested prospects, max 5 AI lookups)
+    ingested_prospects = [p for p in (p1 + p2 + p3 + p4) if p is not None]
+    resolved_cnt, discarded_cnt = resolve_and_filter_prospect_dates(
+        prospects_list=ingested_prospects if ingested_prospects else None,
+        max_ai_lookups=5
+    )
     if resolved_cnt > 0 or discarded_cnt > 0:
         logger.info(f"Targeted Date Resolution: {resolved_cnt} populated with exact YYYY-MM-DD dates, {discarded_cnt} discarded (< 30 days).")
 

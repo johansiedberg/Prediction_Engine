@@ -24,9 +24,10 @@ class GeminiScoutService:
     """
 
     SUPPORTED_MODELS = [
-        "gemini-3.8-flash",
-        "gemini-3.6-flash",
+        "gemini-flash-latest",
         "gemini-flash-lite-latest",
+        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
     ]
 
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
@@ -85,6 +86,9 @@ class GeminiScoutService:
             })
 
         from tournament.services.gemini_rate_limiter import GeminiRateLimiter
+        if GeminiRateLimiter.is_in_penalty():
+            logger.warning("GeminiScoutService: In 429 penalty cooldown. Fast-failing generation to preserve pipeline speed.")
+            return None
 
         for model_name in cls.get_supported_models():
             url = f"{cls.BASE_URL}/{model_name}:generateContent?key={api_key}"

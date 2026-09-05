@@ -360,11 +360,15 @@ def scout_scrape_web_view(request: HttpRequest) -> JsonResponse:
         total_found = len(prospects)
 
         api_key = getattr(settings, 'ALLSPORTDB_API_KEY', '')
-        if total_found == 0 and not api_key:
+        if total_found == 0:
+            hint = ' (Tips: ALLSPORTDB_API_KEY saknas för extern AllSportDB-kalender, sökning kördes mot Wikipedia & AI)' if not api_key else ''
             return JsonResponse({
-                'status': 'error',
-                'message': 'Ingen giltig AllSportDB API-nyckel konfigurerad. Ange ALLSPORTDB_API_KEY i inställningarna eller använd "Importera via Wikipedia".'
-            }, status=400)
+                'status': 'success',
+                'message': f'Webbscanning slutförd: Inga nya prospekt matchade sökkriterierna eller 30-dagarsregeln{hint}.',
+                'created_count': 0,
+                'updated_count': 0,
+                'total_count': 0
+            })
 
         return JsonResponse({
             'status': 'success',

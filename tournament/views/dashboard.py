@@ -10,7 +10,13 @@ from tournament.models import (
     Tournament, Match, MatchPrediction, TournamentSubmission, Sidebet, SidebetAnswer,
     Group, Team, StaticInsight, DailyGazette, UserProfile, League, LeagueMember
 )
-from tournament.services.scoring import calc_pred_points, calc_pred_points_detail
+from tournament.services.scoring import (
+    calc_pred_points,
+    calc_pred_points_detail,
+    get_knockout_stage_point_value,
+    get_third_place_qualifying_point_value,
+    evaluate_knockout_prediction_match,
+)
 from tournament.services.analytics import generate_ai_match_analysis
 from tournament.services.cache_service import (
     get_or_set_leaderboards_and_analytics,
@@ -574,97 +580,47 @@ def dashboard_view(request):
                     actual_stage_qualifiers.add(m.penalty_winner)
 
         # 2. Stage qualification point value
-        ks_name_lower = ks.name.lower()
-        if 'bronze' in ks_name_lower or 'brons' in ks_name_lower or '3' in ks_name_lower or 'tredje' in ks_name_lower:
-            val_stage_pts = point_system.knockout_bronze_match if point_system else 10
-        elif '8' in ks_name_lower or 'åttondel' in ks_name_lower or '16' in ks_name_lower:
-            val_stage_pts = point_system.knockout_round_of_16 if point_system else 3
-        elif 'kvart' in ks_name_lower or 'quarter' in ks_name_lower or '4' in ks_name_lower:
-            val_stage_pts = point_system.knockout_quarterfinal if point_system else 4
-        elif 'semi' in ks_name_lower:
-            val_stage_pts = point_system.knockout_semifinal if point_system else 5
-        elif 'final' in ks_name_lower or 'guld' in ks_name_lower:
-            val_stage_pts = point_system.knockout_final if point_system else 8
-        else:
-            val_stage_pts = 3
+        val_stage_pts = get_knockout_stage_point_value(ks.name, point_system)
 
         ks_matches_with_detail = []
         tot_ks_pts = 0
         tournament_team_names = {t.name for t in tournament_teams}
 
         for m in ks_matches:
-            act_home = m.get_home_team_info()
-            act_away = m.get_away_team_info()
-            act_home_name = act_home['name'] if (act_home and act_home['name'] != '-') else None
-            act_away_name = act_away['name'] if (act_away and act_away['name'] != '-') else None
-
-            pred_home = m.get_home_team_info(user_predictions)
-            pred_away = m.get_away_team_info(user_predictions)
-            pred_home_name = pred_home['name'] if (pred_home and pred_home['name'] != '-') else None
-            pred_away_name = pred_away['name'] if (pred_away and pred_away['name'] != '-') else None
-
-            # Matchup check can only be performed once all group matches are done AND both actual teams are determined
-            is_actual_home_defined = bool(act_home_name and act_home_name in tournament_team_names)
-            is_actual_away_defined = bool(act_away_name and act_away_name in tournament_team_names)
-            is_matchup_defined = bool(is_all_groups_finished and is_actual_home_defined and is_actual_away_defined)
-
-            if is_matchup_defined:
-                home_team_correct = bool(act_home_name and pred_home_name and act_home_name == pred_home_name)
-                away_team_correct = bool(act_away_name and pred_away_name and act_away_name == pred_away_name)
-                both_teams_correct = home_team_correct and away_team_correct
-            else:
-                home_team_correct = False
-                away_team_correct = False
-                both_teams_correct = False
-
             u_p = user_predictions.get(m.id)
-            raw_u_d = match_analytics[m.id]['user_detail'] if m.id in match_analytics else calc_pred_points_detail(u_p, m, point_system)
+            ko_eval = evaluate_knockout_prediction_match(
+                match=m,
+                pred=u_p,
+                user_predictions_dict=user_predictions,
+                actual_stage_qualifiers=actual_stage_qualifiers,
+                val_stage_pts=val_stage_pts,
+                is_all_groups_finished=is_all_groups_finished,
+                tournament_team_names=tournament_team_names,
+                point_system=point_system
+            )
 
-            if is_matchup_defined and not both_teams_correct:
-                u_d = {
-                    'pts_home': 0, 'pts_away': 0, 'pts_tot_goals': 0, 'pts_1x2': 0,
-                    'exact_score': False, 'total': 0
-                }
-            else:
-                u_d = raw_u_d
-
-            # Determine predicted winner
-            pred_winner_name = None
-            if u_p and u_p.home_goals is not None and u_p.away_goals is not None:
-                if u_p.home_goals > u_p.away_goals:
-                    pred_winner_name = pred_home_name
-                elif u_p.away_goals > u_p.home_goals:
-                    pred_winner_name = pred_away_name
-                else:
-                    pred_winner_name = u_p.penalty_winner if u_p.penalty_winner else pred_home_name
-
-            is_m_finished = m.is_finished or (m.home_goals is not None and m.away_goals is not None)
-            is_correct_stage_qualifier = bool(is_m_finished and pred_winner_name and (pred_winner_name in actual_stage_qualifiers))
-            pts_stage_qual = val_stage_pts if is_correct_stage_qualifier else 0
-
-            tot_m_pts = u_d['total'] + pts_stage_qual
-            tot_ks_pts += tot_m_pts
+            tot_ks_pts += ko_eval['total_m_pts']
 
             ks_matches_with_detail.append({
                 'match': m,
-                'home': act_home,
-                'away': act_away,
-                'pred_home': pred_home,
-                'pred_away': pred_away,
+                'home': m.get_home_team_info(),
+                'away': m.get_away_team_info(),
+                'pred_home': m.get_home_team_info(user_predictions),
+                'pred_away': m.get_away_team_info(user_predictions),
                 'is_all_groups_finished': is_all_groups_finished,
-                'is_matchup_known': is_matchup_defined,
-                'is_matchup_defined': is_matchup_defined,
-                'home_team_correct': home_team_correct,
-                'away_team_correct': away_team_correct,
-                'both_teams_correct': both_teams_correct,
+                'is_matchup_known': ko_eval['is_matchup_defined'],
+                'is_matchup_defined': ko_eval['is_matchup_defined'],
+                'home_team_correct': ko_eval['home_team_correct'],
+                'away_team_correct': ko_eval['away_team_correct'],
+                'both_teams_correct': ko_eval['both_teams_correct'],
                 'analytics': match_analytics.get(m.id),
                 'pred': u_p,
-                'detail': u_d,
-                'pred_winner_name': pred_winner_name,
-                'is_correct_stage_qualifier': is_correct_stage_qualifier,
-                'pts_stage_qual': pts_stage_qual,
-                'total_row_pts': tot_m_pts,
-                'is_m_finished': is_m_finished,
+                'detail': ko_eval['detail'],
+                'pred_winner_name': ko_eval['pred_winner_name'],
+                'is_correct_stage_qualifier': ko_eval['is_correct_stage_qualifier'],
+                'pts_stage_qual': ko_eval['pts_stage_qual'],
+                'total_row_pts': ko_eval['total_m_pts'],
+                'is_m_finished': ko_eval['is_m_finished'],
             })
         knockout_stage_full_data.append({
             'stage': ks,
@@ -689,11 +645,7 @@ def dashboard_view(request):
 
     enhanced_third_place_data = []
     max_len = max(len(third_place_teams), len(pred_third_place_teams))
-    val_third_pts = (
-        point_system.qualifying_table_team_qualified
-        if (point_system and hasattr(point_system, 'qualifying_table_team_qualified') and point_system.qualifying_table_team_qualified > 0)
-        else (point_system.knockout_qualified_third if point_system else 2)
-    )
+    val_third_pts = get_third_place_qualifying_point_value(point_system)
 
     for r_idx in range(1, max_len + 1):
         act_row = third_place_teams[r_idx - 1] if r_idx - 1 < len(third_place_teams) else None

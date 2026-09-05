@@ -1613,6 +1613,76 @@ class PointSystemFlowTests(TestCase):
         self.assertEqual(detail['pts_home'], 2)
         self.assertEqual(detail['pts_away'], 2)
         self.assertEqual(detail['pts_tot_goals'], 2)
+
+    def test_knockout_stage_point_values(self):
+        from tournament.services.scoring import get_knockout_stage_point_value, get_third_place_qualifying_point_value
+        self.assertEqual(get_knockout_stage_point_value('Kvartsfinal', self.point_system), 6)
+        self.assertEqual(get_knockout_stage_point_value('Semifinal', self.point_system), 8)
+        self.assertEqual(get_knockout_stage_point_value('Bronsmatch', self.point_system), 10)
+        self.assertEqual(get_knockout_stage_point_value('Final', self.point_system), 10)
+        self.assertEqual(get_third_place_qualifying_point_value(self.point_system), 5)
+
+    def test_evaluate_knockout_prediction_matchup_zeroes_score_when_teams_mismatch(self):
+        from tournament.models import Match, MatchPrediction, KnockoutStage
+        from tournament.services.scoring import evaluate_knockout_prediction_match
+
+        stage = KnockoutStage.objects.create(tournament=self.tournament, name="Kvartsfinal", order=1)
+        # Match 10: Spanien vs Frankrike. Spanien won 2-1
+        m_prev = Match.objects.create(
+            tournament=self.tournament,
+            match_number=10,
+            home_team="Spanien",
+            away_team="Frankrike",
+            home_goals=2,
+            away_goals=1,
+            is_finished=True
+        )
+        # User predicted Frankrike won match 10 (0-1)
+        pred_prev = MatchPrediction(
+            match=m_prev,
+            home_goals=0,
+            away_goals=1
+        )
+
+        # Match 20: Winner Match 10 vs Tyskland.
+        # Actual matchup: Spanien vs Tyskland.
+        # Predicted matchup: Frankrike vs Tyskland.
+        match = Match.objects.create(
+            tournament=self.tournament,
+            stage=stage,
+            match_number=20,
+            home_team="Winner Match 10",
+            away_team="Tyskland",
+            home_goals=2,
+            away_goals=1,
+            is_finished=True
+        )
+        pred = MatchPrediction(
+            match=match,
+            home_goals=2,
+            away_goals=1
+        )
+        pred_dict = {
+            m_prev.id: pred_prev,
+            match.id: pred
+        }
+        # When matchup is defined (groups finished & both teams actual)
+        res = evaluate_knockout_prediction_match(
+            match=match,
+            pred=pred,
+            user_predictions_dict=pred_dict,
+            actual_stage_qualifiers={'Spanien'},
+            val_stage_pts=6,
+            is_all_groups_finished=True,
+            tournament_team_names={'Spanien', 'Tyskland', 'Frankrike'},
+            point_system=self.point_system
+        )
+        # Actual home team was Spain, but user predicted France:
+        self.assertFalse(res['both_teams_correct'])
+        self.assertEqual(res['score_pts'], 0)
+        self.assertEqual(res['pts_stage_qual'], 0)
+        self.assertEqual(res['total_m_pts'], 0)
+
     def test_scout_to_tournament_conversion_transfers_all_5_segments(self):
         """Verifies that convert_scanned_to_live_tournament transfers all 5 blueprint segments into relational DB models."""
         from tournament.models import ScannedTournament, MasterEvent, Tournament, Group, Team, Match, PointSystem, Sidebet
@@ -1941,6 +2011,92 @@ class CacheServiceTestCase(TestCase):
         from tournament.services.cache_service import get_tournament_cache_version
         v = get_tournament_cache_version(8888)
         self.assertIsInstance(v, int)
+
+    def test_get_or_set_leaderboards_and_analytics_includes_all_4_stages(self):
+        from django.contrib.auth import get_user_model
+        from tournament.models import Tournament, PointSystem, Group, Team, Match, MatchPrediction, KnockoutStage, TournamentSubmission
+        from tournament.services.cache_service import get_or_set_leaderboards_and_analytics
+
+        User = get_user_model()
+        user = User.objects.create_user('stage_tester', 'stage@test.com', 'password')
+        tournament = Tournament.objects.create(name="MultiStage Cup 2028", admin=user)
+        ps = PointSystem.objects.create(
+            tournament=tournament,
+            match_correct_1x2=3,
+            match_correct_goals_per_team=3,
+            match_correct_total_goals=1,
+            group_correct_placement=2,
+            qualifying_table_team_qualified=5,
+            knockout_quarterfinal=6,
+        )
+        group = Group.objects.create(tournament=tournament, name="Grupp A")
+        t1 = Team.objects.create(tournament=tournament, group=group, name="Sverige", code="SE")
+        t2 = Team.objects.create(tournament=tournament, group=group, name="Danmark", code="DK")
+        
+        # Finished group match: Sverige 2 - 1 Danmark
+        m_group = Match.objects.create(
+            tournament=tournament,
+            group=group,
+            match_number=1,
+            home_team="Sverige",
+            away_team="Danmark",
+            home_goals=2,
+            away_goals=1,
+            is_finished=True
+        )
+        # User predicted Sverige 2 - 1 Danmark (Exact score: 10 points)
+        pred_g = MatchPrediction.objects.create(
+            player=user,
+            match=m_group,
+            home_goals=2,
+            away_goals=1
+        )
+
+        # Finished Knockout match: Kvartsfinal: Sverige 3 - 0 Norge
+        ks = KnockoutStage.objects.create(tournament=tournament, name="Kvartsfinal", order=1)
+        t3 = Team.objects.create(tournament=tournament, name="Norge", code="NO")
+        m_ko = Match.objects.create(
+            tournament=tournament,
+            stage=ks,
+            match_number=2,
+            home_team="Sverige",
+            away_team="Norge",
+            home_goals=3,
+            away_goals=0,
+            is_finished=True
+        )
+        # User predicted Sverige 3 - 0 Norge
+        pred_ko = MatchPrediction.objects.create(
+            player=user,
+            match=m_ko,
+            home_goals=3,
+            away_goals=0
+        )
+        
+        sub = TournamentSubmission.objects.create(player=user, tournament=tournament, is_verified=True)
+
+        bundle = get_or_set_leaderboards_and_analytics(
+            tournament=tournament,
+            point_system=ps,
+            players=[user],
+            all_groups=[group],
+            all_matches=[m_group, m_ko],
+            all_submissions_dict={user.id: sub},
+            all_predictions_by_player={user.id: [pred_g, pred_ko]},
+            all_predictions_by_match={m_group.id: [pred_g], m_ko.id: [pred_ko]},
+            sidebet_answers_by_player={}
+        )
+
+        lb = bundle['leaderboard']
+        self.assertEqual(len(lb), 1)
+        lb_entry = lb[0]
+        # Group match: 10 pts
+        # Knockout: 10 scoreline pts + 6 advancement pts = 16 pts
+        self.assertGreater(lb_entry['points'], 20)
+        
+        lb_ko = bundle['leaderboard_knockout'][0]
+        self.assertEqual(lb_ko['points'], 16) # 10 score pts + 6 advancement pts
+
 
 class PoolAdminServiceTestCase(TestCase):
     def setUp(self):
@@ -2949,7 +3105,7 @@ class ActualKnockoutPredictionTestCase(TestCase):
         from tournament.services.cache_service import get_or_set_leaderboards_and_analytics
         from tournament.models import PointSystem
 
-        point_system = PointSystem.objects.create(tournament=self.tournament, match_correct_1x2=3, match_correct_goals_per_team=3, match_correct_total_goals=1)
+        point_system = PointSystem.objects.create(tournament=self.tournament, match_correct_1x2=3, match_correct_goals_per_team=3, match_correct_total_goals=1, knockout_round_of_16=0)
 
         # Player predicted 2-0 in initial bracket (Exact score for 2-0 -> 3 + 3 + 3 + 1 = 10 pts)
         MatchPrediction.objects.create(

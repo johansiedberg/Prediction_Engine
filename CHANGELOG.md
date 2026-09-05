@@ -13,7 +13,34 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 
 ---
 
-## [v2.7.0] - 2026-09-03 (Current Release)
+## [v2.7.1] - 2026-09-05 (Current Release)
+
+### 🎯 Milestone Highlights
+- **Webscan HTTP 500 & Gunicorn Worker Timeout Resolution**:
+  - Capped AI date lookups in `resolve_and_filter_prospect_dates` to newly ingested prospects and max 5 queries per scrape to prevent long worker blocking.
+  - Updated `SUPPORTED_MODELS` in `GeminiScoutService` to active models: `gemini-flash-latest`, `gemini-flash-lite-latest`, `gemini-3.1-flash-lite`, and `gemini-3.8-flash`.
+  - Added fast-fail `is_in_penalty()` bypass on Gemini rate limiter to instantly skip fallback attempts when quota is in cooldown.
+  - Extended Gunicorn worker timeout to 300s in `prediction-admin.service` on PRD.
+  - Improved user feedback in Engine Admin when zero new prospects are discovered.
+- **Scoring Engine Parity & Knockout Advancement**:
+  - Centralized knockout point calculation in `tournament/services/scoring.py` with canonical helpers `get_knockout_stage_point_value`, `get_third_place_qualifying_point_value`, and `evaluate_knockout_prediction_match`.
+  - Fixed hardcoded `tp_pts = 0` in `CacheService` to correctly reward third-place predictions.
+  - Aligned `dashboard.py` and `CacheService` for dual-phase prediction scoring (`INITIAL_BRACKET` and `ACTUAL_KNOCKOUT`).
+- **Deployment & Service Automation**:
+  - Enhanced `deploy.sh` to automatically detect and restart active systemd user services (`prediction-player`, `prediction-admin`).
+
+### 📦 Database Migrations Introduced
+- None (schema unchanged).
+
+### 📋 Commits from DEV (v2.7.0 -> v2.7.1)
+| Commit SHA | Type | Description |
+| :--- | :--- | :--- |
+| `5391a16` | `feat(scout)` | Fix webscan timeout, rate limiter cascade, and scoring engine parity |
+
+---
+
+## [v2.7.0] - 2026-09-03
+
 
 ### 🎯 Milestone Highlights
 - **AI Tournament Scout & Gemini 3.8 Flash**:

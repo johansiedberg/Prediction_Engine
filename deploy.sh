@@ -19,17 +19,25 @@ echo "📦 [2/5] Applying database migrations..."
 echo "📁 [3/5] Collecting static assets..."
 ./venv/bin/python manage.py collectstatic --noinput
 
-echo "🔄 [4/5] Terminating stale Prediction Engine instances..."
-pkill -9 -f "runserver.*8028" || true
-pkill -9 -f "runserver.*8029" || true
-pkill -9 -f "runserver_admin" || true
-pkill -9 -f "manage.py runserver" || true
-sleep 2
+echo "🔄 [4/5] Updating and restarting background services..."
+if systemctl --user is-enabled prediction-player 2>/dev/null || systemctl --user is-active --quiet prediction-player 2>/dev/null; then
+    echo "  ⚡ Restarting systemd user services (prediction-player, prediction-admin)..."
+    systemctl --user daemon-reload
+    systemctl --user restart prediction-player prediction-admin
+    sleep 3
+else
+    echo "  ⚡ Stopping stale standalone Django processes..."
+    pkill -9 -f "runserver.*8028" || true
+    pkill -9 -f "runserver.*8029" || true
+    pkill -9 -f "runserver_admin" || true
+    pkill -9 -f "manage.py runserver" || true
+    sleep 2
 
-echo "⚡ [5/5] Starting background services (Player: 8028, Engine Admin: 8029)..."
-nohup ./venv/bin/python manage.py runserver 127.0.0.1:8028 > runserver_player.log 2>&1 &
-nohup ./venv/bin/python manage.py runserver_admin > runserver_admin.log 2>&1 &
-sleep 2
+    echo "⚡ [5/5] Starting standalone services (Player: 8028, Engine Admin: 8029)..."
+    nohup ./venv/bin/python manage.py runserver 127.0.0.1:8028 > runserver_player.log 2>&1 &
+    nohup ./venv/bin/python manage.py runserver_admin > runserver_admin.log 2>&1 &
+    sleep 2
+fi
 
 # Post-Deployment Health Checks
 echo "----------------------------------------------------------------"

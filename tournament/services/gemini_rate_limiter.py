@@ -37,6 +37,12 @@ class GeminiRateLimiter:
         return float(getattr(settings, "GEMINI_RATE_LIMIT_WINDOW_SECONDS", 60.0))
 
     @classmethod
+    def is_in_penalty(cls) -> bool:
+        """Returns True if the rate limiter is currently in an active 429 penalty cooldown."""
+        with cls._lock:
+            return time.time() < cls._penalty_until
+
+    @classmethod
     def acquire(cls, timeout: float = 8.0) -> bool:
         """
         Blocks until an API call slot is available within the rate limit.

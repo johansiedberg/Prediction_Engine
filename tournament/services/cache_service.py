@@ -5,11 +5,18 @@ Provides sub-50ms data retrieval for Leaderboards, Standings, Match Analytics, a
 
 from django.core.cache import cache
 from django.utils import timezone
-from tournament.services.scoring import calc_pred_points, calc_pred_points_detail
+from tournament.services.scoring import (
+    calc_pred_points,
+    calc_pred_points_detail,
+    get_knockout_stage_point_value,
+    get_third_place_qualifying_point_value,
+    evaluate_knockout_prediction_match,
+)
 from tournament.services.analytics import generate_ai_match_analysis
 from tournament.editorial_engine.compiler import load_player_personas, find_persona_for_player
 from tournament.editorial_engine.static_generators import generate_static_insights
 from tournament.editorial_engine.detectors import check_and_trigger_special_editions
+
 
 CACHE_TTL_DEFAULT = 300  # 5 minutes fallback TTL
 
@@ -60,6 +67,57 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
             'standings': g.get_standings()
         }
 
+    group_matches_list = [m for m in all_matches if m.group_id]
+    is_all_groups_finished = len(group_matches_list) > 0 and all(
+        m.home_goals is not None and m.away_goals is not None for m in group_matches_list
+    )
+    tournament_teams = list(tournament.teams.all())
+    tournament_team_names = {t.name for t in tournament_teams}
+
+    # Precompute knockout stages, actual stage qualifiers, and stage point values
+    knockout_stages = list(tournament.knockout_stages.all().order_by('order', 'id'))
+    actual_stage_qualifiers_by_stage = {}
+    stage_point_values = {}
+    for ks in knockout_stages:
+        ks_matches = [m for m in all_matches if m.stage_id == ks.id]
+        actual_qualifiers = set()
+        for m in ks_matches:
+            if m.is_finished or (m.home_goals is not None and m.away_goals is not None):
+                h_info = m.get_home_team_info()
+                a_info = m.get_away_team_info()
+                h_name = h_info['name'] if (h_info and h_info['name'] != '-') else None
+                a_name = a_info['name'] if (a_info and a_info['name'] != '-') else None
+                if m.home_goals > m.away_goals and h_name:
+                    actual_qualifiers.add(h_name)
+                elif m.away_goals > m.home_goals and a_name:
+                    actual_qualifiers.add(a_name)
+                elif getattr(m, 'penalty_winner', None):
+                    actual_qualifiers.add(m.penalty_winner)
+        actual_stage_qualifiers_by_stage[ks.id] = actual_qualifiers
+        stage_point_values[ks.id] = get_knockout_stage_point_value(ks.name, point_system)
+
+    # Precompute third-place / qualifying actual teams
+    is_qualifying = 'kval' in (tournament.name or '').lower() or 'qualif' in (tournament.name or '').lower()
+    target_idx = 1 if is_qualifying else 2
+
+    actual_third_place_teams = []
+    for g in all_groups:
+        g_data = base_group_standings[g.id]
+        st = g_data['standings']
+        if len(st) > target_idx:
+            t_target = dict(st[target_idx])
+            t_target['group_name'] = g.name
+            actual_third_place_teams.append(t_target)
+
+    actual_third_place_teams.sort(key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
+    num_qualifying = 4 if len(all_groups) == 6 else (8 if len(all_groups) >= 12 else 4)
+    actual_qual_names = {
+        (t['team'].name if hasattr(t['team'], 'name') else str(t['team']))
+        for rank_idx, t in enumerate(actual_third_place_teams, 1)
+        if rank_idx <= num_qualifying
+    }
+    val_third_pts = get_third_place_qualifying_point_value(point_system)
+
     p_plac_val = point_system.group_correct_placement if point_system else 2
     p_lagp_val = point_system.group_correct_points if point_system else 1
     p_gd_val = point_system.group_correct_goal_diff if point_system else 1
@@ -68,6 +126,7 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
     for p in players:
         p_sub = all_submissions_dict.get(p.id)
         p_preds = all_predictions_by_player.get(p.id, [])
+        p_preds_by_match_id = {pred.match_id: pred for pred in p_preds}
 
         gm_pts = 0
         gm_fullpott = 0
@@ -87,82 +146,116 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
             m = pred.match
             if m.group_id:
                 p_preds_dict[m.id] = pred
-            pts = calc_pred_points(pred, m, point_system)
-            is_finished = m.is_finished or (m.home_goals is not None and m.away_goals is not None)
+                pts = calc_pred_points(pred, m, point_system)
+                is_finished = m.is_finished or (m.home_goals is not None and m.away_goals is not None)
 
-            if is_finished:
-                is_exact = (pred.home_goals == m.home_goals and pred.away_goals == m.away_goals)
-                correct_home_g = (pred.home_goals == m.home_goals)
-                correct_away_g = (pred.away_goals == m.away_goals)
-                goals_matched = (1 if correct_home_g else 0) + (1 if correct_away_g else 0)
+                if is_finished:
+                    is_exact = (pred.home_goals == m.home_goals and pred.away_goals == m.away_goals)
+                    correct_home_g = (pred.home_goals == m.home_goals)
+                    correct_away_g = (pred.away_goals == m.away_goals)
+                    goals_matched = (1 if correct_home_g else 0) + (1 if correct_away_g else 0)
 
-                actual_1x2 = '1' if m.home_goals > m.away_goals else ('2' if m.away_goals > m.home_goals else 'X')
-                pred_1x2 = '1' if pred.home_goals > pred.away_goals else ('2' if pred.away_goals > pred.home_goals else 'X')
-                is_correct_1x2 = (actual_1x2 == pred_1x2)
+                    actual_1x2 = '1' if m.home_goals > m.away_goals else ('2' if m.away_goals > m.home_goals else 'X')
+                    pred_1x2 = '1' if pred.home_goals > pred.away_goals else ('2' if pred.away_goals > pred.home_goals else 'X')
+                    is_correct_1x2 = (actual_1x2 == pred_1x2)
 
-                if m.group_id:
                     gm_pts += pts
                     if is_exact: gm_fullpott += 1
                     gm_ratt_mal += goals_matched
                     if is_correct_1x2: gm_ratt_tecken += 1
+            else:
+                # Knockout match evaluation (includes advancement bonus and matchup team validity check)
+                ks_id = m.stage_id
+                actual_stage_qual = actual_stage_qualifiers_by_stage.get(ks_id, set())
+                val_stage_pts = stage_point_values.get(ks_id, 3)
+
+                ko_eval = evaluate_knockout_prediction_match(
+                    match=m,
+                    pred=pred,
+                    user_predictions_dict=p_preds_by_match_id,
+                    actual_stage_qualifiers=actual_stage_qual,
+                    val_stage_pts=val_stage_pts,
+                    is_all_groups_finished=is_all_groups_finished,
+                    tournament_team_names=tournament_team_names,
+                    point_system=point_system
+                )
+
+                score_pts = ko_eval['score_pts']
+                pts_stage_qual = ko_eval['pts_stage_qual']
+                tot_m_ko_pts = score_pts + pts_stage_qual
+
+                if pred.prediction_phase == 'ACTUAL_KNOCKOUT':
+                    ko_actual_pts += tot_m_ko_pts
                 else:
-                    if pred.prediction_phase == 'ACTUAL_KNOCKOUT':
-                        ko_actual_pts += pts
-                    else:
-                        ko_initial_pts += pts
-                    ko_pts += pts
-                    if is_exact: ko_fullpott += 1
-                    ko_ratt_mal += goals_matched
-                    if is_correct_1x2: ko_ratt_tecken += 1
+                    ko_initial_pts += tot_m_ko_pts
+                ko_pts += tot_m_ko_pts
+
+                if ko_eval['is_m_finished'] and ko_eval['both_teams_correct']:
+                    if ko_eval['detail'].get('exact_score'):
+                        ko_fullpott += 1
+                    c_h = ko_eval['detail'].get('correct_home', False)
+                    c_a = ko_eval['detail'].get('correct_away', False)
+                    ko_ratt_mal += (1 if c_h else 0) + (1 if c_a else 0)
+                    if ko_eval['detail'].get('correct_1x2', False):
+                        ko_ratt_tecken += 1
 
         gs_pts = 0
         gs_ratt_placering = 0
         gs_ratt_lagpoang = 0
         gs_ratt_malskillnad = 0
 
+        pred_third_place_teams = []
+
         for g in all_groups:
             g_data = base_group_standings[g.id]
             g_m_list = g_data['matches']
             is_g_finished = len(g_m_list) > 0 and all(m.home_goals is not None and m.away_goals is not None for m in g_m_list)
             
+            st = g_data['standings']
+            pred_dict = {
+                (row['team'].name if hasattr(row['team'], 'name') else str(row['team'])): {
+                    'team': row['team'], 'played': 0, 'won': 0, 'drawn': 0, 'lost': 0,
+                    'gf': 0, 'ga': 0, 'gd': 0, 'points': 0
+                } for row in st
+            }
+
+            for m in g_m_list:
+                u_p = p_preds_dict.get(m.id)
+                if u_p is not None and m.home_team and m.away_team:
+                    ht, at = m.home_team.strip(), m.away_team.strip()
+                    if ht in pred_dict and at in pred_dict:
+                        hg, ag = u_p.home_goals, u_p.away_goals
+                        pred_dict[ht]['played'] += 1
+                        pred_dict[at]['played'] += 1
+                        pred_dict[ht]['gf'] += hg
+                        pred_dict[ht]['ga'] += ag
+                        pred_dict[at]['gf'] += ag
+                        pred_dict[at]['ga'] += hg
+                        pred_dict[ht]['gd'] += (hg - ag)
+                        pred_dict[at]['gd'] += (ag - hg)
+                        if hg > ag:
+                            pred_dict[ht]['won'] += 1
+                            pred_dict[ht]['points'] += 3
+                            pred_dict[at]['lost'] += 1
+                        elif hg < ag:
+                            pred_dict[at]['won'] += 1
+                            pred_dict[at]['points'] += 3
+                            pred_dict[ht]['lost'] += 1
+                        else:
+                            pred_dict[ht]['drawn'] += 1
+                            pred_dict[at]['drawn'] += 1
+                            pred_dict[ht]['points'] += 1
+                            pred_dict[at]['points'] += 1
+
+            sorted_p_list = sorted(pred_dict.values(), key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
+            
+            # Third-place tracking
+            if len(sorted_p_list) > target_idx:
+                p_target = dict(sorted_p_list[target_idx])
+                p_target['group_name'] = g.name
+                pred_third_place_teams.append(p_target)
+
             if is_g_finished:
-                st = g_data['standings']
-                pred_dict = {
-                    (row['team'].name if hasattr(row['team'], 'name') else str(row['team'])): {
-                        'team': row['team'], 'played': 0, 'won': 0, 'drawn': 0, 'lost': 0,
-                        'gf': 0, 'ga': 0, 'gd': 0, 'points': 0
-                    } for row in st
-                }
-
-                for m in g_m_list:
-                    u_p = p_preds_dict.get(m.id)
-                    if u_p is not None and m.home_team and m.away_team:
-                        ht, at = m.home_team.strip(), m.away_team.strip()
-                        if ht in pred_dict and at in pred_dict:
-                            hg, ag = u_p.home_goals, u_p.away_goals
-                            pred_dict[ht]['played'] += 1
-                            pred_dict[at]['played'] += 1
-                            pred_dict[ht]['gf'] += hg
-                            pred_dict[ht]['ga'] += ag
-                            pred_dict[at]['gf'] += ag
-                            pred_dict[at]['ga'] += hg
-                            pred_dict[ht]['gd'] += (hg - ag)
-                            pred_dict[at]['gd'] += (ag - hg)
-                            if hg > ag:
-                                pred_dict[ht]['won'] += 1
-                                pred_dict[ht]['points'] += 3
-                                pred_dict[at]['lost'] += 1
-                            elif hg < ag:
-                                pred_dict[at]['won'] += 1
-                                pred_dict[at]['points'] += 3
-                                pred_dict[ht]['lost'] += 1
-                            else:
-                                pred_dict[ht]['drawn'] += 1
-                                pred_dict[at]['drawn'] += 1
-                                pred_dict[ht]['points'] += 1
-                                pred_dict[at]['points'] += 1
-
-                sorted_p_list = sorted(pred_dict.values(), key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
                 p_rank_map = {}
                 for r_idx, p_item in enumerate(sorted_p_list, 1):
                     t_k = p_item['team'].name if hasattr(p_item['team'], 'name') else str(p_item['team'])
@@ -185,8 +278,17 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
                         gs_ratt_malskillnad += 1
                         gs_pts += p_gd_val
 
+        # Stage 3: Third place / qualifying ranking points
+        pred_third_place_teams.sort(key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
         tp_pts = 0
         tp_ratt_lag = 0
+        if is_all_groups_finished:
+            for rank_idx, p_item in enumerate(pred_third_place_teams, 1):
+                if rank_idx <= num_qualifying:
+                    p_t_name = p_item['team'].name if hasattr(p_item['team'], 'name') else str(p_item['team'])
+                    if p_t_name in actual_qual_names:
+                        tp_pts += val_third_pts
+                        tp_ratt_lag += 1
 
         sb_pts = 0
         sb_ratt_antal = 0
@@ -197,6 +299,7 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
                 sb_ratt_antal += 1
 
         tot_pts = gm_pts + gs_pts + tp_pts + ko_pts + sb_pts
+
         p_name = f"{p.first_name} {p.last_name}".strip() if p.first_name else p.email
         p_verified = p_sub.is_verified if p_sub else False
 
