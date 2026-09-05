@@ -468,7 +468,7 @@ class LLMWikipediaScout:
         s = re.sub(r'\*+$', '', s)
 
         # Known venue and city suffix cleanup e.g. "Uruguay SAP Garden" -> "Uruguay", "Poland Spodek" -> "Poland"
-        venue_suffix_pattern = r'\s+(?:SAP\s+Garden|Porsche.*|Arena.*|Spodek.*|GETEC.*|Wunderino.*|Lanxess.*|ZAG.*|Antalya.*|Tipos.*|Stadion.*|Stadium.*|Hall.*|Centre.*|Center.*|Dome.*|Palace.*|Park.*|Oradea.*|BTarena.*|Cluj.*|Bratislava.*|Katowice.*|Brno.*|Debrecen.*|Innsbruck.*|Basel.*|Vienna.*|Munich|Stuttgart|Kiel|Magdeburg|Hanover|Cologne)$'
+        venue_suffix_pattern = r'\s+(?:Kauppi.*|Hakamets.*|Nokia.*|SAP\s+Garden|Porsche.*|Arena.*|Spodek.*|GETEC.*|Wunderino.*|Lanxess.*|ZAG.*|Antalya.*|Tipos.*|Stadion.*|Stadium.*|Ice\s+Hall.*|Sports\s+Center.*|Sports\s+Hall.*|Hall.*|Centre.*|Center.*|Dome.*|Palace.*|Park.*|Oradea.*|BTarena.*|Cluj.*|Bratislava.*|Katowice.*|Brno.*|Debrecen.*|Innsbruck.*|Basel.*|Vienna.*|Munich|Stuttgart|Kiel|Magdeburg|Hanover|Cologne|Tampere|Helsinki|Turku|Espoo)$'
         s = re.sub(venue_suffix_pattern, '', s, flags=re.IGNORECASE)
 
         cleaned = s.strip()

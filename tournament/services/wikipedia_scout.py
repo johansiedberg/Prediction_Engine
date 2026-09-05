@@ -414,7 +414,7 @@ class WikipediaScout:
                         continue
                     if re.search(r'\b(?:league|division)\s+[A-D]\b', t, re.IGNORECASE) and not league_part:
                         league_part = t
-                    if re.search(r'\b(?:group|pool)\s+[A-Z0-9]\b|quarter|semi|final|round\s+of|playoff', t, re.IGNORECASE) and not group_part:
+                    if re.search(r'\b(?:group|pool)\s+[A-Z0-9]\b|quarter|semi|final|round\s+of|play[\s\-]off|knock[\s\-]out|bracket|bronze|placement', t, re.IGNORECASE) and not group_part:
                         group_part = t
 
                 if league_part and group_part and league_part.lower() not in group_part.lower():
@@ -574,6 +574,10 @@ class WikipediaScout:
 
             # --- Strategy 3: NLP Table & Row Pattern Mining ---
             for row in soup.find_all('tr'):
+                # Skip rows inside match containers already processed by Strategy 1 or Strategy 2
+                if row.find_parent(['table', 'div'], class_=re.compile(r'footballbox|vevent|fevent|handballbox|basketballbox|icehockeybox')):
+                    continue
+
                 prev_h = row.find_previous(re.compile(r'^h[2-4]$'))
                 prev_h_txt = (prev_h.get_text().strip() if prev_h else '').lower()
                 if any(k in prev_h_txt for k in ['summar', 'result', 'history', 'medal', 'past', 'edition', 'champions', 'award', 'statistic', 'all-time', 'record']):

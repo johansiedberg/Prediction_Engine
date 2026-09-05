@@ -13,7 +13,29 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 
 ---
 
-## [v2.7.1] - 2026-09-05 (Current Release)
+## [v2.7.2] - 2026-09-05 (Current Release)
+
+### 🎯 Milestone Highlights
+- **Scraper Ingestion & Fixture Deduplication (Floorball & Multi-Sport)**:
+  - **Strategy Overlap Prevention**: Prevented Strategy 3b NLP table mining from reprocessing match rows inside containers (`fevent`, `vevent`, `footballbox`) already handled by Strategies 1 and 2 in `wikipedia_scout.py`, eliminating corrupted duplicates where trailing venue strings were captured into away team names.
+  - **Hyphenated Stage Header Recognition**: Expanded `get_preceding_stage` regex to match `play[\s\-]off`, `knock[\s\-]out`, `bracket`, `bronze`, and `placement`, ensuring playoff matches are properly categorized rather than cascading into the preceding group (e.g. `Group D`).
+  - **Venue Suffix Sanitization**: Expanded `_clean_team_name` in `llm_wikipedia_scout.py` to strip Nordic and European arenas, sports halls, and cities (`Kauppi`, `Hakametsä`, `Nokia`, `Ice Hall`, `Sports Center`, `Tampere`, etc.).
+  - **Intelligent Team Snapping & Deduplication**:
+    - In `matches_knockout_agent.py`, added team snapping against known group teams and expanded knockout stage regex, guaranteeing candidate teams snap to authentic names and deduplicate.
+    - In `scout_service.py` (`convert_scanned_to_live_tournament`), added team snapping against created teams, dynamic stage resolution, and duplicate match prevention.
+  - **Database Cleanup (PRD & DEV)**:
+    - Purged 24 corrupted duplicate matches (matches 40–63) and 8 generic skeleton placeholders from *Men's World Floorball Championships 2026*.
+    - Reassigned playoff matches (matches 25–28) from `Group D` to a dedicated `Play-off round` knockout stage with `group=None`.
+    - Group B and all groups restored to exactly 4 authentic teams and 6 matches.
+
+### 📋 Commits from DEV (v2.7.1 -> v2.7.2)
+| Commit SHA | Type | Description |
+| :--- | :--- | :--- |
+| `af648fa` | `fix(scout)` | Prevent duplicate venue-mangled matches and fix hyphenated playoff stages |
+
+---
+
+## [v2.7.1] - 2026-09-05
 
 ### 🎯 Milestone Highlights
 - **Webscan HTTP 500 & Gunicorn Worker Timeout Resolution**:

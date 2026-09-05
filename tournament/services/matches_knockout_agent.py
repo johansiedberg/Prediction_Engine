@@ -189,6 +189,16 @@ class MatchesKnockoutAgent:
             team_cache[clean] = meta
             return meta
 
+        # Snapping helper: if candidate has venue or suffix appended (e.g. "Sweden Hakamets"), snap to known group team
+        known_teams_set = list(team_cache.keys())
+        def _snap_to_known_team(name: str) -> str:
+            if not name or name in team_cache:
+                return name
+            for kt in sorted(known_teams_set, key=len, reverse=True):
+                if name.lower().startswith(kt.lower() + " ") or name.lower().startswith(kt.lower() + "-"):
+                    return kt
+            return name
+
         # 1. Group Matches vs Knockout Matches Separation
         group_matches: List[GroupMatchEntry] = []
         extra_knockout_matches: List[Dict[str, Any]] = []
@@ -201,8 +211,10 @@ class MatchesKnockoutAgent:
         if raw_fixtures:
             for idx, f in enumerate(raw_fixtures, start=1):
                 if isinstance(f, dict):
-                    h_team = (f.get("home_team") or f.get("home") or "").strip()
-                    a_team = (f.get("away_team") or f.get("away") or "").strip()
+                    h_raw = (f.get("home_team") or f.get("home") or "").strip()
+                    a_raw = (f.get("away_team") or f.get("away") or "").strip()
+                    h_team = _snap_to_known_team(h_raw)
+                    a_team = _snap_to_known_team(a_raw)
                     stage_raw = (f.get("stage_or_group") or f.get("group") or "Group Stage").strip()
 
                     # Filter out non-matches, empty opposing teams, or table rank artifacts (e.g. '4th', '6th', 'as Yugoslavia')
@@ -223,7 +235,7 @@ class MatchesKnockoutAgent:
                         stage_clean = "Group Stage"
 
                     # Detect if fixture is a knockout / playoff / bracket match
-                    is_ko_stage = bool(re.search(r'\b(?:final|finals|semi|quarter|playoff|bracket|knockout|3rd\s*place|third\s*place|round\s*of\s*\d+)\b', stage_clean, re.I))
+                    is_ko_stage = bool(re.search(r'\b(?:final|finals|semi|quarter|play[\s\-]off|bracket|knock[\s\-]out|3rd\s*place|third\s*place|round\s*of\s*\d+|placement|\d+(?:st|nd|rd|th)[–\-]\d+(?:st|nd|rd|th))\b', stage_clean, re.I))
                     h_is_winner_ph = bool(re.search(r'\b(?:winner|loser|runner-up)\s+(?:match|m\d+|game|qf|sf)\b', h_team, re.I))
                     a_is_winner_ph = bool(re.search(r'\b(?:winner|loser|runner-up)\s+(?:match|m\d+|game|qf|sf)\b', a_team, re.I))
 

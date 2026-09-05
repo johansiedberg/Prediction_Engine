@@ -2106,13 +2106,47 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
         base_date = scanned.start_date or datetime.date.today()
         base_dt = datetime.datetime.combine(base_date, datetime.time(15, 0))
 
+        def _snap_team_name(t_name: str) -> str:
+            if not t_name:
+                return t_name
+            t_strip = str(t_name).strip()
+            if t_strip in created_teams:
+                return t_strip
+            for kt in sorted(created_teams.keys(), key=len, reverse=True):
+                if t_strip.lower().startswith(kt.lower() + " ") or t_strip.lower().startswith(kt.lower() + "-"):
+                    return kt
+            return t_strip
+
+        seen_matches = set()
         if fixtures_data:
             for f_item in fixtures_data:
+                stage_grp_name = (f_item.get('stage_or_group') or '').strip()
+                home = _snap_team_name(f_item.get('home_team', ''))
+                away = _snap_team_name(f_item.get('away_team', ''))
+                
+                # Check if this match is in a group or knockout stage
+                group_obj = created_groups.get(stage_grp_name)
+                stage_obj = created_stages.get(stage_grp_name)
+
+                # If stage_grp_name is not in created_groups and not in created_stages, check if it's a knockout stage
+                if not group_obj and not stage_obj and stage_grp_name:
+                    is_ko = bool(re.search(r'\b(?:final|semi|quarter|play[\s\-]off|bracket|knock[\s\-]out|round\s*of|placement|\d+(?:st|nd|rd|th)[–\-]\d+(?:st|nd|rd|th))\b', stage_grp_name, re.I))
+                    if is_ko:
+                        stage_obj, _ = KnockoutStage.objects.get_or_create(
+                            tournament=tournament,
+                            name=stage_grp_name,
+                            defaults={'order': len(created_stages) + 1}
+                        )
+                        created_stages[stage_grp_name] = stage_obj
+
+                # Dedup check
+                m_key = (group_obj.id if group_obj else None, stage_obj.id if stage_obj else None, home.lower(), away.lower())
+                if m_key in seen_matches:
+                    continue
+                seen_matches.add(m_key)
+
                 match_number_counter += 1
                 m_num = f_item.get('match_number', match_number_counter)
-                stage_grp_name = f_item.get('stage_or_group', '')
-                home = f_item.get('home_team', '')
-                away = f_item.get('away_team', '')
                 dt_str = f_item.get('date_time')
                 
                 match_dt = None
@@ -2126,9 +2160,6 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                 
                 if not match_dt:
                     match_dt = timezone.make_aware(base_dt + datetime.timedelta(days=(match_number_counter // 4)), timezone.get_current_timezone())
-
-                group_obj = created_groups.get(stage_grp_name)
-                stage_obj = created_stages.get(stage_grp_name)
 
                 Match.objects.create(
                     tournament=tournament,
