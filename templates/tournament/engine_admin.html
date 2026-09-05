@@ -180,11 +180,20 @@
                                         <h4 class="fw-extrabold mb-1 text-white" id="tour-name-display-{{ item.tournament.id }}">{{ item.tournament.name }}</h4>
                                         <div class="d-flex flex-wrap align-items-center gap-2 font-monospace fs-8 text-secondary">
                                             <span class="badge bg-secondary bg-opacity-25 text-warning border border-secondary border-opacity-30 rounded-pill px-2 py-0.5" id="tour-sport-badge-{{ item.tournament.id }}">
-                                                {% if item.tournament.sport == 'Ice Hockey' or 'hockey' in item.tournament.sport|lower %}🏒 Ishockey
+                                                {% if item.tournament.sport == 'Field Hockey' or 'field hockey' in item.tournament.sport|lower or 'landhockey' in item.tournament.sport|lower or 'eurohockey' in item.tournament.sport|lower %}🏑 Landhockey
+                                                {% elif item.tournament.sport == 'Ice Hockey' or 'hockey' in item.tournament.sport|lower %}🏒 Ishockey
                                                 {% elif item.tournament.sport == 'Handball' or 'handboll' in item.tournament.sport|lower %}🤾 Handboll
                                                 {% elif item.tournament.sport == 'Basketball' or 'basket' in item.tournament.sport|lower %}🏀 Basket
                                                 {% elif item.tournament.sport == 'Floorball' or 'innebandy' in item.tournament.sport|lower %}🏑 Innebandy
                                                 {% elif item.tournament.sport == 'Bandy' %}🏒 Bandy
+                                                {% elif item.tournament.sport == 'Cricket' %}🏏 Cricket
+                                                {% elif item.tournament.sport == 'Curling' %}🥌 Curling
+                                                {% elif item.tournament.sport == 'Rugby' %}🏉 Rugby
+                                                {% elif item.tournament.sport == 'Volleyball' or 'volleyboll' in item.tournament.sport|lower %}🏐 Volleyboll
+                                                {% elif item.tournament.sport == 'Water Polo' or 'vattenpolo' in item.tournament.sport|lower %}🤽 Vattenpolo
+                                                {% elif item.tournament.sport == 'Baseball' %}⚾ Baseboll
+                                                {% elif item.tournament.sport == 'American Football' or 'amerikansk fotboll' in item.tournament.sport|lower %}🏈 Amerikansk fotboll
+                                                {% elif item.tournament.sport == 'Netball' %}🏐 Netball
                                                 {% else %}⚽ {{ item.tournament.sport|default:"Fotboll" }}{% endif %}
                                             </span>
                                             {% if item.tournament.start_date %}
@@ -2806,10 +2815,19 @@
                 if (sportBadge) {
                     const sportLower = (tour.sport || '').toLowerCase();
                     let sportEmoji = '⚽';
-                    if (sportLower.includes('hockey')) sportEmoji = '🏒';
+                    if (sportLower.includes('field hockey') || sportLower.includes('landhockey') || sportLower.includes('eurohockey')) sportEmoji = '🏑';
+                    else if (sportLower.includes('hockey')) sportEmoji = '🏒';
                     else if (sportLower.includes('handball') || sportLower.includes('handboll')) sportEmoji = '🤾';
                     else if (sportLower.includes('basket')) sportEmoji = '🏀';
                     else if (sportLower.includes('floorball') || sportLower.includes('innebandy')) sportEmoji = '🏑';
+                    else if (sportLower.includes('cricket')) sportEmoji = '🏏';
+                    else if (sportLower.includes('curling')) sportEmoji = '🥌';
+                    else if (sportLower.includes('rugby')) sportEmoji = '🏉';
+                    else if (sportLower.includes('volleyball') || sportLower.includes('volleyboll')) sportEmoji = '🏐';
+                    else if (sportLower.includes('water polo') || sportLower.includes('vattenpolo')) sportEmoji = '🤽';
+                    else if (sportLower.includes('baseball') || sportLower.includes('baseboll')) sportEmoji = '⚾';
+                    else if (sportLower.includes('american football') || sportLower.includes('nfl')) sportEmoji = '🏈';
+                    else if (sportLower.includes('netball')) sportEmoji = '🏐';
                     sportBadge.innerText = `${sportEmoji} ${tour.sport || 'Fotboll'}`;
                 }
 

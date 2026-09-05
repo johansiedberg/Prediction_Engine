@@ -116,6 +116,7 @@ class WikipediaScout:
             host_country = ''
             start_date   = ''
             end_date     = ''
+            sport        = ''
 
             if infobox:
                 for row in infobox.find_all('tr'):
@@ -135,6 +136,12 @@ class WikipediaScout:
                         if not host_country:
                             host_country = d_text[:80]
 
+                    elif 'sport' in h_text or 'discipline' in h_text:
+                        if not sport:
+                            raw_s = d_text.strip()
+                            from tournament.services.tournament_filter import detect_sport_from_title
+                            sport = detect_sport_from_title(raw_s, default_sport=raw_s)
+
                     elif 'date' in h_text or 'period' in h_text or 'dates' in h_text:
                         from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
                         p_start, p_end = LLMWikipediaScout._parse_date_range(d_text, "", page_title=page_title)
@@ -143,16 +150,23 @@ class WikipediaScout:
                         if p_end and not end_date:
                             end_date = p_end
 
-            # Fallback to lead paragraphs if infobox omitted date
+            # Fallback to lead paragraphs if infobox omitted date or sport
+            paragraphs = soup.find_all('p')
+            lead_text = " ".join(p.get_text(separator=' ', strip=True) for p in paragraphs[:3])
+
             if not start_date:
                 from tournament.services.llm_wikipedia_scout import LLMWikipediaScout
-                paragraphs = soup.find_all('p')
-                lead_text = " ".join(p.get_text(separator=' ', strip=True) for p in paragraphs[:3])
                 p_start, p_end = LLMWikipediaScout._parse_date_range(lead_text, "", page_title=page_title)
                 if p_start and not start_date:
                     start_date = p_start
                 if p_end and not end_date:
                     end_date = p_end
+
+            if not sport and lead_text:
+                from tournament.services.tournament_filter import detect_sport_from_title
+                inferred_s = detect_sport_from_title(lead_text, default_sport="")
+                if inferred_s:
+                    sport = inferred_s
 
             wiki_url = (
                 f"https://en.wikipedia.org/wiki/"
@@ -165,6 +179,7 @@ class WikipediaScout:
                 'teams_count':  teams_count,
                 'start_date':   start_date,
                 'end_date':     end_date,
+                'sport':        sport,
                 'scouting_stage': 'SHALLOW',
             }
 

@@ -3290,8 +3290,22 @@ class GeminiScoutRegressionTestCase(TestCase):
     def test_infer_sport_from_title(self):
         """Verifies infer_sport_from_title correctly identifies sport disciplines from keywords."""
         from tournament.services.scout_service import infer_sport_from_title
+        from tournament.services.tournament_filter import detect_sport_from_title
 
+        # Distinct Hockey Disciplines (Field Hockey vs Ice Hockey)
+        self.assertEqual(infer_sport_from_title("Men's EuroHockey Championship 2027"), "Field Hockey")
+        self.assertEqual(infer_sport_from_title("2027 Women's EuroHockey Championship"), "Field Hockey")
+        self.assertEqual(detect_sport_from_title("Men's EuroHockey Championship 2027"), "Field Hockey")
         self.assertEqual(infer_sport_from_title("World Junior Ice Hockey Championships 2028"), "Ice Hockey")
+
+        # Bat, Stick, Net & Court Sports
+        self.assertEqual(infer_sport_from_title("Cricket World Cup 2027"), "Cricket")
+        self.assertEqual(infer_sport_from_title("Netball World Cup 2027"), "Netball")
+        self.assertEqual(infer_sport_from_title("College Football Playoff National Championship 2027"), "American Football")
+        self.assertEqual(infer_sport_from_title("European Box Lacrosse Championships 2026"), "Lacrosse")
+        self.assertEqual(infer_sport_from_title("U-15 Women's Softball European Championship 2026"), "Softball")
+
+        # Standard Team Sports
         self.assertEqual(infer_sport_from_title("European Beach Handball Championships 2027"), "Handball")
         self.assertEqual(infer_sport_from_title("World Men's Curling Championship 2027"), "Curling")
         self.assertEqual(infer_sport_from_title("FIVB Volleyball Men's Club World Championship 2026"), "Volleyball")

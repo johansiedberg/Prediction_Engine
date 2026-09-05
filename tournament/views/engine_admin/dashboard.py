@@ -210,40 +210,41 @@ def engine_admin_dashboard_view(request: HttpRequest) -> HttpResponse:
         'converted': 0,
     }
     ALLSPORTDB_SPORTS_MAP = [
-        ('American Football', '🏈', ['american football', 'flag football', 'nfl', 'ifaf']),
+        ('American Football', '🏈', ['american football', 'flag football', 'college football', 'nfl', 'ifaf', 'cfl']),
         ('Archery', '🎯', ['archery']),
         ('Artistic Gymnastics', '🤸', ['artistic gymnastics']),
         ('Artistic Swimming', '🏊', ['artistic swimming']),
         ('Athletics', '🏃', ['athletics', 'track and field', 'friidrott']),
         ('Badminton', '🏸', ['badminton']),
-        ('Bandy', '🏒', ['bandy']),
-        ('Baseball', '⚾', ['baseball', 'baseball5']),
-        ('Basketball', '🏀', ['basketball', 'basket', 'fiba', 'nba']),
+        ('Bandy', '🏒', ['bandy', 'fib bandy']),
+        ('Baseball', '⚾', ['baseball', 'baseball5', 'wbsc', 'mlb']),
+        ('Basketball', '🏀', ['basketball', 'basket', 'fiba', 'nba', 'euroleague', 'wnba', 'basket-em', 'basket-vm']),
         ('Beach Soccer', '⚽', ['beach soccer']),
         ('Beach Volleyball', '🏐', ['beach volleyball']),
         ('Biathlon', '⛷⚫', ['biathlon']),
         ('Boxing', '🥊', ['boxing']),
         ('Canoeing', '🛶', ['canoeing', 'kayak']),
         ('Chess', '♟', ['chess']),
-        ('Cricket', '🏏', ['cricket']),
+        ('Cricket', '🏏', ['cricket', 'icc', 'ipl', 't20', 'the ashes', 'ashes']),
         ('Cross-Country Skiing', '⛷', ['cross-country skiing', 'längdskidor']),
-        ('Curling', '🥌', ['curling']),
+        ('Curling', '🥌', ['curling', 'world curling', 'curling-vm']),
         ('Cycling', '🚴', ['cycling', 'cykel']),
         ('Diving', '🏊', ['diving']),
-        ('Field Hockey', '🏑', ['field hockey', 'fih hockey']),
+        ('Field Hockey', '🏑', ['field hockey', 'eurohockey', 'landhockey', 'fih hockey', 'fih']),
         ('Figure Skating', '⛸', ['figure skating', 'konståkning']),
-        ('Floorball', '🏑', ['floorball', 'innebandy']),
+        ('Floorball', '🏑', ['floorball', 'innebandy', 'iff', 'wfc']),
         ('Football', '⚽', ['football', 'fotboll', 'soccer', 'fifa', 'uefa', 'copa', 'gold cup', 'nations league', 'afcon', 'asian cup']),
         ('Futsal', '⚽', ['futsal']),
         ('Golf', '⛳', ['golf', 'pga']),
-        ('Handball', '🤾', ['handball', 'handboll', 'ihf', 'ehf']),
-        ('Ice Hockey', '🏒', ['ice hockey', 'ishockey', 'nhl', 'iihf']),
+        ('Handball', '🤾', ['beach handball', 'handball', 'handboll', 'handbolls-vm', 'handbolls-em', 'ihf', 'ehf']),
+        ('Ice Hockey', '🏒', ['ice hockey', 'ishockey', 'hockey-vm', 'hockey-em', 'nhl', 'iihf', 'shl', 'khl', 'chl', 'spengler cup', 'stanley cup']),
         ('Judo', '🥋', ['judo']),
         ('Karate', '🥋', ['karate']),
-        ('Lacrosse', '🥍', ['lacrosse']),
+        ('Lacrosse', '🥍', ['lacrosse', 'box lacrosse', 'world lacrosse']),
         ('Motor Sports', '🏎', ['motor sports', 'formula 1', 'f1', 'motogp']),
+        ('Netball', '🏐', ['netball', 'world netball']),
         ('Rowing', '🚣', ['rowing', 'rodd']),
-        ('Rugby', '🏉', ['rugby']),
+        ('Rugby', '🏉', ['rugby', 'six nations', 'world rugby', 'rugby union', 'rugby league', 'super rugby']),
         ('Sailing', '⛵', ['sailing', 'segling']),
         ('Ski Jumping', '🎿', ['ski jumping', 'backhoppning']),
         ('Snowboarding', '🏂', ['snowboarding']),
@@ -252,19 +253,31 @@ def engine_admin_dashboard_view(request: HttpRequest) -> HttpResponse:
         ('Taekwondo', '🥋', ['taekwondo']),
         ('Tennis', '🎾', ['tennis', 'wimbledon', 'atp', 'wta']),
         ('Triathlon', '🏊🚴🏃', ['triathlon']),
-        ('Volleyball', '🏐', ['volleyball', 'volleyboll', 'fivb', 'avc']),
-        ('Water Polo', '🤽', ['water polo', 'vattenpolo']),
+        ('Volleyball', '🏐', ['volleyball', 'volleyboll', 'fivb', 'cev', 'avc']),
+        ('Water Polo', '🤽', ['water polo', 'waterpolo', 'vattenpolo', 'len water polo', 'fina water polo']),
         ('Weightlifting', '🏋', ['weightlifting', 'tyngdlyftning']),
         ('Wrestling', '🤼', ['wrestling', 'brottning']),
     ]
 
     def infer_sport(title, current_sport=None):
-        text = f"{title or ''} {current_sport or ''}".lower()
+        title_lower = (title or '').lower()
+        # 1. Match title keywords first to catch distinct championships
+        # (e.g. EuroHockey, Cricket World Cup, Netball) even if legacy records were defaulted to Football/Sports.
         for sport_name, emoji, keywords in ALLSPORTDB_SPORTS_MAP:
             for kw in keywords:
-                if kw in text:
+                if kw in title_lower:
                     return sport_name, emoji
-        return (current_sport.title() if current_sport and current_sport.lower() != 'sports' else 'Other'), '🏆'
+
+        # 2. Check current_sport if explicitly assigned and not generic
+        curr_clean = (current_sport or '').strip()
+        if curr_clean and curr_clean.lower() not in ['sports', 'other', 'general', '']:
+            curr_lower = curr_clean.lower()
+            for sport_name, emoji, keywords in ALLSPORTDB_SPORTS_MAP:
+                if sport_name.lower() == curr_lower or any(kw in curr_lower for kw in keywords):
+                    return sport_name, emoji
+            return curr_clean.title(), '🏆'
+
+        return 'Other', '🏆'
 
     sport_counts_raw = {}
     today = timezone.localdate()

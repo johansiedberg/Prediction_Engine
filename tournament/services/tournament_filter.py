@@ -155,32 +155,78 @@ def evaluate_event_grade(event_dict, is_h2h_sport_compatible):
     return 'GRADE_C', "Grad C: Saknar officiell verifierad webbplats eller grundläggande turneringsstruktur."
 
 
+def _matches_any_sport_kw(text: str, keywords: list) -> bool:
+    """Matches keywords against text respecting word boundaries for acronyms and short words."""
+    for kw in keywords:
+        if len(kw) <= 4 or ' ' not in kw:
+            if re.search(r'\b' + re.escape(kw) + r'\b', text, re.IGNORECASE):
+                return True
+        elif kw.lower() in text:
+            return True
+    return False
+
+
 def detect_sport_from_title(title: str, default_sport: str = "Football") -> str:
     """
     Infers the correct sport discipline from the tournament title if default_sport is generic or unknown.
+    Matches specific disciplines (e.g. Field Hockey, American Football, Cricket, Netball)
+    before falling back to generic team sports or default_sport.
     """
     if not title:
         return default_sport
     t_lower = title.lower()
-    if any(k in t_lower for k in ['basketball', 'fiba', 'basket-em', 'basket-vm', 'nba', 'euroleague', 'wnba']):
-        return 'Basketball'
-    if any(k in t_lower for k in ['ice hockey', 'ishockey', 'hockey-vm', 'hockey-em', 'iihf', 'nhl', 'shl', 'khl', 'spengler cup']):
+    
+    # 1. Distinct Hockey Disciplines
+    if _matches_any_sport_kw(t_lower, ['eurohockey', 'field hockey', 'landhockey', 'fih hockey', 'fih']):
+        return 'Field Hockey'
+    if _matches_any_sport_kw(t_lower, ['ice hockey', 'ishockey', 'hockey-vm', 'hockey-em', 'iihf', 'nhl', 'shl', 'khl', 'chl', 'spengler cup', 'stanley cup']):
         return 'Ice Hockey'
-    if any(k in t_lower for k in ['handball', 'handboll', 'handbolls-vm', 'handbolls-em', 'ehf', 'ihf']):
+
+    # 2. American Football (evaluated before generic 'football')
+    if _matches_any_sport_kw(t_lower, ['american football', 'flag football', 'college football', 'nfl', 'ifaf', 'cfl']):
+        return 'American Football'
+
+    # 3. Small-pitch / Alternative Football codes (before generic 'football')
+    if _matches_any_sport_kw(t_lower, ['futsal']):
+        return 'Futsal'
+    if _matches_any_sport_kw(t_lower, ['beach soccer']):
+        return 'Beach Soccer'
+
+    # 4. Court & Ball Sports
+    if _matches_any_sport_kw(t_lower, ['basketball', 'basket', 'fiba', 'basket-em', 'basket-vm', 'nba', 'euroleague', 'wnba']):
+        return 'Basketball'
+    if _matches_any_sport_kw(t_lower, ['beach handball', 'handball', 'handboll', 'handbolls-vm', 'handbolls-em', 'ehf', 'ihf']):
         return 'Handball'
-    if any(k in t_lower for k in ['volleyball', 'volleyboll', 'fivb', 'cev', 'beach volleyball']):
+    if _matches_any_sport_kw(t_lower, ['volleyball', 'volleyboll', 'fivb', 'cev', 'avc', 'beach volleyball']):
         return 'Volleyball'
-    if any(k in t_lower for k in ['floorball', 'innebandy', 'iff']):
+    if _matches_any_sport_kw(t_lower, ['netball', 'world netball']):
+        return 'Netball'
+    if _matches_any_sport_kw(t_lower, ['floorball', 'innebandy', 'iff', 'wfc']):
         return 'Floorball'
-    if any(k in t_lower for k in ['rugby', 'six nations', 'world rugby']):
-        return 'Rugby'
-    if any(k in t_lower for k in ['curling', 'world curling', 'curling-vm']):
-        return 'Curling'
-    if any(k in t_lower for k in ['baseball', 'mlb', 'wbsc']):
+
+    # 5. Bat, Stick & Target Sports
+    if _matches_any_sport_kw(t_lower, ['cricket', 'icc', 'ipl', 't20', 'the ashes']):
+        return 'Cricket'
+    if _matches_any_sport_kw(t_lower, ['baseball', 'baseball5', 'wbsc', 'mlb']):
         return 'Baseball'
-    if any(k in t_lower for k in ['softball']):
+    if _matches_any_sport_kw(t_lower, ['softball']):
         return 'Softball'
-    if any(k in t_lower for k in ['football', 'soccer', 'fotboll', 'uefa', 'fifa', 'concacaf', 'caf', 'afc', 'conmebol', 'copa']):
+    if _matches_any_sport_kw(t_lower, ['lacrosse', 'box lacrosse', 'world lacrosse']):
+        return 'Lacrosse'
+    if _matches_any_sport_kw(t_lower, ['bandy', 'fib bandy']):
+        return 'Bandy'
+
+    # 6. Contact, Water & Ice Sports
+    if _matches_any_sport_kw(t_lower, ['rugby', 'six nations', 'world rugby', 'rugby union', 'rugby league', 'super rugby']):
+        return 'Rugby'
+    if _matches_any_sport_kw(t_lower, ['water polo', 'waterpolo', 'len water polo', 'fina water polo']):
+        return 'Water Polo'
+    if _matches_any_sport_kw(t_lower, ['curling', 'world curling', 'curling-vm']):
+        return 'Curling'
+
+    # 7. Association Football (Soccer)
+    if _matches_any_sport_kw(t_lower, ['football', 'soccer', 'fotboll', 'uefa', 'fifa', 'concacaf', 'caf', 'afc', 'conmebol', 'copa', 'gold cup', 'nations league', 'afcon', 'asian cup']):
         return 'Football'
+
     return default_sport
 

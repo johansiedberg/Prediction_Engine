@@ -26,6 +26,12 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
   - Centralized knockout point calculation in `tournament/services/scoring.py` with canonical helpers `get_knockout_stage_point_value`, `get_third_place_qualifying_point_value`, and `evaluate_knockout_prediction_match`.
   - Fixed hardcoded `tp_pts = 0` in `CacheService` to correctly reward third-place predictions.
   - Aligned `dashboard.py` and `CacheService` for dual-phase prediction scoring (`INITIAL_BRACKET` and `ACTUAL_KNOCKOUT`).
+- **Sport Categorization & Field Hockey / EuroHockey Resolution**:
+  - Expanded `detect_sport_from_title` in `tournament_filter.py` with word-boundary keyword matching across all H2H team sports (`Field Hockey`, `Cricket`, `Netball`, `American Football`, `Water Polo`, `Lacrosse`, `Bandy`).
+  - Unified `infer_sport_from_title` in `scout_service.py` to delegate directly to `detect_sport_from_title`, preventing keyword drift and false Football fallbacks.
+  - Added infobox row and lead paragraph sport extraction to `WikipediaScout.audit_infobox_only()`.
+  - Expanded `ALLSPORTDB_SPORTS_MAP` and updated `infer_sport` in `dashboard.py` to recognize `Field Hockey` (`🏑`), `Netball` (`🏐`), `Cricket` (`🏏`), and `American Football` (`🏈`).
+  - Updated Engine Admin Section 1 and JavaScript sport badge rendering for `Field Hockey` (`🏑 Landhockey`) and other H2H sports.
 - **Deployment & Service Automation**:
   - Enhanced `deploy.sh` to automatically detect and restart active systemd user services (`prediction-player`, `prediction-admin`).
 

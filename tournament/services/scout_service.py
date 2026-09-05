@@ -13,7 +13,7 @@ from tournament.models import (
 )
 from tournament.services.allsportdb_client import AllSportDBClient
 from tournament.services.tournament_filter import (
-    is_h2h_team_sport, is_championship_or_cup_format, evaluate_event_grade
+    is_h2h_team_sport, is_championship_or_cup_format, evaluate_event_grade, detect_sport_from_title
 )
 from tournament.services.wikipedia_scout import WikipediaScout
 from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
@@ -535,30 +535,7 @@ def fetch_and_ingest_allsportdb_tournaments(months_ahead=12, dry_run=False, sync
 
 def infer_sport_from_title(title: str, default: str = "Sports") -> str:
     """Infers the sport discipline from tournament title keywords if infobox is missing sport."""
-    if not title:
-        return default
-    t_lower = title.lower()
-    if any(k in t_lower for k in ["ice hockey", "hockey world cup", "iihf", "chl", "shl"]):
-        return "Ice Hockey"
-    if any(k in t_lower for k in ["floorball", "innebandy", "wfc", "iff"]):
-        return "Floorball"
-    if any(k in t_lower for k in ["beach handball", "handball", "ehf", "ihf"]):
-        return "Handball"
-    if any(k in t_lower for k in ["basketball", "fiba", "euroleague", "nba"]):
-        return "Basketball"
-    if any(k in t_lower for k in ["volleyball", "fivb", "cev"]):
-        return "Volleyball"
-    if any(k in t_lower for k in ["water polo", "waterpolo"]):
-        return "Water Polo"
-    if any(k in t_lower for k in ["baseball", "baseball5", "wbsc"]):
-        return "Baseball"
-    if any(k in t_lower for k in ["curling"]):
-        return "Curling"
-    if any(k in t_lower for k in ["rugby"]):
-        return "Rugby"
-    if any(k in t_lower for k in ["football", "soccer", "fifa", "uefa", "copa", "nations league", "gold cup", "asian cup", "afcon"]):
-        return "Football"
-    return default
+    return detect_sport_from_title(title, default_sport=default)
 
 
 def fetch_and_ingest_wikipedia_year_events(years=None, sync_scout=True):
