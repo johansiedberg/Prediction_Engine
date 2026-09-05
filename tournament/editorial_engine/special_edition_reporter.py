@@ -30,7 +30,9 @@ from tournament.models import (
     Tournament, Match, MatchPrediction, DailyGazette, RoundLeaderboardSnapshot, TournamentSubmission
 )
 from tournament.editorial_engine.journalist import BEHAVIOR_DESCRIPTIONS
-from tournament.editorial_engine.compiler import load_player_personas, find_persona_for_player
+from tournament.editorial_engine.compiler import (
+    load_player_personas, find_persona_for_player, is_toarps_pool, get_player_nick_or_name
+)
 from tournament.editorial_engine.posture_engine import resolve_portrait_url, resolve_posture_path, get_posture_focus_class
 
 MILESTONE_ROUNDS = {
@@ -45,35 +47,6 @@ MILESTONE_ROUNDS = {
     9: {'name': 'Final Spelad', 'code': 'FINAL'},
     10: {'name': 'Slutmagasin & Mästaren Kronad', 'code': 'RECAP'},
 }
-
-
-def is_toarps_pool(tournament: Tournament) -> bool:
-    """Returns True strictly if pool/tournament belongs to Toarps Herrklubb."""
-    if not tournament:
-        return False
-    t_name = getattr(tournament, 'name', '').lower()
-    if "toarp" in t_name:
-        return True
-    if hasattr(tournament, 'leagues') and tournament.leagues.filter(name__icontains='toarp').exists():
-        return True
-    return False
-
-
-def get_player_nick_or_name(player, personas_list=None, is_toarp=False) -> str:
-    """Returns persona nickname strictly for Toarp, else clean display/first name."""
-    if not player:
-        return "Tipparen"
-    p_name = player.get_full_name() if hasattr(player, 'get_full_name') and player.get_full_name() else (
-        f"{player.first_name} {player.last_name}".strip() if getattr(player, 'first_name', '') else getattr(player, 'email', 'Spelare')
-    )
-    first_or_full = p_name.split()[0] if ' ' in p_name else p_name
-    if is_toarp and personas_list:
-        p_match = find_persona_for_player(p_name, personas_list)
-        if p_match:
-            nicks = p_match.get('nicknames', [])
-            if nicks and nicks[0]:
-                return nicks[0]
-    return first_or_full
 
 
 def get_player_behavior_dynamic(player_name: str, role: str = 'LEADER') -> str:
@@ -271,9 +244,17 @@ class SpecialEditionReporter:
         point_system = getattr(tournament, 'point_system', None)
         relevant_matches = get_matches_up_to_round(tournament, round_num)
         
+        # Bulk fetch predictions to eliminate N+1 query loop
+        all_rel_preds = list(
+            MatchPrediction.objects.filter(player__in=players, match__in=relevant_matches).select_related('match')
+        )
+        preds_by_player = {}
+        for pred in all_rel_preds:
+            preds_by_player.setdefault(pred.player_id, []).append(pred)
+
         leaderboard = []
         for p in players:
-            p_preds = MatchPrediction.objects.filter(player=p, match__in=relevant_matches)
+            p_preds = preds_by_player.get(p.id, [])
             pts = 0
             exact_count = 0
             
@@ -749,6 +730,10 @@ class SpecialEditionReporter:
         if round_num == 1 or 'verifierade' in round_name.lower() or 'lock' in round_name.lower():
             return cls.draft_predictions_lock_edition(tournament, round_num, round_name)
 
+        # Check if this is the TOURNAMENT_FINALE / Grand Finale edition
+        if round_num in (10, 999) or any(k in round_name.lower() for k in ['slutmagasin', 'mästaren kronad', 'finale', 'final spelad', 'recap']):
+            return cls.draft_tournament_finale_edition(tournament, round_num, round_name)
+
         is_toarp = is_toarps_pool(tournament)
         personas_list = load_player_personas() if is_toarp else []
         point_system = getattr(tournament, 'point_system', None)
@@ -764,12 +749,20 @@ class SpecialEditionReporter:
         single_round_matches = list(get_matches_for_single_round(tournament, round_num))
         tot_round_matches_cnt = len(single_round_matches)
 
+        user_list = [p_entry['user'] for p_entry in current_lb if p_entry.get('user')]
+        all_single_round_preds = list(
+            MatchPrediction.objects.filter(match__in=single_round_matches, player__in=user_list).select_related('match')
+        ) if single_round_matches and user_list else []
+        preds_by_player_round = {}
+        pred_lookup = {}
+        for pred in all_single_round_preds:
+            preds_by_player_round.setdefault(pred.player_id, []).append(pred)
+            pred_lookup[(pred.player_id, pred.match_id)] = pred
+
         # 3. Calculate points and exact hits scored specifically in THIS round
         for p_entry in current_lb:
             p_user = p_entry['user']
-            p_round_preds = [
-                pred for pred in MatchPrediction.objects.filter(player=p_user, match__in=single_round_matches)
-            ]
+            p_round_preds = preds_by_player_round.get(p_user.id, []) if p_user else []
             round_pts = sum(calc_pred_points(pred, pred.match, point_system) for pred in p_round_preds)
             round_exact = sum(
                 1 for pred in p_round_preds 
@@ -800,11 +793,13 @@ class SpecialEditionReporter:
         buster_actual_res = "1–0"
         buster_zeros_cnt = 0
         if single_round_matches:
+
             match_zero_counts = []
             for m in single_round_matches:
                 m_zeros = 0
                 for p_entry in current_lb:
-                    pred = MatchPrediction.objects.filter(player=p_entry['user'], match=m).first()
+                    u = p_entry.get('user')
+                    pred = pred_lookup.get((u.id, m.id)) if u else None
                     pts = calc_pred_points(pred, m, point_system)
                     if pts == 0:
                         m_zeros += 1
@@ -829,7 +824,7 @@ class SpecialEditionReporter:
 
         # 6. Detailed Match & Point Breakdown for Leader & Runner-Up
         leader_user = leader.get('user')
-        leader_preds = list(MatchPrediction.objects.filter(player=leader_user, match__in=single_round_matches)) if leader_user else []
+        leader_preds = [p for p in all_single_round_preds if p.player_id == leader_user.id] if leader_user else []
         
         leader_exact_matches = [
             f"{p.match.home_team} vs {p.match.away_team} ({p.match.home_goals}–{p.match.away_goals})"
@@ -1082,6 +1077,170 @@ class SpecialEditionReporter:
                 'featured_players_json': featured_players,
                 'image_url': '/static/tournament/img/gazette_default_cover.jpg',
                 'tone_used': 'Magasin & Taktisk Analys',
+            }
+        )
+
+        return gazette
+
+    # =========================================================================
+    # 3. DRAFT TOURNAMENT FINALE EDITION (Grand Finale / Recap Milestone)
+    # =========================================================================
+    @classmethod
+    def draft_tournament_finale_edition(cls, tournament: Tournament, round_num: int = 999, round_name: str = None) -> DailyGazette:
+        """
+        Drafts the TOURNAMENT_FINALE Grand Edition once the final match is concluded:
+        1. Podiets Slutstrid: Rise and fall of the Top 3 & decisive final moment.
+        2. Jumboplatsens Anatomi: Dissection of last place (Träsleven).
+        3. Skuggpriserna: Turknutten, Teoretiske Mästaren, Kaoskungen.
+        4. Almanackans Slutdom: Grand audit of pre-tournament claims.
+        5. Det Sista Slutbetyget: 2–3 sentence epitaph per player (ranked 1 to N).
+        """
+        from tournament.editorial_engine.copywriter import Copywriter
+        from django.utils import timezone
+
+        round_name = round_name or "Slutmagasin & Mästaren Kronad"
+        is_toarp = is_toarps_pool(tournament)
+        personas_list = load_player_personas() if is_toarp else []
+
+        # 1. Final Leaderboard Snapshot
+        current_lb = cls.snapshot_leaderboard(tournament, round_num, round_name, is_toarp=is_toarp, personas_list=personas_list)
+        if not current_lb:
+            current_lb = [{'name': 'Tipparen', 'points': 0, 'exact_count': 0, 'rank': 1}]
+
+        champion = current_lb[0]
+        runner_up = current_lb[1] if len(current_lb) > 1 else champion
+        third_place = current_lb[2] if len(current_lb) > 2 else runner_up
+        wooden_spoon = current_lb[-1]
+
+        gap_to_second = champion['points'] - runner_up['points']
+        gap_to_last = champion['points'] - wooden_spoon['points']
+
+        # 2. Skuggpriserna Calculations
+        turknutten = max(current_lb, key=lambda x: x.get('exact_count', 0))
+        teoretikern = third_place if third_place != champion else runner_up
+        kaoskungen = min(current_lb, key=lambda x: x.get('exact_count', 0))
+
+        # 3. Section 1: Podiets Slutstrid
+        sec1_title = f"Guldets Väg & Podiets Slutstrid: {champion['name']} Mästare!"
+        sec1_body = (
+            f"Mästerskapet är över och röken har lagt sig över arenorna och gruppchatten. "
+            f"Med totalt {champion['points']} poäng och {champion['exact_count']} fullträffar står {champion['name']} "
+            f"som odiskutabel mästare i årets upplaga.\n\n"
+            f"På silverplatsen tvingas {runner_up['name']} bita i det sura äpplet, endast {gap_to_second} poäng bakom "
+            f"efter en heroisk jakt in på mållinjen. Tredjeplatsen och bronspengen bärgas av {third_place['name']} ({third_place['points']}p), "
+            f"som med stoisk disciplin höll undan för det jagande fältet i de avgörande slutspelsmatcherna.\n\n"
+            f"Podiets herrar har bevisat att en kombination av taktisk kylighet, spikade favoriter och "
+            f"is i magen i slutspelet är det enda som bygger odödlighet kring pubbordet."
+        )
+
+        # 4. Section 2: Jumboplatsens Anatomi (Träsleven)
+        sec2_title = f"Träsleven & Skammens Bokslut: {wooden_spoon['name']} Tar Emot Sleven"
+        sec2_body = (
+            f"I tabellens absoluta bottenskikt finns inga silverkanter eller tröstepriser. "
+            f"Årets officiella mottagare av den beryktade Träsleven är {wooden_spoon['name']}, "
+            f"som slutar på plats {wooden_spoon['rank']} med blygsamma {wooden_spoon['points']} poäng — hela {gap_to_last} poäng bakom mästaren.\n\n"
+            f"Säsongen har präglats av envisa felbeslut, spikar som vek ned sig i 90:e minuten och en total avsaknad av "
+            f"tur med marginalerna. Gruppen gratulerar ödmjukt till den odiskutabla jumboplatsen och ser fram emot "
+            f"kommande revanschlöften inför nästa mästerskap."
+        )
+
+        # 5. Section 3: Skuggpriserna
+        sec3_title = "Skuggpriserna: Turneringens Turknuttar och Teoretiker"
+        sec3_body = (
+            f"Utöver de officiella medaljerna delar redaktionen ut turneringens heders- och skuggpriser:\n\n"
+            f"• 🎯 **Årets Turknutte**: {turknutten['name']} ({turknutten['exact_count']} fullpottar). Ingen har haft fler marginaler på sin sida när stolpar och ribbor darrade.\n"
+            f"• 📐 **Teoretiske Mästaren**: {teoretikern['name']} ({teoretikern['points']}p). Den ständige analytikern vars kalkylblad var värda guld, men vars verklighet stannade vid hedersomnämnande.\n"
+            f"• 🌪️ **Kaoskungen**: {kaoskungen['name']} ({kaoskungen['exact_count']} fullpottar). Gick konsekvent mot strömmen, vägrade spika logiska favoriter och skapade maximal oreda i tabellen."
+        )
+
+        # 6. Section 4: Almanackans Slutdom
+        sec4_title = "Almanackans Slutdom: Skampålens Monument"
+        from tournament.models import StaticInsight
+        champ_insight = StaticInsight.objects.filter(tournament=tournament, category='CHAMPION_CONSENSUS').first()
+        pre_claim = f"Inför turneringen förutspådde flocken: '{champ_insight.data_point}'." if champ_insight else "Gruppens förhandstips var fulla av mod och stormaktsromantik."
+        sec4_body = (
+            f"{pre_claim}\n\n"
+            f"När mästerskapet nu summeras kan vi krasst konstatera att förhandstipsen och verkligheten sällan möttes. "
+            f"Många av gängets stensäkra guldfavoriter checkade ut redan innan slutspelets hetta började, "
+            f"och Skampålen står fulltecknad med citat som åldrades som opastöriserad mjölk i julisolen."
+        )
+
+        # 7. Section 5: Det Sista Slutbetyget (Epitaph per player)
+        sec5_title = "Det Sista Slutbetyget: Nekrologer & Slutdiplom"
+        player_epitaphs = []
+        for p_entry in current_lb:
+            rank = p_entry['rank']
+            p_name = p_entry['name']
+            pts = p_entry['points']
+            exact = p_entry['exact_count']
+            if rank == 1:
+                verdict = "En felfri taktisk triumf. Härskade från start till mål med mästarens svala precision."
+            elif rank == 2:
+                verdict = "En heroisk silverstrid där marginalerna snöpligt svek på mållinjen. Hedervärd tvåa."
+            elif rank == 3:
+                verdict = "Stabil och metodisk bronsmedaljör. Gjorde få misstag men saknade den sista guldspiken."
+            elif rank == len(current_lb):
+                verdict = "Träslevens stolta ägare. En säsong att glömma, analysera och gråta ut över i gruppchatten."
+            elif rank <= 5:
+                verdict = "Tuggade på bra i övre halvan utan att någonsin hota ledarduon på allvar."
+            else:
+                verdict = "Blandade och gav i mittfältets gråa zon. Skrällarna lyste med sin frånvaro."
+            player_epitaphs.append(f"**#{rank}. {p_name} ({pts}p, {exact} fullpottar):** {verdict}")
+
+        sec5_body = "\n\n".join(player_epitaphs)
+
+        # Apply copywriter bold name formatting
+        sec1_body = Copywriter.ensure_bold_player_names(sec1_body)
+        sec2_body = Copywriter.ensure_bold_player_names(sec2_body)
+        sec3_body = Copywriter.ensure_bold_player_names(sec3_body)
+        sec4_body = Copywriter.ensure_bold_player_names(sec4_body)
+        sec5_body = Copywriter.ensure_bold_player_names(sec5_body)
+
+        full_content = (
+            f"### {sec1_title}\n\n{sec1_body}\n\n"
+            f"### {sec2_title}\n\n{sec2_body}\n\n"
+            f"### {sec3_title}\n\n{sec3_body}\n\n"
+            f"### {sec4_title}\n\n{sec4_body}\n\n"
+            f"### {sec5_title}\n\n{sec5_body}"
+        )
+
+        featured_players = _build_featured_players_json(current_lb, personas_list) if is_toarp else []
+        structured_data = {
+            "top_contenders": {"title": sec1_title, "content": sec1_body},
+            "standout_results": {"title": sec2_title, "content": sec2_body},
+            "worst_performers": {"title": sec3_title, "content": sec3_body},
+            "outlook": {"title": sec4_title, "content": sec4_body},
+            "player_epitaphs": {"title": sec5_title, "content": sec5_body},
+            "champion": champion['name'],
+            "runner_up": runner_up['name'],
+            "wooden_spoon": wooden_spoon['name'],
+            "final_gap": gap_to_second,
+            "featured_avatars": featured_players,
+        }
+
+        pub_date = timezone.now().date()
+        main_headline = f"GULDETS VÄG: {champion['name'].upper()} KRONAD TILL MÄSTARE!"
+        tagline = f"Slutmagasin • Mästaren {champion['name']} ({champion['points']}p) • Träsleven till {wooden_spoon['name']} • Slutbetyg"
+
+        gazette, _ = DailyGazette.objects.update_or_create(
+            tournament=tournament,
+            round_number=round_num,
+            defaults={
+                'publish_date': pub_date,
+                'is_special_edition': True,
+                'round_name': round_name,
+                'content_format': 'TOURNAMENT_FINALE',
+                'headline': main_headline,
+                'tagline': tagline,
+                'content': full_content,
+                'headline_top_contenders': sec1_body,
+                'headline_standout_results': sec2_body,
+                'headline_worst_performers': sec3_body,
+                'analysis_outlook': sec4_body,
+                'structured_data': structured_data,
+                'featured_players_json': featured_players,
+                'image_url': '/static/tournament/img/gazette_default_cover.jpg',
+                'tone_used': 'Slutmagasin & Nekrologer',
             }
         )
 

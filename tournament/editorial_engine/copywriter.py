@@ -38,11 +38,11 @@ EXPLICIT_TRAIT_LABELS = [
 
 # Contradiction phrases that must NEVER appear when primary player is winning/leading
 LEADER_CONTRADICTIONS = [
-    (re.compile(r"tunga omgång", re.IGNORECASE), "starka omgång"),
+    (re.compile(r"tunga? omgång", re.IGNORECASE), "starka omgång"),
     (re.compile(r"rasade i tabelläget", re.IGNORECASE), "befäste sitt tabelläge"),
-    (re.compile(r"tvingades räkna in en tung förlust", re.IGNORECASE), "fortsatte plocka tunga poäng"),
+    (re.compile(r"tvingades räkna in en tung(?:a)? förlust", re.IGNORECASE), "fortsatte plocka tunga poäng"),
     (re.compile(r"tvingades räkna in ett kännbart bakslag", re.IGNORECASE), "kunde räkna in ytterligare framgångar"),
-    (re.compile(r"tunga motlut", re.IGNORECASE), "stabila spel"),
+    (re.compile(r"tunga? motlut", re.IGNORECASE), "stabila spel"),
     (re.compile(r"kollapsade", re.IGNORECASE), "storspelade"),
     (re.compile(r"bottennapp", re.IGNORECASE), "toppresultat"),
 ]
@@ -69,7 +69,7 @@ class Copywriter:
         (e.g., 'Inför matchstart Krantz drog igång' -> 'Inför matchstart drog Krantz igång').
         """
         v2_pattern = re.compile(
-            r"\b(Inför (?:matchstart|avspark|drabbningen|omgången))\s+([A-ZÅÄÖ][a-zåäö]+)\s+(drog|studerade|vandrade|behöll|justerade|följde|skruvade|granskade|analyserade|lutade|satsade|kämpade|arbetade|förlitade|läste)\b"
+            r"\b(Inför (?:matchstart|avspark|drabbningen|omgången|dagens matcher|kvällens matcher)|Efter (?:slutsignalen|matchen|dramatiken|omgången)|Därefter|Plötsligt|I halvtid|Vid full tid)\s+([A-ZÅÄÖ][a-zåäö]+)\s+(drog|studerade|vandrade|behöll|justerade|följde|skruvade|granskade|analyserade|lutade|satsade|kämpade|arbetade|förlitade|läste|valde|kunde|lyckades|konstaterade|visade|slog|började|manade|summerade)\b"
         )
         return v2_pattern.sub(r"\1 \3 \2", text)
 
@@ -101,31 +101,32 @@ class Copywriter:
         return "\n\n".join(cleaned_paragraphs)
 
     @classmethod
-    def ensure_bold_player_names(cls, text: str) -> str:
+    def ensure_bold_player_names(cls, text: str, cached_names: list = None) -> str:
         """
         Enforces that all Toarp player names and nicknames pop in bold markdown (**Name**)
         while keeping general narrative text normal.
         """
-        from tournament.editorial_engine.compiler import load_player_personas
-        personas = load_player_personas()
-        
-        # Build list of names and nicknames to bold
-        names_to_bold = set()
-        for p in personas:
-            if p.get('full_name'):
-                names_to_bold.add(p['full_name'])
-                first = p['full_name'].split()[0]
-                if len(first) > 2:
-                    names_to_bold.add(first)
-            for n in p.get('nicknames', []):
-                if n and len(n) > 1:
-                    names_to_bold.add(n)
+        if cached_names is None:
+            from tournament.editorial_engine.compiler import load_player_personas
+            personas = load_player_personas()
+            
+            # Build list of names and nicknames to bold
+            names_to_bold = set()
+            for p in personas:
+                if p.get('full_name'):
+                    names_to_bold.add(p['full_name'])
+                    first = p['full_name'].split()[0]
+                    if len(first) > 2:
+                        names_to_bold.add(first)
+                for n in p.get('nicknames', []):
+                    if n and len(n) > 1:
+                        names_to_bold.add(n)
 
-        # Sort longest names first to avoid partial substring matching
-        sorted_names = sorted(list(names_to_bold), key=lambda x: len(x), reverse=True)
+            # Sort longest names first to avoid partial substring matching
+            cached_names = sorted(list(names_to_bold), key=lambda x: len(x), reverse=True)
         
         result = text
-        for name in sorted_names:
+        for name in cached_names:
             # Match word boundary if not already enclosed in **
             pattern = re.compile(rf'(?<!\*)\b({re.escape(name)})\b(?!\*)')
             result = pattern.sub(r'**\1**', result)
@@ -189,12 +190,26 @@ class Copywriter:
             pattern = re.compile(trait_pattern, re.IGNORECASE)
             top_story = pattern.sub("", top_story)
 
-        # 6. Ensure Player Names Pop in Bold (**PlayerName**)
-        top_story = cls.ensure_bold_player_names(top_story)
-        headline = cls.ensure_bold_player_names(headline)
-        tagline = cls.ensure_bold_player_names(tagline)
-        event2_text = cls.ensure_bold_player_names(event2_text)
-        event3_text = cls.ensure_bold_player_names(event3_text)
+        # 6. Ensure Player Names Pop in Bold (**PlayerName**) - with single cached load
+        from tournament.editorial_engine.compiler import load_player_personas
+        personas = load_player_personas()
+        names_to_bold = set()
+        for p in personas:
+            if p.get('full_name'):
+                names_to_bold.add(p['full_name'])
+                first = p['full_name'].split()[0]
+                if len(first) > 2:
+                    names_to_bold.add(first)
+            for n in p.get('nicknames', []):
+                if n and len(n) > 1:
+                    names_to_bold.add(n)
+        cached_sorted_names = sorted(list(names_to_bold), key=lambda x: len(x), reverse=True)
+
+        top_story = cls.ensure_bold_player_names(top_story, cached_names=cached_sorted_names)
+        headline = cls.ensure_bold_player_names(headline, cached_names=cached_sorted_names)
+        tagline = cls.ensure_bold_player_names(tagline, cached_names=cached_sorted_names)
+        event2_text = cls.ensure_bold_player_names(event2_text, cached_names=cached_sorted_names)
+        event3_text = cls.ensure_bold_player_names(event3_text, cached_names=cached_sorted_names)
 
         # 7. Clean punctuation and spacing artifacts
         top_story = re.sub(r' +', ' ', top_story)

@@ -78,7 +78,12 @@ def generate_daily_gazette_edition(tournament: Tournament, publish_date=None, fo
 
     matches_played_cnt = day_matches.count()
     total_goals_cnt = sum([(m.home_goals or 0) + (m.away_goals or 0) for m in day_matches])
-    total_pts = matches_played_cnt * 21 if matches_played_cnt > 0 else 0
+    
+    from tournament.models import MatchPrediction
+    from tournament.services.scoring import calc_pred_points
+    point_system = getattr(tournament, 'point_system', None)
+    day_preds = list(MatchPrediction.objects.filter(match__in=day_matches).select_related('match'))
+    total_pts = sum(calc_pred_points(p, p.match, point_system) for p in day_preds) if day_preds else (matches_played_cnt * 21)
 
     top_match = day_matches.order_by('-home_goals', '-away_goals').first()
     if top_match and top_match.home_team and top_match.away_team:

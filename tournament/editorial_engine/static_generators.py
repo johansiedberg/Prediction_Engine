@@ -15,7 +15,10 @@ from django.db.models import Count
 from tournament.models import (
     Tournament, Match, MatchPrediction, Sidebet, SidebetAnswer, StaticInsight, TournamentSubmission
 )
-from tournament.editorial_engine.compiler import load_player_personas, find_persona_for_player
+from tournament.editorial_engine.compiler import (
+    load_player_personas, find_persona_for_player,
+    is_toarps_pool as is_toarps_herrklubb_tournament, get_player_nick_or_name
+)
 
 
 COUNTRY_FLAG_MAP = {
@@ -72,38 +75,6 @@ def get_country_flag(team_name: str) -> str:
     return COUNTRY_FLAG_MAP.get(team_name.lower().strip(), '')
 
 
-def is_toarps_herrklubb_tournament(tournament: Tournament) -> bool:
-    """Checks if the tournament belongs to or is named Toarps Herrklubb."""
-    if not tournament:
-        return False
-    t_name = getattr(tournament, 'name', '').lower()
-    if "toarp" in t_name:
-        return True
-    if hasattr(tournament, 'leagues') and tournament.leagues.filter(name__icontains='toarp').exists():
-        return True
-    return False
-
-
-def get_player_nick_or_name(player, personas_list=None, is_toarp=False) -> str:
-    """
-    Returns persona nickname ONLY if the pool/tournament is Toarps Herrklubb.
-    For all other generic tournaments and pools, strictly returns the player's real name/first name.
-    """
-    if not player:
-        return "Tipparen"
-    p_name = player.get_full_name() if hasattr(player, 'get_full_name') and player.get_full_name() else (
-        f"{player.first_name} {player.last_name}".strip() if getattr(player, 'first_name', '') else getattr(player, 'email', 'Spelare')
-    )
-    first_or_full = p_name.split()[0] if ' ' in p_name else p_name
-    if is_toarp and personas_list:
-        p_match = find_persona_for_player(p_name, personas_list)
-        if p_match:
-            nicks = p_match.get('nicknames', [])
-            if nicks and nicks[0]:
-                return nicks[0]
-    return first_or_full
-
-
 def generate_static_insights(tournament: Tournament):
     """
     Computes pre-tournament & macro bracket insights across all participants with locked predictions.
@@ -112,6 +83,13 @@ def generate_static_insights(tournament: Tournament):
       Row 2: 4. ⚡ DELUSION_INDEX       | 5. 🐺 LONE_WOLF          | 6. ⚽ GOAL_DELUSION
       Row 3: 7. 🎯 SIGN_DECISIVE        | 8. 👟 GOLDEN_BOOT        | 9. 🔮 BANKER_CONSENSUS
     """
+    from django.db import transaction
+
+    with transaction.atomic():
+        return _generate_static_insights_atomic(tournament)
+
+
+def _generate_static_insights_atomic(tournament: Tournament):
     insights_created = []
     
     # Nicknames & personas are strictly restricted to Toarps Herrklubb

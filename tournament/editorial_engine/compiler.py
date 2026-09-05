@@ -65,6 +65,41 @@ def find_persona_for_player(player_name, personas_list=None):
     return None
 
 
+def is_toarps_pool(tournament: Tournament) -> bool:
+    """Returns True strictly if pool/tournament belongs to Toarps Herrklubb."""
+    if not tournament:
+        return False
+    t_name = getattr(tournament, 'name', '').lower()
+    if "toarp" in t_name:
+        return True
+    if getattr(tournament, 'pk', None) and hasattr(tournament, 'leagues'):
+        try:
+            if tournament.leagues.filter(name__icontains='toarp').exists():
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def get_player_nick_or_name(player, personas_list=None, is_toarp=False) -> str:
+    """Returns persona nickname strictly for Toarp, else clean display/first name."""
+    if not player:
+        return "Tipparen"
+    p_name = player.get_full_name() if hasattr(player, 'get_full_name') and player.get_full_name() else (
+        f"{player.first_name} {player.last_name}".strip() if getattr(player, 'first_name', '') else getattr(player, 'email', 'Spelare')
+    )
+    first_or_full = p_name.split()[0] if ' ' in p_name else p_name
+    if is_toarp:
+        if not personas_list:
+            personas_list = load_player_personas()
+        p_match = find_persona_for_player(p_name, personas_list)
+        if p_match:
+            nicks = p_match.get('nicknames', [])
+            if nicks and nicks[0]:
+                return nicks[0]
+    return first_or_full
+
+
 def compile_daily_assignment(tournament: Tournament):
     """
     Tier 2 Anti-Repetition Compiler.

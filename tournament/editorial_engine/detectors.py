@@ -43,8 +43,18 @@ def detect_daily_events(tournament: Tournament, matchday_number: int = None):
     player_exacts = {p: 0 for p in players}
     player_draw_preds = {p: 0 for p in players}
 
+    # Bulk-fetch all predictions for finished matches to eliminate N+1 queries
+    all_finished_preds = list(
+        MatchPrediction.objects.filter(match__in=finished_matches).select_related('match', 'player')
+    )
+    preds_by_player = {}
+    preds_by_match = {}
+    for pred in all_finished_preds:
+        preds_by_player.setdefault(pred.player_id, []).append(pred)
+        preds_by_match.setdefault(pred.match_id, []).append(pred)
+
     for p in players:
-        p_preds = MatchPrediction.objects.filter(player=p, match__in=finished_matches)
+        p_preds = preds_by_player.get(p.id, [])
         for pred in p_preds:
             m = pred.match
             player_scores[p] += calc_pred_points(pred, m, point_system)
@@ -70,7 +80,7 @@ def detect_daily_events(tournament: Tournament, matchday_number: int = None):
 
     # Match-level Event Scans
     for match in finished_matches:
-        preds = list(MatchPrediction.objects.filter(match=match))
+        preds = preds_by_match.get(match.id, [])
         total_preds = len(preds)
         if total_preds == 0:
             continue

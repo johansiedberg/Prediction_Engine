@@ -14,6 +14,7 @@ File naming convention:
 """
 
 import os
+from functools import lru_cache
 
 # ---------------------------------------------------------------------------
 # Editorial Arcs Definition
@@ -137,6 +138,7 @@ PORTRAIT_STATIC_DIR = os.path.join(
 PORTRAIT_URL_PREFIX = '/static/tournament/images/avatars'
 
 
+@lru_cache(maxsize=128)
 def resolve_portrait_url(full_name: str, avatar_filename: str = None) -> str:
     """
     Resolves the static portrait URL for a Toarps Herrklubb player.
@@ -168,6 +170,7 @@ def resolve_portrait_url(full_name: str, avatar_filename: str = None) -> str:
 
 
 
+@lru_cache(maxsize=256)
 def resolve_posture_path(initials: str, posture_name: str) -> str:
     """
     Resolves the static URL for an expression pose image.

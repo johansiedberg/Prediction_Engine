@@ -10,13 +10,7 @@ Responsible for:
 """
 
 import random
-
-FORMAT_TYPES = [
-    'STANDARD_COLUMN',
-    'WINNERS_LOSERS',
-    'INTERVIEW',
-    'PUB_QUOTES'
-]
+from tournament.editorial_engine.compiler import FORMAT_TYPES
 
 
 class Publisher:

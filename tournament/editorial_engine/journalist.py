@@ -10,7 +10,10 @@ Responsible for:
 4. Generating coherent, non-contradictory 6-paragraph stories with zero duplicate sentences.
 """
 
-from tournament.models import StorylineMemory, DailyGazette
+import logging
+from tournament.models import StorylineMemory, DailyGazette, StyleExample, EditorialSettings, BannedPhrase
+
+logger = logging.getLogger(__name__)
 
 BEHAVIORS_V2 = {
     "Johan Siedberg": {
@@ -212,15 +215,35 @@ class Journalist:
         r_pre_match = cls.get_behavior_v2(rival_persona, "pre_match") if rival_persona else ""
         r_in_action = cls.get_behavior_v2(rival_persona, "in_action") if rival_persona else ""
 
+        detected_polarity = cls.detect_narrative_polarity(p_desc, h_type, p_nick, r_nick)
+
         # Check Gemini LLM Availability for generative story
         from tournament.services.gemini_scout_service import GeminiScoutService
         if GeminiScoutService.is_available():
             try:
+                # 1. Fetch Few-Shot Swedish Tone Examples from DB
+                style_examples = list(StyleExample.objects.filter(is_active=True).values_list('quote', flat=True)[:3])
+                few_shot_block = ""
+                if style_examples:
+                    examples_joined = "\n".join([f'- "{q}"' for q in style_examples])
+                    few_shot_block = f"\nEXEMPEL PÅ ÖNSKAD SVENSK JARGONG OCH TON:\n{examples_joined}\n"
+
+                # 2. Fetch Banned Phrases from DB
+                settings_obj = EditorialSettings.objects.first()
+                banned_list = list(BannedPhrase.objects.values_list('phrase', flat=True))
+                if settings_obj and settings_obj.banned_phrases:
+                    banned_list.extend(settings_obj.banned_phrases)
+                banned_block = ""
+                if banned_list:
+                    banned_joined = ", ".join([f'"{b}"' for b in set(banned_list)])
+                    banned_block = f"\nSTRIKT FÖRBUD – ANVÄND ALDRIG DESSA KLYSCHOR: [{banned_joined}]\n"
+
                 llm_prompt = f"""
 Du är en stjärnkrönikör för 'Dagliga Gazetten' i fotbollsturneringen för ett slutet kompisgäng (Toarps Herrklubb).
 Skriv en underhållande, cynisk och engagerande sportsida på svenska baserad på följande fakta:
 
 Typ av händelse: {h_type}
+Narrativ polaritet: {detected_polarity}
 Layoutformat: {fmt}
 Huvudhändelse: {p_desc}
 Sekundär händelse: {s_desc}
@@ -229,13 +252,14 @@ Tredje händelse: {t_desc}
 Primär spelare: {p_name} (Smeknamn: {p_nick})
 Rival/Motspelare: {r_name} (Smeknamn: {r_nick})
 Historik: {', '.join(ind_notes + riv_notes)}
-
+{few_shot_block}{banned_block}
 STRIKTA REGLER:
 1. Skriv på svenska med torr, skandinavisk sportjournalistisk humor och pub-jargong.
 2. ALLA spelarnamn och smeknamn MÅSTE formateras med fetstil markdown, t.ex. **{p_nick}** eller **{p_name}**.
 3. Om händelsen gäller ENGLAND: Kom ihåg gängets grundlag – ingen i gänget vill se England gå långt. Skadeglädje vid förlust, och hårt hån mot den som tog "smutsiga poäng" genom att tippa på England.
 4. Om händelsen gäller STORMAKT/GAMLA MERITER: Håna slentrianmässigt och "profillöst" tipsande på historiska mästare.
 5. Inga påhittade matchfakta – håll dig strikt till matchresultaten och poängen ovan.
+6. Multi-Event: Väv in sekundärhändelsen och tredje händelsen organiskt i krönikans senare stycken.
 
 Svara med ett giltigt JSON-objekt:
 {{
@@ -248,6 +272,7 @@ Svara med ett giltigt JSON-objekt:
 """
                 llm_result = GeminiScoutService.generate_json(llm_prompt)
                 if llm_result and 'headline' in llm_result and 'top_story' in llm_result:
+                    logger.info("Successfully generated Swedish Daily Gazette story via Gemini Flash LLM: '%s'", llm_result['headline'])
                     return {
                         'headline': llm_result['headline'],
                         'tagline': llm_result.get('tagline', f"Krönika • {p_bold_nick} i fokus • Omgångens analys"),
@@ -256,11 +281,11 @@ Svara med ett giltigt JSON-objekt:
                         'event3_text': llm_result.get('event3_text', t_desc),
                         'primary_nick': p_nick,
                         'rival_nick': r_nick,
-                        'polarity': h_type,
+                        'polarity': detected_polarity,
                         'historical_notes': ind_notes + riv_notes,
                     }
             except Exception as e:
-                pass
+                logger.warning("Gemini LLM story generation failed, falling back to deterministic template: %s", e, exc_info=True)
 
         # ---------------------------------------------------------------------
         # Dynamic Swedish Generative Fallback for All 22 Archetypes
@@ -415,7 +440,7 @@ Svara med ett giltigt JSON-objekt:
             'event3_text': event3_text,
             'primary_nick': p_nick,
             'rival_nick': r_nick,
-            'polarity': h_type,
+            'polarity': detected_polarity,
             'historical_notes': ind_notes + riv_notes,
         }
 
