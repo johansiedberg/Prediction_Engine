@@ -61,6 +61,7 @@ from tournament.views.pool_admin import (
     update_pool_branding_view,
     pool_admin_add_player_view,
     pool_admin_remove_player_view,
+    pool_admin_remove_tournament_player_view,
     update_pool_points_view,
     add_pool_sidebet_view,
     pool_admin_add_self_view,

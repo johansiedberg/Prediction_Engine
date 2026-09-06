@@ -12,10 +12,11 @@ def detect_daily_events(tournament: Tournament, matchday_number: int = None):
     InsightEvent records across 22 analytical and banter archetypes.
     """
     from tournament.services.scoring import calc_pred_points
-    from tournament.editorial_engine.compiler import load_player_personas, find_persona_for_player
+    from tournament.editorial_engine.compiler import load_player_personas, find_persona_for_player, get_sport_terms
     
     events_created = []
     personas_list = load_player_personas()
+    sport_terms = get_sport_terms(tournament)
     
     # Query finished matches
     finished_matches = list(Match.objects.filter(tournament=tournament, is_finished=True).order_by('match_number', 'date_time'))
@@ -141,7 +142,7 @@ def detect_daily_events(tournament: Tournament, matchday_number: int = None):
         # ---------------------------------------------------------------------
         # 2. PROFILLÖST / LEVA PÅ GAMLA MERITER (Historical Heavyweights Skepticism)
         # ---------------------------------------------------------------------
-        heavyweights = ['frankrike', 'brasilien', 'tyskland', 'spanien', 'italien', 'argentina', 'norge', 'danmark']
+        heavyweights = sport_terms.get('heavyweights', ['frankrike', 'brasilien', 'tyskland', 'spanien', 'italien', 'argentina', 'england'])
         is_heavyweight_match = any(any(hw in (t or '').lower() for hw in heavyweights) for t in [match.home_team, match.away_team])
         if is_heavyweight_match and actual_sign == 'X':
             desc = (
@@ -193,11 +194,13 @@ def detect_daily_events(tournament: Tournament, matchday_number: int = None):
             events_created.append(ev)
 
         # ---------------------------------------------------------------------
-        # 5. MÅLBONANZAN (Goal Avalanche, >= 5 total goals or high score)
+        # 5. MÅLBONANZAN (Goal Avalanche, dynamic per sport threshold)
         # ---------------------------------------------------------------------
-        if tot_goals >= 5:
+        goal_fest_th = sport_terms.get('goal_fest_threshold', 5)
+        propaganda_word = sport_terms.get('propaganda_game', 'propagandafotboll')
+        if tot_goals >= goal_fest_th:
             desc = (
-                f"Total målexplosion i {match.home_team} vs {match.away_team}! Lagen bjöd på en sanslös propagandafotboll "
+                f"Total målexplosion i {match.home_team} vs {match.away_team}! Lagen bjöd på en sanslös {propaganda_word} "
                 f"med hela {tot_goals} mål ({h_goals}-{a_goals}) som kastade alla defensiva taktiktavlor i papperskorgen."
             )
             ev, _ = InsightEvent.objects.get_or_create(
@@ -209,9 +212,10 @@ def detect_daily_events(tournament: Tournament, matchday_number: int = None):
             events_created.append(ev)
 
         # ---------------------------------------------------------------------
-        # 6. BETONGFÖRSVARET (0-0 or 1-0 Low Block Grind)
+        # 6. BETONGFÖRSVARET (Low Block Grind, dynamic per sport threshold)
         # ---------------------------------------------------------------------
-        if tot_goals <= 1:
+        low_block_th = sport_terms.get('low_block_threshold', 1)
+        if tot_goals <= low_block_th:
             desc = (
                 f"Betongförsvar och stängda spjäll i {match.home_team} vs {match.away_team} ({h_goals}-{a_goals})! "
                 f"En taktisk lågblocksfajt som krossade alla optimistiska måltips och belönade de cyniska defensivtipparna."

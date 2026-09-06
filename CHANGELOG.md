@@ -13,7 +13,31 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 
 ---
 
-## [v2.7.2] - 2026-09-05 (Current Release)
+## [v2.8.0] - 2026-09-06 (Current Release)
+
+### 🎯 Milestone Highlights
+- **Editorial Engine & Analys & Insikter Enhancements**:
+  - **First Prediction Baseline**: Enforced that AI editorial analysis and insights evaluate exclusively against user initial bracket predictions (`INITIAL_BRACKET`), never actual knockout stages.
+  - **Single Player Profile Editorial**: Updated kupongbikt and editorial reporters to handle leagues with a single participant smoothly without division-by-zero or empty stats.
+  - **Headline & Typography Polish**: Stripped markdown bold tokens from headlines and taglines, normalized title case Swedish text, and streamlined badge headers ("Galna professorn", "Drömfinalen").
+- **Tournament Stage Resolution & Swedish Localization**:
+  - **Dynamic Stage Localization**: Added `STAGE_SWEDISH_MAP` to `Match.stage_name` translating all knockout stages (e.g. `13th–16th place` -> `Placering 13–16`, `Play-off round` -> `Play-off`, `Quarterfinals` -> `Kvartsfinal`).
+  - **Multi-Group Bracket Resolution**: Improved `BracketResolverService` for crossover play-offs and placement tournaments.
+- **Dashboard Match Card UX & Typography Modernization**:
+  - **NÄSTA MATCH**: Match stage rendered centered above matchup in bold white header typography (`fw-bold text-white fs-6`), with a clean row gap to the countdown timer.
+  - **SENASTE RESULTAT & KOMMANDE MATCHER**: Unified header row to `Datum Tid | Stadie` (left-aligned date/time, right-aligned stage) with borderless, clean layout sharing reference typography.
+- **Pool Admin Rules & Point Configuration**:
+  - Added custom point rule configuration and persistence in Pool Admin tournament config view.
+
+### 📋 Commits from DEV (v2.7.2 -> v2.8.0)
+| Commit SHA | Type | Description |
+| :--- | :--- | :--- |
+| `b7fc850` | `feat(editorial)` | Editorial insights baseline, stage localization, and dashboard match card layout |
+
+---
+
+## [v2.7.2] - 2026-09-05
+
 
 ### 🎯 Milestone Highlights
 - **Scraper Ingestion & Fixture Deduplication (Floorball & Multi-Sport)**:

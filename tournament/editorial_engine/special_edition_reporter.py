@@ -31,7 +31,7 @@ from tournament.models import (
 )
 from tournament.editorial_engine.journalist import BEHAVIOR_DESCRIPTIONS
 from tournament.editorial_engine.compiler import (
-    load_player_personas, find_persona_for_player, is_toarps_pool, get_player_nick_or_name
+    load_player_personas, find_persona_for_player, is_toarps_pool, get_player_nick_or_name, get_sport_terms
 )
 from tournament.editorial_engine.posture_engine import resolve_portrait_url, resolve_posture_path, get_posture_focus_class
 
@@ -359,16 +359,37 @@ class SpecialEditionReporter:
         if not players:
             from django.contrib.auth.models import User
             pred_player_ids = MatchPrediction.objects.filter(
-                match__tournament=tournament
+                match__tournament=tournament,
+                prediction_phase='INITIAL_BRACKET'
             ).values_list('player_id', flat=True).distinct()
             players = list(User.objects.filter(id__in=pred_player_ids))
 
         all_matches = list(Match.objects.filter(tournament=tournament).order_by('match_number'))
-        all_preds = list(MatchPrediction.objects.filter(match__tournament=tournament))
+        all_preds = list(MatchPrediction.objects.filter(match__tournament=tournament, prediction_phase='INITIAL_BRACKET'))
 
         player_data = []
         tot_goals_group = 0
         tot_preds_count = 0
+
+        # Pre-calculate league-wide median metrics and match consensus signs
+        all_diffs = []
+        all_totals = []
+        consensus_by_match = {}
+        for pred in all_preds:
+            all_diffs.append(abs(pred.home_goals - pred.away_goals))
+            all_totals.append(pred.home_goals + pred.away_goals)
+
+        median_total_goals = sorted(all_totals)[len(all_totals) // 2] if all_totals else 3.0
+        median_margin = sorted(all_diffs)[len(all_diffs) // 2] if all_diffs else 1.0
+
+        for m in all_matches:
+            m_preds = [p for p in all_preds if p.match_id == m.id]
+            if m_preds:
+                h_cnt = sum(1 for p in m_preds if p.home_goals > p.away_goals)
+                d_cnt = sum(1 for p in m_preds if p.home_goals == p.away_goals)
+                a_cnt = sum(1 for p in m_preds if p.home_goals < p.away_goals)
+                top_cnt = max(h_cnt, d_cnt, a_cnt)
+                consensus_by_match[m.id] = '1' if h_cnt == top_cnt else ('X' if d_cnt == top_cnt else '2')
 
         for p in players:
             p_name = get_player_nick_or_name(p, personas_list, is_toarp=is_toarp)
@@ -392,21 +413,23 @@ class SpecialEditionReporter:
                 wildest_score_str = f"{wildest_pred.home_goals}–{wildest_pred.away_goals}"
                 wildest_match_name = f"{wildest_pred.match.get_home_team_info()['name']} vs {wildest_pred.match.get_away_team_info()['name']}"
 
-                # Standard low-scoring margins (1-0, 2-1, 1-1, 2-0)
+                # Standard statistical margins (tight margins relative to league median)
                 standard_margins = sum(
                     1 for pred in p_preds 
-                    if (pred.home_goals, pred.away_goals) in [(1,0),(0,1),(2,1),(1,2),(1,1),(2,0),(0,2)]
+                    if abs(pred.home_goals - pred.away_goals) <= max(1, median_margin - 1)
                 )
                 
+                # Contrarian picks (going against group majority consensus)
+                contrarian_picks = sum(
+                    1 for pred in p_preds
+                    if (('1' if pred.home_goals > pred.away_goals else ('X' if pred.home_goals == pred.away_goals else '2')) != consensus_by_match.get(pred.match_id))
+                )
+
                 # Expected Value metric: reward standard statistical scorelines
                 ev_score = round(14.0 + (standard_margins / cnt) * 4.5, 1)
 
-                # Chaos Score metric: reward draws + extreme scorelines (diff >= 3 or total >= 5)
-                outliers = sum(
-                    1 for pred in p_preds 
-                    if (pred.home_goals + pred.away_goals >= 5 or abs(pred.home_goals - pred.away_goals) >= 3 or pred.home_goals == pred.away_goals)
-                )
-                chaos_score = min(98, max(45, int((outliers / cnt) * 100 + random.randint(5, 15))))
+                # Chaos Score metric: reward contrarian picks + extreme high-scoring outliers
+                chaos_score = min(98, max(25, int((contrarian_picks / max(1, cnt)) * 100)))
 
                 tot_goals_group += p_goals
                 tot_preds_count += cnt
@@ -425,6 +448,7 @@ class SpecialEditionReporter:
                     'wildest_match': wildest_match_name,
                     'decisive': p_decisive,
                     'standard_margins': standard_margins,
+                    'contrarian_picks': contrarian_picks,
                     'ev_score': ev_score,
                     'chaos_score': chaos_score,
                     'preds': p_preds,
@@ -441,18 +465,93 @@ class SpecialEditionReporter:
         avg_goals_match = round(tot_goals_group / tot_preds_count, 2) if tot_preds_count > 0 else 2.5
 
         # ---------------------------------------------------------------------
+        # 0. ARCHETYPE ASSIGNMENT & ALIGNMENT
+        # ---------------------------------------------------------------------
+        max_home_player = max(player_data, key=lambda x: x.get('home_wins', 0))
+        max_draw_player = max(player_data, key=lambda x: x.get('draws', 0))
+        max_away_player = max(player_data, key=lambda x: x.get('away_wins', 0))
+        max_goal_player = max(player_data, key=lambda x: x.get('avg_goals', 0))
+        min_goal_player = min(player_data, key=lambda x: x.get('avg_goals', 0))
+        max_contra_player = max(player_data, key=lambda x: x.get('contrarian_picks', 0))
+
+        assigned_archetypes = {}
+        used_archetypes = set()
+
+        # Step 1: Pre-assign primary superlative extremes
+        if max_home_player['name'] not in assigned_archetypes:
+            assigned_archetypes[max_home_player['name']] = 'Hemmastarke Favoritspikaren & Skrälljägaren'
+            used_archetypes.add('Hemmastarke Favoritspikaren & Skrälljägaren')
+
+        if min_goal_player['name'] not in assigned_archetypes and 'Kryssmatematikern & Försvarsrealisten' not in used_archetypes:
+            assigned_archetypes[min_goal_player['name']] = 'Kryssmatematikern & Försvarsrealisten'
+            used_archetypes.add('Kryssmatematikern & Försvarsrealisten')
+
+        if max_away_player['name'] not in assigned_archetypes and 'Bortaspikaren & Motströmsseglaren' not in used_archetypes:
+            assigned_archetypes[max_away_player['name']] = 'Bortaspikaren & Motströmsseglaren'
+            used_archetypes.add('Bortaspikaren & Motströmsseglaren')
+
+        if max_goal_player['name'] not in assigned_archetypes and 'Champagnegeneralen & Målfestoptimisten' not in used_archetypes:
+            assigned_archetypes[max_goal_player['name']] = 'Champagnegeneralen & Målfestoptimisten'
+            used_archetypes.add('Champagnegeneralen & Målfestoptimisten')
+
+        if max_draw_player['name'] not in assigned_archetypes and 'Taktiske Schackspelaren' not in used_archetypes and max_draw_player.get('draws', 0) >= 3:
+            assigned_archetypes[max_draw_player['name']] = 'Taktiske Schackspelaren'
+            used_archetypes.add('Taktiske Schackspelaren')
+
+        # Step 2: Assign remaining players dynamically based on individual style & profile
+        for p_info in player_data:
+            name = p_info['name']
+            if name in assigned_archetypes:
+                continue
+            goals = p_info.get('avg_goals', 2.5)
+            h_wins = p_info.get('home_wins', 0)
+            draws = p_info.get('draws', 0)
+            a_wins = p_info.get('away_wins', 0)
+            top_s_cnt = p_info.get('top_score_cnt', 1)
+            contra = p_info.get('contrarian_picks', 0)
+            ev = p_info.get('ev_score', 15.0)
+
+            if top_s_cnt >= 5 and 'Mönsterprickskytten' not in used_archetypes:
+                arch = 'Mönsterprickskytten'
+            elif h_wins >= 28 and 'Stabilitetsarkitekten & Favoritgarderaren' not in used_archetypes:
+                arch = 'Stabilitetsarkitekten & Favoritgarderaren'
+            elif contra >= 12 and 'Djärve Kaospiloten' not in used_archetypes:
+                arch = 'Djärve Kaospiloten'
+            elif goals > median_total_goals and 'Offensivromantikern' not in used_archetypes:
+                arch = 'Offensivromantikern'
+            elif goals <= median_total_goals and 'Kontrollörens Ingenjörskupong' not in used_archetypes:
+                arch = 'Kontrollörens Ingenjörskupong'
+            elif ev >= 16.5 and 'Kylige Värdejägaren' not in used_archetypes:
+                arch = 'Kylige Värdejägaren'
+            elif 'Metodiske Spelstrategen' not in used_archetypes:
+                arch = 'Metodiske Spelstrategen'
+            elif 'Taktikern & Poängsamlaren' not in used_archetypes:
+                arch = 'Taktikern & Poängsamlaren'
+            else:
+                arch = f"Spelstrategen ({name})"
+
+            assigned_archetypes[name] = arch
+            used_archetypes.add(arch)
+
+        # ---------------------------------------------------------------------
         # 1. ORACLE TRIO
         # ---------------------------------------------------------------------
         # Scientist: Highest EV
         scientist_cand = max(player_data, key=lambda x: x['ev_score'])
-        # Expert: Most standard low-margin / defensive realism
-        expert_cand = max(player_data, key=lambda x: (x.get('standard_margins', 0) / max(1, x.get('cnt', 1)), -x.get('avg_goals', 0)))
-        if expert_cand['name'] == scientist_cand['name'] and len(player_data) > 1:
-            expert_cand = sorted(player_data, key=lambda x: -x.get('standard_margins', 0))[1]
-        # WildCard / Chaos: Highest Chaos index
-        wildcard_cand = max(player_data, key=lambda x: x['chaos_score'])
-        if wildcard_cand['name'] in [scientist_cand['name'], expert_cand['name']] and len(player_data) > 2:
-            wildcard_cand = sorted(player_data, key=lambda x: -x['chaos_score'])[2]
+
+        # WildCard / Chaos: Synchronized with the player designated as Djärve Kaospiloten
+        chaos_players = [p for p in player_data if 'Kaospiloten' in assigned_archetypes.get(p['name'], '')]
+        wildcard_cand = chaos_players[0] if chaos_players else max(player_data, key=lambda x: x['chaos_score'])
+
+        # Expert: Defensive / tactical realism from players with avg_goals <= median_total_goals, excluding scientist and wildcard
+        expert_pool = [
+            p for p in player_data 
+            if p['name'] not in [scientist_cand['name'], wildcard_cand['name']]
+            and p['avg_goals'] <= median_total_goals
+        ]
+        if not expert_pool:
+            expert_pool = [p for p in player_data if p['name'] not in [scientist_cand['name'], wildcard_cand['name']]]
+        expert_cand = max(expert_pool, key=lambda x: (x.get('standard_margins', 0) / max(1, x.get('cnt', 1)), -x.get('avg_goals', 0))) if expert_pool else scientist_cand
 
         oracle_body = (
             f"🔬 <strong>Vetenskapsmannen (Sannolikhet & Spelteori):</strong> Modellen korar <strong>{scientist_cand['name']}</strong> till matematisk favorit. "
@@ -460,7 +559,7 @@ class SpecialEditionReporter:
             f"En kylig, optimerad ingenjörskupong som vinner i längden eftersom den vägrar drömma.<br><br>"
             f"☕ <strong>Experten (Taktik & Mästerskapsrealism):</strong> Pundit-priset går till <strong>{expert_cand['name']}</strong>. "
             f"Hans taktiska blick tar hänsyn till mästerskapens defensiva verklighet, strypta tempo och kompakta försvarslinjer. "
-            f"Medan övriga förväntar sig öppen festfotboll har {expert_cand['name']} synat den taktiska logiken. Det blir inte vackert, men det är taktiskt bäst underbyggt.<br><br>"
+            f"Medan övriga förväntar sig öppen anfallsfest har {expert_cand['name']} synat den taktiska logiken. Det blir inte vackert, men det är taktiskt bäst underbyggt.<br><br>"
             f"🌪️ <strong>Kaospiloten (Fjärilseffekten & Total Förödelse):</strong> <strong>{wildcard_cand['name']}</strong> är omgångens ohotade kaospilot med ett kaosindex på {wildcard_cand['chaos_score']}/100. "
             f"Genom att spika djärva skrällar och oortodoxa resultat har han lämnat all logik bakom sig. "
             f"Skulle favoriterna implodera tar {wildcard_cand['name']} ensam full pott medan övriga nollar. Det är en procents chans, men han kommer påminna alla om det i tio år om det inträffar."
@@ -535,23 +634,14 @@ class SpecialEditionReporter:
         character_body = (
             f"Målfördelningen över alla inlämnade tips visar en tydlig ideologisk klyfta i gruppen:<br><br>"
             f"📊 <strong>Snittmålet:</strong> Gruppen förutspår i genomsnitt <strong>{avg_goals_match} mål per match</strong>.<br><br>"
-            f"🛡️ <strong>Betongligan ({pragmatist['name']}):</strong> Har lämnat in gruppens mest målsnåla kupong med ett snitt på låga {pragmatist['avg_goals']:.2f} mål per match och frekventa 1–0/0–0-tips. Bygger helt på att anfallarna har en kollektivt trög helg.<br><br>"
-            f"🍾 <strong>Champagneligan ({optimist['name']}):</strong> Står för den totala motsatsen med ett målsnitt på hela {optimist['avg_goals']:.2f} mål per match. Förutsätter öppna spjäll och bjuder på tips som 3–1 och 2–2. Kuponger som kräver konstant underhållning och havererar i samma stund som en match låser sig taktiskt."
+            f"🛡️ <strong>Betongligan ({pragmatist['name']}):</strong> Har lämnat in gruppens mest målsnåla kupong med ett snitt på låga {pragmatist['avg_goals']:.2f} mål per match och {pragmatist.get('top_score', '1–0')} som favoritvapen ({pragmatist.get('top_score_cnt', 1)} matcher). Bygger helt på att anfallarna har en kollektivt trög helg.<br><br>"
+            f"🍾 <strong>Champagneligan ({optimist['name']}):</strong> Står för den totala motsatsen med ett målsnitt på hela {optimist['avg_goals']:.2f} mål per match. Förutsätter öppna spjäll och bjuder på offensiva explosioner som {optimist.get('wildest_score', '4–3')} i {optimist.get('wildest_match', 'stormatch')}. Kuponger som kräver konstant underhållning och havererar i samma stund som en match låser sig taktiskt."
         )
 
         # ---------------------------------------------------------------------
         # 5. KUPONGBIKT (Spelare för Spelare - Dynamic & Non-repetitive)
         # ---------------------------------------------------------------------
         dossiers = []
-        
-        # Determine group extremes for contextual contrast
-        max_home_player = max(player_data, key=lambda x: x.get('home_wins', 0))
-        max_draw_player = max(player_data, key=lambda x: x.get('draws', 0))
-        max_away_player = max(player_data, key=lambda x: x.get('away_wins', 0))
-        max_goal_player = max(player_data, key=lambda x: x.get('avg_goals', 0))
-        min_goal_player = min(player_data, key=lambda x: x.get('avg_goals', 0))
-
-        used_archetypes = set()
 
         for idx, p_info in enumerate(player_data):
             name = p_info['name']
@@ -564,57 +654,83 @@ class SpecialEditionReporter:
             wild_s = p_info.get('wildest_score', '3–1')
             wild_m = p_info.get('wildest_match', 'stormatch')
             chaos = p_info.get('chaos_score', 50)
+            contra = p_info.get('contrarian_picks', 0)
             ev = p_info.get('ev_score', 15.0)
 
-            # Assign dynamic archetype based on distinct standout feature
-            if p_info == max_goal_player and 'Champagnegeneralen' not in used_archetypes:
-                archetype = "Champagnegeneralen & Målfestoptimisten"
-                used_archetypes.add('Champagnegeneralen')
+            archetype = assigned_archetypes.get(name, "Metodiske Spelstrategen")
+
+            if "Champagnegeneralen" in archetype:
                 commentary = (
                     f"Toppar ligans måltabell med gruppens högsta förväntade målsnitt ({goals:.2f} mål/match) och {top_s} som signaturresultat ({top_s_cnt} ggr). "
                     f"Vägrar tro på målsnåla dödlägen och laddar på med offensiva explosioner som {wild_s} i {wild_m}. "
                     f"Går all-in på att mästerskapet bjuder på anfallsshow och kan få en flygande start om favoriterna öser på framåt."
                 )
-            elif p_info == min_goal_player and 'Försvarsrealisten' not in used_archetypes:
-                archetype = "Kryssmatematikern & Försvarsrealisten"
-                used_archetypes.add('Försvarsrealisten')
+            elif "Försvarsrealisten" in archetype:
                 commentary = (
                     f"Står för gruppens mest disciplinerade försvarsbygge med ligans lägsta målsnitt ({goals:.2f} mål/match) och hela {draws} krysstips i raden. "
                     f"Förlitar sig på att mästerskapets inledande omgångar präglas av stängda ytor och lågt risktagande, med {top_s} som favoritvapen ({top_s_cnt} matcher). "
                     f"En strategisk ingenjörskupong som kopplar greppet så fort stormatcherna fastnar i mittfältslåsningar."
                 )
-            elif p_info == max_home_player and 'Favoritspikaren' not in used_archetypes:
-                archetype = "Hemmastarke Favoritspikaren & Skrälljägaren"
-                used_archetypes.add('Favoritspikaren')
+            elif "Favoritspikaren" in archetype:
                 commentary = (
                     f"Litar stenhårt på hemmaplanens magi med ligans högsta andel hemmasegrar ({h_wins} st) och ratar krysset konsekvent (endast {draws} oavgjorda). "
                     f"Favoritresultatet är {top_s} ({top_s_cnt} matcher), kombinerat med utvalda vassa bortaskrällar för att skapa tidig hävstång. "
                     f"En attackinriktad rad byggd för att vinna stort på favoriternas stabilitet utan att slösa poäng på onödiga garderingar."
                 )
-            elif p_info == max_away_player and 'Bortaspikaren' not in used_archetypes:
-                archetype = "Bortaspikaren & Motströmsseglaren"
-                used_archetypes.add('Bortaspikaren')
+            elif "Bortaspikaren" in archetype:
                 commentary = (
                     f"Går rakt emot hemmatrenden och leder ligan med hela {a_wins} bortatecken och {top_s} som återkommande chockresultat ({top_s_cnt} ggr). "
                     f"Söker aktivt efter omgångens mest lukrativa bortaskrällar för att rycka ifrån flocken tidigt. "
                     f"En modig rad med hög fallhöjd som kan vända upp och ner på tabellen om underhundarna kliver fram på motståndarnas planhalva."
                 )
-            elif draws >= 8:
-                archetype = "Taktiske Schackspelaren"
+            elif "Schackspelaren" in archetype:
                 commentary = (
                     f"Bygger sin strategi kring {draws} noggrant utplacerade krysstecken och ett välbalanserat snitt på {goals:.2f} mål per match. "
-                    f"Har identifierat matcherna där båda lagen är nöjda med delad pott och vägrar gå i favoritfällorna. "
-                    f"Skulle premiären bjuda på delade poäng sitter {name} i perfekt förarsäte gentemot resten av fältet."
+                    f"Har identifierat matcherna där lagen förväntas neutralisera varandra och ratar enkla publikfavoriter. "
+                    f"Skulle matchbilden låsa sig sitter {name} i absolut guldsits gentemot resten av ligan."
                 )
-            elif chaos >= 70:
-                archetype = "Djärve Kaospiloten"
+            elif "Mönsterprickskytten" in archetype:
                 commentary = (
-                    f"Har lämnat den statistiska mittfåran bakom sig med {a_wins} bortasegrar och en rad spektakulära extremresultat ({wild_s}). "
+                    f"Sätter sin fulla tillit till ett strikt statistiskt favoritmönster och spikar sitt favoritresultat {top_s} i hela {top_s_cnt} matcher. "
+                    f"Balanserar raden med {h_wins} hemmasegrar och kalkylerade marginaler. "
+                    f"Om omgångens matcher faller in i de förväntade spåren kommer denna precisionsrad att skörda maximal utdelning."
+                )
+            elif "Stabilitetsarkitekten" in archetype:
+                commentary = (
+                    f"En grundmurad stabilitetskupong som bygger på {h_wins} solida hemmasegrar och endast {draws} oavgjorda chansningar. "
+                    f"Väljer att säkra baspoängen med beprövade {top_s} ({top_s_cnt} ggr) snarare än att jaga vilda marginaler. "
+                    f"En trygg och svårforcerad rad konstruerad för att hålla sig i tabelltoppen under mästerskapets alla faser."
+                )
+            elif "Kaospiloten" in archetype:
+                commentary = (
+                    f"Har brutit sig loss från flocken med {contra} contrarian-tecken och en orädd jakt på extrema marginaler ({wild_s} i {wild_m}). "
                     f"Satsar helhjärtat på att mästerskapet bjuder på ologiska skrällar och defensiva kollapser. "
-                    f"En kupong med maximal hävstång där varje fullträff kommer att svida ordentligt för konkurrenterna."
+                    f"En högriskkupong med explosiv hävstång där varje fullträff kommer att svida ordentligt för konkurrenterna."
+                )
+            elif "Offensivromantikern" in archetype:
+                commentary = (
+                    f"Drivs av en kompromisslös tro på målglädje och kliver in med ett offensivt snitt på {goals:.2f} mål per match ({top_s} som favoritresultat). "
+                    f"Väljer genomgående anfall framför defensiv säkerhet och vägrar låsa in sig i tråkiga försvarsstrider. "
+                    f"Ger maximal poängutdelning i matcher som spårar ur i böljande propagandaspel."
+                )
+            elif "Kontrollörens" in archetype:
+                commentary = (
+                    f"En sval och metodisk kalkylator som klockar in på ett behärskat snitt om {goals:.2f} mål per match med {h_wins} hemmasegrar och {draws} kryss. "
+                    f"Föredrar kontrollerade målmarginaler ({top_s} i {top_s_cnt} drabbningar) framför vilda målkalas. "
+                    f"En rad designad för att plocka jämna, pålitliga poäng oavsett matchernas dramatik."
+                )
+            elif "Värdejägaren" in archetype:
+                commentary = (
+                    f"Identifierar omgångens mest undervärderade tecken och bygger sin rad kring {contra} taktiska avvikelser mot gruppens konsensus. "
+                    f"Prioriterar poänghävstång ({top_s} i {top_s_cnt} matcher) framför att springa med strömmen. "
+                    f"En rad skräddarsydd för att klättra snabbt när favoriterna vacklar."
+                )
+            elif "Poängsamlaren" in archetype:
+                commentary = (
+                    f"Står för en spännande mix med {h_wins} hemmasegrar, {draws} kryss och ett målsnitt på {goals:.2f} mål per match. "
+                    f"Satsar på {top_s} som spetsvapen och har raden riggad för att utmana i toppen så fort premiäromgången sätter sig."
                 )
             else:
-                archetype = "Metodiske Spelstrategen"
                 commentary = (
                     f"Levererar en ytterst stabil kupong baserad på sunda marginaler ({top_s} i {top_s_cnt} matcher) och kontrollerat målsnitt ({goals:.2f} mål/match). "
                     f"Undviker onödiga chansningar och maximerar sitt förväntade poängvärde över tid genom att hålla sig till sannolika utfall. "
@@ -626,6 +742,9 @@ class SpecialEditionReporter:
             )
 
         dossiers_body = "Kortfattad genomgång av varje deltagares inlämnade rad inför premiären:<br><br>" + "<br><br>".join(dossiers)
+
+        sport_terms = get_sport_terms(tournament)
+        sport_icon = sport_terms.get('icon', '⚽')
 
         # Build Structured Data
         structured_data = {
@@ -658,7 +777,7 @@ class SpecialEditionReporter:
                     'body': lone_wolves_body,
                 },
                 {
-                    'badge_text': '⚽ KUPONGERNAS KARAKTÄR: Betongförsvar mot Romantisk Champagne',
+                    'badge_text': f"{sport_icon} KUPONGERNAS KARAKTÄR: Betongförsvar mot Romantisk Champagne",
                     'badge_bg': '#10B981',
                     'badge_color': '#ffffff',
                     'card_bg': 'rgba(16, 185, 129, 0.12)',
@@ -682,7 +801,7 @@ class SpecialEditionReporter:
             f"### 🔮 Orakeltipset: Tre Profeter Synar Kupongerna\n\n{oracle_body}\n\n"
             f"### 👥 Konsensusfällan: Gruppens Kollektiva Masspsykos\n\n{consensus_body}\n\n"
             f"### 🐺 Ensamvargarna: De Isolerade Hävstångsdragen\n\n{lone_wolves_body}\n\n"
-            f"### ⚽ Kupongernas Karaktär: Betongförsvar mot Romantisk Champagne\n\n{character_body}\n\n"
+            f"### {sport_icon} Kupongernas Karaktär: Betongförsvar mot Romantisk Champagne\n\n{character_body}\n\n"
             f"### 📋 Omgångens Kupongbikt\n\n{dossiers_body}"
         )
 

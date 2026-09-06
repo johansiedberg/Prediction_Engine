@@ -21,7 +21,7 @@ def get_player_progress_matrix(league, tournament):
         submission = TournamentSubmission.objects.filter(tournament=tournament, player=player).first()
         
         group_preds = MatchPrediction.objects.filter(match__in=all_group_matches, player=player).count()
-        knockout_preds = MatchPrediction.objects.filter(match__in=all_knockout_matches, player=player).count()
+        knockout_preds = MatchPrediction.objects.filter(match__in=all_knockout_matches, player=player, prediction_phase='INITIAL_BRACKET').count()
         sidebet_answers = SidebetAnswer.objects.filter(sidebet__in=all_sidebets, player=player).count()
         
         has_any_pred = (group_preds + knockout_preds + sidebet_answers) > 0

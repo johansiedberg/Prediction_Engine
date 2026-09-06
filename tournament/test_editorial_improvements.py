@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from tournament.models import Tournament, Match, MatchPrediction, DailyGazette, StaticInsight, StyleExample, EditorialSettings, BannedPhrase
 from tournament.editorial_engine.copywriter import Copywriter
 from tournament.editorial_engine.journalist import Journalist
-from tournament.editorial_engine.compiler import is_toarps_pool, get_player_nick_or_name, FORMAT_TYPES
+from tournament.editorial_engine.compiler import is_toarps_pool, get_player_nick_or_name, get_sport_terms, FORMAT_TYPES
 from tournament.editorial_engine.posture_engine import resolve_portrait_url, resolve_posture_path
 from tournament.editorial_engine.special_edition_reporter import SpecialEditionReporter
 
@@ -117,6 +117,29 @@ class EditorialEngineImprovementsTest(TestCase):
 
         nick_comm = get_player_nick_or_name(u, is_toarp=False)
         self.assertEqual(nick_comm, "Johan")
+
+    def test_sport_specific_terminology_and_thresholds(self):
+        """Verify get_sport_terms returns sport-tailored wording, icons, and scoring thresholds."""
+        t_floorball = Tournament(name="VM i Innebandy 2026", sport="Floorball")
+        terms_fb = get_sport_terms(t_floorball)
+        self.assertEqual(terms_fb['sport_name'], 'innebandy')
+        self.assertEqual(terms_fb['sport_tournament'], 'innebandyturneringen')
+        self.assertEqual(terms_fb['icon'], '🏑')
+        self.assertEqual(terms_fb['goal_fest_threshold'], 12)
+        self.assertEqual(terms_fb['low_block_threshold'], 4)
+        self.assertIn('sverige', terms_fb['heavyweights'])
+
+        t_handball = Tournament(name="Handbolls-EM 2026", sport="Handball")
+        terms_hb = get_sport_terms(t_handball)
+        self.assertEqual(terms_hb['sport_name'], 'handboll')
+        self.assertEqual(terms_hb['icon'], '🤾')
+        self.assertEqual(terms_hb['goal_fest_threshold'], 60)
+
+        t_football = Tournament(name="Fotbolls-VM 2026", sport="Football")
+        terms_ft = get_sport_terms(t_football)
+        self.assertEqual(terms_ft['sport_name'], 'fotboll')
+        self.assertEqual(terms_ft['icon'], '⚽')
+        self.assertEqual(terms_ft['goal_fest_threshold'], 5)
 
     def test_tournament_finale_generation(self):
         """Verify draft_tournament_finale_edition creates the complete 5-section Grand Finale."""

@@ -7,7 +7,7 @@ class BracketResolverService:
         if not team_str:
             return {'name': '-', 'code': '', 'flag_url': '', 'display_name': '-'}
         
-        team_str_clean = team_str.strip()
+        team_str_clean = re.sub(r'\s*\((?:TBD|tbd)\)', '', team_str).strip()
 
         # Check in-memory match cache when user_predictions is None
         if user_predictions is None:
@@ -16,13 +16,49 @@ class BracketResolverService:
             if team_str_clean in match._resolved_team_cache:
                 return match._resolved_team_cache[team_str_clean]
         
-        # 1. Match Winner/Loser knockout dependencies (e.g. "Winner Match 37", "Loser Match 49")
+        # 1. Match Winner/Loser knockout dependencies (e.g. "Winner Match 37", "Loser Match 49", "WPO2", "WQF1", "WSF1", "LSF2")
         m_kw = re.match(r'^(Winner|Loser|Vinnare|Förlorare)\s+(?:Match\s+)?(\d+)$', team_str_clean, re.IGNORECASE)
+        m_stage_kw = re.match(r'^(W|L)(PO|QF|SF|R16|R32|EF|VF|MF|13[–-]16)\s*(\d+)$', team_str_clean, re.IGNORECASE)
+        ref_match = None
+        role = None
+
         if m_kw:
             role, match_num = m_kw.group(1).lower(), int(m_kw.group(2))
             matches_map = getattr(match.tournament, '_matches_by_number_dict', None)
             ref_match = matches_map.get(match_num) if matches_map is not None else match.tournament.matches.filter(match_number=match_num).first()
-            if ref_match:
+        elif m_stage_kw:
+            role = 'winner' if m_stage_kw.group(1).upper() == 'W' else 'loser'
+            code = m_stage_kw.group(2).lower()
+            stage_match_idx = int(m_stage_kw.group(3))
+            
+            stages = list(match.tournament.knockout_stages.all().order_by('order', 'id'))
+            target_stage = None
+            for s in stages:
+                low = s.name.lower()
+                if code == 'po' and ('play-off' in low or 'playoff' in low or 'sextondel' in low):
+                    target_stage = s
+                    break
+                elif code in ('qf', 'vf') and ('quarter' in low or 'kvarts' in low or 'qf' in low):
+                    target_stage = s
+                    break
+                elif code in ('sf', 'mf') and ('semi' in low or 'sf' in low):
+                    target_stage = s
+                    break
+                elif code in ('r16', 'ef') and ('16' in low or 'åttondel' in low):
+                    target_stage = s
+                    break
+                elif code == 'r32' and ('32' in low or 'sextondel' in low):
+                    target_stage = s
+                    break
+                elif '13' in code and '13' in low:
+                    target_stage = s
+                    break
+            if target_stage:
+                stage_matches = list(match.tournament.matches.filter(stage=target_stage).order_by('match_number'))
+                if 1 <= stage_match_idx <= len(stage_matches):
+                    ref_match = stage_matches[stage_match_idx - 1]
+
+        if ref_match:
                 ref_match.tournament = match.tournament
                 winner_info = None
                 loser_info = None
@@ -263,15 +299,51 @@ class BracketResolverService:
         if not team_str:
             return {'name': '-', 'code': '', 'flag_url': '', 'display_name': '-'}
 
-        team_str_clean = team_str.strip()
+        team_str_clean = re.sub(r'\s*\((?:TBD|tbd)\)', '', team_str).strip()
 
-        # 1. Match Winner/Loser knockout dependencies (e.g. "Winner Match 37", "Loser Match 49")
+        # 1. Match Winner/Loser knockout dependencies (e.g. "Winner Match 37", "Loser Match 49", "WPO2", "WQF1", "WSF1", "LSF2")
         m_kw = re.match(r'^(Winner|Loser|Vinnare|Förlorare)\s+(?:Match\s+)?(\d+)$', team_str_clean, re.IGNORECASE)
+        m_stage_kw = re.match(r'^(W|L)(PO|QF|SF|R16|R32|EF|VF|MF|13[–-]16)\s*(\d+)$', team_str_clean, re.IGNORECASE)
+        ref_match = None
+        role = None
+
         if m_kw:
             role, match_num = m_kw.group(1).lower(), int(m_kw.group(2))
             matches_map = getattr(match.tournament, '_matches_by_number_dict', None)
             ref_match = matches_map.get(match_num) if matches_map is not None else match.tournament.matches.filter(match_number=match_num).first()
-            if ref_match:
+        elif m_stage_kw:
+            role = 'winner' if m_stage_kw.group(1).upper() == 'W' else 'loser'
+            code = m_stage_kw.group(2).lower()
+            stage_match_idx = int(m_stage_kw.group(3))
+            
+            stages = list(match.tournament.knockout_stages.all().order_by('order', 'id'))
+            target_stage = None
+            for s in stages:
+                low = s.name.lower()
+                if code == 'po' and ('play-off' in low or 'playoff' in low or 'sextondel' in low):
+                    target_stage = s
+                    break
+                elif code in ('qf', 'vf') and ('quarter' in low or 'kvarts' in low or 'qf' in low):
+                    target_stage = s
+                    break
+                elif code in ('sf', 'mf') and ('semi' in low or 'sf' in low):
+                    target_stage = s
+                    break
+                elif code in ('r16', 'ef') and ('16' in low or 'åttondel' in low):
+                    target_stage = s
+                    break
+                elif code == 'r32' and ('32' in low or 'sextondel' in low):
+                    target_stage = s
+                    break
+                elif '13' in code and '13' in low:
+                    target_stage = s
+                    break
+            if target_stage:
+                stage_matches = list(match.tournament.matches.filter(stage=target_stage).order_by('match_number'))
+                if 1 <= stage_match_idx <= len(stage_matches):
+                    ref_match = stage_matches[stage_match_idx - 1]
+
+        if ref_match:
                 ref_match.tournament = match.tournament
                 winner_info = None
                 loser_info = None

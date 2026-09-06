@@ -700,6 +700,49 @@ class Match(models.Model):
         from tournament.services.bracket_resolver import BracketResolverService
         return BracketResolverService.resolve_team(self, team_str, user_predictions)
 
+    STAGE_SWEDISH_MAP = {
+        '13th–16th place': 'Placering 13–16',
+        '13th-16th place': 'Placering 13–16',
+        '9th–12th place': 'Placering 9–12',
+        '9th-12th place': 'Placering 9–12',
+        '5th–8th place': 'Placering 5–8',
+        '5th-8th place': 'Placering 5–8',
+        'Play-off round': 'Play-off',
+        'Play-off': 'Play-off',
+        'Quarterfinals': 'Kvartsfinal',
+        'Quarter-finals': 'Kvartsfinal',
+        'Semifinals': 'Semifinal',
+        'Semi-finals': 'Semifinal',
+        '3rd place': 'Bronsmatch',
+        'Bronze Match': 'Bronsmatch',
+        'Bronze match': 'Bronsmatch',
+        'Final': 'Final',
+        'Group A': 'Grupp A',
+        'Group B': 'Grupp B',
+        'Group C': 'Grupp C',
+        'Group D': 'Grupp D',
+        'Group E': 'Grupp E',
+        'Group F': 'Grupp F',
+        'Group G': 'Grupp G',
+        'Group H': 'Grupp H',
+        'Group I': 'Grupp I',
+        'Group J': 'Grupp J',
+        'Group K': 'Grupp K',
+        'Group L': 'Grupp L',
+    }
+
+    @property
+    def stage_name(self):
+        raw_name = ""
+        if self.stage and self.stage.name:
+            raw_name = self.stage.name
+        elif self.group and self.group.name:
+            raw_name = self.group.name
+        if not raw_name:
+            return ""
+        return self.STAGE_SWEDISH_MAP.get(raw_name.strip(), raw_name)
+
+
 
 class MatchPrediction(models.Model):
     match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name='predictions')

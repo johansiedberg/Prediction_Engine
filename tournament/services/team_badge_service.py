@@ -56,8 +56,8 @@ class TeamBadgeService:
         # Bracket / Slot notation: A1, 1A, B2, 2B, 3C/E/F, 1st, 2nd, 3rd, etc.
         if re.match(r'^(?:[a-z]\d+|\d+[a-z](?:/[a-z]+)*|\d+(?:st|nd|rd|th))\b', s):
             return True
-        # Match winners / losers / tokens: W73, L74, M1, QF_1, SF_2, R16_3, etc.
-        if re.match(r'^(?:[wml]\d+|qf_\d+|sf_\d+|r16_\d+|r32_\d+|m_\d+)\b', s):
+        # Match winners / losers / tokens: W73, L74, M1, WPO1, WQF2, WSF1, LSF1, QF_1, SF_2, R16_3, etc.
+        if re.match(r'^(?:[wml]\d+|[wl]?(?:po|qf|sf|r16|r32)\d+|qf_\d+|sf_\d+|r16_\d+|r32_\d+|m_\d+)\b', s):
             return True
         # Common text placeholders
         if re.match(r'^(?:group|grupp|lag|team|seed|pot|winner|runner-up|vinnare|förlorare|loser|qf|sf|r16|r32|play-?off|path)\s*[\w\d_#\s\-/]*$', s):

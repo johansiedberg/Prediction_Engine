@@ -2767,6 +2767,54 @@ class PoolAdminTournamentConfigTestCase(TestCase):
         self.assertTrue(data2['success'])
         self.assertFalse(data2['is_verified'])
 
+    def test_remove_tournament_player(self):
+        client = Client()
+        client.force_login(self.admin)
+
+        # 1. Ensure player1 is enrolled
+        self.tournament.players.add(self.player1)
+        self.assertTrue(self.tournament.players.filter(id=self.player1.id).exists())
+
+        # Create/ensure a submission for player1
+        sub, _ = TournamentSubmission.objects.get_or_create(tournament=self.tournament, player=self.player1, defaults={'is_saved': True})
+        sub.is_saved = True
+        sub.save()
+
+        # 2. Pool-admin tries to remove self -> should be blocked
+        self.tournament.players.add(self.admin)
+        resp_self = client.post(
+            f'/pool-admin/{self.league.id}/tournament/{self.tournament.id}/remove-player/{self.admin.id}/',
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp_self.status_code, 200)
+        self.assertTrue(self.tournament.players.filter(id=self.admin.id).exists())
+
+        # 3. Remove player1 with purge_predictions=1
+        resp = client.post(
+            f'/pool-admin/{self.league.id}/tournament/{self.tournament.id}/remove-player/{self.player1.id}/',
+            {'purge_predictions': '1'},
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(self.tournament.players.filter(id=self.player1.id).exists())
+        self.assertFalse(TournamentSubmission.objects.filter(tournament=self.tournament, player=self.player1).exists())
+        # Still in pool/league
+        self.assertTrue(LeagueMember.objects.filter(league=self.league, player=self.player1).exists())
+
+        # 4. Re-add and remove with remove_from_pool=1
+        self.tournament.players.add(self.player1)
+        resp_pool = client.post(
+            f'/pool-admin/{self.league.id}/tournament/{self.tournament.id}/remove-player/{self.player1.id}/',
+            {'remove_from_pool': '1'},
+            HTTP_HOST='localhost:2028',
+            follow=True
+        )
+        self.assertEqual(resp_pool.status_code, 200)
+        self.assertFalse(self.tournament.players.filter(id=self.player1.id).exists())
+        self.assertFalse(LeagueMember.objects.filter(league=self.league, player=self.player1).exists())
+
 
 class MagicLinkAuthTestCase(TestCase):
     """Verifies magic link passwordless login, forced password setup, and Pool Admin magic link workflows."""

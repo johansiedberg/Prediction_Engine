@@ -708,7 +708,8 @@ def dashboard_view(request):
             break
 
     # Overall Tournament Insights Calculation (Comparing total, individual, avg & historical data)
-    all_predictions = all_preds_qs
+    # Strictly calculated on initial pre-tournament coupon, never on actual knockout re-predictions
+    all_predictions = [p for p in all_preds_qs if p.prediction_phase == 'INITIAL_BRACKET']
     total_preds_count = len(all_predictions)
 
     if total_preds_count > 0:
@@ -740,7 +741,7 @@ def dashboard_view(request):
 
     player_goal_stats = []
     for p in players:
-        p_preds_list = all_predictions_by_player.get(p.id, [])
+        p_preds_list = [pred for pred in all_predictions_by_player.get(p.id, []) if pred.prediction_phase == 'INITIAL_BRACKET']
         if p_preds_list:
             p_tot_g = sum(pred.home_goals + pred.away_goals for pred in p_preds_list)
             p_avg_g = round(p_tot_g / len(p_preds_list), 2)
@@ -754,7 +755,7 @@ def dashboard_view(request):
 
     match_avg_goals = []
     for m in all_matches:
-        m_preds = all_predictions_by_match.get(m.id, [])
+        m_preds = [pred for pred in all_predictions_by_match.get(m.id, []) if pred.prediction_phase == 'INITIAL_BRACKET']
         if m_preds:
             m_tot_g = sum(pred.home_goals + pred.away_goals for pred in m_preds)
             m_avg_g = round(m_tot_g / len(m_preds), 2)

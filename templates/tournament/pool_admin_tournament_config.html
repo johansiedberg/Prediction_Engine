@@ -972,7 +972,8 @@
                                 <th class="text-center py-2.5 px-1.5 text-white fw-bold">Slutspel</th>
                                 <th class="text-center py-2.5 px-1.5 text-white fw-bold">Bonus</th>
                                 <th class="text-center py-2.5 px-2 text-white fw-bold">Status</th>
-                                <th class="text-center py-2.5 pe-3 ps-2 text-white fw-bold">LÅST</th>
+                                <th class="text-center py-2.5 px-2 text-white fw-bold">LÅST</th>
+                                <th class="text-center py-2.5 pe-3 ps-2 text-white fw-bold">Ta bort</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1066,7 +1067,7 @@
                                     </span>
                                     {% endif %}
                                 </td>
-                                <td class="text-center pe-3 ps-2 py-2">
+                                <td class="text-center py-2 px-2">
                                     <form method="post" action="{% url 'toggle_tournament_submission_verification' league.id tournament.id p.player.id %}" class="d-inline" onsubmit="toggleVerificationAjax(event, this, {{ p.player.id }})">
                                         {% csrf_token %}
                                         <div id="verify-btn-container-{{ p.player.id }}">
@@ -1082,10 +1083,21 @@
                                         </div>
                                     </form>
                                 </td>
+                                <td class="text-center pe-3 ps-2 py-2">
+                                    {% if p.player == league.admin %}
+                                    <span class="d-inline-flex align-items-center justify-content-center text-secondary" style="width: 30px; height: 30px; opacity: 0.4;" title="Pool-Admin kan inte tas bort">
+                                        <i class="fa-solid fa-ban" style="font-size: 0.88rem;"></i>
+                                    </span>
+                                    {% else %}
+                                    <button type="button" class="btn btn-sm p-0 rounded-circle border-0 cursor-pointer shadow-sm d-inline-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#removeTournamentPlayerModal{{ p.player.id }}" style="width: 30px; height: 30px; background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.4) !important;" title="Ta bort {{ p.name }} från {{ tournament.name }}">
+                                        <i class="fa-solid fa-trash-can" style="color: #fca5a5; font-size: 0.85rem;"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="9" class="text-center text-white py-4" style="opacity: 0.7;">Inga deltagare i matrisen.</td>
+                                <td colspan="10" class="text-center text-white py-4" style="opacity: 0.7;">Inga deltagare i matrisen.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -1374,6 +1386,71 @@ Pool-Administratör för {{ league.name }}</pre>
         </div>
     </div>
 </div>
+
+{% if p.player != league.admin %}
+<!-- MODAL: TA BORT DELTAGARE FRÅN TURNERING -->
+<div class="modal fade" id="removeTournamentPlayerModal{{ p.player.id }}" tabindex="-1" aria-labelledby="removeTournamentPlayerModalLabel{{ p.player.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-white" style="background: #0f172a; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 18px; box-shadow: 0 25px 35px -5px rgba(0, 0, 0, 0.85);">
+            <div class="modal-header border-bottom border-secondary border-opacity-20 px-4 py-3">
+                <h6 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="removeTournamentPlayerModalLabel{{ p.player.id }}">
+                    <i class="fa-solid fa-triangle-exclamation text-danger"></i>Ta bort deltagare från turnering
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            <form method="post" action="{% url 'pool_admin_remove_tournament_player' league.id tournament.id p.player.id %}">
+                {% csrf_token %}
+                <div class="modal-body px-4 py-3">
+                    <p class="text-white small mb-3" style="opacity: 0.9; line-height: 1.5;">
+                        Är du säker på att du vill koppla bort deltagaren <strong>{{ p.name }}</strong> (<span class="text-info font-monospace">{{ p.email }}</span>) från <strong>{{ tournament.name }}</strong>?
+                    </p>
+
+                    {% if p.has_started %}
+                    <div class="alert border-0 rounded-3 py-2.5 px-3 small mb-3" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.35) !important; color: #fde68a;">
+                        <i class="fa-solid fa-circle-exclamation me-1.5 text-warning"></i>
+                        <strong>Obs:</strong> Denna deltagare har redan påbörjat eller sparat tips i denna turnering.
+                    </div>
+                    {% endif %}
+
+                    <div class="p-3 rounded-3 mb-3" style="background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.15);">
+                        <div class="form-check mb-2.5">
+                            <input class="form-check-input" type="checkbox" name="purge_predictions" value="1" id="purgePreds{{ p.player.id }}" checked>
+                            <label class="form-check-label text-white small" for="purgePreds{{ p.player.id }}">
+                                <strong>Radera sparade tips &amp; gissningar</strong> för denna turnering
+                            </label>
+                            <div class="text-white small" style="font-size: 0.73rem; opacity: 0.7; margin-left: 2px;">
+                                Rensar deltagarens matchtips, slutspelstips och bonusgissningar i {{ tournament.name }}.
+                            </div>
+                        </div>
+
+                        <div class="form-check mb-0 pt-2 border-top border-secondary border-opacity-15">
+                            <input class="form-check-input" type="checkbox" name="remove_from_pool" value="1" id="removeFromPool{{ p.player.id }}">
+                            <label class="form-check-label text-white small" for="removeFromPool{{ p.player.id }}">
+                                Ta även bort deltagaren helt från poolen <strong>{{ league.name }}</strong>
+                            </label>
+                            <div class="text-white small" style="font-size: 0.73rem; opacity: 0.7; margin-left: 2px;">
+                                Avlägsnar även deltagaren från poolens allmänna medlemslista.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-white small" style="font-size: 0.75rem; opacity: 0.75;">
+                        <i class="fa-solid fa-shield-halved me-1 text-secondary"></i>
+                        Deltagaren tas omedelbart bort från Deltagarmatrisen och resultatlistan för {{ tournament.name }}.
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-20 px-4 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Avbryt</button>
+                    <button type="submit" class="btn btn-sm btn-danger rounded-pill fw-bold px-4 d-inline-flex align-items-center gap-1.5" style="background: #dc2626; border-color: #b91c1c;">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span>Ta bort deltagare</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endfor %}
 
 <!-- MODAL: LÄGG TILL NY DELTAGARE I POOL & TURNERING -->

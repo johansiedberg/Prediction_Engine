@@ -799,6 +799,46 @@ def pool_admin_remove_player_view(request, league_id, member_id):
 
 @login_required
 @require_POST
+def pool_admin_remove_tournament_player_view(request, league_id, tournament_id, user_id):
+    """Removes a player from a specific tournament, with optional prediction purging and league removal."""
+    from django.urls import reverse
+    league = get_object_or_404(League, id=league_id)
+    if league.admin != request.user and not request.user.is_superuser:
+        return HttpResponseForbidden("Åtkomst nekad.")
+
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    player = get_object_or_404(User, id=user_id)
+
+    if player == league.admin and not request.user.is_superuser:
+        messages.error(request, "Pool-Admin kan inte tas bort från turneringen.")
+        return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament.id])}#sec-progress-matrix")
+
+    player_name = player.get_full_name() or player.email
+
+    # 1. Unenroll from tournament
+    if player in tournament.players.all():
+        tournament.players.remove(player)
+
+    # 2. Optionally purge predictions and submission for this tournament
+    purge_predictions = request.POST.get('purge_predictions') in ['1', 'true', 'on', 'yes']
+    if purge_predictions:
+        TournamentSubmission.objects.filter(tournament=tournament, player=player).delete()
+        MatchPrediction.objects.filter(match__tournament=tournament, player=player).delete()
+        SidebetAnswer.objects.filter(sidebet__tournament=tournament, player=player).delete()
+
+    # 3. Optionally remove from pool entirely
+    remove_from_pool = request.POST.get('remove_from_pool') in ['1', 'true', 'on', 'yes']
+    if remove_from_pool and player != league.admin:
+        LeagueMember.objects.filter(league=league, player=player).delete()
+        messages.success(request, f"{player_name} har tagits bort från {tournament.name} och poolen {league.name}.")
+    else:
+        messages.success(request, f"{player_name} har tagits bort från {tournament.name}.")
+
+    return redirect(f"{reverse('pool_admin_tournament_config', args=[league.id, tournament.id])}#sec-progress-matrix")
+
+
+@login_required
+@require_POST
 def pool_admin_add_self_view(request, league_id):
     """Enrolls pool admin as a participating player if needed."""
     league = get_object_or_404(League, id=league_id)
@@ -1031,7 +1071,7 @@ def toggle_tournament_submission_verification_view(request, league_id, tournamen
         all_knockout_matches = Match.objects.filter(tournament=tournament, stage__isnull=False)
         all_sidebets = Sidebet.objects.filter(tournament=tournament)
         group_preds = MatchPrediction.objects.filter(match__in=all_group_matches, player=player).count()
-        ko_preds = MatchPrediction.objects.filter(match__in=all_knockout_matches, player=player).count()
+        ko_preds = MatchPrediction.objects.filter(match__in=all_knockout_matches, player=player, prediction_phase='INITIAL_BRACKET').count()
         sb_answers = SidebetAnswer.objects.filter(sidebet__in=all_sidebets, player=player).count()
         if (group_preds + ko_preds + sb_answers) > 0:
             sub_status = 'in_progress'

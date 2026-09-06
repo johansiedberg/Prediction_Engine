@@ -12,6 +12,7 @@ Responsible for:
 
 import logging
 from tournament.models import StorylineMemory, DailyGazette, StyleExample, EditorialSettings, BannedPhrase
+from tournament.editorial_engine.compiler import get_sport_terms
 
 logger = logging.getLogger(__name__)
 
@@ -23,20 +24,20 @@ BEHAVIORS_V2 = {
     },
     "Mikael Dahl": {
         "pre_match": "vandrade Dahl fram och tillbaka med hög energi och snabba utspel kring oddsen",
-        "in_action": "satsade Dahl med sedvanlig speliver och heta känslor i varje tipsdrag",
-        "post_match": "manade Dahl på diskussionerna kring bordet med oförminskad intensitet",
+        "in_action": "kastade sig Dahl in i diskussionerna med kompromisslös övertygelse",
+        "post_match": "summerade Dahl läget med ett leende och bjöd på omgångens skarpaste kommentar",
     },
     "Andreas Larsson": {
-        "pre_match": "behöll Larsson sitt orubbliga pokersinnen och granskade läget med jägarens tålamod",
-        "in_action": "spelade Larsson iskallt och lät motståndarna ta de onödiga riskerna",
-        "post_match": "summerade Larsson läget med ett svalt leende och full kontroll",
+        "pre_match": "satt Larsson i godan ro med kaffekoppen i högsta hugg och väntade ut motståndarna",
+        "in_action": "följde Larsson händelseutvecklingen från sin favoritposition i soffhörnet",
+        "post_match": "tog Larsson en klunk kaffe till och njöt av att strategin burit frukt",
     },
     "Johan Svensson": {
-        "pre_match": "justerade Svensson kaffemaskinens tryck med millimeterprecision och levererade sina torra slutsatser",
-        "in_action": "litade Svensson på sin beprövade metodik och metodiska lugn",
-        "post_match": "noterade Svensson krasst att tabellen aldrig ljuger",
+        "pre_match": "skärskådade Svensson startelvor och laguppställningar med analytisk skärpa",
+        "in_action": "vägde Svensson varje enskilt matchbeslut på guldvåg",
+        "post_match": "noterade Svensson utfallet i sitt mentala protokoll inför nästa omgång",
     },
-    "Johan Meldo": {
+    "Alexander Meldo": {
         "pre_match": "följde Meldo gruppens alla turer med sjukgymnastens skarpa blick och tålmodiga lugn",
         "in_action": "arbetade Meldo metodiskt för att hitta luckorna i topptipparnas rader",
         "post_match": "behöll Meldo lugnet och konstaterade att maratonloppet bara har börjat",
@@ -57,7 +58,7 @@ BEHAVIORS_V2 = {
         "post_match": "blåste Gustafsson av omgången med disciplinerad beslutsamhet",
     },
     "Tommy Lycen": {
-        "pre_match": "reflekterade Lycén över fotbollstaktiken på uteserveringen med den tailored elegans som kännetecknar en ex-elitanfallare",
+        "pre_match": "reflekterade Lycén över matchtaktiken på uteserveringen med den tailored elegans som kännetecknar en ex-elitanfallare",
         "in_action": "läste Lycén matchbilderna med det målgöraröga som bara en ex-elitanfallare besitter",
         "post_match": "analyserade Lycén anfallsspelets finesser med sofistikerad fingertoppskänsla",
     },
@@ -67,7 +68,7 @@ BEHAVIORS_V2 = {
         "post_match": "tog Källberg ett djupt andetag och lät tabelläget tala för sig självt",
     },
     "Martin Krantz": {
-        "pre_match": "drog Krantz igång en medryckande och dramatisk berättelse fylld av italiensk fotbollspassion",
+        "pre_match": "drog Krantz igång en medryckande och dramatisk berättelse fylld av sydeuropeisk sportpassion",
         "in_action": "manövrerade Krantz sina tipsrader med syditaliensk glöd och kompromisslös vinnarskalle",
         "post_match": "fäktade Krantz med händerna och slog fast att mästerskapet är ett taktiskt konstverk",
     },
@@ -216,6 +217,11 @@ class Journalist:
         r_in_action = cls.get_behavior_v2(rival_persona, "in_action") if rival_persona else ""
 
         detected_polarity = cls.detect_narrative_polarity(p_desc, h_type, p_nick, r_nick)
+        sport_terms = get_sport_terms(tournament)
+        sport_tourn_word = sport_terms.get('sport_tournament', 'turneringen')
+        sport_def_word = sport_terms.get('sport_def', 'sporten')
+        sport_name_word = sport_terms.get('sport_name', 'sport')
+        propaganda_word = sport_terms.get('propaganda_game', 'propagandaspel')
 
         # Check Gemini LLM Availability for generative story
         from tournament.services.gemini_scout_service import GeminiScoutService
@@ -239,7 +245,7 @@ class Journalist:
                     banned_block = f"\nSTRIKT FÖRBUD – ANVÄND ALDRIG DESSA KLYSCHOR: [{banned_joined}]\n"
 
                 llm_prompt = f"""
-Du är en stjärnkrönikör för 'Dagliga Gazetten' i fotbollsturneringen för ett slutet kompisgäng (Toarps Herrklubb).
+Du är en stjärnkrönikör för 'Dagliga Gazetten' i {sport_tourn_word} för ett slutet kompisgäng (Toarps Herrklubb).
 Skriv en underhållande, cynisk och engagerande sportsida på svenska baserad på följande fakta:
 
 Typ av händelse: {h_type}
@@ -274,7 +280,7 @@ Svara med ett giltigt JSON-objekt:
                 if llm_result and 'headline' in llm_result and 'top_story' in llm_result:
                     logger.info("Successfully generated Swedish Daily Gazette story via Gemini Flash LLM: '%s'", llm_result['headline'])
                     return {
-                        'headline': llm_result['headline'],
+                        'headline': llm_result['headline'].strip().upper(),
                         'tagline': llm_result.get('tagline', f"Krönika • {p_bold_nick} i fokus • Omgångens analys"),
                         'top_story': llm_result['top_story'],
                         'event2_text': llm_result.get('event2_text', s_desc),
@@ -300,7 +306,7 @@ Svara med ett giltigt JSON-objekt:
                 tagline = f"Three Lions i diket • {p_bold_nick} njuter av haveriet • Krönika från omgången"
                 p1 = f"Det är en av de mest orubbliga grundlagarna i gänget: ingen – absolut ingen – vill se England ta sig för långt i något mästerskap. Matchfakta: {fact_sentence}"
                 p2 = f"Inför avspark {p_pre_match}, medan förhoppningarna om ett engelskt magplask var det enda som förenade sällskapet."
-                p3 = f"När slutresultatet spikades utbröt ett ohämmat firande kring bordet. {p_bold_nick} konstaterade med ett svalt leende att 'fotbollen är räddad för den här gången'."
+                p3 = f"När slutresultatet spikades utbröt ett ohämmat firande kring bordet. {p_bold_nick} konstaterade med ett svalt leende att '{sport_def_word} är räddad för den här gången'."
                 p4 = f"De få som i smyg hoppats på engelsk framgång fick snabbt krypa till korset när kommentarerna i gruppchatten haglade utan nåd."
                 p5 = f"Omgången visade återigen att mästerskapets bästa stunder ofta inte mäts i poäng, utan i ren och skär skadeglädje."
                 p6 = f"Nu väntar nästa kapitel i turneringen där gänget samlat blickar framåt mot nya dramatiska drabbningar."
@@ -386,8 +392,8 @@ Svara med ett giltigt JSON-objekt:
 
         elif h_type == 'LOW_BLOCK_GRIND':
             headline_title = f"BETONGFÖRSVARETS SEGER: CYNISK DEFENSIV KROSSADE MÅLOPTIMISTERNA!"
-            tagline = f"0-0 kamp • {p_bold_nick} hyllar taktiken • Cynisk triumf"
-            p1 = f"Det bjöds inte på någon champagnefotboll, men väl en taktisk triumf för de defensiva kalkylerna. Matchfakta: {fact_sentence}"
+            tagline = f"Målsnål kamp • {p_bold_nick} hyllar taktiken • Cynisk triumf"
+            p1 = f"Det bjöds inte på något champagneanfall, men väl en taktisk triumf för de defensiva kalkylerna. Matchfakta: {fact_sentence}"
             p2 = f"Inför avspark {p_pre_match}, medan måloptimisterna i gruppen hoppades på fest."
             p3 = f"När matchen låste sig totalt {p_in_action}, väl medveten om att stängda spjäll ger sköna poäng i tabellen."
             p4 = f"{p_bold_nick} kunde nöjt konstatera att cynism och disciplin återigen visade sig vara ett vinnande koncept."
@@ -395,7 +401,7 @@ Svara med ett giltigt JSON-objekt:
             p6 = f"Nu återstår att se om de defensiva murarna håller när matchtempot skruvas upp ytterligare."
 
         elif h_type == 'GOAL_FEST':
-            headline_title = f"PROPAGANDAFOTBOLL & MÅLFEST: {p_bold_nick.upper()} I CENTRUM FÖR KAOSMATCHEN!"
+            headline_title = f"MÅLFEST & PROPAGANDASPEL: {p_bold_nick.upper()} I CENTRUM FÖR KAOSMATCHEN!"
             tagline = f"Målexplosion • Total offensiv • {p_bold_nick} analyserar dramatiken"
             p1 = f"Försvarsspelet kastades i papperskorgen när lagen bjöd på en fullständig målexplosion. Matchfakta: {fact_sentence}"
             p2 = f"Inför avspark {p_pre_match}, ovetande om det sanslösa målkalas som väntade."

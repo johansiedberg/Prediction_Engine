@@ -100,6 +100,60 @@ def get_player_nick_or_name(player, personas_list=None, is_toarp=False) -> str:
     return first_or_full
 
 
+def get_sport_terms(tournament: Tournament) -> dict:
+    """
+    Returns localized sport terminology, iconography, and scoring thresholds
+    tailored to the tournament's specific sport discipline.
+    """
+    sport_raw = getattr(tournament, 'sport', '') or ''
+    s_lower = sport_raw.strip().lower()
+
+    if any(k in s_lower for k in ['floorball', 'innebandy']):
+        return {
+            'sport_name': 'innebandy',
+            'sport_def': 'innebandyn',
+            'sport_tournament': 'innebandyturneringen',
+            'propaganda_game': 'propagandainnebandy',
+            'icon': '🏑',
+            'goal_fest_threshold': 12,
+            'low_block_threshold': 4,
+            'heavyweights': ['sverige', 'finland', 'schweiz', 'tjeckien'],
+        }
+    elif any(k in s_lower for k in ['handball', 'handboll']):
+        return {
+            'sport_name': 'handboll',
+            'sport_def': 'handbollen',
+            'sport_tournament': 'handbollsturneringen',
+            'propaganda_game': 'propagandahandboll',
+            'icon': '🤾',
+            'goal_fest_threshold': 60,
+            'low_block_threshold': 44,
+            'heavyweights': ['frankrike', 'danmark', 'sverige', 'spanien', 'norge', 'tyskland'],
+        }
+    elif any(k in s_lower for k in ['ice hockey', 'ishockey', 'hockey']):
+        return {
+            'sport_name': 'ishockey',
+            'sport_def': 'ishockeyn',
+            'sport_tournament': 'ishockeyturneringen',
+            'propaganda_game': 'propagandahockey',
+            'icon': '🏒',
+            'goal_fest_threshold': 8,
+            'low_block_threshold': 3,
+            'heavyweights': ['kanada', 'sverige', 'finland', 'usa', 'tjeckien'],
+        }
+    else: # Default: Football / Fotboll
+        return {
+            'sport_name': 'fotboll',
+            'sport_def': 'fotbollen',
+            'sport_tournament': 'fotbollsturneringen',
+            'propaganda_game': 'propagandafotboll',
+            'icon': '⚽',
+            'goal_fest_threshold': 5,
+            'low_block_threshold': 1,
+            'heavyweights': ['frankrike', 'brasilien', 'tyskland', 'spanien', 'italien', 'argentina', 'england'],
+        }
+
+
 def compile_daily_assignment(tournament: Tournament):
     """
     Tier 2 Anti-Repetition Compiler.

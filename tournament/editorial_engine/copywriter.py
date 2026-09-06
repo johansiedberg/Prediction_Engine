@@ -206,8 +206,10 @@ class Copywriter:
         cached_sorted_names = sorted(list(names_to_bold), key=lambda x: len(x), reverse=True)
 
         top_story = cls.ensure_bold_player_names(top_story, cached_names=cached_sorted_names)
-        headline = cls.ensure_bold_player_names(headline, cached_names=cached_sorted_names)
-        tagline = cls.ensure_bold_player_names(tagline, cached_names=cached_sorted_names)
+        # Headlines are styled uniformly in bold font in the UI, so strip markdown asterisks and guarantee clean full Swedish uppercase (e.g. BLÄNDAR instead of BLändAR)
+        headline = re.sub(r'\*+', '', headline).strip().upper()
+        # Taglines are rendered directly as secondary text in cards and modals without markdown parsing, so strip raw asterisks
+        tagline = re.sub(r'\*+', '', tagline).strip()
         event2_text = cls.ensure_bold_player_names(event2_text, cached_names=cached_sorted_names)
         event3_text = cls.ensure_bold_player_names(event3_text, cached_names=cached_sorted_names)
 

@@ -11,10 +11,12 @@ Produces clean dynamic structured topic boxes for any tournament with bold poppi
 from collections import Counter, defaultdict
 import itertools
 import math
+import re
 from django.db.models import Count
 from tournament.models import (
     Tournament, Match, MatchPrediction, Sidebet, SidebetAnswer, StaticInsight, TournamentSubmission
 )
+from tournament.services.team_badge_service import TeamBadgeService
 from tournament.editorial_engine.compiler import (
     load_player_personas, find_persona_for_player,
     is_toarps_pool as is_toarps_herrklubb_tournament, get_player_nick_or_name
@@ -108,7 +110,8 @@ def _generate_static_insights_atomic(tournament: Tournament):
     if not all_players_qs:
         from django.contrib.auth.models import User
         pred_player_ids = MatchPrediction.objects.filter(
-            match__tournament=tournament
+            match__tournament=tournament,
+            prediction_phase='INITIAL_BRACKET'
         ).values_list('player_id', flat=True).distinct()
         all_players_qs = list(User.objects.filter(id__in=pred_player_ids))
 
@@ -220,7 +223,9 @@ def _generate_static_insights_atomic(tournament: Tournament):
                     champ_n = a_name
                 else:
                     champ_n = h_name
-                if champ_n and 'winner match' not in champ_n.lower() and 'lag #' not in champ_n.lower():
+                if champ_n:
+                    champ_n = re.sub(r'\s*\((?:TBD|tbd)\)', '', champ_n).strip()
+                if champ_n and not TeamBadgeService.is_placeholder(champ_n):
                     player_champ_map[p.id] = champ_n
 
     champ_name = "Favorit saknas"
@@ -243,7 +248,7 @@ def _generate_static_insights_atomic(tournament: Tournament):
                 for p in locked_players if player_champ_map.get(p.id) == top_ans
             ]
             backers_bullets = "<br>".join([f"• <span class=\"player-name-pop\">{b}</span>" for b in backers])
-            frame_main = f"👥:::{flag_prefix}{top_ans} ({top_cnt} av {len(player_champ_map)} deltagare)<br>{backers_bullets}"
+            frame_main = f"👥:::{backers_bullets}" if backers else "👥:::• Inga mästartips registrerade ännu"
 
     flag_top = get_country_flag(champ_name)
     flag_str = f"{flag_top} " if flag_top else ""
@@ -290,13 +295,13 @@ def _generate_static_insights_atomic(tournament: Tournament):
         data_point_baro = f"Respass i Slutspelet || \"It's Never Coming Home\""
         if optimists:
             opt_bullets = "<br>".join([f"• <span class=\"player-name-pop\">{name}</span> spår avancemang ({w} segrar)" for name, w in optimists])
-            frame_main = f"🇬🇧:::England-optimisterna:<br>{opt_bullets}"
+            frame_main = f"🇬🇧:::{opt_bullets}"
         else:
-            frame_main = "🇬🇧:::England-optimisterna:<br>• Noll deltagare har vågat chansa på England."
+            frame_main = "🇬🇧:::• Noll deltagare har vågat chansa på England."
         baro_footer = "Den heliga Toarp-sanningen om England sätts på prov."
     else:
         data_point_baro = "Kvalfiasko || \"It's Never Coming Home\""
-        frame_main = "🏴󠁧󠁢󠁥󠁮󠁧󠁿:::England Lyser Med Sin Frånvaro:<br>• England lyckades inte ens kvalificera sig till mästerskapet.<br>• \"It's Never Coming Home\" – noll risk för smutsiga England-poäng i tipset."
+        frame_main = "🏴󠁧󠁢󠁥󠁮󠁧󠁿:::• England lyckades inte ens kvalificera sig till mästerskapet.<br>• \"It's Never Coming Home\" – noll risk för smutsiga England-poäng i tipset."
         baro_footer = "Det bästa mästerskapet är ett mästerskap helt utan England."
 
     insight_2 = StaticInsight.objects.create(
@@ -318,10 +323,10 @@ def _generate_static_insights_atomic(tournament: Tournament):
             p_preds_dict = {pred.match_id: pred for pred in all_preds_qs if pred.player_id == p.id}
             h_info = final_match.get_home_team_info(user_predictions=p_preds_dict)
             a_info = final_match.get_away_team_info(user_predictions=p_preds_dict)
-            h_name = h_info.get('name', '')
-            a_name = a_info.get('name', '')
-            if h_name and a_name and 'winner match' not in h_name.lower() and 'winner match' not in a_name.lower():
-                user_final_pair_map[p.id] = f"{h_name} vs {a_name}"
+            h_clean = re.sub(r'\s*\((?:TBD|tbd)\)', '', h_name).strip() if h_name else ''
+            a_clean = re.sub(r'\s*\((?:TBD|tbd)\)', '', a_name).strip() if a_name else ''
+            if h_clean and a_clean and not TeamBadgeService.is_placeholder(h_clean) and not TeamBadgeService.is_placeholder(a_clean):
+                user_final_pair_map[p.id] = f"{h_clean} vs {a_clean}"
 
     final_sb = next((sb for sb in sidebets if any(k in sb.question.lower() for k in ["finalpar", "finalister", "möts i final"])), None)
     if final_sb:
@@ -351,11 +356,11 @@ def _generate_static_insights_atomic(tournament: Tournament):
             for p in locked_players if user_final_pair_map.get(p.id) == top_pair
         ]
         backers_bullets = "<br>".join([f"• <span class=\"player-name-pop\">{b}</span>" for b in pair_backers])
-        frame_main = f"👑:::{pair_formatted} ({top_pair_cnt} st)<br>{backers_bullets}"
+        frame_main = f"👑:::{backers_bullets}" if pair_backers else "👑:::• Väntar på slutförda tipsrader"
     else:
         top_pair = f"{teams_list[0]} vs {teams_list[1]}" if len(teams_list) >= 2 else "Finaldramatik"
-        data_point_final = f"Mästerskapets Finalpar || {top_pair}"
-        frame_main = f"👑:::Förväntad final: **{top_pair}**<br>• Väntar på slutförda tipsrader"
+        data_point_final = f"Mest Tippade Drömfinalen || {top_pair}"
+        frame_main = "👑:::• Väntar på slutförda tipsrader"
 
     insight_3 = StaticInsight.objects.create(
         tournament=tournament,
@@ -387,6 +392,8 @@ def _generate_static_insights_atomic(tournament: Tournament):
             
             home_n = m.get_home_team_info()['name']
             away_n = m.get_away_team_info()['name']
+            if TeamBadgeService.is_placeholder(home_n) or TeamBadgeService.is_placeholder(away_n):
+                continue
             
             h_players = [get_player_nick_or_name(p.player, personas_list, is_toarp=is_toarp) for p in m_preds if p.home_goals > p.away_goals]
             d_players = [get_player_nick_or_name(p.player, personas_list, is_toarp=is_toarp) for p in m_preds if p.home_goals == p.away_goals]
@@ -451,6 +458,8 @@ def _generate_static_insights_atomic(tournament: Tournament):
 
             h_n = m.get_home_team_info()['name']
             away_n = m.get_away_team_info()['name']
+            if TeamBadgeService.is_placeholder(h_n) or TeamBadgeService.is_placeholder(away_n):
+                continue
 
             if len(a_preds) == 1 and len(h_preds) >= 2:
                 p = a_preds[0].player
@@ -622,6 +631,8 @@ def _generate_static_insights_atomic(tournament: Tournament):
             sign_str = "Hemmaseger" if top_cnt == h_cnt else ("Bortaseger" if top_cnt == a_cnt else "Kryss")
             home_n = m.get_home_team_info()['name']
             away_n = m.get_away_team_info()['name']
+            if TeamBadgeService.is_placeholder(home_n) or TeamBadgeService.is_placeholder(away_n):
+                continue
             
             banker_matches.append({
                 'match_obj': m,
@@ -672,9 +683,9 @@ def _generate_static_insights_atomic(tournament: Tournament):
             rebel_bullets.append(f"• <span class=\"player-name-pop\">{p_nick}</span> {w_team} ({p_pred.home_goals}–{p_pred.away_goals})")
 
     if rebel_bullets:
-        frame_2 = "🧪:::Galna professorerna som går emot<br>" + "<br>".join(rebel_bullets)
+        frame_2 = "🧪:::Galna professorn<br>" + "<br>".join(rebel_bullets)
     else:
-        frame_2 = "🧪:::Galna professorerna som går emot<br>• Noll deltagare vågade gå emot flocken"
+        frame_2 = "🧪:::Galna professorn<br>• Noll deltagare vågade gå emot flocken"
 
     # Audit match-specific twins
     score_counts = Counter()

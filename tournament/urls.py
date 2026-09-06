@@ -28,6 +28,7 @@ from .views import (
     pool_admin_tournament_config_view,
     verify_member_view, update_pool_branding_view,
     pool_admin_add_player_view, pool_admin_remove_player_view,
+    pool_admin_remove_tournament_player_view,
     update_pool_points_view, add_pool_sidebet_view,
     pool_admin_add_self_view, pool_admin_reset_password_view,
     pool_admin_reset_player_password_view,
@@ -78,6 +79,7 @@ urlpatterns = [
     path('pool-admin/<int:league_id>/toggle-player/<int:tournament_id>/<int:user_id>/', toggle_tournament_player_view, name='toggle_tournament_player'),
     path('pool-admin/<int:league_id>/toggle-tournament/<int:tournament_id>/', toggle_pool_tournament_view, name='toggle_pool_tournament'),
     path('pool-admin/<int:league_id>/tournament/<int:tournament_id>/verify-submission/<int:user_id>/', toggle_tournament_submission_verification_view, name='toggle_tournament_submission_verification'),
+    path('pool-admin/<int:league_id>/tournament/<int:tournament_id>/remove-player/<int:user_id>/', pool_admin_remove_tournament_player_view, name='pool_admin_remove_tournament_player'),
 
     # Engine Admin Routes (Port 2029)
     path('engine-admin/', engine_admin_dashboard_view, name='engine_admin'),

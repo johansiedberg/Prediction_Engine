@@ -211,6 +211,12 @@
 
                                     {% if next_match %}
                                         {% with home=next_match.get_home_team_info away=next_match.get_away_team_info %}
+                                        {% if next_match.stage_name %}
+                                        <!-- Match Stage centered above match-up (formatted as team names) -->
+                                        <div class="d-flex align-items-center justify-content-center fw-bold text-white fs-6 mb-1 text-center">
+                                            <span class="text-truncate" style="max-width: 240px;">{{ next_match.stage_name }}</span>
+                                        </div>
+                                        {% endif %}
                                         <!-- Line 2: Matchup (Slovenien VS Danmark) -->
                                         <div class="d-flex align-items-center justify-content-center fw-bold text-white fs-6 mb-2 flex-nowrap text-center gap-2">
                                             <span class="text-truncate" style="max-width: 110px;">{{ home.name }}</span>
@@ -238,14 +244,14 @@
                                 </div>
 
                                 {% if next_match %}
-                                <!-- Line 4 (Bottom): Countdown (one size larger font) -->
-                                <div class="d-flex justify-content-center mt-1.5">
+                                <!-- Line 4 (Bottom): Countdown (Gap of one row to timer: mt-3.5) -->
+                                <div class="d-flex justify-content-center mt-3.5">
                                     <span class="badge bg-dark text-warning border border-warning border-opacity-40 px-3 py-1.5 fw-extrabold text-nowrap shadow-sm d-inline-flex align-items-center gap-2" id="nextMatchCountdown" style="font-size: 0.85rem;" data-match-time="{% if next_match.date_time %}{{ next_match.date_time|date:'c' }}{% else %}2028-06-14T18:00:00Z{% endif %}">
                                         <i class="fa-solid fa-stopwatch me-1 text-warning"></i><span id="countdownText">Laddar nedräkning...</span>
                                     </span>
                                 </div>
                                 {% else %}
-                                <div class="d-flex justify-content-center mt-1.5">
+                                <div class="d-flex justify-content-center mt-3.5">
                                     <span class="badge bg-dark text-secondary border border-secondary border-opacity-30 px-3 py-1.5 fw-bold text-nowrap" style="font-size: 0.85rem;">
                                         <i class="fa-solid fa-calendar-check me-1.5 text-secondary"></i><span>Ingen kommande match</span>
                                     </span>
@@ -258,15 +264,22 @@
                         <div class="grid-last-match mb-4 mb-lg-0">
                             <div class="p-3 rounded-4 text-center h-100 d-flex flex-column justify-content-between" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); min-height: 165px;">
                                 <div>
-                                    <!-- Header Line 1 & 2: 🏁 SENASTE RESULTAT + Date/time line (Aligned Left, matching 46px min-height) -->
+                                    <!-- Header Line 1 & 2: 🏁 SENASTE RESULTAT + Date | Stage | Time row -->
                                     <div class="d-flex flex-column align-items-start justify-content-start mb-2 text-start" style="min-height: 46px;">
                                         <h6 class="fw-extrabold text-uppercase tracking-wider mb-0 d-flex align-items-center text-nowrap" style="font-size: 0.92rem; letter-spacing: 0.5px; color: #10B981 !important;">
                                             <span class="me-2" style="font-size: 1.6rem; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.9)) drop-shadow(0 0 12px rgba(16,185,129,0.5));">🏁</span>
                                             <span>SENASTE RESULTAT</span>
                                         </h6>
                                         {% if last_finished_match %}
-                                            <div class="text-secondary small fw-semibold opacity-80 mt-0.5 ms-0.5" style="font-size: 0.72rem;">
-                                                {{ last_finished_match.date_time|date:"Y-m-d H:i"|default:"2026-07-28 15:00" }}
+                                            <div class="d-flex align-items-center justify-content-between w-100 mt-1">
+                                                <span class="text-secondary small fw-semibold" style="font-size: 0.72rem;">
+                                                    {{ last_finished_match.date_time|date:"Y-m-d H:i"|default:"2026-07-28 15:00" }}
+                                                </span>
+                                                {% if last_finished_match.stage_name %}
+                                                    <span class="text-secondary small fw-semibold text-truncate text-end" style="font-size: 0.72rem; max-width: 140px;" title="{{ last_finished_match.stage_name }}">
+                                                        {{ last_finished_match.stage_name }}
+                                                    </span>
+                                                {% endif %}
                                             </div>
                                         {% endif %}
                                     </div>
@@ -401,10 +414,16 @@
                                     <div class="col-md-6">
                                         <div class="match-row-card p-3 h-100 d-flex flex-column justify-content-between">
                                             
-                                            <!-- Top Match Header (Time matches date font, color, and format) -->
-                                            <div class="d-flex align-items-center justify-content-between pb-2 border-bottom border-secondary border-opacity-15 mb-2">
-                                                <span class="text-secondary small fw-semibold" style="font-size: 0.72rem;">{{ match.date_time|date:"Y-m-d"|default:"2028-06-14" }}</span>
-                                                <span class="text-secondary small fw-semibold" style="font-size: 0.72rem;">{{ match.date_time|date:"H:i"|default:"18:00" }}</span>
+                                            <!-- Top Match Header (Date Time | Stage, no underline/border) -->
+                                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                                <span class="text-secondary small fw-semibold" style="font-size: 0.72rem;">
+                                                    {{ match.date_time|date:"Y-m-d H:i"|default:"2028-06-14 18:00" }}
+                                                </span>
+                                                {% if match.stage_name %}
+                                                    <span class="text-secondary small fw-semibold text-truncate text-end" style="font-size: 0.72rem; max-width: 140px;" title="{{ match.stage_name }}">
+                                                        {{ match.stage_name }}
+                                                    </span>
+                                                {% endif %}
                                             </div>
 
 
@@ -1852,43 +1871,43 @@
                                 {% if insight.category == 'CHAMPION_CONSENSUS' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-green">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-trophy fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-trophy fs-6 me-2"></i>Mästardrömmar & Guldfavoriter</span></div>
                                 {% elif insight.category == 'ENGLAND_BAROMETER' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-red">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-flag fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-flag fs-6 me-2"></i>England-Barometern</span></div>
                                 {% elif insight.category == 'DREAM_FINAL' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-amber">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-fire fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-fire fs-6 me-2"></i>Drömfinalen</span></div>
                                 {% elif insight.category == 'DELUSION_INDEX' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-amber ic-compact-frames">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-bolt fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-bolt fs-6 me-2"></i>{{ insight.get_category_display }}</span></div>
                                 {% elif insight.category == 'LONE_WOLF' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-blue">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-person-walking-arrow-right fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-person-walking-arrow-right fs-6 me-2"></i>{{ insight.get_category_display }}</span></div>
                                 {% elif insight.category == 'GOAL_DELUSION' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-blue">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-futbol fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-futbol fs-6 me-2"></i>{{ insight.get_category_display }}</span></div>
                                 {% elif insight.category == 'SIGN_DECISIVE' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-red">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-bullseye fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-bullseye fs-6 me-2"></i>{{ insight.get_category_display }}</span></div>
                                 {% elif insight.category == 'GOLDEN_BOOT' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-green">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-shoe-prints fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-shoe-prints fs-6 me-2"></i>{{ insight.get_category_display }}</span></div>
                                 {% elif insight.category == 'BANKER_CONSENSUS' %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-green ic-compact-frames">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-lock fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-lock fs-6 me-2"></i>{{ insight.get_category_display }}</span></div>
                                 {% else %}
                                 <div class="col-md-6 col-lg-4">
                                     <div class="insight-card ic-slate">
-                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-chart-bar fs-6"></i>{{ insight.get_category_display }}</span></div>
+                                        <div class="px-3 pt-3 pb-2"><span class="ic-badge"><i class="fa-solid fa-chart-bar fs-6 me-2"></i>{{ insight.get_category_display }}</span></div>
                                 {% endif %}
 
                                         <!-- HERO STAT: Pool-level insight figure (2 distinct vertical rows) -->
@@ -1914,6 +1933,15 @@
                                                 <span class="ic-fact-emoji {% if frame_items.0 == '1' or frame_items.0 == 'X' or frame_items.0 == '2' %}sign-blue{% endif %}">{{ frame_items.0|safe }}</span>
                                                 <div class="ic-fact-content">
                                                     {% with lines=frame_items.1|split:"<br>" %}
+                                                    {% if insight.category == 'CHAMPION_CONSENSUS' or insight.category == 'ENGLAND_BAROMETER' or insight.category == 'DREAM_FINAL' or lines.0|slice:":1" == "•" %}
+                                                    <div class="ic-fact-bullets">
+                                                        {% for b_line in lines %}
+                                                        {% if b_line|striptags|length > 0 %}
+                                                        <div>{{ b_line|safe }}</div>
+                                                        {% endif %}
+                                                        {% endfor %}
+                                                    </div>
+                                                    {% else %}
                                                     <div class="ic-fact-title">{{ lines.0|safe }}</div>
                                                     {% if lines|length > 1 %}
                                                     <div class="ic-fact-bullets">
@@ -1923,6 +1951,7 @@
                                                         {% endif %}
                                                         {% endfor %}
                                                     </div>
+                                                    {% endif %}
                                                     {% endif %}
                                                     {% endwith %}
                                                 </div>
@@ -2387,6 +2416,7 @@
                                         {% endif %}
 
                                         <!-- 4. DAY SUMMARY (FULL WIDTH NEWSPAPER STATS BOX) -->
+                                        {% if gazette.structured_data.day_summary %}
                                         <div class="p-4 rounded-3" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25);">
                                             <h6 class="fw-extrabold text-emerald mb-3 uppercase tracking-wider d-flex align-items-center gap-2" style="font-size: 0.82rem; letter-spacing: 1px;">
                                                 <i class="fa-solid fa-chart-pie"></i>
@@ -2427,11 +2457,12 @@
                                                             </span>
                                                         </div>
                                                     {% else %}
-                                                        <strong class="text-info small d-block text-truncate fw-bold" style="font-size: 0.72rem;">{{ gazette.structured_data.day_summary.highest_scoring_match|default:"Spanien vs Kroatien (3-0)" }}</strong>
+                                                        <strong class="text-info small d-block text-truncate fw-bold" style="font-size: 0.72rem;">{{ gazette.structured_data.day_summary.highest_scoring_match }}</strong>
                                                     {% endif %}
                                                 </div>
                                             </div>
                                         </div>
+                                        {% endif %}
 
                                     </div>
                                     
