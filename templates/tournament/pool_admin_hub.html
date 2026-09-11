@@ -29,15 +29,15 @@
             <a href="{% url 'hub' %}" class="btn btn-outline-secondary btn-sm fw-bold px-3 py-2" style="border-radius: 10px;">
                 <i class="fa-solid fa-arrow-left me-1.5"></i>Tillbaka till Hub
             </a>
-            <button type="button" class="btn btn-sm fw-bold px-3.5 py-2" data-bs-toggle="modal" data-bs-target="#createPoolModal" style="background: #10b981; color: #ffffff; border-radius: 10px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
+            <button type="button" class="btn btn-emerald btn-sm fw-bold px-3.5 py-2" data-bs-toggle="modal" data-bs-target="#createPoolModal">
                 <i class="fa-solid fa-plus me-1.5"></i>Skapa Ny Pool
             </button>
         </div>
     </div>
 
     <!-- ACTIVE POOLS AS ROWS -->
-    <div class="card border-0 shadow-lg" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15) !important; border-radius: 18px;">
-        <div class="card-header border-bottom border-secondary border-opacity-15 py-3.5 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="background: rgba(15, 23, 42, 0.95);">
+    <div class="card card-dark border-0 shadow-lg">
+        <div class="card-header border-bottom border-secondary border-opacity-10 py-3.5 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3" style="background: rgba(15, 23, 42, 0.95);">
             <div>
                 <h5 class="fw-bold text-white mb-0">
                     <i class="fa-solid fa-layer-group text-emerald me-2"></i>Aktiva Pooler
@@ -169,31 +169,31 @@
                 <div class="modal-body text-start p-4">
                     <div class="mb-3">
                         <label class="form-label text-white small fw-bold">Poolnamn <span class="text-danger">*</span></label>
-                        <input type="text" name="pool_name" class="form-control" placeholder="T.ex. Företagskampen eller Grannpoolen" required style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                        <input type="text" name="pool_name" class="form-control form-dark" placeholder="T.ex. Företagskampen eller Grannpoolen" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-white small fw-bold">Beskrivning (Valfritt)</label>
-                        <textarea name="description" rows="2" class="form-control" placeholder="En kort beskrivning eller hälsning till deltagarna..." style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;"></textarea>
+                        <textarea name="description" rows="2" class="form-control form-dark" placeholder="En kort beskrivning eller hälsning till deltagarna..."></textarea>
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label text-white small fw-bold">Önskat Pool ID / Kod (Valfritt)</label>
-                            <input type="text" name="invite_code" maxlength="12" class="form-control text-uppercase" placeholder="Auto-genereras om tomt" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                            <input type="text" name="invite_code" maxlength="12" class="form-control form-dark text-uppercase" placeholder="Auto-genereras om tomt">
                             <div class="form-text text-white small" style="opacity: 0.6; font-size: 0.72rem;">Unik inbjudningskod (t.ex. KAMPEN26)</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-white small fw-bold">Accentfärg</label>
-                            <input type="color" name="primary_color" value="#10b981" class="form-control form-control-color w-100" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3);">
+                            <input type="color" name="primary_color" value="#10b981" class="form-control form-control-color form-dark w-100 p-1">
                         </div>
                     </div>
                     <div class="mb-2">
                         <label class="form-label text-white small fw-bold">Logotyp / Klubbemblem (Valfritt)</label>
-                        <input type="file" name="logo" accept="image/*" class="form-control" style="background: rgba(15,23,42,0.95); border: 1px solid rgba(148,163,184,0.3); color: #ffffff;">
+                        <input type="file" name="logo" accept="image/*" class="form-control form-dark">
                     </div>
                 </div>
                 <div class="modal-footer border-top border-secondary border-opacity-20 py-3 px-4">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Avbryt</button>
-                    <button type="submit" class="btn btn-emerald btn-sm fw-bold px-4" style="background: #10b981; color: #ffffff; border-radius: 8px;">
+                    <button type="submit" class="btn btn-emerald btn-sm fw-bold px-4">
                         <i class="fa-solid fa-check me-1.5"></i>Skapa Pool
                     </button>
                 </div>
@@ -201,12 +201,4 @@
         </div>
     </div>
 </div>
-
-<style>
-.text-hover-emerald:hover {
-    color: #34d399 !important;
-}
-.text-emerald { color: #10b981 !important; }
-.btn-emerald:hover { background: #059669 !important; }
-</style>
 {% endblock %}

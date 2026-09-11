@@ -1,7 +1,7 @@
 {% extends 'tournament/base.html' %}
 {% load static %}
 
-{% block title %}Användaravtal (Terms & Conditions) | Sports Prediction{% endblock %}
+{% block title %}Användaravtal (Terms & Conditions) | Prediction Engine{% endblock %}
 
 {% block header_style %}background: linear-gradient(180deg, rgba(15, 23, 42, 0.88) 0%, rgba(11, 15, 25, 0.96) 100%), url('{% static "tournament/img/engine_backdrop.svg" %}'); background-size: cover; background-position: center;{% endblock %}
 {% block backdrop_style %}background: linear-gradient(180deg, rgba(11, 15, 25, 0.78) 0%, rgba(11, 15, 25, 0.94) 100%), url('{% static "tournament/img/engine_backdrop.svg" %}'); background-size: cover; background-position: top center; background-repeat: no-repeat;{% endblock %}
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Main Terms Card -->
-    <div class="card border-0 shadow-2xl rounded-4 overflow-hidden position-relative" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(148, 163, 184, 0.25) !important;">
+    <div class="card border-0 shadow-lg rounded-4 overflow-hidden position-relative" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(148, 163, 184, 0.25) !important;">
         
         <!-- Header Banner -->
         <div class="p-4 p-md-5 border-bottom border-secondary border-opacity-25 position-relative" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);">
@@ -40,7 +40,7 @@
                 </div>
                 <div>
                     <h2 class="fw-black text-white mb-0" style="letter-spacing: -0.5px;">ANVÄNDARAVTAL</h2>
-                    <div class="text-info small fw-bold text-uppercase tracking-wider">Terms &amp; Conditions &bull; Sports Prediction</div>
+                    <div class="text-info small fw-bold text-uppercase">Terms &amp; Conditions &bull; Prediction Engine</div>
                 </div>
             </div>
             {% if require_acceptance %}
@@ -52,7 +52,7 @@
             </div>
             {% endif %}
             <p class="text-white mb-0" style="font-size: 1rem; line-height: 1.65; color: #f8fafc !important;">
-                Välkommen till <strong>Sports Prediction</strong>. Genom att skapa ett konto och använda denna tjänst godkänner du följande villkor. Läs igenom dem noggrant.
+                Välkommen till <strong>Prediction Engine</strong>. Genom att skapa ett konto och använda denna tjänst godkänner du följande villkor. Läs igenom dem noggrant.
             </p>
         </div>
 
@@ -62,7 +62,7 @@
             <!-- SECTION 1 -->
             <div class="mb-5">
                 <h4 class="fw-extrabold text-white d-flex align-items-center pb-2 border-bottom border-secondary border-opacity-25 mb-3" style="color: #38bdf8 !important;">
-                    <span style="background: #0284c7; color: #ffffff; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; font-size: 1rem; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); margin-right: 10px; flex-shrink: 0;">1</span>
+                    <span class="terms-section-num">1</span>
                     <span>TJÄNSTENS SYFTE OCH BEGRÄNSNINGAR</span>
                 </h4>
                 <p class="text-white">
@@ -81,7 +81,7 @@
             <!-- SECTION 2 -->
             <div class="mb-5">
                 <h4 class="fw-extrabold text-white d-flex align-items-center pb-2 border-bottom border-secondary border-opacity-25 mb-3" style="color: #38bdf8 !important;">
-                    <span style="background: #0284c7; color: #ffffff; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; font-size: 1rem; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); margin-right: 10px; flex-shrink: 0;">2</span>
+                    <span class="terms-section-num">2</span>
                     <span>ETT TRYGGT ALTERNATIV TILL VADSLAGNING (SPELANSVAR)</span>
                 </h4>
                 <p class="text-white">
@@ -92,7 +92,7 @@
                 </p>
                 
                 <!-- Spelansvarsbox med maximal kontrast -->
-                <div class="p-4 rounded-3 mb-3" style="background: #1e293b; border: 2px solid #3b82f6; box-shadow: 0 6px 20px rgba(0,0,0,0.4);">
+                <div class="p-4 rounded-3 mb-3" style="background: #1e293b; border: 2px solid rgba(59, 130, 246, 0.7); box-shadow: 0 6px 20px rgba(0,0,0,0.4);">
                     <div class="fw-bold mb-2.5 d-flex align-items-center gap-2" style="color: #fbbf24; font-size: 1.05rem;">
                         <i class="fa-solid fa-heart-pulse text-warning fs-5"></i>
                         Om du känner att tävlingsmoment har en negativ inverkan på dig:
@@ -126,7 +126,7 @@
             <!-- SECTION 3 -->
             <div class="mb-5">
                 <h4 class="fw-extrabold text-white d-flex align-items-center pb-2 border-bottom border-secondary border-opacity-25 mb-3" style="color: #38bdf8 !important;">
-                    <span style="background: #0284c7; color: #ffffff; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; font-size: 1rem; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); margin-right: 10px; flex-shrink: 0;">3</span>
+                    <span class="terms-section-num">3</span>
                     <span>AVGIFTER OCH BETALNING</span>
                 </h4>
                 <p class="text-white">
@@ -142,7 +142,7 @@
             <!-- SECTION 4 -->
             <div class="mb-5">
                 <h4 class="fw-extrabold text-white d-flex align-items-center pb-2 border-bottom border-secondary border-opacity-25 mb-3" style="color: #38bdf8 !important;">
-                    <span style="background: #0284c7; color: #ffffff; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; font-size: 1rem; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); margin-right: 10px; flex-shrink: 0;">4</span>
+                    <span class="terms-section-num">4</span>
                     <span>ANVÄNDARKONTON OCH ANSVAR</span>
                 </h4>
                 <ul class="ps-3 mb-0 text-white" style="list-style-type: disc;">
@@ -156,7 +156,7 @@
             <!-- SECTION 5 -->
             <div class="mb-5">
                 <h4 class="fw-extrabold text-white d-flex align-items-center pb-2 border-bottom border-secondary border-opacity-25 mb-3" style="color: #38bdf8 !important;">
-                    <span style="background: #0284c7; color: #ffffff; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; font-size: 1rem; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); margin-right: 10px; flex-shrink: 0;">5</span>
+                    <span class="terms-section-num">5</span>
                     <span>PERSONUPPGIFTER OCH SEKRETESS</span>
                 </h4>
                 <p class="text-white">
@@ -171,7 +171,7 @@
             <!-- SECTION 6 -->
             <div class="mb-5">
                 <h4 class="fw-extrabold text-white d-flex align-items-center pb-2 border-bottom border-secondary border-opacity-25 mb-3" style="color: #38bdf8 !important;">
-                    <span style="background: #0284c7; color: #ffffff; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; font-size: 1rem; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); margin-right: 10px; flex-shrink: 0;">6</span>
+                    <span class="terms-section-num">6</span>
                     <span>TILLGÄNGLIGHET OCH ANSVARSBEGRÄNSNING</span>
                 </h4>
                 <p class="text-white">
@@ -186,7 +186,7 @@
             <!-- SECTION 7 -->
             <div class="mb-5">
                 <h4 class="fw-extrabold text-white d-flex align-items-center pb-2 border-bottom border-secondary border-opacity-25 mb-3" style="color: #38bdf8 !important;">
-                    <span style="background: #0284c7; color: #ffffff; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; font-size: 1rem; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); margin-right: 10px; flex-shrink: 0;">7</span>
+                    <span class="terms-section-num">7</span>
                     <span>RÄTT ATT STÄNGA AV ANVÄNDARE</span>
                 </h4>
                 <p class="text-white mb-0">
@@ -197,7 +197,7 @@
             <!-- SECTION 8 -->
             <div class="mb-5">
                 <h4 class="fw-extrabold text-white d-flex align-items-center pb-2 border-bottom border-secondary border-opacity-25 mb-3" style="color: #38bdf8 !important;">
-                    <span style="background: #0284c7; color: #ffffff; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; font-size: 1rem; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); margin-right: 10px; flex-shrink: 0;">8</span>
+                    <span class="terms-section-num">8</span>
                     <span>ÄNDRINGAR I VILLKOREN</span>
                 </h4>
                 <p class="text-white mb-0">
@@ -208,7 +208,7 @@
             <!-- SECTION 9 -->
             <div>
                 <h4 class="fw-extrabold text-white d-flex align-items-center pb-2 border-bottom border-secondary border-opacity-25 mb-3" style="color: #38bdf8 !important;">
-                    <span style="background: #0284c7; color: #ffffff; width: 34px; height: 34px; min-width: 34px; border-radius: 50%; font-size: 1rem; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4); margin-right: 10px; flex-shrink: 0;">9</span>
+                    <span class="terms-section-num">9</span>
                     <span>TILLÄMPLIG LAG OCH TVISTLÖSNING</span>
                 </h4>
                 <p class="text-white mb-0">
@@ -220,13 +220,13 @@
 
         <!-- Footer Actions -->
         <div class="p-4 bg-dark bg-opacity-80 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <span class="text-white small">&copy; 2026 Sports Prediction. Alla rättigheter förbehållna.</span>
+            <span class="text-white small">&copy; 2026 Prediction Engine. Alla rättigheter förbehållna.</span>
             {% if require_acceptance %}
             <form method="post" action="{% url 'accept_terms' %}" class="mb-0">
                 {% csrf_token %}
                 <input type="hidden" name="accept_terms" value="on">
                 <input type="hidden" name="next" value="{{ request.GET.next|default:'/dashboard/?tab=predictions' }}">
-                <button type="submit" class="btn btn-success rounded-pill px-4 py-2 fw-extrabold shadow-sm d-inline-flex align-items-center gap-2" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; font-size: 0.95rem;">
+                <button type="submit" class="btn btn-emerald rounded-pill px-4 py-2 fw-extrabold shadow-sm d-inline-flex align-items-center gap-2" style="font-size: 0.95rem;">
                     <i class="fa-solid fa-check"></i>
                     <span>Jag accepterar</span>
                 </button>

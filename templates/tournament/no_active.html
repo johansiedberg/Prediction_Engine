@@ -1,7 +1,7 @@
 {% extends 'tournament/base.html' %}
 {% load static %}
 
-{% block title %}Inga aktiva mästerskap — Mästerskapstips{% endblock %}
+{% block title %}Inga aktiva mästerskap — Prediction Engine{% endblock %}
 
 {% block header_style %}background: #0B0F19; border-bottom: 1px solid rgba(148, 163, 184, 0.12);{% endblock %}
 {% block backdrop_style %}background: #0B0F19;{% endblock %}
@@ -21,7 +21,7 @@
                 </p>
 
                 <div class="d-flex flex-wrap align-items-center justify-content-center gap-3">
-                    <a href="{% url 'hub' %}" class="btn btn-emerald rounded-pill px-4 py-2 fw-semibold" style="background: #10b981; color: #ffffff;">
+                    <a href="{% url 'hub' %}" class="btn btn-emerald rounded-pill px-4 py-2 fw-semibold">
                         <i class="fa-solid fa-house me-2"></i>Tillbaka till Startsidan
                     </a>
                 </div>

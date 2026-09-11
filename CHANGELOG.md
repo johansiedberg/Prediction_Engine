@@ -13,19 +13,23 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 
 ---
 
-## [v2.8.1] - 2026-09-11 (Current Release)
+## [v2.8.2] - 2026-09-11 (Current Release)
 
 ### 🎯 Milestone Highlights
-- **Resultat & Tabeller: Äkta Slutspel Harmonization & Dual-Phase Scoring**:
-  - **Dedicated Subtab for Äkta Slutspel**: Added an official *Äkta Slutspel* tab under *Resultat & Tabeller* calculating match and advancement points for user predictions submitted during the second prediction window (`ACTUAL_KNOCKOUT`).
-  - **Aligned Layout & Frame Default Styling**: Harmonized layout and visual design with *Slutspel*, removing unaligned standalone banners and replacing generic alerts with standard glassmorphic callouts (`linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98))` with colored border accents).
-  - **Swedish Terminology & Stage Localization**: Standardized Swedish labels across knockout stages (`Åttondelsfinal`, `Sextondelsfinal`, `Kvartsfinal`, `Semifinal`, `Bronsmatch`, `Final`) via `KnockoutStage.stage_name` and `STAGE_SWEDISH_MAP`. Replaced English terms (e.g. "fixture") with natural Swedish ("match", "matchpar", "slutspel").
-  - **Refined Status Tooltips & Placeholder Formatting**: Added Swedish hover tooltips for fixture state (`🔵 Ej fastställd match`, `⚠️ Avvikande match`, `✅ Korrekt matchpar!`) and formatted placeholder bracket codes (`W37`, `L49`, etc.) with Swedish explanation legends.
+- **UI/UX Streamlining, Design System Consolidation & CSS Utility Harmonization**:
+  - **CSS Design System & Utility Suite**: Added missing fractional `.5`-step spacing and typography classes to `style.css` (`.me-1.5`, `.py-2.5`, `.gap-1.5`, `.fs-8`, etc.), canonical utility classes (`.auth-card`, `.card-dark`, `.form-dark`, `.hover-lift`, `.terms-section-num`), and complete base styles for `.btn-emerald` (gradient, shadow, border-radius).
+  - **Auth & Onboarding Streamlining**: Standardized `register.html`, `login.html`, `request_pool_admin.html`, and `set_password.html` with `.auth-card` and `.form-dark`. Harmonized brand title to "Prediction Engine" and replaced non-free FontAwesome Pro icons (`fa-shield-check`, `fa-lock-check`) with free FA equivalents (`fa-shield-halved`, `fa-lock`).
+  - **Tournament Switcher Modal & Dashboard Layout**: Replaced low-contrast tournament select button in `#tournamentSelectModal` with high-contrast emerald CTA (`Välj →`) and active indicator (`✓ Aktiv`). Completely removed redundant "Godkänd & Verifierad" badge. Preserved explicit 3-column CSS Grid on dashboard (*Nästa Match* + *Senaste Resultat* row 1, *Kommande Matcher* row 2, and *Topplistan* full height column 3).
+  - **Analys & Insikter & Template Cleanup**: Removed subtitle badges "Samlad Tipsöversikt & Almanacka" and "Tidningskrönika & Specialutgåvor" in `index.html`. Upgraded legacy Bootstrap 3 `btn-xs` to `btn-sm` in `pool_admin.html`. Cleaned up footer copy and removed arbitrary `z-index: 10000` in `base.html`.
 
-### 📋 Commits from DEV (v2.8.0 -> v2.8.1)
+### 📋 Commits from DEV (v2.8.1 -> v2.8.2)
 | Commit SHA | Type | Description |
 | :--- | :--- | :--- |
-| `HEAD` | `feat(knockout)` | Äkta Slutspel results subtab, Swedish stage localization, and frame default layout harmonization |
+| `1190285` | `style` | Streamline UI/UX, consolidate CSS utilities, fix Bootstrap classes, and refine dashboard layout |
+
+---
+
+## [v2.8.1] - 2026-09-11
 
 ---
 

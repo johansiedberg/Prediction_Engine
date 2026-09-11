@@ -167,6 +167,7 @@
                 {% if is_verified %}
                 <!-- 1. HEM TAB (Dashboard overview) -->
                 <div class="tab-pane fade {% if active_tab_name == 'home' %}show active{% endif %}" id="tab-home" role="tabpanel" aria-labelledby="tab-home-link">
+
                     <style>
                         @media (min-width: 992px) {
                             .dashboard-home-grid {
@@ -2096,9 +2097,6 @@
                                     <span class="me-2" style="font-size: 1.3rem; filter: drop-shadow(0 2px 8px rgba(16,185,129,0.7));">📊</span>
                                     <span>Gängets Tipsanalys</span>
                                 </h4>
-                                <span class="badge bg-emerald bg-opacity-20 text-emerald border border-emerald border-opacity-40 px-3 py-1.5 fw-bold" style="font-size: 0.78rem;">
-                                    Samlad Tipsöversikt & Almanacka
-                                </span>
                             </div>
 
                             <style>
@@ -2322,9 +2320,6 @@
                                     <span class="me-2" style="font-size: 1.3rem; filter: drop-shadow(0 2px 8px rgba(59,130,246,0.7));">📰</span>
                                     <span>Dagliga Gazetten & Omgångsmagasinet</span>
                                 </h4>
-                                <span class="badge bg-primary bg-opacity-20 text-primary border border-primary border-opacity-40 px-3 py-1.5 fw-bold" style="font-size: 0.78rem;">
-                                    Tidningskrönika & Specialutgåvor
-                                </span>
                             </div>
 
                              <div class="row g-4">
@@ -2989,38 +2984,48 @@
                                 <!-- Right: Aligned Status Badge next to Outlined Choose Button (Same Height) -->
                                 <div class="d-flex align-items-center gap-3 ms-auto flex-wrap justify-content-end">
                                     <!-- Aligned Status Badges (Grey / Red / Yellow / Green) -->
-                                    {% if item.status_type == 'GREY' %}
-                                        <span class="badge px-3.5 rounded-pill fw-bold d-inline-flex align-items-center justify-content-center" 
-                                              style="background: rgba(148, 163, 184, 0.22); border: 1px solid rgba(148, 163, 184, 0.6); color: #CBD5E1; font-size: 0.78rem; min-width: 220px; height: 38px; text-align: center;">
-                                            <i class="fa-solid fa-lock me-2.5 opacity-75"></i>{{ item.status_text }}
-                                        </span>
-                                    {% elif item.status_type == 'RED' %}
-                                        <span class="badge px-3.5 rounded-pill fw-bold d-inline-flex align-items-center justify-content-center" 
-                                              style="background: rgba(220, 38, 38, 0.3); border: 1px solid rgba(239, 68, 68, 0.8); color: #FCA5A5; font-size: 0.78rem; text-shadow: 0 1px 2px rgba(0,0,0,0.6); min-width: 220px; height: 38px; text-align: center;">
-                                            <i class="fa-solid fa-circle-exclamation me-2.5"></i>{{ item.status_text }}
-                                        </span>
-                                    {% elif item.status_type == 'YELLOW' %}
-                                        <span class="badge px-3.5 rounded-pill fw-bold d-inline-flex align-items-center justify-content-center" 
-                                              style="background: rgba(245, 158, 11, 0.3); border: 1px solid rgba(251, 191, 36, 0.8); color: #FCD34D; font-size: 0.78rem; text-shadow: 0 1px 2px rgba(0,0,0,0.6); min-width: 220px; height: 38px; text-align: center;">
-                                            <i class="fa-solid fa-clock me-2.5"></i>{{ item.status_text }}
-                                        </span>
-                                    {% elif item.status_type == 'GREEN' %}
-                                        <span class="badge px-3.5 rounded-pill fw-bold d-inline-flex align-items-center justify-content-center" 
-                                              style="background: rgba(16, 185, 129, 0.3); border: 1px solid rgba(52, 211, 153, 0.8); color: #6EE7B7; font-size: 0.78rem; text-shadow: 0 1px 2px rgba(0,0,0,0.6); min-width: 220px; height: 38px; text-align: center;">
-                                            <i class="fa-solid fa-circle-check me-2.5"></i>{{ item.status_text }}
-                                        </span>
-                                    {% else %}
-                                        <span class="badge px-3.5 rounded-pill fw-bold d-inline-flex align-items-center justify-content-center" 
-                                              style="background: rgba(148, 163, 184, 0.22); border: 1px solid rgba(148, 163, 184, 0.6); color: #CBD5E1; font-size: 0.78rem; min-width: 220px; height: 38px; text-align: center;">
-                                            {{ item.status_text }}
-                                        </span>
+                                    {% if item.status_text and item.status_text != 'Godkänd & Verifierad' %}
+                                        {% if item.status_type == 'GREY' %}
+                                            <span class="badge px-3.5 rounded-pill fw-bold d-inline-flex align-items-center justify-content-center" 
+                                                  style="background: rgba(148, 163, 184, 0.22); border: 1px solid rgba(148, 163, 184, 0.6); color: #CBD5E1; font-size: 0.78rem; min-width: 220px; height: 38px; text-align: center;">
+                                                <i class="fa-solid fa-lock me-2.5 opacity-75"></i>{{ item.status_text }}
+                                            </span>
+                                        {% elif item.status_type == 'RED' %}
+                                            <span class="badge px-3.5 rounded-pill fw-bold d-inline-flex align-items-center justify-content-center" 
+                                                  style="background: rgba(220, 38, 38, 0.3); border: 1px solid rgba(239, 68, 68, 0.8); color: #FCA5A5; font-size: 0.78rem; text-shadow: 0 1px 2px rgba(0,0,0,0.6); min-width: 220px; height: 38px; text-align: center;">
+                                                <i class="fa-solid fa-circle-exclamation me-2.5"></i>{{ item.status_text }}
+                                            </span>
+                                        {% elif item.status_type == 'YELLOW' %}
+                                            <span class="badge px-3.5 rounded-pill fw-bold d-inline-flex align-items-center justify-content-center" 
+                                                  style="background: rgba(245, 158, 11, 0.3); border: 1px solid rgba(251, 191, 36, 0.8); color: #FCD34D; font-size: 0.78rem; text-shadow: 0 1px 2px rgba(0,0,0,0.6); min-width: 220px; height: 38px; text-align: center;">
+                                                <i class="fa-solid fa-clock me-2.5"></i>{{ item.status_text }}
+                                            </span>
+                                        {% elif item.status_type == 'GREEN' %}
+                                            <span class="badge px-3.5 rounded-pill fw-bold d-inline-flex align-items-center justify-content-center" 
+                                                  style="background: rgba(16, 185, 129, 0.3); border: 1px solid rgba(52, 211, 153, 0.8); color: #6EE7B7; font-size: 0.78rem; text-shadow: 0 1px 2px rgba(0,0,0,0.6); min-width: 220px; height: 38px; text-align: center;">
+                                                <i class="fa-solid fa-circle-check me-2.5"></i>{{ item.status_text }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge px-3.5 rounded-pill fw-bold d-inline-flex align-items-center justify-content-center" 
+                                                  style="background: rgba(148, 163, 184, 0.22); border: 1px solid rgba(148, 163, 184, 0.6); color: #CBD5E1; font-size: 0.78rem; min-width: 220px; height: 38px; text-align: center;">
+                                                {{ item.status_text }}
+                                            </span>
+                                        {% endif %}
                                     {% endif %}
 
-                                    <!-- Light Grey Outlined Choose Button (No hover highlighting, light grey text & border) -->
-                                    <a href="?tournament_id={{ item.id }}" class="btn btn-choose-lightgrey fw-bold rounded-pill px-4 shadow-sm d-inline-flex align-items-center justify-content-center gap-2" style="font-size: 0.85rem; height: 38px; min-width: 110px;">
-                                        <span>Välj</span>
-                                        <i class="fa-solid fa-arrow-right ms-1" style="font-size: 0.78rem;"></i>
-                                    </a>
+                                    <!-- High-Contrast Clearly Readable Choose Button -->
+                                    {% if item.is_current %}
+                                        <a href="?tournament_id={{ item.id }}" class="btn fw-bold rounded-pill px-4 shadow-sm d-inline-flex align-items-center justify-content-center gap-2" 
+                                           style="font-size: 0.88rem; height: 38px; min-width: 110px; background: rgba(16, 185, 129, 0.25); border: 1.5px solid #10b981; color: #34d399;" title="Aktiv turnering">
+                                            <i class="fa-solid fa-check me-1"></i><span>Aktiv</span>
+                                        </a>
+                                    {% else %}
+                                        <a href="?tournament_id={{ item.id }}" class="btn btn-emerald fw-bold rounded-pill px-4 shadow-sm d-inline-flex align-items-center justify-content-center gap-2" 
+                                           style="font-size: 0.88rem; height: 38px; min-width: 110px; background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; color: #ffffff !important; border: 1px solid rgba(52, 211, 153, 0.5) !important;">
+                                            <span>Välj</span>
+                                            <i class="fa-solid fa-arrow-right ms-1" style="font-size: 0.78rem;"></i>
+                                        </a>
+                                    {% endif %}
 
                                 </div>
 

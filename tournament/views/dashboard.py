@@ -1031,9 +1031,9 @@ def dashboard_view(request):
             status_type = "YELLOW"
             badge_class = "bg-warning bg-opacity-25 text-warning border-warning"
         elif t_sub and t_sub.is_verified:
-            status_text = "Godkänd & Verifierad"
-            status_type = "GREEN"
-            badge_class = "bg-success bg-opacity-25 text-success border-success"
+            status_text = None
+            status_type = None
+            badge_class = ""
         else:
             status_text = "Sparad & Väntar Verifiering"
             status_type = "GREEN"

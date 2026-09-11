@@ -497,3 +497,282 @@ footer {
 }
 
 
+/* ==========================================
+   BOOTSTRAP .5-STEP FRACTIONAL SPACING UTILITIES
+   Bootstrap 5 does not ship half-step utilities.
+   These are used extensively across all templates.
+   ========================================== */
+.me-0\.5  { margin-right: 0.125rem !important; }
+.me-1\.5  { margin-right: 0.375rem !important; }
+.me-2\.5  { margin-right: 0.625rem !important; }
+.ms-0\.5  { margin-left:  0.125rem !important; }
+.ms-1\.5  { margin-left:  0.375rem !important; }
+.mt-0\.5  { margin-top:   0.125rem !important; }
+.mt-1\.5  { margin-top:   0.375rem !important; }
+.mt-3\.5  { margin-top:   0.875rem !important; }
+.mb-0\.5  { margin-bottom: 0.125rem !important; }
+.mb-1\.5  { margin-bottom: 0.375rem !important; }
+.mb-2\.5  { margin-bottom: 0.625rem !important; }
+.mb-3\.5  { margin-bottom: 0.875rem !important; }
+.py-1\.5  { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+.py-2\.5  { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+.py-3\.5  { padding-top: 0.875rem !important; padding-bottom: 0.875rem !important; }
+.px-1\.5  { padding-left: 0.375rem !important; padding-right: 0.375rem !important; }
+.px-2\.5  { padding-left: 0.625rem !important; padding-right: 0.625rem !important; }
+.px-3\.5  { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
+.pt-2\.5  { padding-top:    0.625rem !important; }
+.pb-2\.5  { padding-bottom: 0.625rem !important; }
+.gap-1\.5 { gap: 0.375rem !important; }
+.gap-2\.5 { gap: 0.625rem !important; }
+.gap-3\.5 { gap: 0.875rem !important; }
+.p-3\.5   { padding: 0.875rem !important; }
+.fs-7     { font-size: 0.78rem !important; }
+.fs-8     { font-size: 0.72rem !important; }
+
+/* ==========================================
+   MISSING BOOTSTRAP OPACITY UTILITIES
+   ========================================== */
+.opacity-35  { opacity: 0.35 !important; }
+.opacity-60  { opacity: 0.60 !important; }
+.opacity-85  { opacity: 0.85 !important; }
+.border-opacity-15 { --bs-border-opacity: 0.15; }
+
+/* ==========================================
+   FIX: .btn-emerald BASE STATE
+   Previously only :hover was defined — causing every usage to
+   rely on redundant inline style="background: #10b981; color: #fff"
+   ========================================== */
+.btn-emerald {
+    background: linear-gradient(135deg, #059669 0%, #10B981 100%) !important;
+    color: #FFFFFF !important;
+    font-weight: 600;
+    border: none !important;
+    border-radius: 12px;
+    padding: 0.75rem 2rem;
+    box-shadow: 0 4px 15px var(--accent-emerald-glow);
+    transition: all 0.25s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* ==========================================
+   AUTH CARD — shared by login, register,
+   set_password, request_pool_admin
+   ========================================== */
+.auth-card {
+    background: rgba(15, 23, 42, 0.92) !important;
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(148, 163, 184, 0.15) !important;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================
+   CARD-DARK — canonical dark glass card
+   (pools table, hub panels, admin sections)
+   ========================================== */
+.card-dark {
+    background: rgba(15, 23, 42, 0.88) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(148, 163, 184, 0.15) !important;
+    border-radius: 18px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================
+   FORM-DARK — canonical dark-themed input
+   Replaces ~30 instances of identical inline styles
+   ========================================== */
+.form-dark {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1px solid rgba(148, 163, 184, 0.25) !important;
+    color: #f3f4f6 !important;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.form-dark:focus {
+    border-color: var(--accent-emerald) !important;
+    box-shadow: 0 0 0 3px var(--accent-emerald-glow) !important;
+    color: #ffffff !important;
+    background: rgba(15, 23, 42, 0.98) !important;
+    outline: none;
+}
+.form-dark::placeholder {
+    color: rgba(148, 163, 184, 0.5);
+}
+
+/* ==========================================
+   HOVER-LIFT — card elevation on hover
+   Moved from hub.html inline <style> block
+   ========================================== */
+.hover-lift {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ==========================================
+   SHARED UTILITY CLASSES
+   Moved from per-template <style> blocks
+   ========================================== */
+
+/* Emerald link hover — moved from pool_admin_hub.html */
+.text-hover-emerald:hover { color: #34d399 !important; }
+
+/* Disabled / locked nav item */
+.nav-disabled {
+    opacity: 0.35 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
+/* Terms section number circles — replaces 9x identical inline style in terms.html */
+.terms-section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    background: #0284c7 !important;
+    border-radius: 50%;
+    color: #ffffff !important;
+    font-size: 1rem;
+    font-weight: 900;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+/* cursor-pointer utility (not in Bootstrap 5) */
+.cursor-pointer { cursor: pointer !important; }
+
+/* ==========================================
+   MAIN NAVIGATION TABS
+   Moved from index.html inline <style> block (lines 11–58)
+   ========================================== */
+.main-nav-link {
+    color: #9CA3AF !important;
+    text-decoration: none !important;
+    padding: 0.25rem 0.5rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+}
+.main-nav-link:hover {
+    color: #FFFFFF !important;
+}
+.main-nav-link.active {
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid #10B981 !important;
+    background: transparent !important;
+}
+.main-nav-link.nav-incomplete-red,
+.main-nav-link.nav-incomplete-red.active {
+    border-bottom: 2.5px solid #EF4444 !important;
+}
+
+/* Prediction completion pulse dot animation */
+@keyframes pulseRedNotification {
+    0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.8); }
+    70%  { transform: scale(1.2);  box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.tournament-pulse-dot {
+    animation: pulseRedNotification 1.8s infinite;
+}
+
+/* Ghost light-grey button (tournament selector) */
+.btn-choose-lightgrey {
+    color: #CBD5E1 !important;
+    border: 1px solid rgba(203, 213, 225, 0.45) !important;
+    background: transparent !important;
+    transition: border-color 0.2s ease !important;
+}
+.btn-choose-lightgrey:hover,
+.btn-choose-lightgrey:focus,
+.btn-choose-lightgrey:active {
+    color: #CBD5E1 !important;
+    background: transparent !important;
+    border-color: rgba(203, 213, 225, 0.75) !important;
+    box-shadow: none !important;
+}
+
+/* ==========================================
+   DASHBOARD HOME CSS GRID
+   Moved from index.html inline <style> block (lines 170–195)
+   ========================================== */
+@media (min-width: 992px) {
+    .dashboard-home-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr 1fr !important;
+        grid-template-rows: auto 1fr !important;
+        gap: 1.5rem !important;
+    }
+    .grid-next-match {
+        grid-column: 1 / 2 !important;
+        grid-row: 1 / 2 !important;
+    }
+    .grid-last-match {
+        grid-column: 2 / 3 !important;
+        grid-row: 1 / 2 !important;
+    }
+    .grid-upcoming {
+        grid-column: 1 / 3 !important;
+        grid-row: 2 / 3 !important;
+    }
+    .grid-leaderboard {
+        grid-column: 3 / 4 !important;
+        grid-row: 1 / 3 !important;
+    }
+}
+
+/* ==========================================
+   LOGIN PAGE ROLE-TOGGLE BUTTONS
+   Moved from login.html inline <style> block
+   ========================================== */
+.role-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 8px 16px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+.inactive-player-btn {
+    background: transparent !important;
+    color: #94a3b8 !important;
+}
+.inactive-player-btn .role-icon { color: #10b981 !important; }
+
+.inactive-pooladmin-btn {
+    background: transparent !important;
+    color: #94a3b8 !important;
+}
+.inactive-pooladmin-btn .role-icon { color: #0284c7 !important; }
+
+.active-player-btn {
+    background: #10b981 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.45) !important;
+}
+.active-player-btn .role-icon { color: #ffffff !important; }
+
+.active-pooladmin-btn {
+    background: #0284c7 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(2, 132, 199, 0.45) !important;
+}
+.active-pooladmin-btn .role-icon { color: #ffffff !important; }
