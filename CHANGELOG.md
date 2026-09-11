@@ -13,7 +13,23 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 
 ---
 
-## [v2.8.0] - 2026-09-06 (Current Release)
+## [v2.8.1] - 2026-09-11 (Current Release)
+
+### 🎯 Milestone Highlights
+- **Resultat & Tabeller: Äkta Slutspel Harmonization & Dual-Phase Scoring**:
+  - **Dedicated Subtab for Äkta Slutspel**: Added an official *Äkta Slutspel* tab under *Resultat & Tabeller* calculating match and advancement points for user predictions submitted during the second prediction window (`ACTUAL_KNOCKOUT`).
+  - **Aligned Layout & Frame Default Styling**: Harmonized layout and visual design with *Slutspel*, removing unaligned standalone banners and replacing generic alerts with standard glassmorphic callouts (`linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98))` with colored border accents).
+  - **Swedish Terminology & Stage Localization**: Standardized Swedish labels across knockout stages (`Åttondelsfinal`, `Sextondelsfinal`, `Kvartsfinal`, `Semifinal`, `Bronsmatch`, `Final`) via `KnockoutStage.stage_name` and `STAGE_SWEDISH_MAP`. Replaced English terms (e.g. "fixture") with natural Swedish ("match", "matchpar", "slutspel").
+  - **Refined Status Tooltips & Placeholder Formatting**: Added Swedish hover tooltips for fixture state (`🔵 Ej fastställd match`, `⚠️ Avvikande match`, `✅ Korrekt matchpar!`) and formatted placeholder bracket codes (`W37`, `L49`, etc.) with Swedish explanation legends.
+
+### 📋 Commits from DEV (v2.8.0 -> v2.8.1)
+| Commit SHA | Type | Description |
+| :--- | :--- | :--- |
+| `HEAD` | `feat(knockout)` | Äkta Slutspel results subtab, Swedish stage localization, and frame default layout harmonization |
+
+---
+
+## [v2.8.0] - 2026-09-06
 
 ### 🎯 Milestone Highlights
 - **Editorial Engine & Analys & Insikter Enhancements**:

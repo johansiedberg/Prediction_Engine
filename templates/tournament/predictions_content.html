@@ -563,7 +563,7 @@
                     {% for stage in knockout_stages %}
                     <div class="col-12">
                         <div class="p-3 rounded-3 mb-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
-                            <h5 class="fw-bold text-emerald mb-3">{{ stage.name }}</h5>
+                            <h5 class="fw-bold text-emerald mb-3">{{ stage.stage_name }}</h5>
                             <div class="row g-3">
                                 {% for match in stage.matches.all %}
                                 {% with pred=user_predictions|get_item:match.id home=match.get_home_team_info away=match.get_away_team_info %}
@@ -724,7 +724,7 @@
                     {% for stage in knockout_stages %}
                     <div class="col-12">
                         <div class="p-3 rounded-3 mb-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
-                            <h5 class="fw-bold text-emerald mb-3">{{ stage.name }}</h5>
+                            <h5 class="fw-bold text-emerald mb-3">{{ stage.stage_name }}</h5>
                             <div class="row g-3">
                                 {% for match in stage.matches.all %}
                                 {% with pred=user_actual_predictions|get_item:match.id home=match.get_actual_home_team_info away=match.get_actual_away_team_info %}

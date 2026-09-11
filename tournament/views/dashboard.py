@@ -559,8 +559,12 @@ def dashboard_view(request):
         m.home_goals is not None and m.away_goals is not None for m in group_matches_list
     )
 
-    # Knockout Stage Full Data calculation for Resultat tab
+    # Knockout Stage Full Data calculation for Resultat tab (INITIAL_BRACKET & ACTUAL_KNOCKOUT)
     knockout_stage_full_data = []
+    actual_knockout_stage_full_data = []
+    total_knockout_pts = 0
+    total_actual_knockout_pts = 0
+
     for ks in knockout_stages:
         ks_matches = [m for m in all_matches if m.stage_id == ks.id]
         
@@ -568,8 +572,8 @@ def dashboard_view(request):
         actual_stage_qualifiers = set()
         for m in ks_matches:
             if m.is_finished or (m.home_goals is not None and m.away_goals is not None):
-                h_info = m.get_home_team_info()
-                a_info = m.get_away_team_info()
+                h_info = m.get_actual_home_team_info()
+                a_info = m.get_actual_away_team_info()
                 h_name = h_info['name'] if (h_info and h_info['name'] != '-') else None
                 a_name = a_info['name'] if (a_info and a_info['name'] != '-') else None
                 if m.home_goals > m.away_goals and h_name:
@@ -582,6 +586,7 @@ def dashboard_view(request):
         # 2. Stage qualification point value
         val_stage_pts = get_knockout_stage_point_value(ks.name, point_system)
 
+        # Initial Bracket predictions
         ks_matches_with_detail = []
         tot_ks_pts = 0
         tournament_team_names = {t.name for t in tournament_teams}
@@ -596,7 +601,8 @@ def dashboard_view(request):
                 val_stage_pts=val_stage_pts,
                 is_all_groups_finished=is_all_groups_finished,
                 tournament_team_names=tournament_team_names,
-                point_system=point_system
+                point_system=point_system,
+                is_actual_knockout=False,
             )
 
             tot_ks_pts += ko_eval['total_m_pts']
@@ -627,6 +633,55 @@ def dashboard_view(request):
             'matches': ks_matches_with_detail,
             'total_match_pts': tot_ks_pts,
         })
+        total_knockout_pts += tot_ks_pts
+
+        # Actual Knockout predictions
+        ks_actual_matches_with_detail = []
+        tot_ks_act_pts = 0
+
+        for m in ks_matches:
+            u_p_act = user_actual_predictions.get(m.id)
+            ko_act_eval = evaluate_knockout_prediction_match(
+                match=m,
+                pred=u_p_act,
+                user_predictions_dict=user_actual_predictions,
+                actual_stage_qualifiers=actual_stage_qualifiers,
+                val_stage_pts=val_stage_pts,
+                is_all_groups_finished=is_all_groups_finished,
+                tournament_team_names=tournament_team_names,
+                point_system=point_system,
+                is_actual_knockout=True,
+            )
+
+            tot_ks_act_pts += ko_act_eval['total_m_pts']
+
+            ks_actual_matches_with_detail.append({
+                'match': m,
+                'home': m.get_actual_home_team_info(),
+                'away': m.get_actual_away_team_info(),
+                'pred_home': m.get_actual_home_team_info(user_actual_predictions),
+                'pred_away': m.get_actual_away_team_info(user_actual_predictions),
+                'is_all_groups_finished': is_all_groups_finished,
+                'is_matchup_known': ko_act_eval['is_matchup_defined'],
+                'is_matchup_defined': ko_act_eval['is_matchup_defined'],
+                'home_team_correct': ko_act_eval['home_team_correct'],
+                'away_team_correct': ko_act_eval['away_team_correct'],
+                'both_teams_correct': ko_act_eval['both_teams_correct'],
+                'analytics': match_analytics.get(m.id),
+                'pred': u_p_act,
+                'detail': ko_act_eval['detail'],
+                'pred_winner_name': ko_act_eval['pred_winner_name'],
+                'is_correct_stage_qualifier': ko_act_eval['is_correct_stage_qualifier'],
+                'pts_stage_qual': ko_act_eval['pts_stage_qual'],
+                'total_row_pts': ko_act_eval['total_m_pts'],
+                'is_m_finished': ko_act_eval['is_m_finished'],
+            })
+        actual_knockout_stage_full_data.append({
+            'stage': ks,
+            'matches': ks_actual_matches_with_detail,
+            'total_match_pts': tot_ks_act_pts,
+        })
+        total_actual_knockout_pts += tot_ks_act_pts
 
     third_place_teams.sort(key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
     pred_third_place_teams.sort(key=lambda x: (x['points'], x['gd'], x['gf'], x['won']), reverse=True)
@@ -921,6 +976,9 @@ def dashboard_view(request):
         'group_tables_data': group_tables_data,
         'group_stage_full_data': group_stage_full_data,
         'knockout_stage_full_data': knockout_stage_full_data,
+        'actual_knockout_stage_full_data': actual_knockout_stage_full_data,
+        'total_knockout_pts': total_knockout_pts,
+        'total_actual_knockout_pts': total_actual_knockout_pts,
         'is_qualifying': is_qualifying,
         'host_ranking_data': host_ranking_data,
         'third_place_teams': third_place_teams,

@@ -177,7 +177,8 @@ def get_or_set_leaderboards_and_analytics(tournament, point_system, players, all
                     val_stage_pts=val_stage_pts,
                     is_all_groups_finished=is_all_groups_finished,
                     tournament_team_names=tournament_team_names,
-                    point_system=point_system
+                    point_system=point_system,
+                    is_actual_knockout=(pred.prediction_phase == 'ACTUAL_KNOCKOUT'),
                 )
 
                 score_pts = ko_eval['score_pts']

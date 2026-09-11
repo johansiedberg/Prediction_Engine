@@ -113,7 +113,8 @@ def evaluate_knockout_prediction_match(
     val_stage_pts,
     is_all_groups_finished,
     tournament_team_names,
-    point_system=None
+    point_system=None,
+    is_actual_knockout=False,
 ):
     """
     Evaluates a knockout match prediction for a player:
@@ -122,13 +123,20 @@ def evaluate_knockout_prediction_match(
     3. Evaluates stage advancement bonus points if the predicted winner is among the actual stage qualifiers.
     Returns a dict with breakdown and total points.
     """
-    act_home = match.get_home_team_info()
-    act_away = match.get_away_team_info()
+    if is_actual_knockout:
+        act_home = match.get_actual_home_team_info()
+        act_away = match.get_actual_away_team_info()
+        pred_home = match.get_actual_home_team_info(user_predictions_dict)
+        pred_away = match.get_actual_away_team_info(user_predictions_dict)
+    else:
+        act_home = match.get_home_team_info()
+        act_away = match.get_away_team_info()
+        pred_home = match.get_home_team_info(user_predictions_dict)
+        pred_away = match.get_away_team_info(user_predictions_dict)
+
     act_home_name = act_home['name'] if (act_home and act_home['name'] != '-') else None
     act_away_name = act_away['name'] if (act_away and act_away['name'] != '-') else None
 
-    pred_home = match.get_home_team_info(user_predictions_dict)
-    pred_away = match.get_away_team_info(user_predictions_dict)
     pred_home_name = pred_home['name'] if (pred_home and pred_home['name'] != '-') else None
     pred_away_name = pred_away['name'] if (pred_away and pred_away['name'] != '-') else None
 

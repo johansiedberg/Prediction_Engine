@@ -3,9 +3,35 @@ from tournament.country_registry import GLOBAL_COUNTRY_FLAG_MAP as COUNTRY_CODE_
 
 class BracketResolverService:
     @classmethod
+    def format_placeholder_short(cls, name):
+        """Converts placeholders like 'Winner Match 37' to 'W37', 'Loser Match 49' to 'L49', etc."""
+        if not name:
+            return ''
+        s = str(name).strip()
+        m_w = re.match(r'^(?:Winner|Vinnare)\s+(?:Match\s+)?(\d+|[A-Z0-9_\-]+)$', s, re.IGNORECASE)
+        if m_w:
+            return f"W{m_w.group(1)}"
+        m_l = re.match(r'^(?:Loser|Förlorare)\s+(?:Match\s+)?(\d+|[A-Z0-9_\-]+)$', s, re.IGNORECASE)
+        if m_l:
+            return f"L{m_l.group(1)}"
+        return s
+
+    @classmethod
+    def format_placeholder_swedish(cls, name):
+        """Localizes placeholders like 'Winner Match 37' to 'Vinnare Match 37'."""
+        if not name:
+            return ''
+        s = str(name).strip()
+        s = re.sub(r'^Winner\s+(?:Match\s+)?(\d+)', r'Vinnare Match \1', s, flags=re.IGNORECASE)
+        s = re.sub(r'^Loser\s+(?:Match\s+)?(\d+)', r'Förlorare Match \1', s, flags=re.IGNORECASE)
+        s = re.sub(r'^Winner\s+([A-Z0-9_\-]+)', r'Vinnare \1', s, flags=re.IGNORECASE)
+        s = re.sub(r'^Loser\s+([A-Z0-9_\-]+)', r'Förlorare \1', s, flags=re.IGNORECASE)
+        return s
+
+    @classmethod
     def resolve_team(cls, match, team_str, user_predictions=None):
         if not team_str:
-            return {'name': '-', 'code': '', 'flag_url': '', 'display_name': '-'}
+            return {'name': '-', 'code': '', 'flag_url': '', 'display_name': '-', 'short_name': '-', 'title_name': '-'}
         
         team_str_clean = re.sub(r'\s*\((?:TBD|tbd)\)', '', team_str).strip()
 
@@ -104,7 +130,9 @@ class BracketResolverService:
                         'name': real_name,
                         'code': code,
                         'flag_url': flag,
-                        'display_name': f"{real_name} ({team_str_clean})"
+                        'display_name': f"{real_name} ({team_str_clean})",
+                        'short_name': cls.format_placeholder_short(real_name),
+                        'title_name': cls.format_placeholder_swedish(real_name)
                     }
                     if user_predictions is None:
                         match._resolved_team_cache[team_str_clean] = res
@@ -151,7 +179,9 @@ class BracketResolverService:
                         'name': t_name,
                         'code': t_code,
                         'flag_url': t_flag,
-                        'display_name': f"{t_name} ({team_str_clean})"
+                        'display_name': f"{t_name} ({team_str_clean})",
+                        'short_name': t_name,
+                        'title_name': t_name
                     }
                 
                 teams = list(group.teams.all())
@@ -161,7 +191,9 @@ class BracketResolverService:
                         'name': t.name,
                         'code': t.code,
                         'flag_url': t.flag_url,
-                        'display_name': f"{t.name} ({team_str_clean})"
+                        'display_name': f"{t.name} ({team_str_clean})",
+                        'short_name': t.name,
+                        'title_name': t.name
                     }
                     if user_predictions is None:
                         match._resolved_team_cache[team_str_clean] = res
@@ -243,7 +275,9 @@ class BracketResolverService:
                     'name': t.name,
                     'code': t.code,
                     'flag_url': t.flag_url,
-                    'display_name': f"{t.name} ({team_str_clean})"
+                    'display_name': f"{t.name} ({team_str_clean})",
+                    'short_name': t.name,
+                    'title_name': t.name
                 }
                 if user_predictions is None:
                     match._resolved_team_cache[team_str_clean] = res
@@ -262,7 +296,9 @@ class BracketResolverService:
                 'name': team.name,
                 'code': t_code,
                 'flag_url': t_flag,
-                'display_name': team_str_clean
+                'display_name': team_str_clean,
+                'short_name': team.name,
+                'title_name': team.name
             }
             if user_predictions is None:
                 match._resolved_team_cache[team_str_clean] = res
@@ -276,7 +312,9 @@ class BracketResolverService:
                 'name': base_name,
                 'code': code,
                 'flag_url': f"https://flagcdn.com/w40/{code}.png",
-                'display_name': team_str_clean
+                'display_name': team_str_clean,
+                'short_name': base_name,
+                'title_name': base_name
             }
             if user_predictions is None:
                 match._resolved_team_cache[team_str_clean] = res
@@ -286,7 +324,9 @@ class BracketResolverService:
             'name': team_str_clean,
             'code': '',
             'flag_url': '',
-            'display_name': team_str_clean
+            'display_name': team_str_clean,
+            'short_name': cls.format_placeholder_short(team_str_clean),
+            'title_name': cls.format_placeholder_swedish(team_str_clean)
         }
 
     @classmethod
@@ -387,7 +427,9 @@ class BracketResolverService:
                         'name': real_name,
                         'code': code,
                         'flag_url': flag,
-                        'display_name': f"{real_name} ({team_str_clean})"
+                        'display_name': f"{real_name} ({team_str_clean})",
+                        'short_name': cls.format_placeholder_short(real_name),
+                        'title_name': cls.format_placeholder_swedish(real_name)
                     }
 
         # 2. For group placeholders and direct teams in the Actual Knockout tree, resolve using ACTUAL group results (user_predictions=None)

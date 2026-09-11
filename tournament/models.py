@@ -620,6 +620,54 @@ class Team(models.Model):
         return ""
 
 
+STAGE_SWEDISH_MAP = {
+    'Round of 16': 'Åttondelsfinal',
+    'Round of 32': 'Sextondelsfinal',
+    'Round of 64': '32-delsfinal',
+    'Quarterfinals': 'Kvartsfinal',
+    'Quarter-finals': 'Kvartsfinal',
+    'Quarter-final': 'Kvartsfinal',
+    'Quarterfinal': 'Kvartsfinal',
+    'Semifinals': 'Semifinal',
+    'Semi-finals': 'Semifinal',
+    'Semi-final': 'Semifinal',
+    'Semifinal': 'Semifinal',
+    '3rd place': 'Bronsmatch',
+    '3rd Place': 'Bronsmatch',
+    '3rd place play-off': 'Bronsmatch',
+    '3rd Place Match': 'Bronsmatch',
+    'Bronze Match': 'Bronsmatch',
+    'Bronze match': 'Bronsmatch',
+    'Bronze medal': 'Bronsmatch',
+    'Bronze medal match': 'Bronsmatch',
+    'Final': 'Final',
+    'Finals': 'Final',
+    'Play-off round': 'Play-off',
+    'Play-offs': 'Play-off',
+    'Play-off': 'Play-off',
+    'Play-in': 'Play-in',
+    'Play-in round': 'Play-in',
+    '5th–8th place': 'Placering 5–8',
+    '5th-8th place': 'Placering 5–8',
+    '9th–12th place': 'Placering 9–12',
+    '9th-12th place': 'Placering 9–12',
+    '13th–16th place': 'Placering 13–16',
+    '13th-16th place': 'Placering 13–16',
+    'Group A': 'Grupp A',
+    'Group B': 'Grupp B',
+    'Group C': 'Grupp C',
+    'Group D': 'Grupp D',
+    'Group E': 'Grupp E',
+    'Group F': 'Grupp F',
+    'Group G': 'Grupp G',
+    'Group H': 'Grupp H',
+    'Group I': 'Grupp I',
+    'Group J': 'Grupp J',
+    'Group K': 'Grupp K',
+    'Group L': 'Grupp L',
+}
+
+
 class KnockoutStage(models.Model):
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='knockout_stages')
     name = models.CharField(max_length=100)
@@ -633,6 +681,16 @@ class KnockoutStage(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.tournament.name})"
+
+    @property
+    def stage_name(self):
+        if not self.name:
+            return ""
+        return STAGE_SWEDISH_MAP.get(self.name.strip(), self.name)
+
+    @property
+    def localized_name(self):
+        return self.stage_name
 
 
 class Match(models.Model):
@@ -700,36 +758,7 @@ class Match(models.Model):
         from tournament.services.bracket_resolver import BracketResolverService
         return BracketResolverService.resolve_team(self, team_str, user_predictions)
 
-    STAGE_SWEDISH_MAP = {
-        '13th–16th place': 'Placering 13–16',
-        '13th-16th place': 'Placering 13–16',
-        '9th–12th place': 'Placering 9–12',
-        '9th-12th place': 'Placering 9–12',
-        '5th–8th place': 'Placering 5–8',
-        '5th-8th place': 'Placering 5–8',
-        'Play-off round': 'Play-off',
-        'Play-off': 'Play-off',
-        'Quarterfinals': 'Kvartsfinal',
-        'Quarter-finals': 'Kvartsfinal',
-        'Semifinals': 'Semifinal',
-        'Semi-finals': 'Semifinal',
-        '3rd place': 'Bronsmatch',
-        'Bronze Match': 'Bronsmatch',
-        'Bronze match': 'Bronsmatch',
-        'Final': 'Final',
-        'Group A': 'Grupp A',
-        'Group B': 'Grupp B',
-        'Group C': 'Grupp C',
-        'Group D': 'Grupp D',
-        'Group E': 'Grupp E',
-        'Group F': 'Grupp F',
-        'Group G': 'Grupp G',
-        'Group H': 'Grupp H',
-        'Group I': 'Grupp I',
-        'Group J': 'Grupp J',
-        'Group K': 'Grupp K',
-        'Group L': 'Grupp L',
-    }
+    STAGE_SWEDISH_MAP = STAGE_SWEDISH_MAP
 
     @property
     def stage_name(self):

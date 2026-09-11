@@ -605,6 +605,11 @@
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
+                                    <button class="nav-link px-3 py-2 fw-bold small" id="res-sub-actual-knockout-tab" data-bs-toggle="pill" data-bs-target="#res-sub-actual-knockout" type="button" role="tab">
+                                        Äkta Slutspel
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
                                     <button class="nav-link px-3 py-2 fw-bold small" id="res-sub-sidebets-tab" data-bs-toggle="pill" data-bs-target="#res-sub-sidebets" type="button" role="tab">
                                         Bonusfrågor
                                     </button>
@@ -1197,11 +1202,11 @@
                                         <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-20 flex-wrap gap-2">
                                             <h5 class="fw-extrabold text-white mb-0 d-flex align-items-center">
                                                 <span class="badge bg-emerald bg-opacity-20 text-emerald border border-emerald border-opacity-40 px-3 py-1.5 fs-6">
-                                                    {{ ks_data.stage.name }}
+                                                    {{ ks_data.stage.stage_name }}
                                                 </span>
                                             </h5>
                                             <span class="badge bg-dark text-warning border border-warning border-opacity-30 px-3 py-1.5 fw-bold" style="font-size: 0.8rem;">
-                                                {{ ks_data.stage.name }}: <strong class="fs-6 ms-1">{{ ks_data.total_match_pts }}p</strong>
+                                                {{ ks_data.stage.stage_name }}: <strong class="fs-6 ms-1">{{ ks_data.total_match_pts }}p</strong>
                                             </span>
                                         </div>
 
@@ -1267,11 +1272,17 @@
                                                         <!-- 3. STATUS EMOJI (NO HEADER) -->
                                                         <td class="py-2 px-1 text-center align-middle" style="width: 28px;">
                                                             {% if not m_item.is_matchup_defined %}
-                                                                <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" title="Ej fastställd match (väntar på tidigare omgångar)">🔵</span>
+                                                                <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" 
+                                                                      data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                                                                      title="<strong class='text-info'>Ej fastställd match</strong><br>Matchen är ännu inte fastställd och avgörs när tidigare omgångar har spelats klart.{% if home and away and not home.flag_url and not away.flag_url %}<br><span class='text-warning mt-1 d-inline-block'>Väntar på: {{ home.short_name|default:home.name }} mot {{ away.short_name|default:away.name }}</span>{% endif %}<br><span class='text-secondary small mt-1 d-inline-block'>(<strong>W</strong> = Winner / Vinnare, <strong>L</strong> = Loser / Förlorare)</span>" style="cursor: pointer;">🔵</span>
                                                             {% elif m_item.both_teams_correct %}
-                                                                <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" title="Korrekt fixture! Matchar ditt träd.">✅</span>
+                                                                <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" 
+                                                                      data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                                                                      title="<strong class='text-success'>Korrekt matchpar!</strong><br>Båda lagen stämmer överens med ditt tippade slutspelsträd. Match- och avancemangspoäng beräknas som vanligt." style="cursor: pointer;">✅</span>
                                                             {% else %}
-                                                                <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" title="Ej korrekt fixture. Faktisk match avviker från trädet.">⚠️</span>
+                                                                <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" 
+                                                                      data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                                                                      title="<strong class='text-warning'>Avvikande match</strong><br>De faktiska lagen avviker från ditt tippade slutspelsträd. Matchresultatpoäng (mål, tecken) delas inte ut för denna match, men du kan fortfarande få avancemangspoäng om ditt tippade lag går vidare." style="cursor: pointer;">⚠️</span>
                                                             {% endif %}
                                                         </td>
 
@@ -1286,7 +1297,9 @@
                                                                             <img src="{{ home.flag_url }}" alt="{{ home.name }}" width="16" height="11" style="border-radius: 2px; object-fit: cover;" class="shadow-sm">
                                                                         </div>
                                                                     {% else %}
-                                                                        <span class="text-nowrap text-truncate text-end text-secondary opacity-50 small font-monospace" title="{{ home.name }}">{{ home.name }}</span>
+                                                                        <span class="text-nowrap text-truncate text-end text-secondary opacity-75 small font-monospace" 
+                                                                              data-bs-toggle="tooltip" data-bs-placement="top" 
+                                                                              title="{{ home.title_name|default:home.name }}">{{ home.short_name|default:home.name }}</span>
                                                                         <div></div>
                                                                     {% endif %}
 
@@ -1300,7 +1313,9 @@
                                                                         <span class="text-nowrap text-truncate text-start fw-semibold text-slate-200" title="{{ away.name }}">{{ away.name }}</span>
                                                                     {% else %}
                                                                         <div></div>
-                                                                        <span class="text-nowrap text-truncate text-start text-secondary opacity-50 small font-monospace" title="{{ away.name }}">{{ away.name }}</span>
+                                                                        <span class="text-nowrap text-truncate text-start text-secondary opacity-75 small font-monospace" 
+                                                                              data-bs-toggle="tooltip" data-bs-placement="top" 
+                                                                              title="{{ away.title_name|default:away.name }}">{{ away.short_name|default:away.name }}</span>
                                                                     {% endif %}
                                                                 </div>
                                                             {% else %}
@@ -1412,7 +1427,272 @@
                                 </div>
                             </div>
 
-                            <!-- D. BONUSFRÅGOR & SIDEBETS -->
+                            <!-- D. ÄKTA SLUTSPEL (Real Knockout Stages Section) -->
+                            <div class="tab-pane fade" id="res-sub-actual-knockout" role="tabpanel">
+
+                                {% if not active_tournament.is_actual_knockout_open and not active_tournament.is_actual_knockout_locked and not is_actual_knockout_saved %}
+                                <div class="p-3.5 p-md-4 rounded-4 mb-4 d-flex align-items-center gap-3 shadow-lg" 
+                                     style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(56, 189, 248, 0.3); border-left: 5px solid #38BDF8; backdrop-filter: blur(12px);">
+                                    <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-info bg-opacity-25 border border-info border-opacity-50 text-info" style="width: 44px; height: 44px;">
+                                        <i class="fa-solid fa-hourglass-half fs-5"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h5 class="fw-extrabold mb-1" style="font-size: 1.05rem; color: #38BDF8 !important;">
+                                            Äkta Slutspel öppnas efter gruppspelet
+                                        </h5>
+                                        <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #CBD5E1;">
+                                            När alla gruppspelsmatcher är färdigspelade fastställs det officiella slutspelet och du kan tippa det äkta slutspelet under <em>Mina Tips</em>.
+                                        </p>
+                                    </div>
+                                </div>
+                                {% elif not is_actual_knockout_saved and not user_actual_predictions %}
+                                <div class="p-3.5 p-md-4 rounded-4 mb-4 d-flex align-items-center gap-3 shadow-lg" 
+                                     style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(250, 204, 21, 0.4); border-left: 5px solid #FACC15; backdrop-filter: blur(12px);">
+                                    <div class="d-flex align-items-center justify-content-center p-2.5 rounded-circle flex-shrink-0 bg-warning bg-opacity-25 border border-warning border-opacity-50 text-warning" style="width: 44px; height: 44px;">
+                                        <i class="fa-solid fa-triangle-exclamation fs-5 text-warning"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h5 class="fw-extrabold mb-1" style="font-size: 1.05rem; color: #FACC15 !important;">
+                                            Inga tips inlagda för Äkta Slutspel
+                                        </h5>
+                                        <p class="small mb-0" style="font-size: 0.88rem; line-height: 1.55; color: #CBD5E1;">
+                                            Du har inte sparat några tips för det äkta slutspelet än. Gå till fliken <strong>Mina Tips &rarr; Äkta Slutspel</strong> för att fylla i och spara dina tips.
+                                        </p>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <div class="d-flex flex-column gap-5">
+                                    {% for ks_data in actual_knockout_stage_full_data %}
+                                    <div class="p-3.5 rounded-4" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                                        <!-- Stage Header Bar -->
+                                        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-20 flex-wrap gap-2">
+                                            <h5 class="fw-extrabold text-white mb-0 d-flex align-items-center">
+                                                <span class="badge bg-emerald bg-opacity-20 text-emerald border border-emerald border-opacity-40 px-3 py-1.5 fs-6">
+                                                    {{ ks_data.stage.stage_name }}
+                                                </span>
+                                            </h5>
+                                            <span class="badge bg-dark text-warning border border-warning border-opacity-30 px-3 py-1.5 fw-bold" style="font-size: 0.8rem;">
+                                                {{ ks_data.stage.stage_name }}: <strong class="fs-6 ms-1">{{ ks_data.total_match_pts }}p</strong>
+                                            </span>
+                                        </div>
+
+                                        <!-- Knockout Matches Table -->
+                                        <div class="table-responsive rounded-3 border border-secondary border-opacity-15" style="background: rgba(2, 6, 23, 0.5);">
+                                            <table class="table table-dark table-hover align-middle mb-0 text-nowrap" style="font-size: 0.78rem;">
+                                                <thead class="table-dark text-uppercase border-bottom border-secondary border-opacity-30" style="font-size: 0.7rem; background: rgba(15, 23, 42, 0.95);">
+                                                    <tr>
+                                                        <th class="py-2.5 px-1 text-center text-secondary" style="width: 45px;">Datum</th>
+                                                        <th class="py-2.5 px-2 text-center text-white" style="width: 210px;">Match</th>
+                                                        <th class="py-2.5 px-1 text-center" style="width: 28px;"></th> <!-- Empty Header for Status Emoji -->
+                                                        <th class="py-2.5 px-2 text-center text-info" style="width: 210px;">Korrekt Match</th>
+                                                        <th class="py-2.5 px-2 text-center text-success" style="width: 75px; background: rgba(16, 185, 129, 0.08);">Resultat</th>
+                                                        <th class="py-2.5 px-2 text-center text-info" style="width: 75px; background: rgba(59, 130, 246, 0.08);">Tips</th>
+                                                        <th class="py-2.5 px-1 text-center text-secondary" style="width: 55px;" title="Ditt tips hemma (R1)">R1</th>
+                                                        <th class="py-2.5 px-1 text-center text-secondary" style="width: 55px;" title="Ditt tips borta (R2)">R2</th>
+                                                        <th class="py-2.5 px-1 text-center text-secondary" style="width: 55px;" title="Ditt tips målskillnad (+/-)">+/-</th>
+                                                        <th class="py-2.5 px-1 text-center text-secondary" style="width: 55px;" title="Ditt tips tecken (1X2)">Tecken</th>
+                                                        <th class="py-2.5 px-1 text-center text-warning fw-bold" style="width: 55px; background: rgba(245, 158, 11, 0.08);" title="Lagavancemang till denna/nästa omgång">VIDARE</th>
+                                                        <th class="py-2.5 px-2 text-center text-warning fw-extrabold" style="width: 70px; background: rgba(245, 158, 11, 0.12);">Poäng</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for m_item in ks_data.matches %}
+                                                    {% with m=m_item.match home=m_item.home away=m_item.away analytics=m_item.analytics pred=m_item.pred detail=m_item.detail %}
+                                                    <tr {% if m_item.total_row_pts > 0 %}style="background: rgba(16, 185, 129, 0.04);"{% endif %}>
+                                                        <!-- 1. DATUM -->
+                                                        <td class="py-2 px-1 text-center text-secondary opacity-75 fw-normal align-middle" style="width: 80px;">
+                                                            {{ m.date_time|date:"Y-m-d"|default:"-" }}
+                                                        </td>
+
+                                                        <!-- 2. MATCH (PREDICTED FIXTURE FROM USER'S ACTUAL TREE) -->
+                                                        <td class="py-2 px-2 align-middle" style="width: 210px;">
+                                                            <div class="d-grid align-items-center" style="grid-template-columns: 80px 18px 12px 18px 80px; gap: 0.15rem;">
+                                                                {% if m_item.pred_home %}
+                                                                    <span class="text-nowrap text-truncate text-end fw-bold text-white" title="{{ m_item.pred_home.name }}">{{ m_item.pred_home.name }}</span>
+                                                                    <div class="d-flex align-items-center justify-content-center">
+                                                                        {% if m_item.pred_home.flag_url %}
+                                                                            <img src="{{ m_item.pred_home.flag_url }}" alt="{{ m_item.pred_home.name }}" width="16" height="11" style="border-radius: 2px; object-fit: cover;" class="shadow-sm">
+                                                                        {% endif %}
+                                                                    </div>
+                                                                {% else %}
+                                                                    <span class="text-secondary opacity-50 text-end">-</span>
+                                                                    <div></div>
+                                                                {% endif %}
+
+                                                                <span class="text-secondary opacity-40 text-center fw-bold small">-</span>
+
+                                                                {% if m_item.pred_away %}
+                                                                    <div class="d-flex align-items-center justify-content-center">
+                                                                        {% if m_item.pred_away.flag_url %}
+                                                                            <img src="{{ m_item.pred_away.flag_url }}" alt="{{ m_item.pred_away.name }}" width="16" height="11" style="border-radius: 2px; object-fit: cover;" class="shadow-sm">
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    <span class="text-nowrap text-truncate text-start fw-bold text-white" title="{{ m_item.pred_away.name }}">{{ m_item.pred_away.name }}</span>
+                                                                {% else %}
+                                                                    <div></div>
+                                                                    <span class="text-secondary opacity-50 text-start">-</span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </td>
+
+                                                        <!-- 3. STATUS EMOJI -->
+                                                        <td class="py-2 px-1 text-center align-middle" style="width: 28px;">
+                                                            {% if not m_item.is_matchup_defined %}
+                                                                <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" 
+                                                                      data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                                                                      title="<strong class='text-info'>Ej fastställd match</strong><br>Matchen är ännu inte fastställd och avgörs när tidigare omgångar har spelats klart.{% if home and away and not home.flag_url and not away.flag_url %}<br><span class='text-warning mt-1 d-inline-block'>Väntar på: {{ home.short_name|default:home.name }} mot {{ away.short_name|default:away.name }}</span>{% endif %}<br><span class='text-secondary small mt-1 d-inline-block'>(<strong>W</strong> = Winner / Vinnare, <strong>L</strong> = Loser / Förlorare)</span>" style="cursor: pointer;">🔵</span>
+                                                            {% elif m_item.both_teams_correct %}
+                                                                <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" 
+                                                                      data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                                                                      title="<strong class='text-success'>Korrekt matchpar!</strong><br>Båda lagen stämmer överens med ditt tippade slutspelsträd. Match- och avancemangspoäng beräknas som vanligt." style="cursor: pointer;">✅</span>
+                                                            {% else %}
+                                                                <span class="d-inline-flex align-items-center justify-content-center opacity-85 fs-6" 
+                                                                      data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true"
+                                                                      title="<strong class='text-warning'>Avvikande match</strong><br>De faktiska lagen avviker från ditt tippade slutspelsträd. Matchresultatpoäng (mål, tecken) delas inte ut för denna match, men du kan fortfarande få avancemangspoäng om ditt tippade lag går vidare." style="cursor: pointer;">⚠️</span>
+                                                            {% endif %}
+                                                        </td>
+
+                                                        <!-- 4. KORREKT MATCH (ACTUAL FIXTURE BUILD-UP) -->
+                                                        <td class="py-2 px-2 align-middle" style="width: 210px;">
+                                                            {% if not m_item.both_teams_correct and home and away and home.name != '-' and away.name != '-' %}
+                                                                <div class="d-grid align-items-center" style="grid-template-columns: 80px 18px 12px 18px 80px; gap: 0.15rem;">
+                                                                    {% if home.flag_url %}
+                                                                        <span class="text-nowrap text-truncate text-end fw-semibold text-slate-200" title="{{ home.name }}">{{ home.name }}</span>
+                                                                        <div class="d-flex align-items-center justify-content-center">
+                                                                            <img src="{{ home.flag_url }}" alt="{{ home.name }}" width="16" height="11" style="border-radius: 2px; object-fit: cover;" class="shadow-sm">
+                                                                        </div>
+                                                                    {% else %}
+                                                                        <span class="text-nowrap text-truncate text-end text-secondary opacity-75 small font-monospace" 
+                                                                              data-bs-toggle="tooltip" data-bs-placement="top" 
+                                                                              title="{{ home.title_name|default:home.name }}">{{ home.short_name|default:home.name }}</span>
+                                                                        <div></div>
+                                                                    {% endif %}
+
+                                                                    <span class="text-secondary opacity-40 text-center fw-bold small">-</span>
+
+                                                                    {% if away.flag_url %}
+                                                                        <div class="d-flex align-items-center justify-content-center">
+                                                                            <img src="{{ away.flag_url }}" alt="{{ away.name }}" width="16" height="11" style="border-radius: 2px; object-fit: cover;" class="shadow-sm">
+                                                                        </div>
+                                                                        <span class="text-nowrap text-truncate text-start fw-semibold text-slate-200" title="{{ away.name }}">{{ away.name }}</span>
+                                                                    {% else %}
+                                                                        <div></div>
+                                                                        <span class="text-nowrap text-truncate text-start text-secondary opacity-75 small font-monospace" 
+                                                                              data-bs-toggle="tooltip" data-bs-placement="top" 
+                                                                              title="{{ away.title_name|default:away.name }}">{{ away.short_name|default:away.name }}</span>
+                                                                    {% endif %}
+                                                                </div>
+                                                            {% else %}
+                                                                <div class="text-center text-secondary opacity-30 small">-</div>
+                                                            {% endif %}
+                                                        </td>
+
+                                                        <!-- 5. RESULTAT -->
+                                                        <td class="py-2 px-2 text-center align-middle" style="background: rgba(16, 185, 129, 0.03); width: 75px;">
+                                                            {% if analytics.is_reported %}
+                                                                <span class="badge py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 62px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(6, 78, 59, 0.35)); border: 1px solid rgba(16, 185, 129, 0.45); color: #34d399; font-size: 0.78rem;">
+                                                                    {{ analytics.actual_score }}
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="text-secondary opacity-50">- : -</span>
+                                                            {% endif %}
+                                                        </td>
+
+                                                        <!-- 6. TIPS -->
+                                                        <td class="py-2 px-2 text-center align-middle" style="background: rgba(59, 130, 246, 0.03); width: 75px;">
+                                                            {% if pred %}
+                                                                <span class="badge py-1.5 fw-extrabold d-inline-flex align-items-center justify-content-center" style="min-width: 62px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(30, 58, 138, 0.35)); border: 1px solid rgba(59, 130, 246, 0.45); color: #60a5fa; font-size: 0.78rem;">
+                                                                    {{ pred.home_goals }} - {{ pred.away_goals }}
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="text-secondary opacity-30">- : -</span>
+                                                            {% endif %}
+                                                        </td>
+
+                                                        <!-- 7. R1 -->
+                                                        <td class="py-2 px-1 text-center align-middle font-monospace" style="width: 55px;">
+                                                            {% if m_item.is_all_groups_finished and not m_item.both_teams_correct %}
+                                                                <span class="text-secondary opacity-30" style="font-size: 0.72rem;">-</span>
+                                                            {% elif analytics.is_reported and detail.pts_home > 0 %}
+                                                                <span class="fw-black text-warning" style="color: #FBBF24 !important;">+{{ detail.pts_home }}</span>
+                                                            {% else %}<span class="text-secondary opacity-40" style="font-size: 0.72rem;">0</span>{% endif %}
+                                                        </td>
+
+                                                        <!-- 8. R2 -->
+                                                        <td class="py-2 px-1 text-center align-middle font-monospace" style="width: 55px;">
+                                                            {% if m_item.is_all_groups_finished and not m_item.both_teams_correct %}
+                                                                <span class="text-secondary opacity-30" style="font-size: 0.72rem;">-</span>
+                                                            {% elif analytics.is_reported and detail.pts_away > 0 %}
+                                                                <span class="fw-black text-warning" style="color: #FBBF24 !important;">+{{ detail.pts_away }}</span>
+                                                            {% else %}<span class="text-secondary opacity-40" style="font-size: 0.72rem;">0</span>{% endif %}
+                                                        </td>
+
+                                                        <!-- 9. +/- -->
+                                                        <td class="py-2 px-1 text-center align-middle font-monospace" style="width: 55px;">
+                                                            {% if m_item.is_all_groups_finished and not m_item.both_teams_correct %}
+                                                                <span class="text-secondary opacity-30" style="font-size: 0.72rem;">-</span>
+                                                            {% elif analytics.is_reported and detail.pts_tot_goals > 0 %}
+                                                                <span class="fw-black text-warning" style="color: #FBBF24 !important;">+{{ detail.pts_tot_goals }}</span>
+                                                            {% else %}<span class="text-secondary opacity-40" style="font-size: 0.72rem;">0</span>{% endif %}
+                                                        </td>
+
+                                                        <!-- 10. TECKEN -->
+                                                        <td class="py-2 px-1 text-center align-middle font-monospace" style="width: 55px;">
+                                                            {% if m_item.is_all_groups_finished and not m_item.both_teams_correct %}
+                                                                <span class="text-secondary opacity-30" style="font-size: 0.72rem;">-</span>
+                                                            {% elif analytics.is_reported and detail.pts_1x2 > 0 %}
+                                                                <span class="fw-black text-warning" style="color: #FBBF24 !important;">+{{ detail.pts_1x2 }}</span>
+                                                            {% else %}<span class="text-secondary opacity-40" style="font-size: 0.72rem;">0</span>{% endif %}
+                                                        </td>
+
+                                                        <!-- 11. VIDARE -->
+                                                        <td class="py-2 px-1 text-center align-middle font-monospace" style="background: rgba(245, 158, 11, 0.05); width: 55px;">
+                                                            {% if m_item.is_correct_stage_qualifier %}
+                                                                <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 fw-black" style="font-size: 0.78rem;" title="Ditt tippade lag gick vidare!">
+                                                                    +{{ m_item.pts_stage_qual }} p
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="text-secondary opacity-40" style="font-size: 0.72rem;">0</span>
+                                                            {% endif %}
+                                                        </td>
+
+                                                        <!-- 12. POÄNG -->
+                                                        <td class="py-2 px-2 text-center align-middle" style="background: rgba(245, 158, 11, 0.03); overflow: visible;">
+                                                            {% if m_item.is_m_finished %}
+                                                                {% if m_item.total_row_pts > 0 %}
+                                                                    <span class="badge px-3 py-1.5 fw-black shadow-sm position-relative overflow-visible d-inline-flex align-items-center justify-content-center" style="min-width: 62px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(180, 83, 9, 0.6)); border: 1.5px solid rgba(245, 158, 11, 0.85); color: #FBBF24; font-size: 0.85rem; font-weight: 900; text-shadow: 0 0 10px rgba(245, 158, 11, 0.7); letter-spacing: 0.5px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);" title="{% if detail.exact_score or detail.total >= 10 %}FULL POÄNG! Exakt resultat!⭐{% else %}Intjänade tipspoäng{% endif %}">
+                                                                        {% if detail.exact_score or detail.total >= 10 %}
+                                                                            <i class="fa-solid fa-star star-pop-10p"></i>
+                                                                        {% endif %}
+                                                                        <span>+{{ m_item.total_row_pts }} p</span>
+                                                                    </span>
+                                                                {% else %}
+                                                                    <span class="badge px-3 py-1.5 text-secondary fw-semibold d-inline-flex align-items-center justify-content-center" style="min-width: 62px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); color: #6B7280; opacity: 0.5; font-size: 0.78rem; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);">
+                                                                        0 p
+                                                                    </span>
+                                                                {% endif %}
+                                                            {% else %}
+                                                                <span class="text-secondary opacity-30" style="font-size: 0.72rem;">-</span>
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                    {% endwith %}
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="text-center text-muted py-5">
+                                        <i class="fa-solid fa-trophy fs-2 mb-2 d-block text-secondary"></i>
+                                        <span>Inga slutspelsmatcher inlagda i turneringen ännu.</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- E. BONUSFRÅGOR & SIDEBETS -->
                             <div class="tab-pane fade" id="res-sub-sidebets" role="tabpanel">
                                 <div class="d-flex align-items-center justify-content-between mb-3">
                                     <h5 class="fw-bold text-white mb-0">Bonusfrågor & Sidebet-resultat</h5>
