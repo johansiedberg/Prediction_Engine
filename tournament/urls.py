@@ -19,6 +19,7 @@ from .views import (
     scout_delete_view, scout_prospect_json_view, scout_scrape_web_view,
     scout_clear_list_view, scout_refresh_all_view, scout_deep_scan_one_view, scout_update_official_url_view,
     scout_update_official_rules_view, save_gemini_api_key_view,
+    scout_update_survey_date_view, scout_view_logs_view, scout_run_automation_now_view,
 
 
 
@@ -118,6 +119,9 @@ urlpatterns = [
     path('engine-admin/scout/delete/<int:prospect_id>/', scout_delete_view, name='scout_delete'),
     path('engine-admin/scout/prospect/<int:prospect_id>/json/', scout_prospect_json_view, name='scout_prospect_json'),
     path('engine-admin/scout/save-gemini-key/', save_gemini_api_key_view, name='save_gemini_api_key'),
+    path('engine-admin/scout/survey-date/<int:prospect_id>/', scout_update_survey_date_view, name='scout_update_survey_date'),
+    path('engine-admin/scout/logs/', scout_view_logs_view, name='scout_view_logs'),
+    path('engine-admin/scout/run-automation/', scout_run_automation_now_view, name='scout_run_automation_now'),
 
 ]
 

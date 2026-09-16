@@ -13,7 +13,24 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 
 ---
 
-## [v2.8.2] - 2026-09-11 (Current Release)
+## [v2.9.0] - 2026-09-16 (Current Release)
+
+### 🎯 Milestone Highlights
+- **AI Tournament Scout Automation, Under-Survey Scheduling & Tree Logging**:
+  - **Automated Monthly General Scan**: Full webscan and deepscan across AllSportDB, Wikipedia, and Google Gemini AI Search Grounding executed automatically on the 1st of every month to discover and analyze upcoming tournaments.
+  - **Weekly Under-Survey Deepscan with Custom Start Dates**: Added `survey_start_date` to `ScannedTournament` (migration `0068`), allowing pool administrators and engine admins to configure specific start dates for weekly scans of tournaments marked as "Under Survey" (`WATCHLIST`).
+  - **Tree-Structured Scan Logger**: Implemented `ScoutScanLogger` outputting to `logs/scout_scans.log` with total found tournaments at the highest level of the tree structure, followed by scan type, accepted/due items, and rejected/pending items with audit reasons.
+  - **Management Command (`run_scout_automation`)**: Added comprehensive CLI runner supporting `--type monthly`, `--type weekly`, `--type auto`, and `--force`.
+  - **Engine Admin UI & AJAX Controls**: Added "Skanningslogg" action button opening `#scoutLogModal` with real-time log viewing and test triggers, plus `#surveyDateModal` and card controls to set or adjust weekly scan start dates.
+
+### 📋 Commits from DEV (v2.8.2 -> v2.9.0)
+| Commit SHA | Type | Description |
+| :--- | :--- | :--- |
+| `90358f2` | `feat(scout)` | Automated monthly & weekly scout scans, custom survey start dates, and tree logging |
+
+---
+
+## [v2.8.2] - 2026-09-11
 
 ### 🎯 Milestone Highlights
 - **UI/UX Streamlining, Design System Consolidation & CSS Utility Harmonization**:

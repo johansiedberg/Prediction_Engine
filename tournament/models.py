@@ -1216,6 +1216,7 @@ class ScannedTournament(models.Model):
     lifecycle_phase = models.CharField(max_length=40, choices=LIFECYCLE_PHASE_CHOICES, default='PHASE_1_MACRO_META', help_text="Current temporal lifecycle scraping phase")
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
+    survey_start_date = models.DateField(null=True, blank=True, help_text="Startdatum för automatisk veckovis djupscanning under bevakning (Under Survey)")
     completeness_grade = models.CharField(max_length=20, choices=GRADE_CHOICES, default='GRADE_A')
     grade_reason = models.TextField(blank=True, help_text="Detailed audit explanation of why this grade was assigned and what details are missing")
     official_source_url = models.URLField(max_length=500, blank=True, help_text="Direct URL to official federation/tournament website")
@@ -1271,6 +1272,12 @@ class ScannedTournament(models.Model):
     @property
     def rescan_date(self):
         """Returns the next scheduled rescan date as a datetime.date object or None."""
+        if self.status == 'WATCHLIST':
+            import datetime
+            from django.utils import timezone
+            today = timezone.localdate()
+            if self.survey_start_date and self.survey_start_date > today:
+                return self.survey_start_date
         info = self.lifecycle_info
         return info.next_rescan_date
 

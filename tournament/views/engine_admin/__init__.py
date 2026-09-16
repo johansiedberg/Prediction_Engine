@@ -35,6 +35,9 @@ from tournament.views.engine_admin.scout import (
     scout_update_official_rules_view,
     scout_clear_list_view,
     scout_refresh_all_view,
+    scout_update_survey_date_view,
+    scout_view_logs_view,
+    scout_run_automation_now_view,
 )
 from tournament.views.engine_admin.config import (
     engine_admin_pool_requests_view,

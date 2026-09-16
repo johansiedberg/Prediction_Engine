@@ -718,6 +718,9 @@
                                 <button class="btn btn-warning btn-sm rounded-pill px-3.5 py-1.5 fw-bold shadow-sm text-dark" id="scoutRefreshAllBtn" onclick="refreshFilteredScoutProspects()">
                                     <i class="fa-solid fa-rotate me-1.5"></i><span id="scoutBulkActionLabel">Djupscanna alla ({{ scout_counts.total }})</span>
                                 </button>
+                                <button class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold" onclick="openScoutLogModal()" title="Visa skanningslogg och automation">
+                                    <i class="fa-solid fa-list-check me-1.5"></i>Skanningslogg
+                                </button>
                                 <button class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-bold" onclick="clearFilteredScoutProspectsList()">
                                     Rensa
                                 </button>
@@ -853,8 +856,11 @@
                                                     </span>
                                                 {% elif item.unified_status == 'WATCHLIST' %}
                                                     <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#082f49;border:1px solid #0284c7;color:#bae6fd;font-size:14px;">
-                                                        <i class="fa-solid fa-eye me-1 text-info"></i>Bevakad, {{ item.rescan_date_str }}
+                                                        <i class="fa-solid fa-eye me-1.5 text-info"></i>Bevakad, {{ item.rescan_date_str }}{% if item.survey_start_date_str %} (start: {{ item.survey_start_date_str }}){% endif %}
                                                     </span>
+                                                    <button class="btn btn-link text-info p-0 text-decoration-none" style="font-size:0.75rem;" onclick="openSurveyDateModal({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}', '{{ item.survey_start_date_str }}')" title="Ändra startdatum för veckoscanning" aria-label="Startdatum">
+                                                        <i class="fa-solid fa-calendar-days"></i>
+                                                    </button>
                                                 {% elif item.unified_status == 'ARCHIVED' %}
                                                     <span class="badge rounded-pill px-3 py-1 font-monospace fw-bold" style="background:#450a0a;border:1px solid #b91c1c;color:#fee2e2;font-size:14px;">
                                                         <i class="fa-solid fa-ban me-1 text-danger"></i>Ignorerad
@@ -953,13 +959,18 @@
 
                                         <!-- 2. BEVAKA (Survey watchlist with weekly LLM rescan) -->
                                         {% if item.prospect.status != 'WATCHLIST' %}
-                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm" style="background:#0284C7;border:1px solid #0369A1;color:#FFFFFF;" onclick="updateProspectStatus({{ item.prospect.id }}, 'WATCHLIST')" title="Sätt på bevakningslista för automatisk veckorescan">
+                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm" style="background:#0284C7;border:1px solid #0369A1;color:#FFFFFF;" onclick="openSurveyDateModal({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}', '{{ item.survey_start_date_str }}', true)" title="Sätt på bevakningslista och ange startdatum för veckorescan">
                                             Bevaka
                                         </button>
                                         {% else %}
-                                        <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold" style="background:rgba(2,132,199,0.2);border:1px solid #0284C7;color:#BAE6FD;" onclick="updateProspectStatus({{ item.prospect.id }}, 'NEW')" title="Ta bort från bevakning">
-                                            Sluta bevaka
-                                        </button>
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <button class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold" style="background:rgba(2,132,199,0.2);border:1px solid #0284C7;color:#BAE6FD;" onclick="updateProspectStatus({{ item.prospect.id }}, 'NEW')" title="Ta bort från bevakning">
+                                                Sluta bevaka
+                                            </button>
+                                            <button class="btn btn-sm rounded-pill px-2.5 py-1.5" style="background:rgba(2,132,199,0.3);border:1px solid #0284C7;color:#BAE6FD;" onclick="openSurveyDateModal({{ item.prospect.id }}, '{{ item.prospect.name|escapejs }}', '{{ item.survey_start_date_str }}')" title="Ändra startdatum för veckoscanning">
+                                                <i class="fa-solid fa-calendar-days"></i>
+                                            </button>
+                                        </div>
                                         {% endif %}
 
                                         <!-- 3. IGNORERA (Mark as Ignored) -->
@@ -1538,6 +1549,110 @@
                 <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Avbryt</button>
                 <button type="button" class="btn btn-info rounded-pill px-4 fw-bold shadow-sm text-dark" onclick="saveOfficialRulesFromModal()">
                     <i class="fa-solid fa-floppy-disk me-1.5"></i>Spara regler
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: SCOUT LOG VIEWER MODAL -->
+<div class="modal fade" id="scoutLogModal" tabindex="-1" aria-labelledby="scoutLogModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-info bg-opacity-10 border border-info border-opacity-25 text-info">
+                        <i class="fa-solid fa-list-check"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0" id="scoutLogModalLabel">Skanningslogg &amp; Automatiserad Scout</h5>
+                        <div class="text-secondary small font-monospace">logs/scout_scans.log &bull; Månatlig &amp; veckovis automatiserad scanning</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            
+            <div class="modal-body p-4" style="background: #050811;">
+                <!-- Action bar for manual test triggers -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-3 border-bottom border-secondary border-opacity-20">
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 fw-semibold" onclick="loadScoutLogs()">
+                            <i class="fa-solid fa-arrows-rotate me-1.5"></i>Uppdatera logg
+                        </button>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 fw-bold text-white shadow-sm" id="btnTriggerMonthlyScan" onclick="triggerScoutAutomation('monthly')">
+                            <i class="fa-solid fa-calendar-days me-1.5"></i>Kör månatlig scanning nu (1:a i mån)
+                        </button>
+                        <button class="btn btn-sm btn-info rounded-pill px-3 py-1.5 fw-bold text-dark shadow-sm" id="btnTriggerWeeklyScan" onclick="triggerScoutAutomation('weekly')">
+                            <i class="fa-solid fa-clock me-1.5"></i>Kör veckovis djupscanning nu (Bevakas)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tree structure viewer -->
+                <div class="position-relative">
+                    <pre id="scoutLogContent" class="p-3 rounded-3 font-monospace small mb-0" style="background:#020617;color:#E2E8F0;border:1px solid #1E293B;max-height:550px;overflow-y:auto;white-space:pre-wrap;line-height:1.55;font-size:0.82rem;">Laddar logg...</pre>
+                </div>
+            </div>
+            
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 justify-content-end">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Stäng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: SURVEY START DATE MODAL -->
+<div class="modal fade" id="surveyDateModal" tabindex="-1" aria-labelledby="surveyDateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border border-secondary border-opacity-30 text-white rounded-4 shadow-lg" style="background: #0B0F19 !important;">
+            <div class="modal-header border-bottom border-secondary border-opacity-25 px-4 py-3" style="background: #090D16;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="p-2 rounded-3 bg-info bg-opacity-10 border border-info border-opacity-25 text-info">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-white mb-0" id="surveyDateModalLabel">Bevakning &amp; Startdatum</h5>
+                        <div class="text-secondary small font-monospace">Veckovis djupscanning under bevakning</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Stäng"></button>
+            </div>
+            
+            <div class="modal-body p-4" style="background: #050811;">
+                <input type="hidden" id="surveyModalProspectId" value="">
+                <input type="hidden" id="surveyModalActivateWatchlist" value="false">
+
+                <div class="mb-3">
+                    <label class="form-label text-secondary small font-monospace text-uppercase fw-semibold">Turnering</label>
+                    <div id="surveyModalProspectName" class="fw-bold text-white fs-6"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="surveyModalStartDateInput" class="form-label text-secondary small font-monospace text-uppercase fw-semibold">
+                        Startdatum för veckovis scanning (YYYY-MM-DD)
+                    </label>
+                    <input type="date" class="form-control form-dark text-white font-monospace" id="surveyModalStartDateInput">
+                    <div class="form-text text-secondary small mt-1">
+                        Turneringen djupskannas automatiskt varje vecka först när detta datum infaller (t.ex. vid officiell lottning). Lämna tomt för att scanna direkt vid nästa veckokörning.
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill font-monospace" onclick="setSurveyDateToday()">
+                        Sätt till idag (Direkt)
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill font-monospace" onclick="clearSurveyDateInput()">
+                        Töm / Omgående
+                    </button>
+                </div>
+            </div>
+            
+            <div class="modal-footer border-top border-secondary border-opacity-25 px-4 py-3 justify-content-between">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Avbryt</button>
+                <button type="button" class="btn btn-info rounded-pill px-4 fw-bold shadow-sm text-dark" onclick="saveSurveyDateFromModal()">
+                    <i class="fa-solid fa-floppy-disk me-1.5"></i>Spara bevakning
                 </button>
             </div>
         </div>
@@ -4665,6 +4780,160 @@
         .catch(err => alert('Nätverksfel: ' + err.message));
     }
 
+    function openSurveyDateModal(prospectId, name, currentDate, activateWatchlist = false) {
+        document.getElementById('surveyModalProspectId').value = prospectId;
+        document.getElementById('surveyModalActivateWatchlist').value = activateWatchlist ? 'true' : 'false';
+        document.getElementById('surveyModalProspectName').textContent = name || 'Turnering';
+        document.getElementById('surveyModalStartDateInput').value = currentDate || '';
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('surveyDateModal'));
+        modal.show();
+    }
+
+    function setSurveyDateToday() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('surveyModalStartDateInput').value = todayStr;
+    }
+
+    function clearSurveyDateInput() {
+        document.getElementById('surveyModalStartDateInput').value = '';
+    }
+
+    function saveSurveyDateFromModal() {
+        const prospectId = document.getElementById('surveyModalProspectId').value;
+        const activateWatchlist = document.getElementById('surveyModalActivateWatchlist').value === 'true';
+        const startDate = document.getElementById('surveyModalStartDateInput').value.trim();
+        const csrfToken = getCSRFToken();
+
+        if (activateWatchlist) {
+            const formData = new FormData();
+            formData.append('status', 'WATCHLIST');
+            if (startDate) {
+                formData.append('survey_start_date', startDate);
+            }
+
+            fetch(`/engine-admin/scout/status/${prospectId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('surveyDateModal'));
+                    if (modal) modal.hide();
+                    localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                    location.reload();
+                } else {
+                    alert('Fel: ' + data.message);
+                }
+            })
+            .catch(err => alert('Nätverksfel: ' + err.message));
+        } else {
+            const formData = new FormData();
+            formData.append('survey_start_date', startDate);
+
+            fetch(`/engine-admin/scout/survey-date/${prospectId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('surveyDateModal'));
+                    if (modal) modal.hide();
+                    localStorage.setItem('engineAdminActiveTab', 'scout-tab');
+                    location.reload();
+                } else {
+                    alert('Fel: ' + data.message);
+                }
+            })
+            .catch(err => alert('Nätverksfel: ' + err.message));
+        }
+    }
+
+    function openScoutLogModal() {
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('scoutLogModal'));
+        modal.show();
+        loadScoutLogs();
+    }
+
+    function loadScoutLogs() {
+        const preEl = document.getElementById('scoutLogContent');
+        if (!preEl) return;
+        preEl.textContent = 'Laddar senaste loggposter...';
+
+        fetch('/engine-admin/scout/logs/', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success' && data.logs) {
+                preEl.textContent = data.logs;
+                preEl.scrollTop = preEl.scrollHeight;
+            } else {
+                preEl.textContent = 'Kunde inte läsa in loggen: ' + (data.message || 'Okänt svar');
+            }
+        })
+        .catch(err => {
+            preEl.textContent = 'Nätverksfel vid hämtning av logg: ' + err.message;
+        });
+    }
+
+    function triggerScoutAutomation(type) {
+        const isMonthly = (type === 'monthly');
+        const btn = document.getElementById(isMonthly ? 'btnTriggerMonthlyScan' : 'btnTriggerWeeklyScan');
+        const originalHtml = btn ? btn.innerHTML : '';
+        const preEl = document.getElementById('scoutLogContent');
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1.5"></i>Kör scanning...';
+        }
+
+        if (preEl) {
+            preEl.textContent += `\n\n[${new Date().toLocaleTimeString()}] Startar ${type}-scanning... vänligen vänta...`;
+            preEl.scrollTop = preEl.scrollHeight;
+        }
+
+        const csrfToken = getCSRFToken();
+        const formData = new FormData();
+        formData.append('type', type);
+
+        fetch('/engine-admin/scout/run-automation/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+            if (data.status === 'success') {
+                loadScoutLogs();
+            } else {
+                alert('Fel vid scanning: ' + data.message);
+            }
+        })
+        .catch(err => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+            alert('Nätverksfel: ' + err.message);
+        });
+    }
 
     function viewRawJsonProspect(prospectId) {
         fetch(`/engine-admin/scout/prospect/${prospectId}/json/`)

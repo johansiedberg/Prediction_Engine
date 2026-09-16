@@ -3425,6 +3425,93 @@ class GeminiScoutRegressionTestCase(TestCase):
         self.assertEqual(prospect.payload.get('scouting_audit', {}).get('next_rescan_date'), '2027-03-01')
 
 
+class ScoutAutomationAndLoggingTestCase(TestCase):
+    """
+    Tests for AI Tournament Scout automation, tree-structured logging,
+    and per-tournament survey_start_date logic.
+    """
+
+    def setUp(self):
+        self.superuser = User.objects.create_superuser('admin_test', 'admin@example.com', 'pass123')
+        self.client = Client()
+        self.client.force_login(self.superuser)
+
+    def test_scout_scan_logger_tree_formatting(self):
+        from tournament.services.scout_scan_logger import ScoutScanLogger
+        accepted = [{'name': 'Euro 2028', 'sport': 'Football', 'grade': 'GRADE_A', 'details': '24 lag klart'}]
+        rejected = [{'name': 'Rowing Cup', 'sport': 'Rowing', 'status': 'REJECTED', 'details': 'Ej H2H-lagsport'}]
+        tree_text = ScoutScanLogger.format_tree_entry(
+            scan_type="Månatlig allmän scanning",
+            total_found=2,
+            accepted_items=accepted,
+            rejected_items=rejected
+        )
+        self.assertIn("Hittade: 2 turneringar", tree_text)
+        self.assertIn("Typ av scanning: Månatlig allmän scanning", tree_text)
+        self.assertIn("Godkända / Accepterade (1)", tree_text)
+        self.assertIn("[GRADE_A] Euro 2028 (Football) - 24 lag klart", tree_text)
+        self.assertIn("Avvisade / Filtrerade (1)", tree_text)
+        self.assertIn("[REJECTED] Rowing Cup (Rowing) - Ej H2H-lagsport", tree_text)
+
+    def test_survey_start_date_rescan_property(self):
+        today = timezone.localdate()
+        future_date = today + datetime.timedelta(days=20)
+        prospect = ScannedTournament.objects.create(
+            name="Handball Champs 2028",
+            sport="Handball",
+            status="WATCHLIST",
+            completeness_grade="GRADE_B",
+            survey_start_date=future_date
+        )
+        self.assertEqual(prospect.rescan_date, future_date)
+
+        # When survey_start_date is in the past or today, returns standard lifecycle next_rescan_date
+        prospect.survey_start_date = today - datetime.timedelta(days=2)
+        prospect.save()
+        self.assertIsNotNone(prospect.rescan_date)
+
+    def test_weekly_survey_scan_pending_logic(self):
+        from tournament.services.scout_automation_service import ScoutAutomationService
+        today = timezone.localdate()
+        future_date = today + datetime.timedelta(days=10)
+
+        ScannedTournament.objects.all().delete()
+        ScannedTournament.objects.create(
+            name="Future Survey Cup",
+            sport="Football",
+            status="WATCHLIST",
+            survey_start_date=future_date
+        )
+
+        result = ScoutAutomationService.run_weekly_survey_scan()
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['total_found'], 1)
+        self.assertEqual(result['pending_count'], 1)
+        self.assertEqual(result['scanned_count'], 0)
+        self.assertIn("Veckoscanning startar", result['log_text'])
+
+    def test_scout_endpoints_survey_date_and_logs(self):
+        prospect = ScannedTournament.objects.create(
+            name="Test Survey Prospect",
+            sport="Football",
+            status="WATCHLIST"
+        )
+        # 1. Update survey date endpoint
+        resp = self.client.post(f'/engine-admin/scout/survey-date/{prospect.id}/', {
+            'survey_start_date': '2026-11-15'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()['status'], 'success')
+        prospect.refresh_from_db()
+        self.assertEqual(str(prospect.survey_start_date), '2026-11-15')
+
+        # 2. View logs endpoint
+        resp_logs = self.client.get('/engine-admin/scout/logs/', HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp_logs.status_code, 200)
+        self.assertEqual(resp_logs.json()['status'], 'success')
+        self.assertIn('logs', resp_logs.json())
+
+
 @tag('live_api')
 class GeminiLiveApiIntegrationTestCase(TestCase):
     """

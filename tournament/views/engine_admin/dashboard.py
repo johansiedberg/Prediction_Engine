@@ -735,6 +735,7 @@ def engine_admin_dashboard_view(request: HttpRequest) -> HttpResponse:
             'tournament_type': p.tournament_type,
             'lifecycle_phase': p.lifecycle_phase,
             'rescan_date_str': rescan_date_str,
+            'survey_start_date_str': p.survey_start_date.strftime('%Y-%m-%d') if p.survey_start_date else '',
             'days_to_start': days_to_start,
             'grade_meta': grade_meta,
             'status_meta': status_meta,

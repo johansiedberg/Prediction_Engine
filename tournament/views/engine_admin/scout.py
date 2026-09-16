@@ -290,6 +290,14 @@ def scout_update_status_view(request: HttpRequest, prospect_id: int) -> JsonResp
         return JsonResponse({'status': 'error', 'message': f'Ogiltig status "{new_status}".'}, status=400)
 
     prospect.status = new_status
+    raw_survey_date = request.POST.get('survey_start_date', '').strip()
+    if raw_survey_date:
+        try:
+            import datetime
+            prospect.survey_start_date = datetime.date.fromisoformat(raw_survey_date[:10])
+        except Exception:
+            pass
+
     if new_status == 'WATCHLIST':
         from tournament.services.scout_service import \
             resolve_rescan_date_for_prospect
@@ -307,6 +315,7 @@ def scout_update_status_view(request: HttpRequest, prospect_id: int) -> JsonResp
         'message': f'Status för "{prospect.name}" ändrades till {new_status}.',
         'prospect_id': prospect.id,
         'new_status': prospect.status,
+        'survey_start_date': str(prospect.survey_start_date) if prospect.survey_start_date else None,
         'rescan_date': prospect.rescan_date.strftime('%Y-%m-%d') if prospect.rescan_date else None
     })
 
@@ -619,4 +628,63 @@ def scout_refresh_all_view(request: HttpRequest) -> JsonResponse:
         'skipped_count':   skipped_count,
         'results':         results,
     })
+
+
+@superuser_or_staff_required
+@require_POST
+def scout_update_survey_date_view(request: HttpRequest, prospect_id: int) -> JsonResponse:
+    """Updates the survey_start_date for a tournament prospect."""
+    import datetime
+    prospect = get_object_or_404(ScannedTournament, id=prospect_id)
+    raw_date = request.POST.get('survey_start_date', '').strip()
+
+    if raw_date:
+        try:
+            parsed_date = datetime.date.fromisoformat(raw_date[:10])
+            prospect.survey_start_date = parsed_date
+        except Exception:
+            return JsonResponse({'status': 'error', 'message': f'Ogiltigt datumformat: "{raw_date}". Använd YYYY-MM-DD.'}, status=400)
+    else:
+        prospect.survey_start_date = None
+
+    prospect.save(update_fields=['survey_start_date'])
+    return JsonResponse({
+        'status': 'success',
+        'message': f'Startdatum för veckoscanning uppdaterades till {prospect.survey_start_date or "direkt/omgående"}.',
+        'survey_start_date': str(prospect.survey_start_date) if prospect.survey_start_date else None,
+        'rescan_date': prospect.rescan_date.strftime('%Y-%m-%d') if prospect.rescan_date else None,
+    })
+
+
+@superuser_or_staff_required
+def scout_view_logs_view(request: HttpRequest) -> JsonResponse:
+    """Returns the latest content of the tree-structured scan log."""
+    from tournament.services.scout_scan_logger import ScoutScanLogger
+    lines = ScoutScanLogger.get_recent_logs(max_lines=300)
+    return JsonResponse({
+        'status': 'success',
+        'logs': lines,
+    })
+
+
+@superuser_or_staff_required
+@require_POST
+def scout_run_automation_now_view(request: HttpRequest) -> JsonResponse:
+    """Manually triggers monthly or weekly scout automation and returns results."""
+    from tournament.services.scout_automation_service import ScoutAutomationService
+    scan_type = request.POST.get('type', 'weekly').strip()
+
+    if scan_type == 'monthly':
+        result = ScoutAutomationService.run_monthly_general_scan()
+        msg = f"Månatlig allmän scanning slutförd! {result['scanned_count']} djupscannade, {result['rejected_count']} avvisade/filtrerade."
+    else:
+        result = ScoutAutomationService.run_weekly_survey_scan()
+        msg = f"Veckovis djupscanning slutförd! {result['scanned_count']} genomförda, {result['pending_count']} inväntar startdatum."
+
+    return JsonResponse({
+        'status': 'success',
+        'message': msg,
+        'result': result,
+    })
+
 
