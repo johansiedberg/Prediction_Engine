@@ -142,13 +142,13 @@ class GroupsTeamsAgent:
 
             # Check if preliminary groups (Group A-F) exist and have real teams
             has_letters_past_i = any(bool(re.match(r'^(?:Group|Pool|Division)\s+[J-Z]$', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)) for g in raw_groups)
-            has_roman_ii = any(bool(re.match(r'^(?:Group|Pool)\s+(?:II|III|IV)\b', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)) for g in raw_groups)
+            has_roman_ii = any(bool(re.match(r'^(?:Group|Pool|Division)\s+(?:II|III|IV)\b', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)) for g in raw_groups)
 
             if has_roman_ii and not has_letters_past_i:
-                # If roman numeral groups exist (e.g. Handball Main Round Group I, Group II) alongside prelim groups, exclude them
+                # If roman numeral groups/divisions exist (e.g. Handball Main Round Group I/II or Hockey Division I/II/III) alongside prelim groups, exclude them
                 filtered_raw_groups = [
                     g for g in raw_groups
-                    if not re.match(r'^(?:Group|Pool)\s+(?:I|II|III|IV|V|VI)\b', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)
+                    if not re.match(r'^(?:Group|Pool|Division)\s+(?:I|II|III|IV|V|VI)\b', (g.get("name") if isinstance(g, dict) else str(g)).strip(), re.I)
                 ]
                 if filtered_raw_groups:
                     raw_groups = filtered_raw_groups
@@ -202,6 +202,10 @@ class GroupsTeamsAgent:
                     teams=team_entries,
                     advancement_description=g.get("advancement_description", "") if isinstance(g, dict) else "",
                 ))
+
+            # Prune empty stray heading groups whenever populated groups exist
+            if any(g.teams for g in parsed_groups):
+                parsed_groups = [g for g in parsed_groups if g.teams]
 
         # Fallback: Generate skeleton placeholder groups if empty and prospect is not explicitly empty
         if not parsed_groups and audit.get("teams_count") != 0 and audit.get("groups_count") != 0:

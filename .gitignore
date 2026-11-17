@@ -23,8 +23,10 @@ media/
 *.DS_Store
 Thumbs.db
 
-# Logs
+# Logs & generated deployment artifacts
 logs/
 *.log
+staticfiles/
+deployment_history.json
 
 .env

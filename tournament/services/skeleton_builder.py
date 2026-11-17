@@ -84,7 +84,8 @@ class SkeletonBuilder:
         Generates mathematical placeholders for the knockout bracket tree.
         Supports standard group-to-knockout mappings for 2, 4, 8, or 12/16 groups.
         """
-        groups = self.blueprint.groups or []
+        raw_groups = self.blueprint.groups or []
+        groups = [g for g in raw_groups if getattr(g, 'teams', None)] or raw_groups
         num_groups = len(groups) or self.blueprint.groups_count or 4
         group_letters = [
             g.name.split()[-1] if ' ' in g.name else chr(65 + i)

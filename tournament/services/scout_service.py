@@ -1597,37 +1597,20 @@ def ensure_complete_knockout_bracket(tournament, base_dt=None, start_match_numbe
                     has_misplaced_group_matches = True
                     break
 
+        from tournament.services.matches_knockout_agent import (
+            build_first_round_pairings, is_bronze_stage, is_final_stage
+        )
+
         if has_misplaced_group_matches or len(stages_list) >= 4:
             # Delete misplaced downstream matches
             for stage in stages_list[1:]:
                 stage.matches.all().delete()
 
-            group_count = tournament.tournament_groups.count()
-            groups_qs = list(tournament.tournament_groups.all())
-            group_letters = [g.name.split()[-1] if ' ' in g.name else chr(65 + i) for i, g in enumerate(groups_qs)]
-
+            group_names = list(tournament.tournament_groups.values_list('name', flat=True))
             first_match_num = (tournament.matches.filter(group__isnull=False).aggregate(models.Max('match_number')).get('match_number__max') or 0) + 1
+            first_pairings = build_first_round_pairings(first_stage.name, group_names)
 
-            if group_count >= 6:
-                r16_pairings = [
-                    (f"Winner Group {group_letters[0]}", "3rd Group C/D/E/F"),
-                    (f"Runner-up Group {group_letters[0]}", f"Runner-up Group {group_letters[1]}"),
-                    (f"Winner Group {group_letters[1]}", "3rd Group A/C/D/E/F"),
-                    (f"Winner Group {group_letters[2]}", f"Runner-up Group {group_letters[5]}"),
-                    (f"Winner Group {group_letters[4]}", f"Runner-up Group {group_letters[3]}"),
-                    (f"Winner Group {group_letters[3]}", "3rd Group A/B/C/E/F"),
-                    (f"Winner Group {group_letters[5]}", f"Runner-up Group {group_letters[4]}"),
-                    (f"Runner-up Group {group_letters[2]}", "3rd Group A/B/D/E/F"),
-                ]
-            else:
-                r16_pairings = [
-                    (f"Winner Group {group_letters[0]}", f"Runner-up Group {group_letters[1]}"),
-                    (f"Winner Group {group_letters[1]}", f"Runner-up Group {group_letters[0]}"),
-                    (f"Winner Group {group_letters[2]}", f"Runner-up Group {group_letters[3]}"),
-                    (f"Winner Group {group_letters[3]}", f"Runner-up Group {group_letters[2]}"),
-                ]
-
-            for m_idx, (h_p, a_p) in enumerate(r16_pairings):
+            for m_idx, (h_p, a_p) in enumerate(first_pairings):
                 m_dt = base_dt + datetime.timedelta(days=7 + m_idx)
                 if timezone.is_naive(m_dt):
                     m_dt = timezone.make_aware(m_dt, timezone.get_current_timezone())
@@ -1640,13 +1623,21 @@ def ensure_complete_knockout_bracket(tournament, base_dt=None, start_match_numbe
                     date_time=m_dt
                 )
 
+    from tournament.services.matches_knockout_agent import is_bronze_stage, is_final_stage
+    has_explicit_bronze_stage = any(is_bronze_stage(s.name) for s in stages_list)
+
     for idx, stage in enumerate(stages_list):
         if stage.matches.exists():
             continue
 
-        # Find previous stage with matches
+        stage_is_bronze = is_bronze_stage(stage.name)
+        stage_is_final = is_final_stage(stage.name)
+
+        # Find previous stage with matches (skipping a 1-match bronze stage when wiring Final)
         prev_stage = None
         for p in reversed(stages_list[:idx]):
+            if stage_is_final and is_bronze_stage(p.name):
+                continue
             if p.matches.exists():
                 prev_stage = p
                 break
@@ -1658,18 +1649,36 @@ def ensure_complete_knockout_bracket(tournament, base_dt=None, start_match_numbe
         if not prev_matches:
             continue
 
-        prev_max_num = prev_stage.matches.aggregate(models.Max('match_number')).get('match_number__max') or 0
+        prev_max_num = max(
+            (s.matches.aggregate(models.Max('match_number')).get('match_number__max') or 0)
+            for s in stages_list[:idx]
+        )
         match_counter = prev_max_num
 
         num_prev = len(prev_matches)
         if num_prev == 2:
+            h_m = prev_matches[0]
+            a_m = prev_matches[1]
+
+            if stage_is_bronze:
+                match_counter += 1
+                m_dt_bronze = base_dt + datetime.timedelta(days=7 + idx * 3)
+                if timezone.is_naive(m_dt_bronze):
+                    m_dt_bronze = timezone.make_aware(m_dt_bronze, timezone.get_current_timezone())
+                Match.objects.create(
+                    tournament=tournament,
+                    stage=stage,
+                    match_number=match_counter,
+                    home_team=f"Loser Match {h_m.match_number}",
+                    away_team=f"Loser Match {a_m.match_number}",
+                    date_time=m_dt_bronze
+                )
+                continue
+
             t_name_lower = tournament.name.lower()
             sport_lower = (getattr(tournament, 'sport', '') or '').lower()
             is_uefa_euro = ("euro" in t_name_lower or "em" in t_name_lower) and "qualif" not in t_name_lower and "handball" not in sport_lower and "hockey" not in sport_lower
-            has_bronze = not is_uefa_euro
-
-            h_m = prev_matches[0]
-            a_m = prev_matches[1]
+            has_bronze = (not is_uefa_euro) and (not has_explicit_bronze_stage) and (not stage_is_final or not has_explicit_bronze_stage)
 
             if has_bronze:
                 match_counter += 1
@@ -1876,6 +1885,19 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
     master_event_data = payload.get('master_event', {})
     tournament_config = payload.get('tournament_config', {})
     groups_data = groups_segment.get('groups') or payload.get('groups', [])
+    if groups_data and any(g.get('teams') for g in groups_data):
+        groups_data = [g for g in groups_data if g.get('teams')]
+        if getattr(blueprint, 'groups_and_teams_segment', None) and getattr(blueprint.groups_and_teams_segment, 'groups', None):
+            populated = [g for g in blueprint.groups_and_teams_segment.groups if getattr(g, 'teams', None)]
+            if populated:
+                blueprint.groups_and_teams_segment.groups = populated
+                blueprint.groups_and_teams_segment.groups_count = len(populated)
+        if getattr(blueprint, 'groups', None):
+            populated_bp = [g for g in blueprint.groups if getattr(g, 'teams', None)]
+            if populated_bp:
+                blueprint.groups = populated_bp
+                blueprint.groups_count = len(populated_bp)
+
     fixtures_data = matches_segment.get('group_matches') or payload.get('fixtures_sample', [])
     knockout_mapping = payload.get('knockout_mapping_sample', [])
 
@@ -1885,14 +1907,14 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
 
     if not groups_data:
         groups_data = skeleton.get('groups', [])
-    if not knockout_mapping:
+    if not knockout_mapping and not tournament_config.get('knockout_stages'):
         ko_tree = skeleton.get('knockout_tree', [])
         knockout_mapping = []
         for stage_dict in ko_tree:
             s_name = stage_dict.get('stage_name', '')
             for m in stage_dict.get('matches', []):
                 knockout_mapping.append({
-                    'stage': s_name,
+                    'stage': m.get('stage_name') or s_name,
                     'home_placeholder': m.get('home_source', ''),
                     'away_placeholder': m.get('away_source', ''),
                     'match_code': m.get('match_code', '')
@@ -2058,7 +2080,9 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
         created_groups = {}
         created_teams = {}
 
-        # 4. Groups & Teams
+        # 4. Groups & Teams (prune empty stray groups when populated groups exist)
+        if groups_data and any(g.get('teams') for g in groups_data):
+            groups_data = [g for g in groups_data if g.get('teams')]
         for g_idx, g_item in enumerate(groups_data, start=1):
             g_name = g_item.get('name', f"Grupp {g_idx}")
             g_order = g_item.get('order', g_idx)
@@ -2139,6 +2163,17 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                         )
                         created_stages[stage_grp_name] = stage_obj
 
+                # Never insert placeholder/relegation matches (e.g. 'A5 (TBD) vs B5 (TBD)') into a round-robin group
+                if group_obj and not stage_obj:
+                    from tournament.services.team_badge_service import TeamBadgeService
+                    if (
+                        TeamBadgeService.is_placeholder(home)
+                        or TeamBadgeService.is_placeholder(away)
+                        or '(tbd)' in home.lower()
+                        or '(tbd)' in away.lower()
+                    ):
+                        continue
+
                 # Dedup check
                 m_key = (group_obj.id if group_obj else None, stage_obj.id if stage_obj else None, home.lower(), away.lower())
                 if m_key in seen_matches:
@@ -2193,16 +2228,19 @@ def convert_scanned_to_live_tournament(scanned_id, admin_user, is_active=False, 
                 return None
             if s_name in created_stages:
                 return created_stages[s_name]
+            from tournament.services.matches_knockout_agent import is_bronze_stage, is_final_stage
             clean_s = (s_name or '').lower().strip()
             for k, obj in created_stages.items():
                 clean_k = k.lower().strip()
                 if clean_s == clean_k:
                     return obj
+                if is_bronze_stage(clean_s) and is_bronze_stage(clean_k):
+                    return obj
                 if ('quarter' in clean_s or 'kvart' in clean_s) and ('quarter' in clean_k or 'kvart' in clean_k):
                     return obj
                 if 'semi' in clean_s and 'semi' in clean_k:
                     return obj
-                if ('final' in clean_s and 'semi' not in clean_s and 'quarter' not in clean_s) and ('final' in clean_k and 'semi' not in clean_k and 'quarter' not in clean_k):
+                if is_final_stage(clean_s) and is_final_stage(clean_k):
                     return obj
                 if ('16' in clean_s or '8-del' in clean_s) and ('16' in clean_k or '8-del' in clean_k):
                     return obj

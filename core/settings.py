@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,14 +20,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Dedicated server port setting for Engine Admin (optional isolation)
 ENGINE_ADMIN_PORT = os.getenv('ENGINE_ADMIN_PORT', None)
 
-# Google Gemini API key for LLM-powered Wikipedia deep scan
-# Load from .env file if present
-env_path = os.path.join(BASE_DIR, '.env')
-if os.path.exists(env_path):
-    with open(env_path) as f:
-        for line in f:
-            if line.startswith('GEMINI_API_KEY='):
-                os.environ['GEMINI_API_KEY'] = line.strip().split('=', 1)[1]
+# Load all KEY=VALUE pairs from .env file if present (without overriding explicit env vars)
+env_path = BASE_DIR / '.env'
+if env_path.exists():
+    with open(env_path, encoding='utf-8') as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, val = line.split('=', 1)
+            key = key.strip()
+            val = val.strip()
+            if len(val) >= 2 and val[0] == val[-1] and val[0] in ('"', "'"):
+                val = val[1:-1]
+            if key:
+                os.environ.setdefault(key, val)
 
 # If not set, the scout falls back to the HTML heuristic parser.
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
@@ -35,14 +43,18 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-dev-only-key-change-in-production')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').strip().lower() in ('true', '1', 'yes')
 
+# SECURITY WARNING: keep the secret key used in production secret!
+_DEV_INSECURE_SECRET_KEY = 'django-insecure-dev-only-key-change-in-production'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', _DEV_INSECURE_SECRET_KEY if DEBUG else '')
+if not DEBUG and (not SECRET_KEY or SECRET_KEY.startswith('django-insecure-')):
+    raise ImproperlyConfigured('DJANGO_SECRET_KEY must be set to a secure value when DJANGO_DEBUG is False.')
 
-ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', '*').split(',') if h.strip()] 
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', '*' if DEBUG else '').split(',') if h.strip()]
+if not DEBUG and not ALLOWED_HOSTS:
+    raise ImproperlyConfigured('DJANGO_ALLOWED_HOSTS must be configured when DJANGO_DEBUG is False.')
 
 # Public Base URL for externally shared magic links, invite emails, and external access
 PUBLIC_BASE_URL = os.getenv('PUBLIC_BASE_URL', 'https://217.31.171.173:2028').rstrip('/')
@@ -91,7 +103,9 @@ INSTALLED_APPS = [
 ]
 
 # Shared Single Sign-On Secret Key for credentials-free redirection from Social Hub
-HERRKLUBB_SSO_SECRET = os.getenv('HERRKLUBB_SSO_SECRET', 'toarps-herrklubb-sso-secret-key-1981-2028')
+HERRKLUBB_SSO_SECRET = os.getenv('HERRKLUBB_SSO_SECRET', 'toarps-herrklubb-sso-secret-key-1981-2028' if DEBUG else '')
+if not DEBUG and not HERRKLUBB_SSO_SECRET:
+    raise ImproperlyConfigured('HERRKLUBB_SSO_SECRET must be set when DJANGO_DEBUG is False.')
 
 
 MIDDLEWARE = [
@@ -135,8 +149,22 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': (BASE_DIR / 'db.sqlite3').resolve(),
+        'OPTIONS': {
+            'timeout': 20,
+        },
     }
 }
+
+
+def _configure_sqlite_wal(sender, connection, **kwargs):
+    if connection.vendor == 'sqlite':
+        with connection.cursor() as cursor:
+            cursor.execute('PRAGMA journal_mode=WAL;')
+            cursor.execute('PRAGMA synchronous=NORMAL;')
+
+
+from django.db.backends.signals import connection_created
+connection_created.connect(_configure_sqlite_wal)
 
 
 # Password validation

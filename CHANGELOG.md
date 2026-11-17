@@ -13,7 +13,26 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 
 ---
 
-## [v2.9.0] - 2026-09-16 (Current Release)
+## [v2.10.0] - 2026-11-17 (Current Release)
+
+### 🎯 Milestone Highlights
+- **Adaptive Group & Knockout Import Architecture**:
+  - Added [`build_first_round_pairings`](tournament/services/matches_knockout_agent.py), [`extract_group_labels`](tournament/services/matches_knockout_agent.py), [`is_bronze_stage`](tournament/services/matches_knockout_agent.py), and [`is_final_stage`](tournament/services/matches_knockout_agent.py) to dynamically generate first-round knockout brackets for `1`, `2`, `3`, `4`, `6`, and `8+` group setups (fixing 2-group Quarterfinal crossovers like `1A vs 4B`, `2A vs 3B`, `1B vs 4A`, `2B vs 3A`).
+  - Filtered out Roman-numeral `Division I/II/III` headings and empty stray groups in `GroupsTeamsAgent`, `SkeletonBuilder`, and `convert_scanned_to_live_tournament`.
+  - Excluded placeholder/relegation matches (e.g. `A5 (TBD) vs B5 (TBD)`) from round-robin groups and separated Bronze/3rd-place vs Final stage wiring in `ensure_complete_knockout_bracket` to prevent duplicate knockout matches.
+- **Security, Concurrency & Deployment Hardening**:
+  - Updated `core/settings.py` to load all `.env` key-value pairs, fail closed on insecure `SECRET_KEY` / `HERRKLUBB_SSO_SECRET` / `ALLOWED_HOSTS` when `DJANGO_DEBUG=False`, and enable SQLite `timeout=20` + `WAL` journal mode.
+  - Upgraded `GeminiRateLimiter` to coordinate the 14 RPM ceiling and 429 cooldowns across processes via `fcntl.flock` + shared temp state file.
+  - Completed `requirements.txt` (`beautifulsoup4`, `gunicorn`, `pydantic`, `requests`), updated `deploy.sh` with dependency sync + `manage.py check` + Gunicorn fallback, removed dead `tournament/views_legacy.py`, moved root `test_*.py` scripts to `scripts/`, and updated `.gitignore`.
+
+### 📋 Commits from DEV (v2.9.0 -> v2.10.0)
+| Commit SHA | Type | Description |
+| :--- | :--- | :--- |
+| `pending` | `feat(scout)` | Adaptive group/knockout import, cross-process rate limiter, and infra hardening |
+
+---
+
+## [v2.9.0] - 2026-09-16
 
 ### 🎯 Milestone Highlights
 - **AI Tournament Scout Automation, Under-Survey Scheduling & Tree Logging**:

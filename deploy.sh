@@ -13,7 +13,9 @@ echo "📋 Latest commits deployed from DEV:"
 git log -n 5 --oneline
 
 
-echo "📦 [2/5] Applying database migrations..."
+echo "📦 [2/5] Syncing dependencies, running checks & applying migrations..."
+./venv/bin/python -m pip install -r requirements.txt --quiet
+./venv/bin/python manage.py check
 ./venv/bin/python manage.py migrate
 
 echo "📁 [3/5] Collecting static assets..."
@@ -26,7 +28,9 @@ if systemctl --user is-enabled prediction-player 2>/dev/null || systemctl --user
     systemctl --user restart prediction-player prediction-admin
     sleep 3
 else
-    echo "  ⚡ Stopping stale standalone Django processes..."
+    echo "  ⚡ Stopping stale standalone processes..."
+    pkill -9 -f "gunicorn.*8028" || true
+    pkill -9 -f "gunicorn.*8029" || true
     pkill -9 -f "runserver.*8028" || true
     pkill -9 -f "runserver.*8029" || true
     pkill -9 -f "runserver_admin" || true
@@ -34,8 +38,13 @@ else
     sleep 2
 
     echo "⚡ [5/5] Starting standalone services (Player: 8028, Engine Admin: 8029)..."
-    nohup ./venv/bin/python manage.py runserver 127.0.0.1:8028 > runserver_player.log 2>&1 &
-    nohup ./venv/bin/python manage.py runserver_admin > runserver_admin.log 2>&1 &
+    if ./venv/bin/python -c "import gunicorn" 2>/dev/null; then
+        nohup ./venv/bin/python -m gunicorn core.wsgi:application --bind 127.0.0.1:8028 --workers 2 > runserver_player.log 2>&1 &
+        nohup ./venv/bin/python -m gunicorn core.wsgi:application --bind 127.0.0.1:8029 --workers 2 > runserver_admin.log 2>&1 &
+    else
+        nohup ./venv/bin/python manage.py runserver 127.0.0.1:8028 > runserver_player.log 2>&1 &
+        nohup ./venv/bin/python manage.py runserver_admin > runserver_admin.log 2>&1 &
+    fi
     sleep 2
 fi
 
