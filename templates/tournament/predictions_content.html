@@ -1,6 +1,6 @@
 {% load static %}
 {% load dashboard_tags %}
-<form method="post" id="predictionForm" action="{% url 'dashboard' %}">
+<form method="post" id="predictionForm" action="{% url 'dashboard' %}" class="{% if not is_verified and not is_admin %}has-mobile-save-bar{% endif %}">
     {% csrf_token %}
     <input type="hidden" name="active_tab" id="activeTabInput" value="{{ active_tab|default:'' }}">
 
@@ -59,7 +59,7 @@
             border-radius: 8px !important;
             color: #FFFFFF !important;
             font-weight: 800 !important;
-            font-size: 0.92rem !important;
+            font-size: 1rem !important;
             text-align: center !important;
             padding: 0 !important;
             line-height: 32px !important;
@@ -112,18 +112,18 @@
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
         }
         .home-flag-img, .away-flag-img, .actual-home-flag-img, .actual-away-flag-img {
-            width: 28px !important;
-            height: 20px !important;
-            border-radius: 3px !important;
+            width: 38px !important;
+            height: 28px !important;
+            border-radius: 4px !important;
             object-fit: cover !important;
             flex-shrink: 0 !important;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35) !important;
             border: 1px solid rgba(255, 255, 255, 0.2) !important;
         }
         .flag-icon-img {
-            width: 26px !important;
-            height: 18px !important;
-            border-radius: 3px !important;
+            width: 38px !important;
+            height: 28px !important;
+            border-radius: 4px !important;
             object-fit: cover !important;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
             border: 1px solid rgba(255, 255, 255, 0.18) !important;
@@ -194,12 +194,12 @@
             justify-content: center !important;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
         }
-        #save-predictions-btn {
+        #save-predictions-btn, #mobile-save-predictions-btn {
             border-radius: 9999px !important;
             transition: all 0.2s ease-in-out !important;
             white-space: nowrap !important;
         }
-        #save-predictions-btn:disabled {
+        #save-predictions-btn:disabled, #mobile-save-predictions-btn:disabled {
             background: rgba(148, 163, 184, 0.14) !important;
             border: 1px solid rgba(148, 163, 184, 0.28) !important;
             color: #94a3b8 !important;
@@ -210,7 +210,7 @@
             pointer-events: none !important;
             transform: none !important;
         }
-        #save-predictions-btn:not(:disabled) {
+        #save-predictions-btn:not(:disabled), #mobile-save-predictions-btn:not(:disabled) {
             background: #10b981 !important;
             border: 1px solid #34d399 !important;
             color: #ffffff !important;
@@ -218,10 +218,166 @@
             cursor: pointer !important;
             box-shadow: 0 0 18px rgba(16, 185, 129, 0.45) !important;
         }
-        #save-predictions-btn:not(:disabled):hover {
+        #save-predictions-btn:not(:disabled):hover, #mobile-save-predictions-btn:not(:disabled):hover {
             background: #059669 !important;
             transform: translateY(-1px) !important;
             box-shadow: 0 0 25px rgba(16, 185, 129, 0.7) !important;
+        }
+
+        /* ========================================================
+           RESPONSIVE MOBILE OPTIMIZATIONS (< 768px / iPhone)
+           Preserves: Home team | Flag | Score | vs | Score | Flag | Away team
+           ======================================================== */
+        @media (max-width: 767.98px) {
+            #tournamentTab {
+                gap: 0.375rem !important;
+            }
+            #tournamentTab .nav-link {
+                padding: 0.38rem 0.72rem !important;
+                font-size: 0.78rem !important;
+                border-radius: 9999px !important;
+            }
+            #tournamentTab .tab-break-spacer {
+                margin-top: 0.15rem !important;
+                margin-bottom: 0.15rem !important;
+            }
+            .pred-card-shell {
+                padding: 0.75rem !important;
+            }
+            /* Group Schedule Table -> 2-row CSS Grid preserving 7-part match line */
+            .group-schedule-wrap {
+                overflow-x: visible !important;
+            }
+            .group-schedule-table,
+            .group-schedule-table tbody {
+                display: block !important;
+                width: 100% !important;
+            }
+            .group-schedule-table thead {
+                display: none !important;
+            }
+            .group-schedule-table tr.match-row-card {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+                grid-template-rows: auto auto !important;
+                align-items: center !important;
+                padding: 0.5rem 0.45rem !important;
+                margin-bottom: 0.5rem !important;
+                row-gap: 0.38rem !important;
+                column-gap: 0.25rem !important;
+            }
+            .group-schedule-table td.match-date-cell {
+                grid-column: 1 / -1 !important;
+                text-align: left !important;
+                padding: 0 0 0.28rem 0 !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+            }
+            .group-schedule-table td.match-date-cell .date-badge-box {
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: baseline !important;
+                gap: 0.45rem !important;
+            }
+            .group-schedule-table td.match-home-cell {
+                grid-column: 1 !important;
+                padding: 0 !important;
+                min-width: 0 !important;
+            }
+            .group-schedule-table td.match-home-cell > div {
+                gap: 10px !important;
+            }
+            .group-schedule-table td.match-score-cell {
+                grid-column: 2 !important;
+                padding: 0 !important;
+            }
+            .group-schedule-table td.match-away-cell {
+                grid-column: 3 !important;
+                padding: 0 !important;
+                min-width: 0 !important;
+            }
+            .group-schedule-table td.match-away-cell > div {
+                gap: 10px !important;
+            }
+            .group-schedule-table .team-name-display {
+                font-size: 0.78rem !important;
+                line-height: 1.15 !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+            }
+            .group-schedule-table td.match-home-cell .team-name-display {
+                text-align: right !important;
+            }
+            .group-schedule-table td.match-away-cell .team-name-display {
+                text-align: left !important;
+            }
+            .flag-icon-img {
+                width: 36px !important;
+                height: 26px !important;
+            }
+            .neutral-score-input.match-input {
+                width: 34px !important;
+                height: 36px !important;
+                font-size: 1rem !important;
+                line-height: 34px !important;
+                border-radius: 7px !important;
+            }
+            /* Knockout & Actual Knockout mobile compactness */
+            .ko-stage-box {
+                padding: 0.65rem 0.5rem !important;
+            }
+            .match-row, .actual-match-row {
+                padding: 0.65rem 0.5rem !important;
+                min-height: 92px !important;
+            }
+            .ko-team-wrap {
+                gap: 10px !important;
+            }
+            .ko-score-wrap {
+                width: auto !important;
+                margin-left: 4px !important;
+                margin-right: 4px !important;
+            }
+            .home-team-name, .away-team-name,
+            .actual-home-team-name, .actual-away-team-name {
+                font-size: 0.78rem !important;
+                line-height: 1.15 !important;
+            }
+            .home-flag-img, .away-flag-img,
+            .actual-home-flag-img, .actual-away-flag-img {
+                width: 36px !important;
+                height: 26px !important;
+            }
+            .ko-tb-row {
+                justify-content: space-between !important;
+                gap: 0.5rem !important;
+            }
+            /* Standings & Ranking tables fit without horizontal scroll */
+            .standings-table.responsive-standings {
+                table-layout: auto !important;
+            }
+            .standings-table.responsive-standings th,
+            .standings-table.responsive-standings td {
+                width: auto !important;
+            }
+            .standings-table.responsive-standings .col-team-cell {
+                max-width: 145px !important;
+            }
+            /* Bottom sticky save bar clearance */
+            .has-mobile-save-bar {
+                padding-bottom: 68px !important;
+            }
+        }
+        .mobile-sticky-save-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1040;
+            background: rgba(11, 15, 25, 0.94);
+            backdrop-filter: blur(14px);
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 0.6rem 0.85rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
+            box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.55);
         }
     </style>
 
@@ -299,7 +455,7 @@
         {% endfor %}
 
         <!-- Flex Line Break with vertical spacing between Row 1 and Row 2 -->
-        <li class="w-100 my-2" style="list-style: none; height: 0;" aria-hidden="true"></li>
+        <li class="w-100 my-2 tab-break-spacer" style="list-style: none; height: 0;" aria-hidden="true"></li>
 
         <!-- Line 2: Other Sections -->
         {% if is_qualifying and active_tournament.has_runners_up_table or not is_qualifying and active_tournament.has_best_thirds_table %}
@@ -349,11 +505,11 @@
                 
                 <!-- LEFT SIDE: Matches Standalone Floating Card -->
                 <div class="col-lg-7">
-                    <div class="glass-card p-4">
+                    <div class="glass-card p-4 pred-card-shell">
                         <h4 class="fw-bold text-white mb-3">Spelschema {% if "group " in group.name|lower %}Grupp {{ group.name|slice:"6:" }}{% elif "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}</h4>
                         
-                        <div class="table-responsive">
-                            <table class="table table-borderless align-middle mb-0" style="border-collapse: separate; border-spacing: 0 8px;">
+                        <div class="table-responsive group-schedule-wrap">
+                            <table class="table table-borderless align-middle mb-0 group-schedule-table" style="border-collapse: separate; border-spacing: 0 8px;">
                                 <thead class="text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.05em;">
                                     <tr>
                                         <th style="width: 20%;" class="text-center">Datum</th>
@@ -369,7 +525,7 @@
                                     <tr class="match-row-card">
                                         
                                         <!-- Compact 2-Line Date & Time Box -->
-                                        <td class="text-center py-2 px-2">
+                                        <td class="text-center py-2 px-2 match-date-cell">
                                             <div class="date-badge-box">
                                                 <span class="fw-medium text-secondary" style="font-size: 0.68rem; color: #9CA3AF !important;">{{ match.date_time|date:"Y-m-d"|default:"2028-06-14" }}</span>
                                                 <span class="fw-bold text-white text-capitalize" style="font-size: 0.75rem;">{{ match.date_time|date:"l H:i"|default:"Onsdag 19:00" }}</span>
@@ -377,7 +533,7 @@
                                         </td>
 
                                         <!-- Home Team + Flag -->
-                                        <td class="text-end pe-3 py-2">
+                                        <td class="text-end pe-3 py-2 match-home-cell">
                                             <div class="d-flex align-items-center justify-content-end gap-2">
                                                 <span class="fw-bold text-white fs-6 text-nowrap team-name-display" data-group="{{ group.id }}" data-original="{{ home.name }}">{{ home.name }}</span>
                                                 {% if home.flag_url %}
@@ -389,16 +545,16 @@
                                         </td>
                                         
                                         <!-- Neutral Score Inputs (No Green Border) -->
-                                        <td class="text-center py-2 px-0">
+                                        <td class="text-center py-2 px-0 match-score-cell">
                                             <div class="d-flex justify-content-center align-items-center gap-1">
-                                                <input type="number" name="home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input" data-group="{{ group.id }}" placeholder="-" {% if submission and submission.is_verified %}disabled{% endif %}>
+                                                <input type="number" inputmode="numeric" pattern="[0-9]*" name="home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input" data-group="{{ group.id }}" placeholder="-" {% if submission and submission.is_verified %}disabled{% endif %}>
                                                 <span class="text-secondary fw-bold px-1">:</span>
-                                                <input type="number" name="away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input" data-group="{{ group.id }}" placeholder="-" {% if submission and submission.is_verified %}disabled{% endif %}>
+                                                <input type="number" inputmode="numeric" pattern="[0-9]*" name="away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input" data-group="{{ group.id }}" placeholder="-" {% if submission and submission.is_verified %}disabled{% endif %}>
                                             </div>
                                         </td>
 
                                         <!-- Flag + Away Team -->
-                                        <td class="text-start ps-3 py-2">
+                                        <td class="text-start ps-3 py-2 match-away-cell">
                                             <div class="d-flex align-items-center justify-content-start gap-2">
                                                 {% if away.flag_url %}
                                                     <img class="flag-icon-img" src="{{ away.flag_url }}" alt="{{ away.name }}">
@@ -422,18 +578,18 @@
 
                 <!-- RIGHT SIDE: Live Standings Standalone Floating Card -->
                 <div class="col-lg-5">
-                    <div class="standings-card p-4 sticky-top" style="top: 20px;">
+                    <div class="standings-card p-4 pred-card-shell sticky-top" style="top: 20px;">
                         <h4 class="fw-bold text-white mb-3">Tabell {% if "group " in group.name|lower %}Grupp {{ group.name|slice:"6:" }}{% elif "grupp" in group.name|lower %}{{ group.name }}{% else %}Grupp {{ group.name }}{% endif %}</h4>
                         <div class="table-responsive">
-                            <table class="table table-sm align-middle standings-table mb-0" id="standings-table-g{{ group.id }}" style="table-layout: fixed; width: 100%;">
+                            <table class="table table-sm align-middle standings-table responsive-standings mb-0" id="standings-table-g{{ group.id }}" style="table-layout: fixed; width: 100%;">
                                 <thead>
                                     <tr>
                                         <th class="text-center py-2 px-0" style="width: 22px;">#</th>
                                         <th class="py-2 px-1 text-start" style="width: 130px;">Lag</th>
                                         <th class="text-center py-2 px-0" style="width: 28px;">Sp</th>
-                                        <th class="text-center py-2 px-0" style="width: 26px;">V</th>
-                                        <th class="text-center py-2 px-0" style="width: 26px;">O</th>
-                                        <th class="text-center py-2 px-0" style="width: 26px;">F</th>
+                                        <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 26px;">V</th>
+                                        <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 26px;">O</th>
+                                        <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 26px;">F</th>
                                         <th class="text-center py-2 px-0" style="width: 36px;">MS</th>
                                         <th class="text-center py-2 px-0 fw-bold text-white" style="width: 38px;">P</th>
                                     </tr>
@@ -453,7 +609,7 @@
         <!-- BÄSTA TREOR / RANKADE GRUPPTVÅOR TAB CONTENT -->
         {% if is_qualifying and active_tournament.has_runners_up_table or not is_qualifying and active_tournament.has_best_thirds_table %}
         <div class="tab-pane fade {% if active_tab == 'thirds' %}show active{% endif %}" id="thirds-stage" role="tabpanel">
-            <div class="glass-card p-4 mx-auto" style="max-width: 780px;">
+            <div class="glass-card p-4 pred-card-shell mx-auto" style="max-width: 780px;">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                     <h4 class="fw-bold text-white mb-0">{% if is_qualifying %}Rankade Grupptvåor (Ranking av 2:or){% else %}Bästa Treor (Ranking av 3:or){% endif %}</h4>
                     <span class="badge bg-emerald bg-opacity-20 text-emerald border border-emerald border-opacity-40 px-3 py-1.5 fw-semibold" style="font-size: 0.78rem;">
@@ -470,17 +626,17 @@
 
 
                 <div class="table-responsive">
-                    <table class="table table-sm align-middle standings-table mb-0" id="thirds-ranking-table" style="table-layout: fixed; width: 100%;">
+                    <table class="table table-sm align-middle standings-table responsive-standings mb-0" id="thirds-ranking-table" style="table-layout: fixed; width: 100%;">
                         <thead>
                             <tr>
                                 <th class="text-center py-2 px-0" style="width: 24px;">#</th>
-                                <th class="text-center py-2 px-1" style="width: 70px;">Grupp</th>
+                                <th class="text-center py-2 px-1 d-none d-sm-table-cell" style="width: 70px;">Grupp</th>
                                 <th class="py-2 px-1 text-start" style="width: 140px;">Lag</th>
                                 <th class="text-center py-2 px-0" style="width: 28px;">Sp</th>
-                                <th class="text-center py-2 px-0" style="width: 26px;">V</th>
-                                <th class="text-center py-2 px-0" style="width: 26px;">O</th>
-                                <th class="text-center py-2 px-0" style="width: 26px;">F</th>
-                                <th class="text-center py-2 px-0" style="width: 28px;">GM</th>
+                                <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 26px;">V</th>
+                                <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 26px;">O</th>
+                                <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 26px;">F</th>
+                                <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 28px;">GM</th>
                                 <th class="text-center py-2 px-0" style="width: 36px;">MS</th>
                                 <th class="text-center py-2 px-0 fw-bold text-white" style="width: 38px;">P</th>
                             </tr>
@@ -497,7 +653,7 @@
         {% if is_qualifying and active_tournament.has_host_ranking_table %}
         <!-- DEDICATED HOST ASSOCIATIONS RANKING TAB CONTENT -->
         <div class="tab-pane fade {% if active_tab == 'hosts' %}show active{% endif %}" id="hosts-stage" role="tabpanel">
-            <div class="glass-card p-4 mx-auto" style="max-width: 780px;">
+            <div class="glass-card p-4 pred-card-shell mx-auto" style="max-width: 780px;">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                     <h4 class="fw-bold text-white mb-0">Ranking Värdnationer (Ranking av Värdnationer)</h4>
                     <span class="badge bg-emerald bg-opacity-20 text-emerald border border-emerald border-opacity-40 px-3 py-1.5 fw-semibold" style="font-size: 0.78rem;">
@@ -510,17 +666,17 @@
 
 
                 <div class="table-responsive">
-                    <table class="table table-sm align-middle standings-table mb-0" id="hosts-ranking-table" style="table-layout: fixed; width: 100%;">
+                    <table class="table table-sm align-middle standings-table responsive-standings mb-0" id="hosts-ranking-table" style="table-layout: fixed; width: 100%;">
                         <thead>
                             <tr>
                                 <th class="text-center py-2 px-0" style="width: 24px;">#</th>
-                                <th class="text-center py-2 px-1" style="width: 70px;">Grupp</th>
+                                <th class="text-center py-2 px-1 d-none d-sm-table-cell" style="width: 70px;">Grupp</th>
                                 <th class="py-2 px-1 text-start" style="width: 140px;">Värdnation</th>
                                 <th class="text-center py-2 px-0" style="width: 28px;">Sp</th>
-                                <th class="text-center py-2 px-0" style="width: 26px;">V</th>
-                                <th class="text-center py-2 px-0" style="width: 26px;">O</th>
-                                <th class="text-center py-2 px-0" style="width: 26px;">F</th>
-                                <th class="text-center py-2 px-0" style="width: 28px;">GM</th>
+                                <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 26px;">V</th>
+                                <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 26px;">O</th>
+                                <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 26px;">F</th>
+                                <th class="text-center py-2 px-0 d-none d-sm-table-cell" style="width: 28px;">GM</th>
                                 <th class="text-center py-2 px-0" style="width: 36px;">MS</th>
                                 <th class="text-center py-2 px-0 fw-bold text-white" style="width: 38px;">P</th>
                             </tr>
@@ -538,7 +694,7 @@
         <!-- KNOCKOUT TAB CONTENT -->
         <div class="tab-pane fade {% if active_tab == 'knockout' %}show active{% endif %}" id="knockout-stage" role="tabpanel">
 
-            <div class="glass-card p-4">
+            <div class="glass-card p-4 pred-card-shell">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="fw-bold text-white mb-0">Slutspelsträd</h4>
                     {% if active_tournament.is_actual_knockout_open %}
@@ -562,7 +718,7 @@
                 <div class="row g-4">
                     {% for stage in knockout_stages %}
                     <div class="col-12">
-                        <div class="p-3 rounded-3 mb-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div class="p-3 rounded-3 mb-3 ko-stage-box" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
                             <h5 class="fw-bold text-emerald mb-3">{{ stage.stage_name }}</h5>
                             <div class="row g-3">
                                 {% for match in stage.matches.all %}
@@ -578,30 +734,29 @@
                                         <!-- Main Match Row: Home Team (Left) | Score (Center) | Away Team (Right) -->
                                         <div class="d-flex align-items-center justify-content-between w-100 my-auto py-1">
                                             <!-- HOME TEAM: [ Home Name ] [ Home Flag ] -->
-                                            <div class="d-flex align-items-center justify-content-end overflow-hidden" style="flex: 1 1 0; min-width: 0; gap: 10px;">
+                                            <div class="d-flex align-items-center justify-content-end overflow-hidden ko-team-wrap" style="flex: 1 1 0; min-width: 0; gap: 10px;">
                                                 <span class="fw-bold text-white home-team-name text-truncate text-end">{{ home.name }}</span>
                                                 <img src="{{ home.flag_url }}" class="home-flag-img shadow-sm" width="28" height="20" style="border-radius: 3px; object-fit: cover; flex-shrink: 0; {% if not home.flag_url %}display:none;{% endif %}">
                                             </div>
 
                                             <!-- SCORE INPUTS (Centered) -->
-                                            <div class="d-flex align-items-center justify-content-center flex-shrink-0 mx-2" style="width: 84px;">
-                                                <input type="number" name="home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" style="width: 36px; height: 34px; font-size: 0.95rem;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
+                                            <div class="d-flex align-items-center justify-content-center flex-shrink-0 mx-2 ko-score-wrap" style="width: 84px;">
+                                                <input type="number" inputmode="numeric" pattern="[0-9]*" name="home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" {% if is_admin or submission.is_verified %}disabled{% endif %}>
                                                 <span class="text-white-50 small fw-bold mx-1">-</span>
-                                                <input type="number" name="away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" style="width: 36px; height: 34px; font-size: 0.95rem;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
+                                                <input type="number" inputmode="numeric" pattern="[0-9]*" name="away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" {% if is_admin or submission.is_verified %}disabled{% endif %}>
                                             </div>
 
                                             <!-- AWAY TEAM: [ Away Flag ] [ Away Name ] -->
-                                            <div class="d-flex align-items-center overflow-hidden" style="flex: 1 1 0; min-width: 0; gap: 10px;">
+                                            <div class="d-flex align-items-center overflow-hidden ko-team-wrap" style="flex: 1 1 0; min-width: 0; gap: 10px;">
                                                 <img src="{{ away.flag_url }}" class="away-flag-img shadow-sm" width="28" height="20" style="border-radius: 3px; object-fit: cover; flex-shrink: 0; {% if not away.flag_url %}display:none;{% endif %}">
                                                 <span class="fw-bold text-white away-team-name text-truncate">{{ away.name }}</span>
                                             </div>
                                         </div>
 
-                                        <!-- Dedicated Advancement / Tiebreaker Bar (Centered under Result -) -->
+                                        <!-- Dedicated Advancement / Tiebreaker Bar -->
                                         <div id="tb-box-{{ match.id }}" class="penalty-winner-selector mt-2 pt-2 border-top border-secondary border-opacity-25" style="{% if pred and pred.home_goals == pred.away_goals and pred.home_goals is not None %}display: block;{% else %}display: none;{% endif %}" data-match-id="{{ match.id }}">
-                                            <div class="position-relative d-flex align-items-center justify-content-center w-100">
-                                                <!-- Left: Avancerar label anchored absolutely -->
-                                                <div class="position-absolute start-0 d-flex align-items-center">
+                                            <div class="d-flex flex-wrap align-items-center justify-content-between ko-tb-row w-100 gap-2">
+                                                <div class="d-flex align-items-center">
                                                     <span class="text-warning fw-bold text-nowrap d-inline-flex align-items-center gap-1" style="font-size: 0.68rem; letter-spacing: 0.02em;">
                                                         <i class="fa-solid fa-arrow-right text-warning" style="font-size: 0.60rem;"></i>
                                                         <span>Avancerar</span>
@@ -609,7 +764,6 @@
                                                 </div>
                                                 <input type="hidden" name="penalty_winner_{{ match.id }}" id="tb-input-{{ match.id }}" value="{% if pred %}{{ pred.penalty_winner|default:'' }}{% endif %}">
                                                 
-                                                <!-- Center: Segmented Toggle Buttons centered directly under Result (-) -->
                                                 <div class="btn-group rounded-pill overflow-hidden border border-secondary border-opacity-30 shadow-sm" style="background: rgba(15, 23, 42, 0.95); padding: 1px; width: 134px;">
                                                     <button type="button" class="btn btn-sm p-0 border-0 tb-btn d-inline-flex align-items-center justify-content-center {% if pred and pred.penalty_winner == home.name %}active-pill{% else %}inactive-pill{% endif %}" data-match-id="{{ match.id }}" data-team-target="home" title="Vinnare: {{ home.name }}" style="height: 20px; border-radius: 9999px 0 0 9999px !important; transition: all 0.15s ease; text-transform: uppercase;" {% if is_admin or submission.is_verified %}disabled{% endif %}>
                                                         <span class="tb-name text-center w-100 fw-bold" style="font-size: 0.58rem;">Vinnare</span>
@@ -640,8 +794,8 @@
         <!-- ACTUAL KNOCKOUT TAB CONTENT -->
         <div class="tab-pane fade {% if active_tab == 'actual_knockout' or active_tab == 'actual-knockout-stage' %}show active{% endif %}" id="actual-knockout-stage" role="tabpanel">
 
-            <div class="glass-card p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="glass-card p-4 pred-card-shell">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <div class="d-flex align-items-center gap-2">
                         <h4 class="fw-bold text-white mb-0">Äkta Slutspel</h4>
                         <span class="badge bg-warning text-dark fw-bold px-2.5 py-1 rounded-pill border border-warning" style="font-size: 0.72rem;">
@@ -723,7 +877,7 @@
                 <div class="row g-4">
                     {% for stage in knockout_stages %}
                     <div class="col-12">
-                        <div class="p-3 rounded-3 mb-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div class="p-3 rounded-3 mb-3 ko-stage-box" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);">
                             <h5 class="fw-bold text-emerald mb-3">{{ stage.stage_name }}</h5>
                             <div class="row g-3">
                                 {% for match in stage.matches.all %}
@@ -739,30 +893,29 @@
                                         <!-- Main Match Row: Home Team (Left) | Score (Center) | Away Team (Right) -->
                                         <div class="d-flex align-items-center justify-content-between w-100 my-auto py-1">
                                             <!-- HOME TEAM: [ Home Name ] [ Home Flag ] -->
-                                            <div class="d-flex align-items-center justify-content-end overflow-hidden" style="flex: 1 1 0; min-width: 0; gap: 10px;">
+                                            <div class="d-flex align-items-center justify-content-end overflow-hidden ko-team-wrap" style="flex: 1 1 0; min-width: 0; gap: 10px;">
                                                 <span class="fw-bold text-white actual-home-team-name text-truncate text-end">{{ home.name }}</span>
                                                 <img src="{{ home.flag_url }}" class="actual-home-flag-img shadow-sm" width="28" height="20" style="border-radius: 3px; object-fit: cover; flex-shrink: 0; {% if not home.flag_url %}display:none;{% endif %}">
                                             </div>
 
                                             <!-- SCORE INPUTS (Centered) -->
-                                            <div class="d-flex align-items-center justify-content-center flex-shrink-0 mx-2" style="width: 84px;">
-                                                <input type="number" name="actual_home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input actual-knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" style="width: 36px; height: 34px; font-size: 0.95rem;" {% if is_admin or is_actual_knockout_locked or not is_in_actual_knockout_window %}disabled{% endif %}>
+                                            <div class="d-flex align-items-center justify-content-center flex-shrink-0 mx-2 ko-score-wrap" style="width: 84px;">
+                                                <input type="number" inputmode="numeric" pattern="[0-9]*" name="actual_home_{{ match.id }}" value="{% if pred %}{{ pred.home_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input actual-knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" {% if is_admin or is_actual_knockout_locked or not is_in_actual_knockout_window %}disabled{% endif %}>
                                                 <span class="text-white-50 small fw-bold mx-1">-</span>
-                                                <input type="number" name="actual_away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input actual-knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" style="width: 36px; height: 34px; font-size: 0.95rem;" {% if is_admin or is_actual_knockout_locked or not is_in_actual_knockout_window %}disabled{% endif %}>
+                                                <input type="number" inputmode="numeric" pattern="[0-9]*" name="actual_away_{{ match.id }}" value="{% if pred %}{{ pred.away_goals }}{% endif %}" min="0" max="20" class="form-control neutral-score-input hide-arrows match-input actual-knockout-input text-center" data-match-id="{{ match.id }}" placeholder="-" {% if is_admin or is_actual_knockout_locked or not is_in_actual_knockout_window %}disabled{% endif %}>
                                             </div>
 
                                             <!-- AWAY TEAM: [ Away Flag ] [ Away Name ] -->
-                                            <div class="d-flex align-items-center overflow-hidden" style="flex: 1 1 0; min-width: 0; gap: 10px;">
+                                            <div class="d-flex align-items-center overflow-hidden ko-team-wrap" style="flex: 1 1 0; min-width: 0; gap: 10px;">
                                                 <img src="{{ away.flag_url }}" class="actual-away-flag-img shadow-sm" width="28" height="20" style="border-radius: 3px; object-fit: cover; flex-shrink: 0; {% if not away.flag_url %}display:none;{% endif %}">
                                                 <span class="fw-bold text-white actual-away-team-name text-truncate">{{ away.name }}</span>
                                             </div>
                                         </div>
 
-                                        <!-- Dedicated Advancement / Tiebreaker Bar (Centered under Result -) -->
+                                        <!-- Dedicated Advancement / Tiebreaker Bar -->
                                         <div id="actual-tb-box-{{ match.id }}" class="actual-penalty-winner-selector mt-2 pt-2 border-top border-secondary border-opacity-25" style="{% if pred and pred.home_goals == pred.away_goals and pred.home_goals is not None %}display: block;{% else %}display: none;{% endif %}" data-match-id="{{ match.id }}">
-                                            <div class="position-relative d-flex align-items-center justify-content-center w-100">
-                                                <!-- Left: Avancerar label anchored absolutely -->
-                                                <div class="position-absolute start-0 d-flex align-items-center">
+                                            <div class="d-flex flex-wrap align-items-center justify-content-between ko-tb-row w-100 gap-2">
+                                                <div class="d-flex align-items-center">
                                                     <span class="text-warning fw-bold text-nowrap d-inline-flex align-items-center gap-1" style="font-size: 0.68rem; letter-spacing: 0.02em;">
                                                         <i class="fa-solid fa-arrow-right text-warning" style="font-size: 0.60rem;"></i>
                                                         <span>Avancerar</span>
@@ -770,7 +923,6 @@
                                                 </div>
                                                 <input type="hidden" name="actual_penalty_winner_{{ match.id }}" id="actual-tb-input-{{ match.id }}" value="{% if pred %}{{ pred.penalty_winner|default:'' }}{% endif %}">
                                                 
-                                                <!-- Center: Segmented Toggle Buttons centered directly under Result (-) -->
                                                 <div class="btn-group rounded-pill overflow-hidden border border-secondary border-opacity-30 shadow-sm" style="background: rgba(15, 23, 42, 0.95); padding: 1px; width: 134px;">
                                                     <button type="button" class="btn btn-sm p-0 border-0 actual-tb-btn d-inline-flex align-items-center justify-content-center {% if pred and pred.penalty_winner == home.name %}active-pill{% else %}inactive-pill{% endif %}" data-match-id="{{ match.id }}" data-team-target="home" title="Vinnare: {{ home.name }}" style="height: 20px; border-radius: 9999px 0 0 9999px !important; transition: all 0.15s ease; text-transform: uppercase;" {% if is_admin or is_actual_knockout_locked or not is_in_actual_knockout_window %}disabled{% endif %}>
                                                         <span class="actual-tb-name text-center w-100 fw-bold" style="font-size: 0.58rem;">Vinnare</span>
@@ -800,7 +952,7 @@
 
         <!-- SIDEBETS TAB CONTENT -->
         <div class="tab-pane fade {% if active_tab == 'sidebets' %}show active{% endif %}" id="sidebets-stage" role="tabpanel">
-            <div class="glass-card p-4">
+            <div class="glass-card p-4 pred-card-shell">
                 <h4 class="fw-bold text-white mb-3">Bonusfrågor & Sidebets</h4>
                 <div class="row g-4">
                     {% for sidebet in sidebets %}
@@ -840,6 +992,18 @@
         </div>
 
     </div>
+
+    {% if not is_verified and not is_admin %}
+    <!-- Sticky Mobile Save Bar (< 768px) -->
+    <div class="d-md-none mobile-sticky-save-bar d-flex align-items-center justify-content-between gap-2">
+        <div id="mobile-save-status" class="small text-truncate flex-grow-1" style="font-size: 0.78rem; color: #FACC15;">
+            Fyll i alla tips
+        </div>
+        <button type="submit" id="mobile-save-predictions-btn" class="btn btn-emerald px-3 py-2 fw-bold shadow-sm d-inline-flex align-items-center justify-content-center gap-2 flex-shrink-0" style="font-size: 0.84rem;" {% if not is_saved %}disabled{% endif %}>
+            <i class="fa-solid fa-floppy-disk"></i><span>{% if is_saved %}Spara tips{% else %}Spara{% endif %}</span>
+        </button>
+    </div>
+    {% endif %}
 
 </form>
 
@@ -1035,15 +1199,15 @@
                     const rowHtml = `
                         <tr class="align-middle ${textColor}" style="${borderStyle} ${rowOpacity}">
                             <td class="text-center py-2 px-0 fw-bold" style="font-size: 0.76rem; width: 22px;">${index + 1}</td>
-                            <td class="fw-semibold px-1 py-2 text-truncate text-start" style="font-size: 0.84rem; width: 130px;">
+                            <td class="fw-semibold px-1 py-2 text-truncate text-start col-team-cell" style="font-size: 0.84rem; width: 130px;">
                                 <div class="d-flex align-items-center" style="gap: 5px;">
                                     ${flagHtml}<span class="text-truncate">${team}</span>
                                 </div>
                             </td>
                             <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 28px;">${s.played}</td>
-                            <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.won}</td>
-                            <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.drawn}</td>
-                            <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.lost}</td>
+                            <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 26px;">${s.won}</td>
+                            <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 26px;">${s.drawn}</td>
+                            <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 26px;">${s.lost}</td>
                             <td class="text-center py-2 px-0 fw-semibold ${s.gd > 0 ? 'text-success' : s.gd < 0 ? 'text-danger' : ''}" style="font-size: 0.8rem; width: 36px;">${s.gd > 0 ? '+'+s.gd : s.gd}</td>
                             <td class="text-center py-1.5 px-0" style="width: 38px;">
                                 <span class="points-pop-circle shadow-sm" style="${pointsCircleStyle}">
@@ -1156,17 +1320,17 @@
                 const rowHtml = `
                     <tr class="align-middle ${textColor}" style="${borderStyle} ${rowOpacity}">
                         <td class="text-center py-2 px-0 fw-bold" style="font-size: 0.76rem; width: 24px;">${index + 1}</td>
-                        <td class="text-center py-2 px-1 text-secondary" style="font-size: 0.76rem; width: 70px;">${item.groupName}</td>
-                        <td class="fw-semibold px-1 py-2 text-truncate text-start" style="font-size: 0.84rem; width: 140px;">
+                        <td class="text-center py-2 px-1 text-secondary d-none d-sm-table-cell" style="font-size: 0.76rem; width: 70px;">${item.groupName}</td>
+                        <td class="fw-semibold px-1 py-2 text-truncate text-start col-team-cell" style="font-size: 0.84rem; width: 140px;">
                             <div class="d-flex align-items-center" style="gap: 5px;">
                                 ${flagHtml}<span class="text-truncate">${item.team}</span>
                             </div>
                         </td>
                         <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 28px;">${s.played}</td>
-                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.won}</td>
-                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.drawn}</td>
-                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.lost}</td>
-                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 28px;">${s.gf}</td>
+                        <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 26px;">${s.won}</td>
+                        <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 26px;">${s.drawn}</td>
+                        <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 26px;">${s.lost}</td>
+                        <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 28px;">${s.gf}</td>
                         <td class="text-center py-2 px-0 fw-semibold ${s.gd > 0 ? 'text-success' : s.gd < 0 ? 'text-danger' : ''}" style="font-size: 0.8rem; width: 36px;">${s.gd > 0 ? '+'+s.gd : s.gd}</td>
                         <td class="text-center py-1.5 px-0" style="width: 38px;">
                             <span class="points-pop-circle shadow-sm" style="${pointsCircleStyle}">
@@ -1272,17 +1436,17 @@
                 const rowHtml = `
                     <tr class="align-middle ${textColor}" style="${borderStyle} ${rowOpacity}">
                         <td class="text-center py-2 px-0 fw-bold" style="font-size: 0.76rem; width: 24px;">${index + 1}</td>
-                        <td class="text-center py-2 px-1 text-secondary" style="font-size: 0.76rem; width: 70px;">${item.groupName}</td>
-                        <td class="fw-semibold px-1 py-2 text-truncate text-start" style="font-size: 0.84rem; width: 140px;">
+                        <td class="text-center py-2 px-1 text-secondary d-none d-sm-table-cell" style="font-size: 0.76rem; width: 70px;">${item.groupName}</td>
+                        <td class="fw-semibold px-1 py-2 text-truncate text-start col-team-cell" style="font-size: 0.84rem; width: 140px;">
                             <div class="d-flex align-items-center" style="gap: 5px;">
                                 ${flagHtml}<span class="text-truncate">${item.team}</span>
                             </div>
                         </td>
                         <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 28px;">${s.played}</td>
-                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.won}</td>
-                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.drawn}</td>
-                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 26px;">${s.lost}</td>
-                        <td class="text-center py-2 px-0" style="font-size: 0.8rem; width: 28px;">${s.gf}</td>
+                        <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 26px;">${s.won}</td>
+                        <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 26px;">${s.drawn}</td>
+                        <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 26px;">${s.lost}</td>
+                        <td class="text-center py-2 px-0 d-none d-sm-table-cell" style="font-size: 0.8rem; width: 28px;">${s.gf}</td>
                         <td class="text-center py-2 px-0 fw-semibold ${s.gd > 0 ? 'text-success' : s.gd < 0 ? 'text-danger' : ''}" style="font-size: 0.8rem; width: 36px;">${s.gd > 0 ? '+'+s.gd : s.gd}</td>
                         <td class="text-center py-1.5 px-0" style="width: 38px;">
                             <span class="points-pop-circle shadow-sm" style="${pointsCircleStyle}">
@@ -1640,9 +1804,12 @@
             }
 
             const isAllComplete = (totalRequired > 0 && totalCompleted === totalRequired);
+            const mobileSaveBtn = document.getElementById('mobile-save-predictions-btn');
+            const mobileStatusEl = document.getElementById('mobile-save-status');
 
             if (isAllComplete) {
                 if (saveBtn) saveBtn.disabled = false;
+                if (mobileSaveBtn) mobileSaveBtn.disabled = false;
                 if (hintEl) {
                     if (isSavedInitial && !hasUserEdited) {
                         hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #38bdf8 !important;"><i class="fa-solid fa-clock"></i>Dina tips är sparade och inskickade</span>`;
@@ -1650,6 +1817,13 @@
                         hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #34d399 !important;"><i class="fa-solid fa-circle-check"></i>Ändringar gjorda &bull; Klicka för att spara uppdaterade tips!</span>`;
                     } else {
                         hintEl.innerHTML = `<span class="fw-bold d-inline-flex align-items-center gap-1.5" style="color: #34d399 !important;"><i class="fa-solid fa-circle-check"></i>Alla matcher och frågor är ifyllda &bull; Redo att sparas för verifiering!</span>`;
+                    }
+                }
+                if (mobileStatusEl) {
+                    if (isSavedInitial && !hasUserEdited) {
+                        mobileStatusEl.innerHTML = `<span style="color: #38bdf8;"><i class="fa-solid fa-clock me-1"></i>Tips sparade</span>`;
+                    } else {
+                        mobileStatusEl.innerHTML = `<span style="color: #34d399;"><i class="fa-solid fa-circle-check me-1"></i>Redo att spara!</span>`;
                     }
                 }
                 if (isSavedInitial && !hasUserEdited) {
@@ -1661,9 +1835,13 @@
                 }
             } else {
                 if (saveBtn) saveBtn.disabled = true;
+                if (mobileSaveBtn) mobileSaveBtn.disabled = true;
                 if (hintEl) {
                     const missingText = missingDetails.join(', ');
                     hintEl.innerHTML = `<span class="d-inline-flex align-items-center gap-1.5" style="color: #facc15 !important;"><i class="fa-solid fa-circle-info"></i>Fyll i alla matcher och frågor för att aktivera knappen (${missingText ? 'Kvar: ' + missingText : (totalRequired - totalCompleted) + ' kvar'})</span>`;
+                }
+                if (mobileStatusEl) {
+                    mobileStatusEl.innerHTML = `<span style="color: #facc15;"><i class="fa-solid fa-circle-info me-1"></i>${totalCompleted}/${totalRequired} ifyllda</span>`;
                 }
                 mainPredLinks.forEach(el => el.classList.add('nav-incomplete-red'));
             }

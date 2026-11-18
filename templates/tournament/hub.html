@@ -84,21 +84,27 @@ background-repeat: no-repeat;{% endblock %}
                         </p>
                     </div>
 
+                    <style>
+                        .btn-pool-admin-glow {
+                            background: transparent;
+                            color: #34d399;
+                            border: 1px solid rgba(16, 185, 129, 0.5);
+                            font-size: 0.9rem;
+                            transition: all 0.2s ease-in-out;
+                        }
+                        .btn-pool-admin-glow:hover,
+                        .btn-pool-admin-glow:focus {
+                            background: #10b981;
+                            color: #ffffff;
+                            border-color: #34d399;
+                            box-shadow: 0 0 20px rgba(16, 185, 129, 0.55);
+                        }
+                    </style>
                     <div class="d-flex flex-wrap gap-2">
                         <a href="{% url 'pool_admin_hub' %}"
-                            class="btn rounded-pill fw-semibold px-4 py-2 text-decoration-none shadow-sm"
-                            style="background: #10b981; color: #ffffff; font-size: 0.9rem;">
-                            <i class="fa-solid fa-users-gear me-1"></i> Mina Pooler
+                            class="btn btn-pool-admin-glow rounded-pill fw-semibold px-4 py-2 text-decoration-none">
+                            <i class="fa-solid fa-users-gear me-1.5"></i> Mina Pooler
                         </a>
-                        {% for membership in user_leagues %}
-                        {% if membership.admin == request.user %}
-                        <a href="{% url 'pool_admin_dashboard' membership.id %}"
-                            class="btn rounded-pill fw-semibold px-3 py-2 text-decoration-none shadow-sm"
-                            style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.85rem;">
-                            <i class="fa-solid fa-arrow-right me-1"></i> {{ membership.name }}
-                        </a>
-                        {% endif %}
-                        {% endfor %}
                     </div>
                 </div>
             </div>

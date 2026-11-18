@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-12 px-1 px-md-2">
-        <div class="glass-card p-3 p-md-4">
+    <div class="col-12 px-0 px-md-2">
+        <div class="glass-card p-2 p-sm-3 p-md-4">
             
             <!-- Custom Style for Text-Only Navigation Links -->
             <style>
@@ -58,11 +58,11 @@
             </style>
 
             <!-- Row 1: Tournament Banner (Left) & Pool-Admin Banner (Far Right) -->
-            <div class="d-flex align-items-center justify-content-between mb-3 w-100 flex-nowrap gap-3">
+            <div class="d-flex align-items-center justify-content-between mb-3 w-100 flex-wrap flex-sm-nowrap gap-2 gap-md-3">
                 
                 <!-- Left: Icon + Pop-Out Tournament Badge with Green Glow Oval -->
-                <div class="d-inline-flex align-items-center gap-2.5 px-3 py-1.5 rounded-pill position-relative tournament-banner-pill text-nowrap flex-shrink-0" 
-                     style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34D399; font-weight: 700; font-size: 0.95rem; transition: all 0.2s ease; {% if has_multiple_tournaments %}cursor: pointer;{% endif %}"
+                <div class="d-inline-flex align-items-center gap-2.5 px-3 py-1.5 rounded-pill position-relative tournament-banner-pill flex-shrink-1" 
+                     style="max-width: 100%; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #34D399; font-weight: 700; font-size: 0.92rem; transition: all 0.2s ease; {% if has_multiple_tournaments %}cursor: pointer;{% endif %}"
                      {% if has_multiple_tournaments %}data-bs-toggle="modal" data-bs-target="#tournamentSelectModal" title="Klicka för att välja turnering"{% endif %}>
                     
                     <!-- Emblem with Green Glow Oval Pop-Out -->
@@ -78,7 +78,7 @@
                         {% endif %}
                     </div>
                     
-                    <span style="z-index: 5; margin-left: 2px;">{{ active_tournament.name|default:"European Women's Handball Championship 2026" }}</span>
+                    <span class="text-truncate" style="z-index: 5; margin-left: 2px;">{{ active_tournament.name|default:"European Women's Handball Championship 2026" }}</span>
 
                     {% if has_multiple_tournaments %}
                         <i class="fa-solid fa-chevron-down ms-1 text-emerald opacity-75" style="font-size: 0.75rem; z-index: 5;"></i>
@@ -106,8 +106,8 @@
             </div>
 
             <!-- Row 2: Clean Text Navigation Menu (Row below Tournament Banner) -->
-            <div class="d-flex align-items-center pb-2.5 mb-4 border-bottom border-secondary border-opacity-20 w-100 overflow-x-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
-                <ul class="nav gap-3 align-items-center mb-0 flex-nowrap flex-shrink-0" id="mainMenuNav" role="tablist" style="padding-left: 72px;">
+            <div class="d-flex align-items-center pb-2.5 mb-3 mb-md-4 border-bottom border-secondary border-opacity-20 w-100 overflow-x-auto" style="scrollbar-width: none; -ms-overflow-style: none;">
+                <ul class="nav gap-3 align-items-center mb-0 flex-nowrap flex-shrink-0 ps-1 ps-md-5" id="mainMenuNav" role="tablist">
                     {% if is_verified %}
                     <li class="nav-item flex-shrink-0" role="presentation">
                         <button class="main-nav-link text-nowrap {% if active_tab_name == 'home' %}active{% endif %}" id="tab-home-link" data-bs-toggle="tab" data-bs-target="#tab-home" type="button" role="tab" aria-controls="tab-home" aria-selected="{% if active_tab_name == 'home' %}true{% else %}false{% endif %}">Hem</button>

@@ -101,7 +101,7 @@
     <!-- Main Content Container with dynamic backdrop -->
     <div class="main-backdrop-section"
         style="{% block backdrop_style %}background: linear-gradient(180deg, rgba(11, 15, 25, 0.78) 0%, rgba(11, 15, 25, 0.94) 100%), url('{% if active_tournament and active_tournament.backdrop %}{{ active_tournament.backdrop.url }}{% else %}{% static "tournament/img/EURO28_back.webp" %}{% endif %}'); background-size: cover; background-position: top center; background-repeat: no-repeat;{% endblock %} flex-grow: 1; display: flex; flex-direction: column;">
-        <main class="container my-4 flex-grow-1">
+        <main class="container my-3 my-md-4 px-2 px-sm-3 flex-grow-1">
             {% block content %}
             {% endblock %}
         </main>

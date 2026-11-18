@@ -13,7 +13,24 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 
 ---
 
-## [v2.10.0] - 2026-11-17 (Current Release)
+## [v2.11.0] - 2026-11-18 (Current Release)
+
+### 🎯 Milestone Highlights
+- **Mobile Responsive "Mina Tips" Layout (`< 768px` / Narrow iPhone)**:
+  - Preserved the symmetrical **`Home team | Flag | Score : Score | Flag | Away team`** row structure on narrow screens using CSS Grid on `.group-schedule-table tr.match-row-card` (single DOM, no duplicate inputs) with Date/Time moved to a slim top strip.
+  - Enlarged team flags (`36px × 26px` on mobile, `38px × 28px` on desktop) to align with the score box height, with a `10px` gap between team names and flags.
+  - Reclaimed horizontal space in [`base.html`](templates/tournament/base.html) and [`index.html`](templates/tournament/index.html) (`px-2`, `.pred-card-shell`, responsive `#mainMenuNav`, wrapping tournament banner), hid secondary standings columns (`V`, `O`, `F`, `GM`, `Grupp`) below `576px`, prevented iOS Safari auto-zoom (`1rem` + `inputmode="numeric"`), fixed Knockout tiebreaker overlap, and added a sticky mobile save bar (`.mobile-sticky-save-bar`).
+- **Hub Pool-Admin Card Cleanup**:
+  - Removed per-pool direct buttons in [`hub.html`](templates/tournament/hub.html) to show only the single **Mina Pooler** CTA with hover-only emerald glow (`.btn-pool-admin-glow`).
+
+### 📋 Commits from DEV (v2.10.0 -> v2.11.0)
+| Commit SHA | Type | Description |
+| :--- | :--- | :--- |
+| `pending` | `feat(ui)` | Mobile responsive predictions layout, larger flags, sticky save bar, and hub Pool-Admin cleanup |
+
+---
+
+## [v2.10.0] - 2026-11-17
 
 ### 🎯 Milestone Highlights
 - **Adaptive Group & Knockout Import Architecture**:
