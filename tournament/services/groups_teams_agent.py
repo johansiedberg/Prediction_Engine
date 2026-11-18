@@ -61,6 +61,14 @@ class GroupsTeamsAgent:
         """
         audit = dict(audit_data or {})
         raw_groups = audit.get("groups") or []
+        if raw_groups and not re.search(r'\bdivision\s+(?:i{1,3}|iv|[1-4])\b', tournament_name or "", re.I):
+            filtered = [
+                g for g in raw_groups
+                if not re.match(r'^\s*division\s+(?:i{1,3}|iv|[1-4])\b', (g.get("name") or ""), re.I)
+            ]
+            if filtered:
+                raw_groups = filtered
+                audit["groups"] = raw_groups
         # 0. Fixtures Fallback: Reconstruct groups from audited match fixtures if available
         fixtures = audit.get("fixtures") or audit.get("group_matches") or audit.get("fixtures_sample") or []
         from tournament.services.scout_service import has_real_teams as check_real_teams

@@ -941,6 +941,27 @@
                                                     </a>
                                                 {% endif %}
                                             </div>
+
+                                            {% if item.prospect.provenance_metadata.fields %}
+                                            <!-- ROW 4: Per-Field Multi-Channel Verification Chips -->
+                                            <div class="d-flex flex-wrap align-items-center gap-1.5 mt-2">
+                                                {% for f_key, f_meta in item.prospect.provenance_metadata.fields.items %}
+                                                    {% if f_meta.status == 'VERIFIED' %}
+                                                    <span class="badge d-inline-flex align-items-center py-1 px-2 rounded-pill font-monospace" style="font-size:0.68rem;background:#052E16;border:1px solid #15803D;color:#DCFCE7;" title="Verifierad källa: {{ f_meta.source }}{% if f_meta.note %} — {{ f_meta.note }}{% endif %}">
+                                                        <i class="fa-solid fa-circle-check me-1.5"></i>{% if f_key == 'dates' %}Datum{% elif f_key == 'official_url' %}Officiell URL{% elif f_key == 'groups_teams' %}Lag/Grupper{% elif f_key == 'fixtures' %}Matcher{% else %}{{ f_key }}{% endif %}: {{ f_meta.source|truncatechars:20 }}
+                                                    </span>
+                                                    {% elif f_meta.status == 'CONFLICT' %}
+                                                    <span class="badge d-inline-flex align-items-center py-1 px-2 rounded-pill font-monospace" style="font-size:0.68rem;background:#450A0A;border:1px solid #B91C1C;color:#FEE2E2;" title="{{ f_meta.note|default:'Konflikt mellan källor' }}">
+                                                        <i class="fa-solid fa-triangle-exclamation me-1.5"></i>{% if f_key == 'dates' %}Datum{% elif f_key == 'official_url' %}Officiell URL{% elif f_key == 'groups_teams' %}Lag/Grupper{% elif f_key == 'fixtures' %}Matcher{% else %}{{ f_key }}{% endif %}: Konflikt
+                                                    </span>
+                                                    {% else %}
+                                                    <span class="badge d-inline-flex align-items-center py-1 px-2 rounded-pill font-monospace" style="font-size:0.68rem;background:#451A03;border:1px solid #B45309;color:#FEF3C7;" title="{{ f_meta.note|default:'Endast från Wikipedia — väntar extern verifiering' }}">
+                                                        <i class="fa-solid fa-clock me-1.5"></i>{% if f_key == 'dates' %}Datum{% elif f_key == 'official_url' %}Officiell URL{% elif f_key == 'groups_teams' %}Lag/Grupper{% elif f_key == 'fixtures' %}Matcher{% else %}{{ f_key }}{% endif %}: Wiki-only
+                                                    </span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     </div>
 

@@ -130,7 +130,30 @@ class ScoutAutomationService:
         from tournament.services.official_regulations_verifier import OfficialRegulationsVerifier
         from tournament.services.wikipedia_scout import WikipediaScout
 
-        survey_prospects = list(ScannedTournament.objects.filter(status='WATCHLIST'))
+        watchlist_qs = list(ScannedTournament.objects.filter(status='WATCHLIST'))
+        watchlist_ids = {p.id for p in watchlist_qs}
+        extra_due_b = []
+        for p in ScannedTournament.objects.filter(status='NOT_READY', completeness_grade='GRADE_B'):
+            if p.id in watchlist_ids:
+                continue
+            audit = (p.payload or {}).get('scouting_audit') or {}
+            rescan_str = audit.get('next_rescan_date') or ''
+            draw_str = audit.get('draw_date') or (p.payload or {}).get('draw_date') or ''
+            is_due = False
+            for d_str in (rescan_str, draw_str):
+                if d_str:
+                    try:
+                        if datetime.date.fromisoformat(str(d_str)[:10]) <= today:
+                            is_due = True
+                            break
+                    except Exception:
+                        pass
+            if is_due:
+                extra_due_b.append(p)
+            if len(extra_due_b) >= 5:
+                break
+
+        survey_prospects = watchlist_qs + extra_due_b
         total_found = len(survey_prospects)
 
         accepted_items: List[Dict[str, Any]] = []

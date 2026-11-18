@@ -177,6 +177,11 @@ class ModularDeepScout:
         page_title = self.wiki_scout.get_article_title_from_url(wiki_url)
         if not page_title:
             page_title = scouting_audit.get('wikipedia_title') or ''
+        import re as _re
+        _p_years = _re.findall(r'\b(20\d{2})\b', prospect.name or '')
+        if _p_years and page_title and not any(y in page_title for y in _p_years):
+            page_title = ''
+            wiki_url = ''
         # 1. Discover Official Federation Portal & Ranked Sources via Google Search Grounding
         from tournament.services.official_site_scout import OfficialSiteScout
         ranked_sources = OfficialSiteScout.search_and_rank_tournament_sources(prospect.name, prospect.sport or "Football")
@@ -447,7 +452,73 @@ class ModularDeepScout:
             )
 
 
-        # Grade Evaluation
+        # 6. Multi-Channel Source Verification (Wikipedia as Map, Official/Wikidata/Grounded as Verifier)
+        from tournament.services.source_verifier import TournamentSourceVerifier
+        candidate_map = {
+            "start_date": start_date_obj.isoformat() if start_date_obj else "",
+            "end_date": end_date_obj.isoformat() if end_date_obj else "",
+            "official_website_url": general_seg.official_website_url or official_url,
+            "groups": [
+                {"name": g.name, "teams": [{"name": t.name} for t in g.teams]}
+                for g in (groups_teams_seg.groups or [])
+            ],
+            "has_real_teams": groups_teams_seg.has_real_teams,
+            "fixtures": [
+                {"home_team": m.home_team, "away_team": m.away_team, "date_time": m.date_time}
+                for m in (matches_ko_seg.group_matches or [])
+            ],
+        }
+        verification = TournamentSourceVerifier.verify_map(
+            tournament_name=prospect.name,
+            sport=prospect.sport or "Football",
+            candidate_map=candidate_map,
+            existing_official_url=official_url,
+            wiki_url=general_seg.wikipedia_url or wiki_url,
+            wikidata_qid=general_seg.wikidata_qid or "",
+        )
+
+        # Update official URL & dates from verification
+        verified_url = verification.get("official_source_url") or ""
+        if verified_url:
+            official_url = verified_url
+            general_seg.official_website_url = verified_url
+            prospect.official_source_url = verified_url
+        elif not TournamentSourceVerifier.is_valid_official_candidate(prospect.official_source_url):
+            prospect.official_source_url = ""
+            general_seg.official_website_url = ""
+
+        if verification.get("wikidata_qid") and not general_seg.wikidata_qid:
+            general_seg.wikidata_qid = verification["wikidata_qid"]
+
+        if verification.get("start_date") and not start_date_obj:
+            try:
+                start_date_obj = datetime.date.fromisoformat(verification["start_date"][:10])
+                general_seg.start_date = start_date_obj.isoformat()
+                prospect.start_date = start_date_obj
+            except Exception:
+                pass
+        if verification.get("end_date") and not end_date_obj:
+            try:
+                end_date_obj = datetime.date.fromisoformat(verification["end_date"][:10])
+                general_seg.end_date = end_date_obj.isoformat()
+                prospect.end_date = end_date_obj
+            except Exception:
+                pass
+
+        # Re-enforce 30-day runway check if verification revealed an earlier start_date
+        if start_date_obj and start_date_obj < min_upcoming_date:
+            p_name = prospect.name
+            prospect.delete()
+            return {
+                'ok': False,
+                'error': f"Djupscanning misslyckades: Turneringen '{p_name}' har verifierat startdatum {start_date_obj} (inom 30 dagar / pågående). Endast framtida turneringar accepteras.",
+            }
+
+        verifying_name = verification.get("verifying_source_name")
+        if verifying_name and verifying_name != "Official Source" and verifying_name not in active_sources:
+            active_sources.append(f"Verified Official Source ({verifying_name})")
+
+        # Grade Evaluation (with Consistency Gate)
         has_full_dates = bool(start_date_obj and end_date_obj)
         has_start_date = bool(start_date_obj)
 
@@ -462,7 +533,9 @@ class ModularDeepScout:
             except Exception:
                 pass
 
-        if draw_has_passed or (groups_teams_seg.has_real_teams and groups_teams_seg.groups_count >= 2):
+        if groups_teams_seg.has_real_teams and groups_teams_seg.groups_count >= 2:
+            structure_rules_seg.general_setup.draw_completed = True
+        elif draw_has_passed and groups_teams_seg.has_real_teams:
             structure_rules_seg.general_setup.draw_completed = True
 
         draw_ok = bool(
@@ -485,11 +558,29 @@ class ModularDeepScout:
                 'error': f"Djupscanning misslyckades: Turneringen '{p_name}' saknar datum, spelschema och lag. Turneringen avvisades.",
             }
 
-        if has_full_dates and draw_ok and fixtures_ok and groups_teams_seg.has_real_teams:
+        v_fields = verification.get("fields", {})
+        unverified_labels = [
+            k for k, v in v_fields.items() if v.get("status") != "VERIFIED"
+        ]
+
+        if (
+            has_full_dates
+            and draw_ok
+            and fixtures_ok
+            and groups_teams_seg.has_real_teams
+            and verification.get("all_core_verified")
+            and not verification.get("has_conflict")
+        ):
             final_grade = CompletenessGrade.GRADE_A
             final_reason = (f"Grad A (Redo): Verifierad från officiella källor ({', '.join(active_sources)}). "
                             f"({start_date_obj} – {end_date_obj}, {matches_ko_seg.total_matches} matcher, "
                             f"{groups_teams_seg.teams_count} lag i {groups_teams_seg.groups_count} grupper verifierade).")
+        elif has_full_dates and draw_ok and fixtures_ok and groups_teams_seg.has_real_teams:
+            final_grade = CompletenessGrade.GRADE_B
+            final_reason = (
+                f"Grad B (Ej fullt verifierad): Struktur och {matches_ko_seg.total_matches} matcher hittade, "
+                f"men väntar extern verifiering för: {', '.join(unverified_labels) or 'officiell källa'}."
+            )
         elif has_start_date and (not draw_ok or not groups_teams_seg.has_real_teams):
             final_grade = CompletenessGrade.GRADE_B
             draw_date_str = structure_rules_seg.general_setup.draw_date or ''
@@ -526,6 +617,7 @@ class ModularDeepScout:
         prospect.sport = head_seg.sport or prospect.sport
         prospect.logo_url = general_seg.emblem.logo_url or prospect.logo_url
         prospect.backdrop_url = general_seg.backdrop.backdrop_url or prospect.backdrop_url
+        prospect.provenance_metadata = verification
 
         if final_grade == CompletenessGrade.GRADE_A:
             prospect.status = 'READY'
@@ -553,4 +645,5 @@ class ModularDeepScout:
             'draw_completed': structure_rules_seg.general_setup.draw_completed,
             'draw_date': structure_rules_seg.general_setup.draw_date or '',
             'scheduled_matchdays': len(matches_ko_seg.group_matches),
+            'verification': verification,
         }

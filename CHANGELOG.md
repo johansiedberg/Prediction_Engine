@@ -13,7 +13,23 @@ It serves as the definitive reference for developers and the autonomous **AntiGr
 
 ---
 
-## [v2.11.0] - 2026-11-18 (Current Release)
+## [v2.12.0] - 2026-11-18 (Current Release)
+
+### 🎯 Milestone Highlights
+- **Wikipedia-as-Map + Multi-Channel Source Verifier**:
+  - Added [`TournamentSourceVerifier`](tournament/services/source_verifier.py) (`VERIFIED` / `WIKIPEDIA_ONLY` / `CONFLICT` per-field provenance) with HTTP URL health validation (`OK` / `WAF_BLOCKED` / `DEAD`), Wikidata `Special:EntityData` claim extraction, and Search-Grounded verification via `GeminiScoutService.generate_json(search_grounding=True)`.
+  - Wired verification, cached umbrella `wiki_url` guard, verified-date 30-day runway re-check, and Consistency Gate into [`ModularDeepScout`](tournament/services/modular_deep_scout.py) (`GRADE_A` now requires non-Wikipedia verification for all core fields).
+  - Added edition-year matching in [`WikipediaScout.search_wikipedia_article`](tournament/services/wikipedia_scout.py), `Division I–IV` pollution filtering in [`GroupsTeamsAgent`](tournament/services/groups_teams_agent.py), due `GRADE_B` refresh in [`ScoutAutomationService.run_weekly_survey_scan`](tournament/services/scout_automation_service.py), and per-field verification chips in [`engine_admin.html`](templates/tournament/engine_admin.html).
+  - Added 6 unit tests in [`tournament/test_source_verifier.py`](tournament/test_source_verifier.py).
+
+### 📋 Commits from DEV (v2.11.0 -> v2.12.0)
+| Commit SHA | Type | Description |
+| :--- | :--- | :--- |
+| `pending` | `feat(scout)` | Decouple Wikipedia via Map + Multi-Channel Verifier, consistency-gated grading, and provenance chips |
+
+---
+
+## [v2.11.0] - 2026-11-18
 
 ### 🎯 Milestone Highlights
 - **Mobile Responsive "Mina Tips" Layout (`< 768px` / Narrow iPhone)**:

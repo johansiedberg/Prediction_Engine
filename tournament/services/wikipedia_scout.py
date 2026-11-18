@@ -42,12 +42,13 @@ class WikipediaScout:
         queries Swedish Wikipedia and resolves interlanguage langlinks to English title.
         """
         query = f"{tournament_name} {year}" if year else tournament_name
+        target_years = re.findall(r'\b(20\d{2})\b', query)
         params = {
             'action': 'query',
             'list': 'search',
             'srsearch': query,
             'format': 'json',
-            'srlimit': 3
+            'srlimit': 5
         }
         try:
             res = requests.get(self.base_url, headers=self.headers, params=params, timeout=10)
@@ -55,6 +56,13 @@ class WikipediaScout:
                 data = res.json()
                 results = data.get('query', {}).get('search', [])
                 if results:
+                    if target_years:
+                        for item in results:
+                            title = item.get('title', '')
+                            if any(y in title for y in target_years):
+                                return title
+                        # Do not return a generic undated umbrella page when a specific year was requested
+                        return None
                     return results[0].get('title')
         except Exception as e:
             logger.error(f"Wikipedia search error for '{query}': {e}")
